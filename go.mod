@@ -8,7 +8,14 @@ tool (
 	honnef.co/go/tools/cmd/staticcheck
 )
 
-require github.com/go-git/go-git/v5 v5.17.0
+require (
+	github.com/go-git/go-git/v5 v5.17.0
+	github.com/rs/zerolog v1.34.0
+	github.com/samber/lo v1.52.0
+	github.com/samber/oops/loggers/zerolog v0.0.0-20260225193831-1a99714a330e
+	github.com/samber/slog-zerolog/v2 v2.9.1
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
+)
 
 require (
 	4d63.com/gocheckcompilerdirectives v1.3.0 // indirect
@@ -226,6 +233,7 @@ require (
 	github.com/nishanths/exhaustive v0.12.0 // indirect
 	github.com/nishanths/predeclared v0.2.2 // indirect
 	github.com/nunnatsa/ginkgolinter v0.23.0 // indirect
+	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/pelletier/go-toml v1.9.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/pierrec/lz4/v4 v4.1.22 // indirect
@@ -248,6 +256,8 @@ require (
 	github.com/ryancurrah/gomodguard v1.4.1 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.5.1 // indirect
 	github.com/sajari/fuzzy v1.0.0 // indirect
+	github.com/samber/oops v1.21.0 // indirect
+	github.com/samber/slog-common v0.20.0 // indirect
 	github.com/sanposhiho/wastedassign/v2 v2.1.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect
 	github.com/sashamelentyev/interfacebloat v1.1.0 // indirect

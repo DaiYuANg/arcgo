@@ -7,9 +7,10 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/toolkit4go/httpx"
+	"github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
 	"github.com/DaiYuANg/toolkit4go/httpx/options"
-	"github.com/DaiYuANg/toolkit4go/httpx/options/adapteroptions"
 	"github.com/DaiYuANg/toolkit4go/logx"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 // UserEndpoint 用户端点
@@ -53,61 +54,30 @@ func main() {
 	serverOpts.ReadTimeout = 15 * time.Second
 	serverOpts.WriteTimeout = 15 * time.Second
 	serverOpts.IdleTimeout = 60 * time.Second
-	serverOpts.EnablePanicRecover = true
-	serverOpts.EnableAccessLog = true
-	serverOpts.Middlewares = append(serverOpts.Middlewares,
-		// 添加自定义中间件
-		func(next httpx.HandlerFunc) httpx.HandlerFunc {
-			return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-				fmt.Println("Custom middleware:", r.Method, r.URL.Path)
-				return next(ctx, w, r)
-			}
-		},
+
+	// 创建适配器
+	stdAdapter := std.New().WithLogger(slogLogger)
+
+	// 【重要】使用 chi 原生方式注册中间件
+	stdAdapter.Router().Use(
+		middleware.Logger,
+		middleware.Recoverer,
+		middleware.RequestID,
 	)
 
-	server1 := httpx.NewServer(serverOpts.Build()...)
+	server1 := httpx.NewServer(append(serverOpts.Build(), httpx.WithAdapter(stdAdapter))...)
 	_ = server1.Register(&UserEndpoint{})
 
-	// 示例 2: 使用 Adapter Options (Gin)
-	fmt.Println("\n=== Example 2: Using Gin Adapter Options ===")
-	ginAdapter := adapteroptions.DefaultGinOptions().Build()
-	server2 := httpx.NewServer(
-		httpx.WithAdapter(ginAdapter),
-		httpx.WithLogger(slogLogger),
-		httpx.WithPrintRoutes(true),
-	)
-	_ = server2.Register(&UserEndpoint{})
-
-	// 示例 3: 使用 Adapter Options (Echo)
-	fmt.Println("\n=== Example 3: Using Echo Adapter Options ===")
-	echoAdapter := adapteroptions.DefaultEchoOptions().Build()
-	server3 := httpx.NewServer(
-		httpx.WithAdapter(echoAdapter),
-		httpx.WithLogger(slogLogger),
-		httpx.WithPrintRoutes(true),
-	)
-	_ = server3.Register(&UserEndpoint{})
-
-	// 示例 4: 使用 Adapter Options (Fiber)
-	fmt.Println("\n=== Example 4: Using Fiber Adapter Options ===")
-	fiberAdapter := adapteroptions.DefaultFiberOptions().Build()
-	server4 := httpx.NewServer(
-		httpx.WithAdapter(fiberAdapter),
-		httpx.WithLogger(slogLogger),
-		httpx.WithPrintRoutes(true),
-	)
-	_ = server4.Register(&UserEndpoint{})
-
-	// 示例 5: 使用 HTTP Client Options
-	fmt.Println("\n=== Example 5: Using HTTP Client Options ===")
+	// 示例 2: 使用 HTTP Client Options
+	fmt.Println("\n=== Example 2: Using HTTP Client Options ===")
 	clientOpts := &options.HTTPClientOptions{
 		Timeout: 30 * time.Second,
 	}
 	client := clientOpts.Build()
 	fmt.Printf("HTTP Client Timeout: %v\n", client.Timeout)
 
-	// 示例 6: 使用 Context Options
-	fmt.Println("\n=== Example 6: Using Context Options ===")
+	// 示例 3: 使用 Context Options
+	fmt.Println("\n=== Example 3: Using Context Options ===")
 	ctxOpts := &options.ContextOptions{
 		Timeout:       5 * time.Second,
 		CancelOnPanic: true,

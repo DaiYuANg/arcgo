@@ -7,38 +7,52 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
+	"github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
 	"github.com/samber/lo"
 )
 
 // Server HTTP 服务器
+//
+// 设计理念：
+// 1. httpx 核心职责：减少样板代码，方便路由注册和管理
+// 2. 中间件：直接使用各框架的原生方式注册
+// 3. 适配器：提供底层框架的原生访问接口（如 Engine()、App()、Router()）
+//
+// 使用示例（Gin）：
+//
+//	// 创建适配器
+//	ginAdapter := gin.New()
+//	// 使用 Gin 原生方式注册中间件
+//	ginAdapter.Engine().Use(gin.Logger(), yourMiddleware...)
+//	// 创建 server 并注册业务路由
+//	server := httpx.NewServer(httpx.WithAdapter(ginAdapter))
+//	server.Register(&YourEndpoint{})
 type Server struct {
-	adapter     Adapter
+	adapter     adapter.Adapter
 	generator   *RouterGenerator
-	middleware  []MiddlewareFunc
 	basePath    string
 	routes      []RouteInfo
 	logger      *slog.Logger
 	printRoutes bool
-	humaOpts    HumaOptions
+	humaOpts    adapter.HumaOptions
 }
 
 // ServerOption Server 配置选项
 type ServerOption func(*Server)
 
 // WithAdapter 设置适配器
-func WithAdapter(adapter Adapter) ServerOption {
+func WithAdapter(adapter adapter.Adapter) ServerOption {
 	return func(s *Server) {
 		s.adapter = adapter
 	}
 }
 
-// WithAdapterName 通过名称设置适配器
+// WithAdapterName 通过名称设置适配器（已废弃，请使用 WithAdapter）
+// Deprecated: 请直接使用各框架的 adapter 子包，如 adapter/gin.New()
 func WithAdapterName(name string) ServerOption {
 	return func(s *Server) {
-		adapter, err := Create(name)
-		if err == nil {
-			s.adapter = adapter
-		}
+		s.logger.Warn("WithAdapterName is deprecated, use adapter subpackages directly")
 	}
 }
 
@@ -54,13 +68,6 @@ func WithBasePath(path string) ServerOption {
 	return func(s *Server) {
 		s.basePath = path
 		s.generator.opts.BasePath = path
-	}
-}
-
-// WithMiddleware 注册中间件
-func WithMiddleware(middlewares ...MiddlewareFunc) ServerOption {
-	return func(s *Server) {
-		s.middleware = append(s.middleware, middlewares...)
 	}
 }
 
@@ -81,7 +88,7 @@ func WithPrintRoutes(enabled bool) ServerOption {
 // WithHuma 配置 Huma OpenAPI 文档
 func WithHuma(opts HumaOptions) ServerOption {
 	return func(s *Server) {
-		s.humaOpts = opts
+		s.humaOpts = adapter.HumaOptions(opts)
 	}
 }
 
@@ -98,7 +105,8 @@ func NewServer(opts ...ServerOption) *Server {
 	})
 
 	if s.adapter == nil {
-		s.adapter = NewStdHTTPAdapter()
+		// 默认使用 std adapter
+		s.adapter = std.New()
 	}
 
 	// 如果启用了 Huma，配置适配器
@@ -106,24 +114,15 @@ func NewServer(opts ...ServerOption) *Server {
 		s.configureAdapterHuma()
 	}
 
-	if len(s.middleware) > 0 {
-		s.adapter.Use(s.middleware...)
-	}
-
 	return s
 }
 
 // configureAdapterHuma 配置适配器的 Huma 支持
 func (s *Server) configureAdapterHuma() {
-	switch adapter := s.adapter.(type) {
-	case *StdHTTPAdapter:
-		adapter.WithHuma(s.humaOpts)
-	case *GinAdapter:
-		adapter.WithHuma(s.humaOpts)
-	case *EchoAdapter:
-		adapter.WithHuma(s.humaOpts)
-	case *FiberAdapter:
-		adapter.WithHuma(s.humaOpts)
+	if configurable, ok := s.adapter.(interface {
+		WithHuma(adapter.HumaOptions) adapter.Adapter
+	}); ok {
+		configurable.WithHuma(s.humaOpts)
 	}
 }
 
@@ -139,41 +138,11 @@ func (s *Server) Register(endpoints ...interface{}) error {
 		lo.ForEach(routes, func(route RouteInfo, _ int) {
 			s.adapter.Handle(route.Method, route.Path, s.wrapHandler(endpoint, route))
 			s.routes = append(s.routes, route)
-
-			// 同步到 Huma OpenAPI
-			s.registerHumaRoute(route)
 		})
 	}
 
 	s.printRoutesIfEnabled()
 	return nil
-}
-
-// registerHumaRoute 注册 Huma OpenAPI 路由
-func (s *Server) registerHumaRoute(route RouteInfo) {
-	operationID := strings.ToUpper(route.Method) + "-" + strings.ReplaceAll(strings.TrimPrefix(route.Path, "/"), "/", "-")
-
-	// 调用适配器的 RegisterHumaRoute 方法
-	switch adapter := s.adapter.(type) {
-	case *StdHTTPAdapter:
-		adapter.RegisterHumaRoute(route.Method, route.Path, operationID)
-	case *GinAdapter:
-		adapter.RegisterHumaRoute(route.Method, route.Path, operationID)
-	case *EchoAdapter:
-		adapter.RegisterHumaRoute(route.Method, route.Path, operationID)
-	case *FiberAdapter:
-		adapter.RegisterHumaRoute(route.Method, route.Path, operationID)
-	}
-}
-
-// HumaInput Huma 输入结构
-type HumaInput struct{}
-
-// HumaOutput Huma 输出结构
-type HumaOutput struct {
-	Body struct {
-		Message string `json:"message"`
-	}
 }
 
 // RegisterWithPrefix 注册 endpoint 并添加路径前缀
@@ -192,7 +161,6 @@ func (s *Server) RegisterWithPrefix(prefix string, endpoints ...interface{}) err
 		lo.ForEach(routes, func(route RouteInfo, _ int) {
 			s.adapter.Handle(route.Method, route.Path, s.wrapHandler(endpoint, route))
 			s.routes = append(s.routes, route)
-			s.registerHumaRoute(route)
 		})
 	}
 
@@ -250,7 +218,7 @@ func (s *Server) RouteCount() int {
 }
 
 // wrapHandler 包装 handler
-func (s *Server) wrapHandler(endpoint interface{}, route RouteInfo) HandlerFunc {
+func (s *Server) wrapHandler(endpoint interface{}, route RouteInfo) adapter.HandlerFunc {
 	v := reflect.ValueOf(endpoint)
 	method := v.MethodByName(route.HandlerName)
 
@@ -309,8 +277,8 @@ func (s *Server) ListenAndServe(addr string) error {
 
 	// 如果启用了 Huma，需要组合路由（Fiber 除外）
 	if s.HasHuma() {
-		// Fiber 已经自己处理了 OpenAPI 路由
-		if _, ok := s.adapter.(*FiberAdapter); ok {
+		// 检查是否是 Fiber adapter（通过名称判断）
+		if s.adapter.Name() == "fiber" {
 			return s.startFiberServer(addr)
 		}
 
@@ -318,22 +286,6 @@ func (s *Server) ListenAndServe(addr string) error {
 
 		// 注册应用路由
 		mux.Handle("/", s.adapter)
-
-		// 注册 Huma OpenAPI 路由
-		switch adapter := s.adapter.(type) {
-		case *StdHTTPAdapter:
-			if svc := adapter.HumaService(); svc != nil {
-				svc.RegisterHandler(mux, "/docs", "/openapi.json")
-			}
-		case *GinAdapter:
-			if svc := adapter.HumaService(); svc != nil {
-				svc.RegisterHandler(mux, "/docs", "/openapi.json")
-			}
-		case *EchoAdapter:
-			if svc := adapter.HumaService(); svc != nil {
-				svc.RegisterHandler(mux, "/docs", "/openapi.json")
-			}
-		}
 
 		return http.ListenAndServe(addr, mux)
 	}
@@ -343,8 +295,12 @@ func (s *Server) ListenAndServe(addr string) error {
 
 // startFiberServer 启动 Fiber 服务器
 func (s *Server) startFiberServer(addr string) error {
-	if adapter, ok := s.adapter.(*FiberAdapter); ok {
-		return adapter.App().Listen(addr)
+	// Fiber adapter 有自己的 Listen 方法
+	// 通过类型断言获取 App 并调用 Listen
+	if adapter, ok := s.adapter.(interface{ App() interface{} }); ok {
+		if app, ok := adapter.App().(interface{ Listen(string) error }); ok {
+			return app.Listen(addr)
+		}
 	}
 	return nil
 }
@@ -368,7 +324,7 @@ func (s *Server) ListenAndServeContext(ctx context.Context, addr string) error {
 }
 
 // Adapter 返回适配器
-func (s *Server) Adapter() Adapter {
+func (s *Server) Adapter() adapter.Adapter {
 	return s.adapter
 }
 
@@ -379,16 +335,8 @@ func (s *Server) Logger() *slog.Logger {
 
 // HasHuma 检查是否启用了 Huma
 func (s *Server) HasHuma() bool {
-	switch adapter := s.adapter.(type) {
-	case *StdHTTPAdapter:
-		return adapter.HasHuma()
-	case *GinAdapter:
-		return adapter.HasHuma()
-	case *EchoAdapter:
-		return adapter.HasHuma()
-	case *FiberAdapter:
-		return adapter.HasHuma()
-	default:
-		return false
+	if hasHuma, ok := s.adapter.(interface{ HasHuma() bool }); ok {
+		return hasHuma.HasHuma()
 	}
+	return false
 }

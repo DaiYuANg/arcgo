@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/samber/lo"
+	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
 )
 
 // HTTPMethod HTTP 方法常量
@@ -40,43 +40,6 @@ type Endpoint interface {
 // HandlerFunc 通用处理函数签名
 type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 
-// Adapter HTTP 框架适配器接口
-type Adapter interface {
-	Name() string
-	Handle(method, path string, handler HandlerFunc)
-	Group(prefix string) Adapter
-	Use(middlewares ...MiddlewareFunc)
-	ServeHTTP(w http.ResponseWriter, r *http.Request)
-}
-
-// MiddlewareFunc 中间件函数签名
-type MiddlewareFunc func(next HandlerFunc) HandlerFunc
-
-// AdapterFactory 适配器工厂函数
-type AdapterFactory func() Adapter
-
-// Registry 全局适配器注册表
-var Registry = make(map[string]AdapterFactory)
-
-// Register 注册适配器工厂
-func Register(name string, factory AdapterFactory) {
-	Registry[name] = factory
-}
-
-// Create 创建适配器实例
-func Create(name string) (Adapter, error) {
-	factory, ok := Registry[name]
-	if !ok {
-		return nil, ErrAdapterNotFound
-	}
-	return factory(), nil
-}
-
-// RegisteredAdapters 返回所有已注册的适配器名称
-func RegisteredAdapters() []string {
-	return lo.Keys(Registry)
-}
-
 // HumaOptions Huma OpenAPI 配置选项
 type HumaOptions struct {
 	// Enabled 是否启用 OpenAPI 文档
@@ -103,4 +66,9 @@ func DefaultHumaOptions() HumaOptions {
 		DocsPath:    "/docs",
 		OpenAPIPath: "/openapi.json",
 	}
+}
+
+// ToAdapterHumaOptions 将 httpx.HumaOptions 转换为 adapter.HumaOptions
+func ToAdapterHumaOptions(opts HumaOptions) adapter.HumaOptions {
+	return adapter.HumaOptions(opts)
 }

@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/DaiYuANg/toolkit4go/httpx"
+	"github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
 	"github.com/DaiYuANg/toolkit4go/logx"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 // UserEndpoint 用户相关端点
@@ -75,20 +77,29 @@ func main() {
 	// 创建端点实例
 	userEndpoint := &UserEndpoint{}
 
-	// 创建服务器（使用默认的 net/http 适配器）
+	// 创建 std 适配器（基于 chi）
+	stdAdapter := std.New()
+
+	// 使用 chi 原生方式注册中间件
+	stdAdapter.Router().Use(
+		middleware.Logger,
+		middleware.Recoverer,
+		middleware.RequestID,
+	)
+
 	// 启用 Huma OpenAPI 文档
+	stdAdapter.WithHuma(httpx.ToAdapterHumaOptions(httpx.HumaOptions{
+		Enabled:     true,
+		Title:       "My API",
+		Version:     "1.0.0",
+		Description: "API built with httpx",
+	}))
+
+	// 创建服务器
 	server := httpx.NewServer(
+		httpx.WithAdapter(stdAdapter),
 		httpx.WithLogger(slogLogger),
-		httpx.WithMiddleware(httpx.MiddlewareLogger),
-		httpx.WithMiddleware(httpx.MiddlewareRecovery),
-		httpx.WithMiddleware(httpx.MiddlewareCORS("*")),
 		httpx.WithPrintRoutes(true),
-		httpx.WithHuma(httpx.HumaOptions{
-			Enabled:     true,
-			Title:       "My API",
-			Version:     "1.0.0",
-			Description: "API built with httpx",
-		}),
 	)
 
 	// 注册端点

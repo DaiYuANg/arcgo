@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -152,20 +153,21 @@ func TestServer_StdHTTP(t *testing.T) {
 }
 
 // TestServer_WithMiddleware 测试中间件
+// 注意：中间件应该直接使用框架原生方式注册
 func TestServer_WithMiddleware(t *testing.T) {
 	var middlewareCalled bool
 
-	middleware := func(next HandlerFunc) HandlerFunc {
-		return func(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	// 使用 std adapter 直接在 router 上注册中间件
+	stdAdapter := std.New()
+	stdAdapter.Router().Use(func(handler http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			middlewareCalled = true
-			return next(ctx, w, r)
-		}
-	}
+			handler.ServeHTTP(w, r)
+		})
+	})
 
 	endpoint := &TestServerEndpoint{}
-	server := NewServer(
-		WithMiddleware(middleware),
-	)
+	server := NewServer(WithAdapter(stdAdapter))
 
 	err := server.Register(endpoint)
 	assert.NoError(t, err)
@@ -175,7 +177,7 @@ func TestServer_WithMiddleware(t *testing.T) {
 
 	server.ServeHTTP(w, req)
 
-	assert.True(t, middlewareCalled)
+	assert.True(t, middlewareCalled, "middleware should be called")
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
@@ -289,21 +291,9 @@ func TestCamelToPath(t *testing.T) {
 }
 
 // TestAdapterRegistry 测试适配器注册表
+// Deprecated: 适配器已移至独立子包，此测试已过时
 func TestAdapterRegistry(t *testing.T) {
-	// 测试标准适配器已注册
-	adapter, err := Create("std")
-	assert.NoError(t, err)
-	assert.NotNil(t, adapter)
-	assert.Equal(t, "std", adapter.Name())
-
-	// 测试不存在的适配器
-	_, err = Create("nonexistent")
-	assert.Error(t, err)
-	assert.Equal(t, ErrAdapterNotFound, err)
-
-	// 测试已注册的适配器
-	registered := RegisteredAdapters()
-	assert.Contains(t, registered, "std")
+	t.Skip("Adapter registry is deprecated, adapters are now in separate subpackages")
 }
 
 // TestError 测试错误类型

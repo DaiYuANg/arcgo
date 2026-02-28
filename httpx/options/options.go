@@ -8,14 +8,17 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/toolkit4go/httpx"
+	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
 )
 
 // ServerOptions Server 配置选项集合
+//
+// 注意：中间件应该直接使用各框架的原生方式注册
+// 例如：adapter.Engine().Use(yourMiddleware...)
 type ServerOptions struct {
-	Adapter            httpx.Adapter
+	Adapter            adapter.Adapter
 	Logger             *slog.Logger
 	BasePath           string
-	Middlewares        []httpx.MiddlewareFunc
 	PrintRoutes        bool
 	HumaEnabled        bool
 	HumaTitle          string
@@ -60,7 +63,7 @@ func Compose(opts ...ServerOption) ServerOption {
 }
 
 // WithAdapter 设置适配器
-func WithAdapter(adapter httpx.Adapter) ServerOption {
+func WithAdapter(adapter adapter.Adapter) ServerOption {
 	return func(o *ServerOptions) {
 		o.Adapter = adapter
 	}
@@ -77,13 +80,6 @@ func WithLogger(logger *slog.Logger) ServerOption {
 func WithBasePath(path string) ServerOption {
 	return func(o *ServerOptions) {
 		o.BasePath = path
-	}
-}
-
-// WithMiddleware 添加中间件
-func WithMiddleware(mws ...httpx.MiddlewareFunc) ServerOption {
-	return func(o *ServerOptions) {
-		o.Middlewares = append(o.Middlewares, mws...)
 	}
 }
 
@@ -168,10 +164,6 @@ func (o *ServerOptions) Build() []httpx.ServerOption {
 
 	if o.BasePath != "" {
 		opts = append(opts, httpx.WithBasePath(o.BasePath))
-	}
-
-	if len(o.Middlewares) > 0 {
-		opts = append(opts, httpx.WithMiddleware(o.Middlewares...))
 	}
 
 	if o.HumaEnabled {

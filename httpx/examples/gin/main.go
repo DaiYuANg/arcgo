@@ -6,7 +6,9 @@ import (
 	"net/http"
 
 	"github.com/DaiYuANg/toolkit4go/httpx"
+	"github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
 	"github.com/DaiYuANg/toolkit4go/logx"
+	ginFramework "github.com/gin-gonic/gin"
 )
 
 // UserEndpoint 用户相关端点
@@ -80,21 +82,30 @@ func main() {
 	// 创建端点实例
 	userEndpoint := &UserEndpoint{}
 
-	// 创建 Gin 适配器并启用 Huma OpenAPI 文档
-	ginAdapter := httpx.NewGinAdapter()
-	ginAdapter.WithHuma(httpx.HumaOptions{
+	// 创建 Gin 适配器
+	// 核心思路：httpx 负责路由注册，中间件使用 Gin 原生方式
+	ginAdapter := gin.New()
+
+	// 【重要】使用 Gin 原生方式注册中间件
+	// 你可以使用任何 Gin 生态的中间件
+	ginAdapter.Engine().Use(
+		ginFramework.Logger(),   // Gin 原生日志中间件
+		ginFramework.Recovery(), // Gin 原生恢复中间件
+		yourCustomMiddleware(),  // 你的自定义中间件
+	)
+
+	// 启用 Huma OpenAPI 文档（可选）
+	ginAdapter.WithHuma(httpx.ToAdapterHumaOptions(httpx.HumaOptions{
 		Enabled:     true,
 		Title:       "My API",
 		Version:     "1.0.0",
 		Description: "API built with httpx (Gin adapter)",
-	})
+	}))
 
 	// 创建服务器
 	server := httpx.NewServer(
 		httpx.WithAdapter(ginAdapter),
 		httpx.WithLogger(slogLogger),
-		httpx.WithMiddleware(httpx.MiddlewareLogger),
-		httpx.WithMiddleware(httpx.MiddlewareRecovery),
 		httpx.WithPrintRoutes(true),
 	)
 
@@ -132,9 +143,21 @@ func main() {
 	fmt.Println("Server starting on :8080")
 	fmt.Println("Adapter: Gin")
 
-	// 启动服务器（使用 server.ListenAndServe 以支持 Huma OpenAPI）
+	// 启动服务器
 	err = server.ListenAndServe(":8080")
 	if err != nil {
 		panic(err)
+	}
+}
+
+// yourCustomMiddleware 示例自定义中间件
+// 你可以使用任何 Gin 生态的中间件，如：
+// - github.com/gin-contrib/cors
+// - github.com/gin-contrib/jwt
+// - github.com/gin-contrib/gzip
+func yourCustomMiddleware() ginFramework.HandlerFunc {
+	return func(c *ginFramework.Context) {
+		// 你的逻辑
+		c.Next()
 	}
 }

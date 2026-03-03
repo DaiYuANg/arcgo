@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -343,5 +344,41 @@ func TestOopsIntegration(t *testing.T) {
 	err = logger.OopsWith(ctx)
 	if err == nil {
 		t.Error("Expected error")
+	}
+}
+
+func TestOopsf(t *testing.T) {
+	logger, err := New(WithConsole(true), WithLevel(DebugLevel))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger.Close()
+
+	oopsErr := logger.Oopsf("user.%s", "not_found")
+	if oopsErr == nil {
+		t.Fatal("expected non-nil error")
+	}
+	if !strings.Contains(oopsErr.Error(), "user.not_found") {
+		t.Fatalf("unexpected error message: %s", oopsErr.Error())
+	}
+}
+
+func TestWithCallerOption(t *testing.T) {
+	logger1, err := New(WithConsole(true), WithCaller(false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger1.Close()
+	if logger1.Config().addCaller {
+		t.Fatal("expected caller to be disabled")
+	}
+
+	logger2, err := New(WithConsole(true), WithCaller(true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer logger2.Close()
+	if !logger2.Config().addCaller {
+		t.Fatal("expected caller to be enabled")
 	}
 }

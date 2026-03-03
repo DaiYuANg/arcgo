@@ -34,15 +34,31 @@ func loadDotenv(k *koanf.Koanf, files []string, ignoreErr bool) error {
 // 支持将环境变量映射到 koanf 的 key (使用 . 作为分隔符)
 // 例如：APP_DATABASE_HOST=db.example.com -> database.host
 func loadEnv(k *koanf.Koanf, prefix string) error {
+	normalizedPrefix := normalizeEnvPrefix(prefix)
+
 	p := envProvider.Provider(".", envProvider.Opt{
-		Prefix: prefix,
+		Prefix: normalizedPrefix,
 		TransformFunc: func(k, v string) (string, any) {
+			keyWithoutPrefix := strings.TrimPrefix(k, normalizedPrefix)
+			keyWithoutPrefix = strings.TrimPrefix(keyWithoutPrefix, "_")
+
 			// 转换为小写并将 _ 替换为 .
-			key := strings.ReplaceAll(strings.ToLower(k), "_", ".")
+			key := strings.ReplaceAll(strings.ToLower(keyWithoutPrefix), "_", ".")
 			return key, v
 		},
 		EnvironFunc: os.Environ,
 	})
 
 	return k.Load(p, nil)
+}
+
+func normalizeEnvPrefix(prefix string) string {
+	clean := strings.TrimSpace(prefix)
+	if clean == "" {
+		return ""
+	}
+	if strings.HasSuffix(clean, "_") {
+		return clean
+	}
+	return clean + "_"
 }

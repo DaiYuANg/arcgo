@@ -96,3 +96,8 @@ func WithValidator(v *validator.Validate) Option {
 func WithValidateLevel(level ValidateLevel) Option {
 	return func(o *Options) { o.validateLevel = level }
 }
+
+// WithIgnoreDotenvError 设置是否忽略 .env 加载错误
+func WithIgnoreDotenvError(ignore bool) Option {
+	return func(o *Options) { o.ignoreDotenvErr = ignore }
+}

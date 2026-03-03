@@ -2,6 +2,7 @@ package logx
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/samber/oops"
 )
@@ -28,10 +29,15 @@ func (l *Logger) Oops() error {
 
 // Oopsf 创建带格式化的 oops 错误
 func (l *Logger) Oopsf(format string, args ...interface{}) error {
-	return oops.New("error")
+	msg := fmt.Sprintf(format, args...)
+	if msg == "" {
+		msg = "error"
+	}
+	return oops.New(msg)
 }
 
 // OopsWith 创建带 context 的 oops 错误
 func (l *Logger) OopsWith(ctx context.Context) error {
+	_ = ctx
 	return oops.New("error")
 }

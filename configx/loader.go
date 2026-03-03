@@ -29,46 +29,7 @@ func (l *Loader) LoadConfig() (*Config, error) {
 }
 
 func (l *Loader) loadInternal() (*Config, error) {
-	k := koanf.New(".")
-
-	// 加载默认值（map 形式）
-	if l.opts.defaults.IsPresent() {
-		defaults, _ := l.opts.defaults.Get()
-		if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
-			return nil, err
-		}
-	}
-
-	// 加载默认值（struct 形式）
-	if l.opts.defaultsStruct != nil {
-		defaultMap, err := structToMap(l.opts.defaultsStruct)
-		if err != nil {
-			return nil, err
-		}
-		if err := k.Load(confmap.Provider(defaultMap, "."), nil); err != nil {
-			return nil, err
-		}
-	}
-
-	// 按优先级加载
-	for _, src := range l.opts.priority {
-		switch src {
-		case SourceDotenv:
-			if err := loadDotenv(k, l.opts.dotenvFiles, l.opts.ignoreDotenvErr); err != nil {
-				return nil, err
-			}
-		case SourceFile:
-			if err := loadFiles(k, l.opts.files); err != nil {
-				return nil, err
-			}
-		case SourceEnv:
-			if err := loadEnv(k, l.opts.envPrefix); err != nil {
-				return nil, err
-			}
-		}
-	}
-
-	return newConfig(k, l.opts), nil
+	return loadConfigFromOptions(l.opts)
 }
 
 // New 创建非泛型加载器
@@ -108,19 +69,23 @@ func (l *LoaderT[T]) LoadConfig() (*Config, error) {
 }
 
 func (l *LoaderT[T]) loadInternal() (*Config, error) {
+	return loadConfigFromOptions(l.opts)
+}
+
+func loadConfigFromOptions(opts *Options) (*Config, error) {
 	k := koanf.New(".")
 
 	// 加载默认值（map 形式）
-	if l.opts.defaults.IsPresent() {
-		defaults, _ := l.opts.defaults.Get()
+	if opts.defaults.IsPresent() {
+		defaults, _ := opts.defaults.Get()
 		if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
 			return nil, err
 		}
 	}
 
 	// 加载默认值（struct 形式）
-	if l.opts.defaultsStruct != nil {
-		defaultMap, err := structToMap(l.opts.defaultsStruct)
+	if opts.defaultsStruct != nil {
+		defaultMap, err := structToMap(opts.defaultsStruct)
 		if err != nil {
 			return nil, err
 		}
@@ -130,24 +95,24 @@ func (l *LoaderT[T]) loadInternal() (*Config, error) {
 	}
 
 	// 按优先级加载
-	for _, src := range l.opts.priority {
+	for _, src := range opts.priority {
 		switch src {
 		case SourceDotenv:
-			if err := loadDotenv(k, l.opts.dotenvFiles, l.opts.ignoreDotenvErr); err != nil {
+			if err := loadDotenv(k, opts.dotenvFiles, opts.ignoreDotenvErr); err != nil {
 				return nil, err
 			}
 		case SourceFile:
-			if err := loadFiles(k, l.opts.files); err != nil {
+			if err := loadFiles(k, opts.files); err != nil {
 				return nil, err
 			}
 		case SourceEnv:
-			if err := loadEnv(k, l.opts.envPrefix); err != nil {
+			if err := loadEnv(k, opts.envPrefix); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	return newConfig(k, l.opts), nil
+	return newConfig(k, opts), nil
 }
 
 // NewT 创建泛型配置加载器

@@ -3,7 +3,7 @@ package std
 import (
 	"log/slog"
 	"net/http"
-	"sync"
+	"strings"
 
 	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
 	"github.com/danielgtaylor/huma/v2"
@@ -19,8 +19,7 @@ import (
 // 3. 创建 httpx server 并注册路由
 type Adapter struct {
 	router  *chi.Mux
-	routes  map[string]http.HandlerFunc
-	mu      sync.RWMutex
+	prefix  string
 	logger  *slog.Logger
 	huma    huma.API
 	humaCfg adapter.HumaOptions
@@ -32,7 +31,6 @@ func New() *Adapter {
 
 	return &Adapter{
 		router: router,
-		routes: make(map[string]http.HandlerFunc),
 		logger: slog.Default(),
 	}
 }
@@ -57,32 +55,19 @@ func (a *Adapter) Name() string {
 
 // Handle 注册业务处理函数
 func (a *Adapter) Handle(method, path string, handler adapter.HandlerFunc) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	key := method + " " + path
-	a.routes[key] = a.wrapHandler(handler)
-
-	a.router.Method(method, path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		a.mu.RLock()
-		h, ok := a.routes[method+" "+path]
-		a.mu.RUnlock()
-
-		if !ok {
-			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-			return
-		}
-		h(w, r)
-	}))
+	fullPath := joinPath(a.prefix, path)
+	a.router.Method(method, fullPath, a.wrapHandler(handler))
 }
 
 // Group 创建路由组
 func (a *Adapter) Group(prefix string) adapter.Adapter {
-	// chi 的 Group 会创建一个新的 RouterGroup，但共享底层 mux
+	nextPrefix := a.prefix
+	if prefix != "" && prefix != "/" {
+		nextPrefix = joinPath(a.prefix, prefix)
+	}
 	return &Adapter{
-		router:  chi.NewRouter(), // 简化处理，创建新的 router
-		routes:  a.routes,
-		mu:      a.mu,
+		router:  a.router,
+		prefix:  nextPrefix,
 		logger:  a.logger,
 		huma:    a.huma,
 		humaCfg: a.humaCfg,
@@ -123,4 +108,25 @@ func (a *Adapter) HumaAPI() huma.API {
 // HasHuma 检查是否启用了 Huma
 func (a *Adapter) HasHuma() bool {
 	return a.huma != nil
+}
+
+func joinPath(prefix, path string) string {
+	cleanPrefix := strings.TrimRight(prefix, "/")
+	if cleanPrefix == "" {
+		if path == "" {
+			return "/"
+		}
+		if strings.HasPrefix(path, "/") {
+			return path
+		}
+		return "/" + path
+	}
+
+	if path == "" || path == "/" {
+		return cleanPrefix
+	}
+	if strings.HasPrefix(path, "/") {
+		return cleanPrefix + path
+	}
+	return cleanPrefix + "/" + path
 }

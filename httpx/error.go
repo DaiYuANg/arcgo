@@ -11,6 +11,7 @@ var (
 	ErrAdapterNotFound    = errors.New("httpx: adapter not found")
 	ErrInvalidEndpoint    = errors.New("httpx: invalid endpoint struct")
 	ErrInvalidHandlerName = errors.New("httpx: invalid handler function name")
+	ErrInvalidHandlerSig  = errors.New("httpx: invalid handler signature")
 	ErrRouteNotRegistered = errors.New("httpx: route not registered")
 )
 
@@ -60,4 +61,9 @@ func IsAdapterNotFound(err error) bool {
 // IsInvalidEndpoint 检查错误是否为 ErrInvalidEndpoint
 func IsInvalidEndpoint(err error) bool {
 	return errors.Is(err, ErrInvalidEndpoint)
+}
+
+// IsInvalidHandlerSignature 检查错误是否为 ErrInvalidHandlerSig
+func IsInvalidHandlerSignature(err error) bool {
+	return errors.Is(err, ErrInvalidHandlerSig)
 }

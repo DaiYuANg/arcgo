@@ -93,12 +93,16 @@ func New(opts ...Option) (*Logger, error) {
 	mw := io.MultiWriter(writers...)
 
 	// 创建 zerolog logger
-	z := zerolog.New(mw).
+	builder := zerolog.New(mw).
 		Level(level).
 		With().
-		Timestamp().
-		Caller().
-		Logger()
+		Timestamp()
+
+	if cfg.addCaller {
+		builder = builder.Caller()
+	}
+
+	z := builder.Logger()
 
 	// 设置 oops 的 zerolog 集成
 	zerolog.ErrorStackMarshaler = oopszerolog.OopsStackMarshaller

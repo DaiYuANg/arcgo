@@ -94,3 +94,29 @@ func TestGetters(t *testing.T) {
 	assert.True(t, cfg.Exists("app.name"))
 	assert.False(t, cfg.Exists("missing"))
 }
+
+func TestWithIgnoreDotenvError(t *testing.T) {
+	var cfg SimpleConfig
+	err := Load(&cfg,
+		WithDotenv("not-exists.env"),
+		WithIgnoreDotenvError(false),
+		WithPriority(SourceDotenv),
+	)
+	assert.Error(t, err)
+}
+
+func TestEnvPrefixWithoutTrailingUnderscore(t *testing.T) {
+	t.Setenv("APP_NAME", "env-app")
+	t.Setenv("APP_PORT", "8088")
+
+	result := LoadT[SimpleConfig](
+		WithEnvPrefix("APP"),
+		WithPriority(SourceEnv),
+	)
+	assert.True(t, result.IsOk())
+
+	cfg, err := result.Get()
+	assert.NoError(t, err)
+	assert.Equal(t, "env-app", cfg.Name)
+	assert.Equal(t, 8088, cfg.Port)
+}

@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 	"unicode"
 
@@ -205,7 +206,7 @@ func (g *RouterGenerator) parseHTTPTag(tag, fieldName string) *RouteInfo {
 
 	return &RouteInfo{
 		Method:      method,
-		Path:        g.opts.BasePath + path,
+		Path:        joinRoutePath(g.opts.BasePath, path),
 		HandlerName: fieldName,
 	}
 }
@@ -222,7 +223,16 @@ func (g *RouterGenerator) parseFromNaming(methodName string) *RouteInfo {
 	var prefix string
 	var httpMethod string
 
-	for p, method := range g.opts.MethodPrefixes {
+	prefixes := lo.Keys(g.opts.MethodPrefixes)
+	sort.Slice(prefixes, func(i, j int) bool {
+		if len(prefixes[i]) == len(prefixes[j]) {
+			return prefixes[i] < prefixes[j]
+		}
+		return len(prefixes[i]) > len(prefixes[j])
+	})
+
+	for _, p := range prefixes {
+		method := g.opts.MethodPrefixes[p]
 		if strings.HasPrefix(methodName, p) {
 			prefix = p
 			httpMethod = method
@@ -240,7 +250,7 @@ func (g *RouterGenerator) parseFromNaming(methodName string) *RouteInfo {
 
 	return &RouteInfo{
 		Method:      httpMethod,
-		Path:        g.opts.BasePath + path,
+		Path:        joinRoutePath(g.opts.BasePath, path),
 		HandlerName: methodName,
 	}
 }
@@ -278,4 +288,38 @@ func (g *RouterGenerator) camelToPath(name string) string {
 func (g *RouterGenerator) LoadFromPackage(pkgPath string) mo.Result[[]RouteInfo] {
 	// 此功能需要 AST 分析，暂不实现
 	return mo.Ok([]RouteInfo{})
+}
+
+func joinRoutePath(basePath, path string) string {
+	base := normalizeRoutePrefix(basePath)
+
+	if path == "" {
+		if base == "" {
+			return "/"
+		}
+		return base
+	}
+
+	cleanPath := path
+	if !strings.HasPrefix(cleanPath, "/") {
+		cleanPath = "/" + cleanPath
+	}
+
+	if base == "" {
+		return cleanPath
+	}
+
+	if cleanPath == "/" {
+		return base
+	}
+
+	return base + cleanPath
+}
+
+func normalizeRoutePrefix(prefix string) string {
+	clean := strings.TrimSpace(prefix)
+	if clean == "" || clean == "/" {
+		return ""
+	}
+	return "/" + strings.Trim(clean, "/")
 }

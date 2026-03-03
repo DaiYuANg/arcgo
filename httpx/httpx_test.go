@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	adapterpkg "github.com/DaiYuANg/toolkit4go/httpx/adapter"
 	"github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
 	"github.com/stretchr/testify/assert"
 )
@@ -324,4 +325,110 @@ func TestErrorHelpers(t *testing.T) {
 
 	assert.True(t, IsInvalidEndpoint(ErrInvalidEndpoint))
 	assert.False(t, IsInvalidEndpoint(ErrAdapterNotFound))
+}
+
+type InvalidParamEndpoint struct {
+	BaseEndpoint
+}
+
+func (e *InvalidParamEndpoint) GetInvalidParam(id int) error {
+	return nil
+}
+
+type InvalidReturnEndpoint struct {
+	BaseEndpoint
+}
+
+func (e *InvalidReturnEndpoint) GetInvalidReturn(ctx context.Context, w http.ResponseWriter, r *http.Request) string {
+	return "ok"
+}
+
+func TestServer_Register_InvalidHandlerSignature(t *testing.T) {
+	server := NewServer()
+
+	err := server.Register(&InvalidParamEndpoint{})
+	assert.Error(t, err)
+	assert.True(t, IsInvalidHandlerSignature(err))
+}
+
+func TestServer_Register_InvalidReturnType(t *testing.T) {
+	server := NewServer()
+
+	err := server.Register(&InvalidReturnEndpoint{})
+	assert.Error(t, err)
+	assert.True(t, IsInvalidHandlerSignature(err))
+}
+
+type PrefixPriorityEndpoint struct{}
+
+func (e *PrefixPriorityEndpoint) GetUser() {}
+
+func TestRouterGenerator_PrefixPriority(t *testing.T) {
+	gen := NewRouterGenerator(GeneratorOptions{
+		UseComment: false,
+		UseTag:     false,
+		UseNaming:  true,
+		TagKey:     "route",
+		MethodPrefixes: map[string]string{
+			"Get":     MethodGet,
+			"GetUser": MethodPost,
+		},
+	})
+
+	routes, err := gen.Generate(&PrefixPriorityEndpoint{}).Get()
+	assert.NoError(t, err)
+	assert.Len(t, routes, 1)
+	assert.Equal(t, MethodPost, routes[0].Method)
+	assert.Equal(t, "/", routes[0].Path)
+}
+
+func TestServer_BasePathNormalization(t *testing.T) {
+	endpoint := &TestServerEndpoint{}
+	server := NewServer(WithBasePath("api/v1/"))
+
+	err := server.Register(endpoint)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(MethodGet, "/api/v1/items", nil)
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+type fakeHumaAdapter struct {
+	lastOpts adapterpkg.HumaOptions
+	enabled  bool
+}
+
+func (f *fakeHumaAdapter) Name() string { return "fake" }
+
+func (f *fakeHumaAdapter) Handle(method, path string, handler adapterpkg.HandlerFunc) {}
+
+func (f *fakeHumaAdapter) Group(prefix string) adapterpkg.Adapter { return f }
+
+func (f *fakeHumaAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
+
+func (f *fakeHumaAdapter) WithHuma(opts adapterpkg.HumaOptions) *fakeHumaAdapter {
+	f.lastOpts = opts
+	f.enabled = true
+	return f
+}
+
+func TestServer_WithHumaOptionCallsAdapter(t *testing.T) {
+	fake := &fakeHumaAdapter{}
+
+	_ = NewServer(
+		WithAdapter(fake),
+		WithHuma(HumaOptions{
+			Enabled: true,
+			Title:   "Test API",
+			Version: "1.0.0",
+		}),
+	)
+
+	assert.True(t, fake.enabled)
+	assert.Equal(t, "Test API", fake.lastOpts.Title)
+	assert.Equal(t, "1.0.0", fake.lastOpts.Version)
 }

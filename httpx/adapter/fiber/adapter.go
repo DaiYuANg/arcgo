@@ -4,15 +4,19 @@ package fiber
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humafiber"
 	"github.com/gofiber/fiber/v2"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
 // Adapter Fiber v2 框架适配器
@@ -62,21 +66,24 @@ func (a *Adapter) registerHumaDocs() {
 		return
 	}
 
+	openAPIPath := normalizeHumaPath(a.humaCfg.OpenAPIPath, "/openapi.json")
+	docsPath := normalizeHumaPath(a.humaCfg.DocsPath, "/docs")
+
 	// OpenAPI JSON
-	a.app.Get("/openapi.json", func(c *fiber.Ctx) error {
+	a.app.Get(openAPIPath, func(c *fiber.Ctx) error {
 		c.Type("json")
 		return c.JSON(a.huma.OpenAPI())
 	})
 
 	// Swagger UI
-	a.app.Get("/docs", func(c *fiber.Ctx) error {
+	a.app.Get(docsPath, func(c *fiber.Ctx) error {
 		c.Type("html")
-		return c.SendString(a.swaggerUIHTML())
+		return c.SendString(a.swaggerUIHTML(openAPIPath))
 	})
 }
 
 // swaggerUIHTML 生成 Swagger UI HTML
-func (a *Adapter) swaggerUIHTML() string {
+func (a *Adapter) swaggerUIHTML(openAPIPath string) string {
 	return `<!DOCTYPE html>
 <html>
 <head>
@@ -88,7 +95,7 @@ func (a *Adapter) swaggerUIHTML() string {
     <div id="swagger-ui"></div>
     <script src="https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
     <script>
-        SwaggerUIBundle({url: "/openapi.json", dom_id: '#swagger-ui'});
+        SwaggerUIBundle({url: "` + openAPIPath + `", dom_id: '#swagger-ui'});
     </script>
 </body>
 </html>`
@@ -123,7 +130,7 @@ func (a *Adapter) Group(prefix string) adapter.Adapter {
 
 // ServeHTTP 实现 http.Handler 接口（Fiber 不支持）
 func (a *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// Fiber 不直接支持此方法
+	http.Error(w, "fiber adapter does not support net/http ServeHTTP; use ListenAndServe", http.StatusNotImplemented)
 }
 
 // App 返回 Fiber 应用
@@ -139,7 +146,7 @@ func (a *Adapter) wrapHandler(handler adapter.HandlerFunc) fiber.Handler {
 		w := &responseWriter{ctx: c}
 		r := convertRequest(c)
 
-		if err := handler(c.Context(), w, r); err != nil {
+		if err := handler(r.Context(), w, r); err != nil {
 			a.logger.Error("Handler error",
 				slog.String("method", c.Method()),
 				slog.String("path", c.Path()),
@@ -163,7 +170,7 @@ func convertRequest(c *fiber.Ctx) *http.Request {
 		header.Add(string(k), string(v))
 	})
 
-	return &http.Request{
+	req := &http.Request{
 		Method:        c.Method(),
 		URL:           u,
 		Header:        header,
@@ -172,6 +179,8 @@ func convertRequest(c *fiber.Ctx) *http.Request {
 		Host:          string(c.Request().Header.Host()),
 		RemoteAddr:    c.IP(),
 	}
+
+	return req.WithContext(userContext(c))
 }
 
 // responseWriter 适配 Fiber 响应
@@ -179,6 +188,7 @@ type responseWriter struct {
 	ctx        *fiber.Ctx
 	statusCode int
 	header     http.Header
+	applied    bool
 }
 
 func (w *responseWriter) Header() http.Header {
@@ -189,13 +199,17 @@ func (w *responseWriter) Header() http.Header {
 }
 
 func (w *responseWriter) Write(b []byte) (int, error) {
-	w.ctx.Response().SetBody(b)
-	return len(b), nil
+	if w.statusCode == 0 {
+		w.ctx.Status(http.StatusOK)
+	}
+	w.applyHeaders()
+	return w.ctx.Write(b)
 }
 
 func (w *responseWriter) WriteHeader(statusCode int) {
 	w.statusCode = statusCode
 	w.ctx.Status(statusCode)
+	w.applyHeaders()
 }
 
 // HumaAPI 返回 Huma API
@@ -206,4 +220,29 @@ func (a *Adapter) HumaAPI() huma.API {
 // HasHuma 检查是否启用了 Huma
 func (a *Adapter) HasHuma() bool {
 	return a.huma != nil
+}
+
+func (w *responseWriter) applyHeaders() {
+	if w.applied || w.header == nil {
+		return
+	}
+	lo.ForEach(lo.Keys(w.header), func(key string, _ int) {
+		values := w.header[key]
+		w.ctx.Response().Header.Del(key)
+		lo.ForEach(values, func(value string, _ int) {
+			w.ctx.Response().Header.Add(key, value)
+		})
+	})
+	w.applied = true
+}
+
+func userContext(c *fiber.Ctx) context.Context {
+	ctx := c.UserContext()
+	return mo.TupleToOption(ctx, ctx != nil).OrElse(context.Background())
+}
+
+func normalizeHumaPath(path, fallback string) string {
+	trimmed := strings.TrimSpace(path)
+	p := mo.TupleToOption(trimmed, trimmed != "").OrElse(fallback)
+	return lo.Ternary(strings.HasPrefix(p, "/"), p, "/"+p)
 }

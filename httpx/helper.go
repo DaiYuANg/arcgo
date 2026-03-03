@@ -3,7 +3,9 @@ package httpx
 import (
 	"context"
 	"encoding/json"
+	"log/slog"
 	"net/http"
+	"reflect"
 
 	"github.com/samber/lo"
 )
@@ -14,27 +16,20 @@ type BaseEndpoint struct{}
 // JSON 返回 JSON 响应
 func (BaseEndpoint) JSON(w http.ResponseWriter, data interface{}, status ...int) {
 	code := lo.FirstOr(status, http.StatusOK)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(data)
+	writeJSON(w, code, data)
 }
 
 // Error 返回错误响应
 func (BaseEndpoint) Error(w http.ResponseWriter, message string, code ...int) {
 	status := lo.FirstOr(code, http.StatusInternalServerError)
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(map[string]string{
+	writeJSON(w, status, map[string]string{
 		"error": message,
 	})
 }
 
 // Success 返回成功响应
 func (BaseEndpoint) Success(w http.ResponseWriter, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"status": "success",
 		"data":   data,
 	})
@@ -106,4 +101,35 @@ func (e *HandlerEndpoint) DeleteUserByID(ctx context.Context, w http.ResponseWri
 		"message": "user deleted",
 	})
 	return nil
+}
+
+func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
+	body, err := json.Marshal(payload)
+	if err != nil {
+		payloadType := "<nil>"
+		if t := reflect.TypeOf(payload); t != nil {
+			payloadType = t.String()
+		}
+		slog.Default().Error(
+			"Failed to marshal JSON response",
+			slog.Int("status", status),
+			slog.String("payload_type", payloadType),
+			slog.String("error", err.Error()),
+		)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+
+	if _, err = w.Write(body); err != nil {
+		slog.Default().Error(
+			"Failed to write JSON response",
+			slog.Int("status", status),
+			slog.Int("bytes", len(body)),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
 }

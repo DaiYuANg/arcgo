@@ -313,6 +313,29 @@ e.Unauthorized(w, "Unauthorized")
 e.Forbidden(w, "Forbidden")
 ```
 
+## 错误日志
+
+`httpx` 在以下内部错误场景会自动打印 `slog` 错误日志：
+
+- `BaseEndpoint.JSON/Success/Error` 在 JSON 序列化失败或响应写回失败时
+- `huma.Service.RegisterHandler` 在 OpenAPI JSON 或 Docs HTML 写回失败时
+
+默认使用 `slog.Default()`。你可以通过 `slog.SetDefault(...)` 统一接入自己的日志系统：
+
+```go
+logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+    Level: slog.LevelInfo,
+}))
+slog.SetDefault(logger)
+```
+
+如果你使用 `huma.Service`，也可以单独注入 logger：
+
+```go
+svc := huma.NewService(api, "My API", "1.0.0", "API docs").
+    WithLogger(logger)
+```
+
 ## 完整示例
 
 ```go

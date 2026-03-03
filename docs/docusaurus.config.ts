@@ -32,7 +32,7 @@ const config: Config = {
   // may want to replace "en" with "zh-Hans'.
   i18n: {
     defaultLocale: 'zh-Hans',
-    locales: ['zh-Hans'],
+    locales: ['zh-Hans', 'en'],
   },
 
   presets: [
@@ -67,6 +67,23 @@ const config: Config = {
       } satisfies Preset.Options,
     ],
   ],
+  plugins: [
+    [
+      require.resolve('@easyops-cn/docusaurus-search-local'),
+      {
+        indexDocs: true,
+        indexBlog: true,
+        indexPages: true,
+        docsRouteBasePath: '/docs',
+        blogRouteBasePath: '/blog',
+        language: ['en', 'zh'],
+        searchBarShortcut: true,
+        searchBarShortcutHint: true,
+        fuzzyMatchingDistance: 1,
+        highlightSearchTermsOnTargetPage: true,
+      },
+    ],
+  ],
 
   themeConfig: {
     // Replace with your project's social card
@@ -88,6 +105,11 @@ const config: Config = {
           label: '文档',
         },
         {to: '/blog', label: '博客', position: 'left'},
+        {type: 'search', position: 'right'},
+        {
+          type: 'localeDropdown',
+          position: 'right',
+        },
         {
           href: 'https://github.com/DaiYuANg/toolkit4go',
           label: 'GitHub',

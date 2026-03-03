@@ -2,6 +2,7 @@ package logx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -24,12 +25,14 @@ type Logger struct {
 
 // Close 关闭日志记录器，释放文件句柄
 func (l *Logger) Close() error {
-	lo.ForEach(l.closers, func(closer io.Closer, _ int) {
-		if closer != nil {
-			_ = closer.Close()
+	errs := lo.FilterMap(l.closers, func(closer io.Closer, _ int) (error, bool) {
+		if closer == nil {
+			return nil, false
 		}
+		err := closer.Close()
+		return err, err != nil
 	})
-	return nil
+	return errors.Join(errs...)
 }
 
 // Config 返回当前配置

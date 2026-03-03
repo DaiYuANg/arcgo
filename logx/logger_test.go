@@ -2,7 +2,9 @@ package logx
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"testing"
@@ -10,6 +12,14 @@ import (
 
 	"github.com/samber/oops"
 )
+
+type failingCloser struct {
+	err error
+}
+
+func (c *failingCloser) Close() error {
+	return c.err
+}
 
 func TestLevel(t *testing.T) {
 	// 测试 String 方法
@@ -380,5 +390,29 @@ func TestWithCallerOption(t *testing.T) {
 	defer logger2.Close()
 	if !logger2.Config().addCaller {
 		t.Fatal("expected caller to be enabled")
+	}
+}
+
+func TestLoggerClose_ReturnsJoinedError(t *testing.T) {
+	errA := errors.New("close-a")
+	errB := errors.New("close-b")
+
+	logger := &Logger{
+		closers: []io.Closer{
+			&failingCloser{err: errA},
+			nil,
+			&failingCloser{err: errB},
+		},
+	}
+
+	err := logger.Close()
+	if err == nil {
+		t.Fatal("expected non-nil error")
+	}
+	if !errors.Is(err, errA) {
+		t.Fatal("expected joined error to include errA")
+	}
+	if !errors.Is(err, errB) {
+		t.Fatal("expected joined error to include errB")
 	}
 }

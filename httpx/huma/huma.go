@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -30,6 +31,7 @@ func Register[I, O any](api huma.API, method, path, operationID string, handler 
 type Service struct {
 	api    huma.API
 	config huma.Config
+	logger *slog.Logger
 }
 
 // NewService 创建 Huma 服务
@@ -40,7 +42,16 @@ func NewService(api huma.API, title, version, description string) *Service {
 	return &Service{
 		api:    api,
 		config: config,
+		logger: slog.Default(),
 	}
+}
+
+// WithLogger 设置内部日志记录器
+func (s *Service) WithLogger(logger *slog.Logger) *Service {
+	if logger != nil {
+		s.logger = logger
+	}
+	return s
 }
 
 // API 返回 Huma API 实例
@@ -52,12 +63,25 @@ func (s *Service) API() huma.API {
 func (s *Service) RegisterHandler(mux *http.ServeMux, docsPath, openAPIPath string) {
 	mux.HandleFunc(openAPIPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(s.api.OpenAPI())
+		if err := json.NewEncoder(w).Encode(s.api.OpenAPI()); err != nil {
+			s.loggerOrDefault().Error("Failed to write OpenAPI JSON",
+				slog.String("path", openAPIPath),
+				slog.String("error", err.Error()),
+			)
+			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+			return
+		}
 	})
 
 	mux.HandleFunc(docsPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html")
-		w.Write([]byte(s.swaggerUIHTML(openAPIPath)))
+		if _, err := w.Write([]byte(s.swaggerUIHTML(openAPIPath))); err != nil {
+			s.loggerOrDefault().Error("Failed to write docs HTML",
+				slog.String("path", docsPath),
+				slog.String("error", err.Error()),
+			)
+			return
+		}
 	})
 }
 
@@ -78,4 +102,11 @@ func (s *Service) swaggerUIHTML(openAPIPath string) string {
     </script>
 </body>
 </html>`, s.config.OpenAPI.Info.Title, openAPIPath)
+}
+
+func (s *Service) loggerOrDefault() *slog.Logger {
+	if s.logger != nil {
+		return s.logger
+	}
+	return slog.Default()
 }

@@ -1,0 +1,18 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.docsSidebar.category.configx - 配置加载": {
+    "message": "configx - Configuration Loading",
+    "description": "The label for category 'configx - 配置加载' in sidebar 'docsSidebar'"
+  },
+  "sidebar.docsSidebar.category.httpx - HTTP 框架适配器": {
+    "message": "httpx - HTTP Framework Adapters",
+    "description": "The label for category 'httpx - HTTP 框架适配器' in sidebar 'docsSidebar'"
+  },
+  "sidebar.docsSidebar.category.logx - 日志记录器": {
+    "message": "logx - Logger",
+    "description": "The label for category 'logx - 日志记录器' in sidebar 'docsSidebar'"
+  }
+}

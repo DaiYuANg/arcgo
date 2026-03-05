@@ -22,8 +22,8 @@ sidebar_position: 3
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
     "github.com/gin-gonic/gin"
     
     ginCors "github.com/gin-contrib/cors"
@@ -81,8 +81,8 @@ go get github.com/gin-contrib/casbin
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/fiber"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/fiber"
     "github.com/gofiber/fiber/v2"
     "github.com/gofiber/fiber/v2/middleware"
 )
@@ -147,8 +147,8 @@ go get github.com/gofiber/casbin
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/echo"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/echo"
     "github.com/labstack/echo/v4"
     "github.com/labstack/echo/v4/middleware"
 )
@@ -207,8 +207,8 @@ go get github.com/labstack/echo-casbin
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/std"
     "github.com/go-chi/chi/v5/middleware"
     
     chiCors "github.com/go-chi/cors"

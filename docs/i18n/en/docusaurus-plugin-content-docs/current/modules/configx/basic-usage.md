@@ -17,7 +17,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {

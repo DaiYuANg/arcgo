@@ -14,7 +14,7 @@ sidebar_position: 3
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
     "github.com/go-playground/validator/v10"
 )
 
@@ -65,7 +65,7 @@ import (
     "os/signal"
     "syscall"
     "time"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {
@@ -124,7 +124,7 @@ func main() {
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {

@@ -18,7 +18,7 @@ sidebar_position: 1
 ## Install
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/logx
+go get github.com/DaiYuANg/arcgo/logx
 ```
 
 ## Quick examples

@@ -1,4 +1,4 @@
-module github.com/DaiYuANg/toolkit4go
+module github.com/DaiYuANg/arcgo
 
 go 1.25.0
 

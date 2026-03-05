@@ -18,7 +18,7 @@ sidebar_position: 1
 ## 安装
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/logx
+go get github.com/DaiYuANg/arcgo/logx
 ```
 
 ## 快速示例
@@ -29,7 +29,7 @@ go get github.com/DaiYuANg/toolkit4go/logx
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {
@@ -61,7 +61,7 @@ func someFunction() error {
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {
@@ -80,7 +80,7 @@ func main() {
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {
@@ -98,7 +98,7 @@ func main() {
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {
@@ -125,7 +125,7 @@ func main() {
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {

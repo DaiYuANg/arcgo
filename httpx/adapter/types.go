@@ -4,6 +4,8 @@ package adapter
 import (
 	"context"
 	"net/http"
+
+	"github.com/danielgtaylor/huma/v2"
 )
 
 // HandlerFunc 通用处理函数签名
@@ -11,6 +13,8 @@ type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Reques
 
 // MiddlewareFunc 中间件函数签名（通用）
 type MiddlewareFunc func(next HandlerFunc) HandlerFunc
+
+type routeParamsCtxKey struct{}
 
 // Adapter HTTP 框架适配器接口
 // 核心设计：
@@ -29,6 +33,25 @@ type Adapter interface {
 
 	// ServeHTTP 实现 http.Handler 接口
 	ServeHTTP(w http.ResponseWriter, r *http.Request)
+
+	// EnableHuma 启用或刷新 Huma OpenAPI 能力
+	EnableHuma(opts HumaOptions)
+
+	// HumaAPI 返回 Huma API 对象（未启用时为 nil）
+	HumaAPI() huma.API
+
+	// HasHuma 标记当前适配器是否启用了 Huma
+	HasHuma() bool
+}
+
+// ListenableAdapter 适配器启动能力（可选实现）。
+type ListenableAdapter interface {
+	Listen(addr string) error
+}
+
+// ContextListenableAdapter 适配器启动能力（支持 context，可选实现）。
+type ContextListenableAdapter interface {
+	ListenContext(ctx context.Context, addr string) error
 }
 
 // GinLikeAdapter Gin 风格的适配器接口（可选实现）
@@ -78,4 +101,25 @@ func DefaultHumaOptions() HumaOptions {
 		DocsPath:    "/docs",
 		OpenAPIPath: "/openapi.json",
 	}
+}
+
+// WithRouteParams 将路径参数写入 context，供上层统一读取。
+func WithRouteParams(ctx context.Context, params map[string]string) context.Context {
+	if len(params) == 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, routeParamsCtxKey{}, params)
+}
+
+// RouteParam 从 context 中读取路径参数。
+func RouteParam(ctx context.Context, name string) string {
+	if ctx == nil || name == "" {
+		return ""
+	}
+
+	params, ok := ctx.Value(routeParamsCtxKey{}).(map[string]string)
+	if !ok {
+		return ""
+	}
+	return params[name]
 }

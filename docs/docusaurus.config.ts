@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 // This runs in Node.js - Don't use client-side code here (browser APIs, JSX...)
 
 const config: Config = {
-  title: 'toolkit4go',
+  title: 'arcgo',
   tagline: '一套简洁高效的 Go 工具库',
   favicon: 'img/favicon.ico',
 
@@ -18,12 +18,12 @@ const config: Config = {
   url: 'https://daiyuang.github.io',
   // Set the /<baseUrl>/ pathname under which your site is served
   // For GitHub pages deployment, it is often '/<projectName>/'
-  baseUrl: '/toolkit4go/',
+  baseUrl: '/arcgo/',
 
   // GitHub pages deployment config.
   // If you aren't using GitHub pages, you don't need these.
   organizationName: 'DaiYuANg', // Usually your GitHub org/user name.
-  projectName: 'toolkit4go', // Usually your repo name.
+  projectName: 'arcgo', // Usually your repo name.
 
   onBrokenLinks: 'throw',
 
@@ -44,7 +44,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/DaiYuANg/toolkit4go/tree/main/docs/',
+            'https://github.com/DaiYuANg/arcgo/tree/main/docs/',
         },
         blog: {
           showReadingTime: true,
@@ -55,7 +55,7 @@ const config: Config = {
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
           editUrl:
-            'https://github.com/DaiYuANg/toolkit4go/tree/main/docs/',
+            'https://github.com/DaiYuANg/arcgo/tree/main/docs/',
           // Useful options to enforce blogging best practices
           onInlineTags: 'warn',
           onInlineAuthors: 'warn',
@@ -92,9 +92,9 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'toolkit4go',
+      title: 'arcgo',
       logo: {
-        alt: 'toolkit4go Logo',
+        alt: 'arcgo Logo',
         src: 'img/logo.svg',
       },
       items: [
@@ -111,7 +111,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/DaiYuANg/toolkit4go',
+          href: 'https://github.com/DaiYuANg/arcgo',
           label: 'GitHub',
           position: 'right',
         },
@@ -146,11 +146,11 @@ const config: Config = {
           items: [
             {
               label: 'GitHub Issues',
-              href: 'https://github.com/DaiYuANg/toolkit4go/issues',
+              href: 'https://github.com/DaiYuANg/arcgo/issues',
             },
             {
               label: 'GitHub Discussions',
-              href: 'https://github.com/DaiYuANg/toolkit4go/discussions',
+              href: 'https://github.com/DaiYuANg/arcgo/discussions',
             },
           ],
         },
@@ -163,7 +163,7 @@ const config: Config = {
             },
             {
               label: 'GitHub',
-              href: 'https://github.com/DaiYuANg/toolkit4go',
+              href: 'https://github.com/DaiYuANg/arcgo',
             },
           ],
         },

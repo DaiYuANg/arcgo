@@ -1,7 +1,7 @@
 @echo off
 REM 构建和部署文档脚本 (Windows)
 
-echo toolkit4go 文档部署脚本
+echo arcgo 文档部署脚本
 echo.
 
 :menu

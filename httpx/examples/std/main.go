@@ -3,151 +3,311 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
+	"strings"
+	"sync"
+	"time"
 
-	"github.com/DaiYuANg/toolkit4go/httpx"
-	"github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
-	"github.com/DaiYuANg/toolkit4go/logx"
+	"github.com/DaiYuANg/arcgo/httpx"
+	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
+	"github.com/DaiYuANg/arcgo/logx"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// UserEndpoint 用户相关端点
-type UserEndpoint struct {
-	httpx.BaseEndpoint
+type User struct {
+	ID        int       `json:"id"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Age       int       `json:"age"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
-// ListUsers 获取用户列表
-// 自动生成路由：GET /users
-func (e *UserEndpoint) ListUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"users": []string{"Alice", "Bob", "Charlie"},
-	})
-	return nil
+type UserStore struct {
+	mu     sync.RWMutex
+	nextID int
+	users  map[int]User
 }
 
-// GetUser 获取单个用户
-// 自动生成路由：GET /user
-func (e *UserEndpoint) GetUser(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	id := e.GetQuery(r, "id", "1")
-	e.Success(w, map[string]interface{}{
-		"user": map[string]string{
-			"id":   id,
-			"name": "User" + id,
+func NewUserStore() *UserStore {
+	now := time.Now().UTC()
+	return &UserStore{
+		nextID: 3,
+		users: map[int]User{
+			1: {ID: 1, Name: "Alice", Email: "alice@example.com", Age: 26, CreatedAt: now, UpdatedAt: now},
+			2: {ID: 2, Name: "Bob", Email: "bob@example.com", Age: 30, CreatedAt: now, UpdatedAt: now},
 		},
-	})
-	return nil
+	}
 }
 
-// CreateNewUser 创建用户
-// 自动生成路由：POST /new/user
-func (e *UserEndpoint) CreateNewUser(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"message": "user created successfully",
-	})
-	return nil
+func (s *UserStore) List(search string, limit, offset int) ([]User, int) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	items := make([]User, 0, len(s.users))
+	for _, u := range s.users {
+		if search != "" && !strings.Contains(strings.ToLower(u.Name+u.Email), strings.ToLower(search)) {
+			continue
+		}
+		items = append(items, u)
+	}
+
+	total := len(items)
+	if offset >= total {
+		return []User{}, total
+	}
+
+	end := offset + limit
+	if end > total {
+		end = total
+	}
+
+	return items[offset:end], total
 }
 
-// UpdateUserInfo 更新用户信息
-// 自动生成路由：PUT /user/info
-func (e *UserEndpoint) UpdateUserInfo(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"message": "user updated successfully",
-	})
-	return nil
+func (s *UserStore) Get(id int) (User, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	u, ok := s.users[id]
+	return u, ok
 }
 
-// DeleteUserAccount 删除用户账户
-// 自动生成路由：DELETE /user/account
-func (e *UserEndpoint) DeleteUserAccount(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"message": "user deleted successfully",
-	})
-	return nil
+func (s *UserStore) Create(in CreateUserBody) User {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	now := time.Now().UTC()
+	u := User{ID: s.nextID, Name: in.Name, Email: in.Email, Age: in.Age, CreatedAt: now, UpdatedAt: now}
+	s.users[u.ID] = u
+	s.nextID++
+	return u
+}
+
+func (s *UserStore) Update(id int, in UpdateUserBody) (User, bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	u, ok := s.users[id]
+	if !ok {
+		return User{}, false
+	}
+
+	if in.Name != nil {
+		u.Name = *in.Name
+	}
+	if in.Email != nil {
+		u.Email = *in.Email
+	}
+	if in.Age != nil {
+		u.Age = *in.Age
+	}
+	u.UpdatedAt = time.Now().UTC()
+	s.users[id] = u
+	return u, true
+}
+
+func (s *UserStore) Delete(id int) bool {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if _, ok := s.users[id]; !ok {
+		return false
+	}
+	delete(s.users, id)
+	return true
+}
+
+type ListUsersInput struct {
+	Limit int    `query:"limit"`
+	Page  int    `query:"page"`
+	Q     string `query:"q"`
+}
+
+type ListUsersOutput struct {
+	Body struct {
+		Items []User `json:"items"`
+		Total int    `json:"total"`
+		Page  int    `json:"page"`
+		Limit int    `json:"limit"`
+	} `json:"body"`
+}
+
+type GetUserInput struct {
+	ID int `path:"id"`
+}
+
+type GetUserOutput struct {
+	Body User `json:"body"`
+}
+
+type CreateUserBody struct {
+	Name  string `json:"name"`
+	Email string `json:"email"`
+	Age   int    `json:"age"`
+}
+
+type CreateUserInput struct {
+	Body CreateUserBody `json:"body"`
+}
+
+type CreateUserOutput struct {
+	Body User `json:"body"`
+}
+
+type UpdateUserBody struct {
+	Name  *string `json:"name,omitempty"`
+	Email *string `json:"email,omitempty"`
+	Age   *int    `json:"age,omitempty"`
+}
+
+type UpdateUserInput struct {
+	ID   int            `path:"id"`
+	Body UpdateUserBody `json:"body"`
+}
+
+type UpdateUserOutput struct {
+	Body User `json:"body"`
+}
+
+type DeleteUserInput struct {
+	ID int `path:"id"`
+}
+
+type DeleteUserOutput struct {
+	Body struct {
+		Deleted bool `json:"deleted"`
+	} `json:"body"`
+}
+
+type HealthOutput struct {
+	Body struct {
+		Status string `json:"status"`
+		Time   string `json:"time"`
+	} `json:"body"`
 }
 
 func main() {
-	// 创建 logx logger
-	logger, err := logx.New(
-		logx.WithConsole(true),
-		logx.WithDebugLevel(),
-	)
+	logger, err := logx.New(logx.WithConsole(true), logx.WithDebugLevel())
 	if err != nil {
 		panic(err)
 	}
 	defer logger.Close()
 
-	// 创建 slog logger
-	slogLogger := logx.NewSlog(logger)
-
-	// 创建端点实例
-	userEndpoint := &UserEndpoint{}
-
-	// 创建 std 适配器（基于 chi）
-	// 核心思路：httpx 负责路由注册，中间件使用 chi 原生方式
+	store := NewUserStore()
 	stdAdapter := std.New()
+	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
 
-	// 【重要】使用 chi 原生方式注册中间件
-	// 你可以使用任何 chi 生态的中间件
-	stdAdapter.Router().Use(
-		middleware.Recoverer, // chi 原生恢复中间件
-		middleware.RequestID, // chi 原生 RequestID 中间件
-		// middleware.Logger,             // chi 原生日志中间件（会打印所有请求）
-		// middleware.RealIP,             // chi 原生 RealIP 中间件
-		// yourCustomMiddleware(),        // 你的自定义中间件
-	)
-
-	// 启用 Huma OpenAPI 文档（可选）
-	stdAdapter.WithHuma(httpx.ToAdapterHumaOptions(httpx.HumaOptions{
-		Enabled:     true,
-		Title:       "My API",
-		Version:     "1.0.0",
-		Description: "API built with httpx (std adapter)",
-	}))
-
-	// 创建服务器
 	server := httpx.NewServer(
 		httpx.WithAdapter(stdAdapter),
-		httpx.WithLogger(slogLogger),
+		httpx.WithLogger(logx.NewSlog(logger)),
 		httpx.WithPrintRoutes(true),
+		httpx.WithHuma(httpx.HumaOptions{
+			Enabled:     true,
+			Title:       "ArcGo Std API",
+			Version:     "1.0.0",
+			Description: "Typed std API example",
+			DocsPath:    "/docs",
+			OpenAPIPath: "/openapi.json",
+		}),
 	)
 
-	// 注册端点
-	_ = server.Register(userEndpoint)
+	if err = httpx.Get(server, "/health", func(ctx context.Context, input *struct{}) (*HealthOutput, error) {
+		out := &HealthOutput{}
+		out.Body.Status = "ok"
+		out.Body.Time = time.Now().UTC().Format(time.RFC3339)
+		return out, nil
+	}, huma.OperationTags("system")); err != nil {
+		panic(err)
+	}
 
-	// 注册带前缀的端点
-	_ = server.RegisterWithPrefix("/api/v1", userEndpoint)
+	api := server.Group("/api/v1")
 
-	// 打印路由信息
-	fmt.Println("\n=== Registered Routes ===")
-	fmt.Printf("Total routes: %d\n\n", server.RouteCount())
-
-	// 按方法分组打印
-	methods := []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete}
-	for _, method := range methods {
-		routes := server.GetRoutesByMethod(method)
-		if len(routes) > 0 {
-			fmt.Printf("%s:\n", method)
-			for _, route := range routes {
-				fmt.Printf("  %-30s -> %s\n", route.Path, route.HandlerName)
-			}
-			fmt.Println()
+	if err = httpx.GroupGet(api, "/users", func(ctx context.Context, input *ListUsersInput) (*ListUsersOutput, error) {
+		limit := input.Limit
+		if limit <= 0 {
+			limit = 10
 		}
+		if limit > 100 {
+			limit = 100
+		}
+		page := input.Page
+		if page <= 0 {
+			page = 1
+		}
+
+		offset := (page - 1) * limit
+		items, total := store.List(input.Q, limit, offset)
+		out := &ListUsersOutput{}
+		out.Body.Items = items
+		out.Body.Total = total
+		out.Body.Page = page
+		out.Body.Limit = limit
+		return out, nil
+	}, huma.OperationTags("users")); err != nil {
+		panic(err)
 	}
 
-	// 打印 OpenAPI 信息
-	if server.HasHuma() {
-		fmt.Println("=== OpenAPI Documentation ===")
-		fmt.Printf("OpenAPI JSON: http://localhost:8080/openapi.json\n")
-		fmt.Printf("Swagger UI:   http://localhost:8080/docs\n")
-		fmt.Println()
+	if err = httpx.GroupGet(api, "/users/{id}", func(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
+		u, ok := store.Get(input.ID)
+		if !ok {
+			return nil, httpx.NewError(404, "user not found")
+		}
+		out := &GetUserOutput{}
+		out.Body = u
+		return out, nil
+	}, huma.OperationTags("users")); err != nil {
+		panic(err)
 	}
 
-	fmt.Println("Server starting on :8080")
-	fmt.Println("Adapter: std (net/http + chi)")
+	if err = httpx.GroupPost(api, "/users", func(ctx context.Context, input *CreateUserInput) (*CreateUserOutput, error) {
+		if strings.TrimSpace(input.Body.Name) == "" {
+			return nil, httpx.NewError(400, "name is required")
+		}
+		if strings.TrimSpace(input.Body.Email) == "" {
+			return nil, httpx.NewError(400, "email is required")
+		}
+		u := store.Create(input.Body)
+		out := &CreateUserOutput{}
+		out.Body = u
+		return out, nil
+	}, huma.OperationTags("users")); err != nil {
+		panic(err)
+	}
 
-	// 启动服务器
-	err = server.ListenAndServe(":8080")
-	if err != nil {
+	if err = httpx.GroupPut(api, "/users/{id}", func(ctx context.Context, input *UpdateUserInput) (*UpdateUserOutput, error) {
+		u, ok := store.Update(input.ID, input.Body)
+		if !ok {
+			return nil, httpx.NewError(404, "user not found")
+		}
+		out := &UpdateUserOutput{}
+		out.Body = u
+		return out, nil
+	}, huma.OperationTags("users")); err != nil {
+		panic(err)
+	}
+
+	if err = httpx.GroupDelete(api, "/users/{id}", func(ctx context.Context, input *DeleteUserInput) (*DeleteUserOutput, error) {
+		deleted := store.Delete(input.ID)
+		if !deleted {
+			return nil, httpx.NewError(404, "user not found")
+		}
+		out := &DeleteUserOutput{}
+		out.Body.Deleted = true
+		return out, nil
+	}, huma.OperationTags("users")); err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Std example server running at :8080")
+	fmt.Println("GET  /health")
+	fmt.Println("GET  /api/v1/users?limit=10&page=1&q=alice")
+	fmt.Println("GET  /api/v1/users/{id}")
+	fmt.Println("POST /api/v1/users")
+	fmt.Println("PUT  /api/v1/users/{id}")
+	fmt.Println("DELETE /api/v1/users/{id}")
+	fmt.Println("OpenAPI: http://localhost:8080/openapi.json")
+	fmt.Println("Docs:    http://localhost:8080/docs")
+
+	if err = server.ListenAndServe(":8080"); err != nil {
 		panic(err)
 	}
 }

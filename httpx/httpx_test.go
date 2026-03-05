@@ -1,420 +1,388 @@
 package httpx
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
-	"log/slog"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
-	adapterpkg "github.com/DaiYuANg/toolkit4go/httpx/adapter"
-	"github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
+	"github.com/DaiYuANg/arcgo/httpx/adapter"
+	adapterecho "github.com/DaiYuANg/arcgo/httpx/adapter/echo"
+	adapterfiber "github.com/DaiYuANg/arcgo/httpx/adapter/fiber"
+	adaptergin "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
+	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/stretchr/testify/assert"
 )
 
-// TestUserEndpoint 测试用的 endpoint
-type TestUserEndpoint struct {
-	BaseEndpoint
+type pingOutput struct {
+	Message string `json:"message"`
 }
 
-// GetUserList 获取用户列表 - 通过方法名自动生成 GET /user/list
-func (e *TestUserEndpoint) GetUserList() {
+type echoInput struct {
+	Name string `json:"name"`
 }
 
-// GetUserByID 获取单个用户 - 自动生成 GET /user/by/id
-func (e *TestUserEndpoint) GetUserByID() {
+type echoOutput struct {
+	Name string `json:"name"`
 }
 
-// CreateUser 创建用户 - 自动生成 POST /user
-func (e *TestUserEndpoint) CreateUser() {
+type customBindInput struct {
+	ID    int
+	Token string
 }
 
-// UpdateUser 更新用户 - 自动生成 PUT /user
-func (e *TestUserEndpoint) UpdateUser() {
-}
-
-// DeleteUser 删除用户 - 自动生成 DELETE /user
-func (e *TestUserEndpoint) DeleteUser() {
-}
-
-// TestRouterGenerator_Naming 测试方法名解析
-func TestRouterGenerator_Naming(t *testing.T) {
-	gen := NewRouterGenerator()
-	endpoint := &TestUserEndpoint{}
-
-	routes, err := gen.Generate(endpoint).Get()
-	assert.NoError(t, err)
-	// 包含 BaseEndpoint 的 GetHeader 和 GetQuery 方法
-	assert.GreaterOrEqual(t, len(routes), 5)
-
-	// 验证路由
-	routeMap := make(map[string]RouteInfo)
-	for _, route := range routes {
-		routeMap[route.HandlerName] = route
+func (i *customBindInput) BindRequest(r *http.Request) error {
+	if r == nil {
+		return nil
+	}
+	rawID := r.URL.Query().Get("user_id")
+	if rawID == "" {
+		return nil
 	}
 
-	// GetUserList -> GET /user/list
-	assert.Equal(t, MethodGet, routeMap["GetUserList"].Method)
-	assert.Equal(t, "/user/list", routeMap["GetUserList"].Path)
-
-	// CreateUser -> POST /user (更 RESTful)
-	assert.Equal(t, MethodPost, routeMap["CreateUser"].Method)
-	assert.Equal(t, "/user", routeMap["CreateUser"].Path)
-
-	// DeleteUser -> DELETE /user (更 RESTful)
-	assert.Equal(t, MethodDelete, routeMap["DeleteUser"].Method)
-	assert.Equal(t, "/user", routeMap["DeleteUser"].Path)
-}
-
-// TestTagEndpoint 使用标签的 endpoint
-type TestTagEndpoint struct {
-	GetUsers       func() `http:"GET /api/users"`
-	GetUser        func() `http:"/api/user/:id"`
-	CreateUser     func() `route:"POST /api/users"`
-	UpdateUserInfo func() `route:"PUT /api/user/:id"`
-}
-
-// TestRouterGenerator_Tag 测试标签解析
-func TestRouterGenerator_Tag(t *testing.T) {
-	gen := NewRouterGenerator()
-	endpoint := &TestTagEndpoint{}
-
-	routes, err := gen.Generate(endpoint).Get()
-	assert.NoError(t, err)
-	assert.Len(t, routes, 4)
-
-	routeMap := make(map[string]RouteInfo)
-	for _, route := range routes {
-		routeMap[route.HandlerName] = route
+	id, err := strconv.Atoi(rawID)
+	if err != nil {
+		return fmt.Errorf("parse user_id: %w", err)
 	}
-
-	// 验证 http 标签
-	assert.Equal(t, MethodGet, routeMap["GetUsers"].Method)
-	assert.Equal(t, "/api/users", routeMap["GetUsers"].Path)
-
-	assert.Equal(t, MethodGet, routeMap["GetUser"].Method)
-	assert.Equal(t, "/api/user/:id", routeMap["GetUser"].Path)
-
-	// 验证 route 标签
-	assert.Equal(t, MethodPost, routeMap["CreateUser"].Method)
-	assert.Equal(t, "/api/users", routeMap["CreateUser"].Path)
-
-	assert.Equal(t, MethodPut, routeMap["UpdateUserInfo"].Method)
-	assert.Equal(t, "/api/user/:id", routeMap["UpdateUserInfo"].Path)
-}
-
-// TestServerEndpoint 测试用的 handler endpoint
-type TestServerEndpoint struct {
-	BaseEndpoint
-}
-
-// GetItems 获取列表
-func (e *TestServerEndpoint) GetItems(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"items": []string{"item1", "item2", "item3"},
-	})
+	i.ID = id
+	i.Token = r.Header.Get("X-Token")
 	return nil
 }
 
-// CreateItem 创建
-func (e *TestServerEndpoint) CreateItem(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"message": "created",
-	})
-	return nil
+type customBindOutput struct {
+	ID    int    `json:"id"`
+	Token string `json:"token"`
 }
 
-// TestServer_StdHTTP 测试标准 HTTP 服务器
-func TestServer_StdHTTP(t *testing.T) {
-	// 创建实际的 handler endpoint
-	endpoint := &TestServerEndpoint{}
+type paramsInput struct {
+	ID      int           `query:"id"`
+	Flag    bool          `query:"flag"`
+	Timeout time.Duration `query:"timeout"`
+	IDs     []int         `query:"ids"`
+	Trace   string        `header:"X-Trace-ID"`
+}
 
-	// 创建服务器
+type paramsOutput struct {
+	ID      int    `json:"id"`
+	Flag    bool   `json:"flag"`
+	Timeout string `json:"timeout"`
+	IDs     []int  `json:"ids"`
+	Trace   string `json:"trace"`
+}
+
+type humaPingOutput struct {
+	Body struct {
+		Message string `json:"message"`
+	}
+}
+
+func TestServer_GenericGetWithoutHuma(t *testing.T) {
 	server := NewServer()
 
-	// 注册 endpoint
-	err := server.Register(endpoint)
+	err := Get(server, "/ping", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		return &pingOutput{Message: "pong"}, nil
+	})
 	assert.NoError(t, err)
 
-	// 创建测试请求
-	req := httptest.NewRequest(MethodGet, "/items", nil)
+	req := httptest.NewRequest(http.MethodGet, "/ping", nil)
 	w := httptest.NewRecorder()
-
-	// 执行请求
 	server.ServeHTTP(w, req)
 
-	// 验证响应
 	assert.Equal(t, http.StatusOK, w.Code)
-
-	var response map[string]interface{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "success", response["status"])
+	assert.Contains(t, w.Body.String(), "pong")
+	assert.False(t, server.HasHuma())
 }
 
-// TestServer_WithMiddleware 测试中间件
-// 注意：中间件应该直接使用框架原生方式注册
+func TestServer_GenericPostDecodeBody(t *testing.T) {
+	server := NewServer()
+
+	err := Post(server, "/echo", func(ctx context.Context, input *echoInput) (*echoOutput, error) {
+		return &echoOutput{Name: input.Name}, nil
+	})
+	assert.NoError(t, err)
+
+	body := []byte(`{"name":"arcgo"}`)
+	req := httptest.NewRequest(http.MethodPost, "/echo", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "arcgo")
+}
+
+func TestServer_GenericPostInvalidJSON(t *testing.T) {
+	server := NewServer()
+
+	err := Post(server, "/echo", func(ctx context.Context, input *echoInput) (*echoOutput, error) {
+		return &echoOutput{Name: input.Name}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodPost, "/echo", bytes.NewReader([]byte(`{"name":`)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "invalid request input")
+}
+
+func TestServer_CustomRequestBinder(t *testing.T) {
+	server := NewServer()
+
+	err := Get(server, "/custom-bind", func(ctx context.Context, input *customBindInput) (*customBindOutput, error) {
+		return &customBindOutput{
+			ID:    input.ID,
+			Token: input.Token,
+		}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/custom-bind?user_id=123", nil)
+	req.Header.Set("X-Token", "token-abc")
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"id":123`)
+	assert.Contains(t, w.Body.String(), `"token":"token-abc"`)
+}
+
+func TestServer_CustomRequestBinderError(t *testing.T) {
+	server := NewServer()
+
+	err := Get(server, "/custom-bind", func(ctx context.Context, input *customBindInput) (*customBindOutput, error) {
+		return &customBindOutput{
+			ID: input.ID,
+		}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/custom-bind?user_id=not-an-int", nil)
+	w := httptest.NewRecorder()
+
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "invalid request input")
+}
+
+func TestServer_GroupWithBasePath(t *testing.T) {
+	server := NewServer(WithBasePath("/api"))
+	v1 := server.Group("/v1")
+
+	err := GroupGet(v1, "/health", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		return &pingOutput{Message: "ok"}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/api/v1/health", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, server.HasRoute(http.MethodGet, "/api/v1/health"))
+}
+
+func TestServer_StrongTypedQueryAndHeaderBinding(t *testing.T) {
+	server := NewServer()
+
+	err := Get(server, "/params", func(ctx context.Context, input *paramsInput) (*paramsOutput, error) {
+		return &paramsOutput{
+			ID:      input.ID,
+			Flag:    input.Flag,
+			Timeout: input.Timeout.String(),
+			IDs:     input.IDs,
+			Trace:   input.Trace,
+		}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/params?id=42&flag=true&timeout=3s&ids=1,2,3", nil)
+	req.Header.Set("X-Trace-ID", "trace-001")
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"id":42`)
+	assert.Contains(t, w.Body.String(), `"flag":true`)
+	assert.Contains(t, w.Body.String(), `"timeout":"3s"`)
+	assert.Contains(t, w.Body.String(), `"ids":[1,2,3]`)
+	assert.Contains(t, w.Body.String(), `"trace":"trace-001"`)
+}
+
+func TestServer_StrongTypedPathBindingOnStdAdapter(t *testing.T) {
+	server := NewServer()
+
+	type in struct {
+		UserID int `path:"id"`
+	}
+	type out struct {
+		ID int `json:"id"`
+	}
+
+	err := Get(server, "/users/{id}", func(ctx context.Context, input *in) (*out, error) {
+		return &out{ID: input.UserID}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/123", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"id":123`)
+}
+
+func TestServer_StrongTypedPathBindingOnGinAdapter(t *testing.T) {
+	server := NewServer(WithAdapter(adaptergin.New()))
+
+	type in struct {
+		UserID int `path:"id"`
+	}
+	type out struct {
+		ID int `json:"id"`
+	}
+
+	err := Get(server, "/users/:id", func(ctx context.Context, input *in) (*out, error) {
+		return &out{ID: input.UserID}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/88", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"id":88`)
+}
+
+func TestServer_StrongTypedPathBindingOnEchoAdapter(t *testing.T) {
+	server := NewServer(WithAdapter(adapterecho.New()))
+
+	type in struct {
+		UserID int `path:"id"`
+	}
+	type out struct {
+		ID int `json:"id"`
+	}
+
+	err := Get(server, "/users/:id", func(ctx context.Context, input *in) (*out, error) {
+		return &out{ID: input.UserID}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/77", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), `"id":77`)
+}
+
+func TestServer_StrongTypedPathBindingOnFiberAdapter(t *testing.T) {
+	server := NewServer(WithAdapter(adapterfiber.New()))
+
+	type in struct {
+		UserID int `path:"id"`
+	}
+	type out struct {
+		ID int `json:"id"`
+	}
+
+	err := Get(server, "/users/:id", func(ctx context.Context, input *in) (*out, error) {
+		return &out{ID: input.UserID}, nil
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/users/66", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotImplemented, w.Code)
+}
+
 func TestServer_WithMiddleware(t *testing.T) {
 	var middlewareCalled bool
 
-	// 使用 std adapter 直接在 router 上注册中间件
 	stdAdapter := std.New()
-	stdAdapter.Router().Use(func(handler http.Handler) http.Handler {
+	stdAdapter.Router().Use(func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			middlewareCalled = true
-			handler.ServeHTTP(w, r)
+			next.ServeHTTP(w, r)
 		})
 	})
 
-	endpoint := &TestServerEndpoint{}
 	server := NewServer(WithAdapter(stdAdapter))
-
-	err := server.Register(endpoint)
+	err := Get(server, "/items", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		return &pingOutput{Message: "ok"}, nil
+	})
 	assert.NoError(t, err)
 
-	req := httptest.NewRequest(MethodGet, "/items", nil)
+	req := httptest.NewRequest(http.MethodGet, "/items", nil)
 	w := httptest.NewRecorder()
-
 	server.ServeHTTP(w, req)
 
-	assert.True(t, middlewareCalled, "middleware should be called")
+	assert.True(t, middlewareCalled)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-// TestServer_BasePath 测试基础路径
-func TestServer_BasePath(t *testing.T) {
-	endpoint := &TestServerEndpoint{}
-	server := NewServer(WithBasePath("/api/v1"))
-
-	err := server.Register(endpoint)
-	assert.NoError(t, err)
-
-	// 验证路由是否包含基础路径
-	req := httptest.NewRequest(MethodGet, "/api/v1/items", nil)
-	w := httptest.NewRecorder()
-
-	server.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-// TestServer_RegisterWithPrefix 测试带前缀的注册
-func TestServer_RegisterWithPrefix(t *testing.T) {
-	endpoint := &TestServerEndpoint{}
-	server := NewServer()
-
-	err := server.RegisterWithPrefix("/api/v1", endpoint)
-	assert.NoError(t, err)
-
-	req := httptest.NewRequest(MethodGet, "/api/v1/items", nil)
-	w := httptest.NewRecorder()
-
-	server.ServeHTTP(w, req)
-
-	assert.Equal(t, http.StatusOK, w.Code)
-}
-
-// TestServer_WithLogger 测试自定义 Logger
-func TestServer_WithLogger(t *testing.T) {
-	logger := slog.New(slog.NewTextHandler(httptest.NewRecorder(), &slog.HandlerOptions{
-		Level: slog.LevelDebug,
+func TestServer_WithHumaEnabled(t *testing.T) {
+	server := NewServer(WithHuma(HumaOptions{
+		Enabled:     true,
+		Title:       "ArcGo API",
+		Version:     "1.0.0",
+		Description: "typed api",
 	}))
 
-	endpoint := &TestServerEndpoint{}
-	server := NewServer(WithLogger(logger))
-
-	err := server.Register(endpoint)
+	err := Get(server, "/huma", func(ctx context.Context, input *struct{}) (*humaPingOutput, error) {
+		out := &humaPingOutput{}
+		out.Body.Message = "from huma"
+		return out, nil
+	}, huma.OperationTags("demo"))
 	assert.NoError(t, err)
 
-	assert.Equal(t, logger, server.Logger())
-}
-
-// TestServer_PrintRoutes 测试打印路由
-func TestServer_PrintRoutes(t *testing.T) {
-	endpoint := &TestServerEndpoint{}
-	server := NewServer(WithPrintRoutes(true))
-
-	err := server.Register(endpoint)
-	assert.NoError(t, err)
-
-	// 验证路由已保存
-	assert.Greater(t, server.RouteCount(), 0)
-	routes := server.GetRoutes()
-	assert.NotEmpty(t, routes)
-}
-
-// TestServer_GetRoutes 测试获取路由
-func TestServer_GetRoutes(t *testing.T) {
-	endpoint := &TestServerEndpoint{}
-	server := NewServer()
-
-	err := server.Register(endpoint)
-	assert.NoError(t, err)
-
-	// 测试 GetRoutes
-	routes := server.GetRoutes()
-	assert.NotEmpty(t, routes)
-
-	// 测试 GetRoutesByMethod
-	getRoutes := server.GetRoutesByMethod(MethodGet)
-	assert.NotEmpty(t, getRoutes)
-
-	// 测试 GetRoutesByPath
-	pathRoutes := server.GetRoutesByPath("/items")
-	assert.NotEmpty(t, pathRoutes)
-
-	// 测试 HasRoute
-	assert.True(t, server.HasRoute(MethodGet, "/items"))
-	assert.False(t, server.HasRoute(MethodPost, "/items"))
-}
-
-// TestCamelToPath 测试驼峰转路径
-func TestCamelToPath(t *testing.T) {
-	gen := NewRouterGenerator()
-
-	tests := []struct {
-		input    string
-		expected string
-	}{
-		{"UserList", "/user/list"},
-		{"GetByID", "/get/by/id"},
-		{"", "/"},
-		{"ID", "/id"},
-		{"UserID", "/user/id"},
-		{"GetUserList", "/get/user/list"},
-	}
-
-	for _, tt := range tests {
-		result := gen.camelToPath(tt.input)
-		assert.Equal(t, tt.expected, result)
-	}
-}
-
-// TestAdapterRegistry 测试适配器注册表
-// Deprecated: 适配器已移至独立子包，此测试已过时
-func TestAdapterRegistry(t *testing.T) {
-	t.Skip("Adapter registry is deprecated, adapters are now in separate subpackages")
-}
-
-// TestError 测试错误类型
-func TestError(t *testing.T) {
-	err := NewError(http.StatusNotFound, "not found")
-	assert.Equal(t, http.StatusNotFound, err.Code)
-	assert.Equal(t, "not found", err.Message)
-	assert.Equal(t, "not found", err.Error())
-
-	// 测试带包装错误
-	wrappedErr := NewError(http.StatusInternalServerError, "server error", assert.AnError)
-	assert.Equal(t, "server error: "+assert.AnError.Error(), wrappedErr.Error())
-	assert.Equal(t, assert.AnError, wrappedErr.Unwrap())
-
-	// 测试 ToOption
-	opt := wrappedErr.ToOption()
-	assert.True(t, opt.IsPresent())
-
-	// 测试 nil error 的 ToOption
-	var nilErr *Error = nil
-	assert.True(t, nilErr.ToOption().IsAbsent())
-}
-
-// TestErrorHelpers 测试错误辅助函数
-func TestErrorHelpers(t *testing.T) {
-	assert.True(t, IsAdapterNotFound(ErrAdapterNotFound))
-	assert.False(t, IsAdapterNotFound(ErrInvalidEndpoint))
-
-	assert.True(t, IsInvalidEndpoint(ErrInvalidEndpoint))
-	assert.False(t, IsInvalidEndpoint(ErrAdapterNotFound))
-}
-
-type InvalidParamEndpoint struct {
-	BaseEndpoint
-}
-
-func (e *InvalidParamEndpoint) GetInvalidParam(id int) error {
-	return nil
-}
-
-type InvalidReturnEndpoint struct {
-	BaseEndpoint
-}
-
-func (e *InvalidReturnEndpoint) GetInvalidReturn(ctx context.Context, w http.ResponseWriter, r *http.Request) string {
-	return "ok"
-}
-
-func TestServer_Register_InvalidHandlerSignature(t *testing.T) {
-	server := NewServer()
-
-	err := server.Register(&InvalidParamEndpoint{})
-	assert.Error(t, err)
-	assert.True(t, IsInvalidHandlerSignature(err))
-}
-
-func TestServer_Register_InvalidReturnType(t *testing.T) {
-	server := NewServer()
-
-	err := server.Register(&InvalidReturnEndpoint{})
-	assert.Error(t, err)
-	assert.True(t, IsInvalidHandlerSignature(err))
-}
-
-type PrefixPriorityEndpoint struct{}
-
-func (e *PrefixPriorityEndpoint) GetUser() {}
-
-func TestRouterGenerator_PrefixPriority(t *testing.T) {
-	gen := NewRouterGenerator(GeneratorOptions{
-		UseComment: false,
-		UseTag:     false,
-		UseNaming:  true,
-		TagKey:     "route",
-		MethodPrefixes: map[string]string{
-			"Get":     MethodGet,
-			"GetUser": MethodPost,
-		},
-	})
-
-	routes, err := gen.Generate(&PrefixPriorityEndpoint{}).Get()
-	assert.NoError(t, err)
-	assert.Len(t, routes, 1)
-	assert.Equal(t, MethodPost, routes[0].Method)
-	assert.Equal(t, "/", routes[0].Path)
-}
-
-func TestServer_BasePathNormalization(t *testing.T) {
-	endpoint := &TestServerEndpoint{}
-	server := NewServer(WithBasePath("api/v1/"))
-
-	err := server.Register(endpoint)
-	assert.NoError(t, err)
-
-	req := httptest.NewRequest(MethodGet, "/api/v1/items", nil)
+	req := httptest.NewRequest(http.MethodGet, "/huma", nil)
 	w := httptest.NewRecorder()
-
 	server.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Contains(t, w.Body.String(), "from huma")
+	assert.True(t, server.HasHuma())
+	assert.NotNil(t, server.HumaAPI())
 }
 
 type fakeHumaAdapter struct {
-	lastOpts adapterpkg.HumaOptions
+	lastOpts adapter.HumaOptions
 	enabled  bool
 }
 
 func (f *fakeHumaAdapter) Name() string { return "fake" }
 
-func (f *fakeHumaAdapter) Handle(method, path string, handler adapterpkg.HandlerFunc) {}
+func (f *fakeHumaAdapter) Handle(method, path string, handler adapter.HandlerFunc) {}
 
-func (f *fakeHumaAdapter) Group(prefix string) adapterpkg.Adapter { return f }
+func (f *fakeHumaAdapter) Group(prefix string) adapter.Adapter { return f }
 
 func (f *fakeHumaAdapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
 
-func (f *fakeHumaAdapter) WithHuma(opts adapterpkg.HumaOptions) *fakeHumaAdapter {
+func (f *fakeHumaAdapter) EnableHuma(opts adapter.HumaOptions) {
 	f.lastOpts = opts
 	f.enabled = true
-	return f
 }
+
+func (f *fakeHumaAdapter) HumaAPI() huma.API { return nil }
+
+func (f *fakeHumaAdapter) HasHuma() bool { return f.enabled }
 
 func TestServer_WithHumaOptionCallsAdapter(t *testing.T) {
 	fake := &fakeHumaAdapter{}
@@ -431,4 +399,31 @@ func TestServer_WithHumaOptionCallsAdapter(t *testing.T) {
 	assert.True(t, fake.enabled)
 	assert.Equal(t, "Test API", fake.lastOpts.Title)
 	assert.Equal(t, "1.0.0", fake.lastOpts.Version)
+}
+
+func TestServer_GetRoutesAndFilters(t *testing.T) {
+	server := NewServer()
+
+	err := Get(server, "/users", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		return &pingOutput{Message: "ok"}, nil
+	})
+	assert.NoError(t, err)
+
+	routes := server.GetRoutes()
+	assert.Len(t, routes, 1)
+	assert.Equal(t, http.MethodGet, routes[0].Method)
+
+	getRoutes := server.GetRoutesByMethod(http.MethodGet)
+	assert.Len(t, getRoutes, 1)
+
+	pathRoutes := server.GetRoutesByPath("/users")
+	assert.Len(t, pathRoutes, 1)
+
+	assert.True(t, server.HasRoute(http.MethodGet, "/users"))
+
+	var resp map[string]any
+	req := httptest.NewRequest(http.MethodGet, "/users", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
 }

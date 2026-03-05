@@ -17,7 +17,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {
@@ -49,7 +49,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 func main() {
@@ -294,7 +294,7 @@ package main
 import (
     "fmt"
     "time"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {

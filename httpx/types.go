@@ -4,7 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
+	"github.com/DaiYuANg/arcgo/httpx/adapter"
+	"github.com/danielgtaylor/huma/v2"
 )
 
 // HTTPMethod HTTP 方法常量
@@ -32,13 +33,36 @@ func (r RouteInfo) String() string {
 	return r.Method + " " + r.Path + " -> " + r.HandlerName
 }
 
-// Endpoint HTTP 端点接口
-type Endpoint interface {
-	Routes() []RouteInfo
+// TypedHandler 泛型强类型路由处理函数
+// 核心签名与 huma.Register/huma.Post 保持一致。
+type TypedHandler[I, O any] func(ctx context.Context, input *I) (*O, error)
+
+// RequestBinder 自定义请求绑定接口。
+//
+// 当输入结构实现该接口时，httpx 将跳过默认反射绑定逻辑，
+// 直接调用该方法完成请求解析。
+type RequestBinder interface {
+	BindRequest(r *http.Request) error
 }
 
-// HandlerFunc 通用处理函数签名
-type HandlerFunc func(ctx context.Context, w http.ResponseWriter, r *http.Request) error
+// RequestBodyBinder 自定义请求体绑定接口。
+//
+// 当输入结构实现该接口时，httpx 将使用该方法绑定请求体，
+// 并继续执行默认参数绑定（或 RequestParamsBinder）。
+type RequestBodyBinder interface {
+	BindRequestBody(r *http.Request) error
+}
+
+// RequestParamsBinder 自定义路径/查询/Header/Cookie 参数绑定接口。
+//
+// 当输入结构实现该接口时，httpx 将使用该方法绑定参数，
+// 并跳过默认反射参数绑定逻辑。
+type RequestParamsBinder interface {
+	BindRequestParams(r *http.Request) error
+}
+
+// OperationOption 路由元数据选项（可直接传 huma.OperationTags 等）。
+type OperationOption func(*huma.Operation)
 
 // HumaOptions Huma OpenAPI 配置选项
 type HumaOptions struct {

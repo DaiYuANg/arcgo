@@ -57,6 +57,11 @@ func TestStructToMap_InvalidType(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestStructToMap_Nil(t *testing.T) {
+	_, err := structToMap(nil)
+	assert.Error(t, err)
+}
+
 func TestWithIgnoreDotenvError_DefaultTrue(t *testing.T) {
 	var cfg SimpleConfig
 	err := Load(&cfg,

@@ -16,7 +16,7 @@ sidebar_position: 3
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
     "github.com/samber/oops"
 )
 
@@ -121,7 +121,7 @@ package main
 
 import (
     "log/slog"
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {
@@ -149,7 +149,7 @@ package main
 import (
     "log/slog"
     "net/http"
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {
@@ -234,7 +234,7 @@ package main
 
 import (
     "sync/atomic"
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 type SampledLogger struct {
@@ -314,7 +314,7 @@ import (
     "bytes"
     "testing"
     "github.com/rs/zerolog"
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func TestLogger(t *testing.T) {

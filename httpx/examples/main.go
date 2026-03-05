@@ -3,141 +3,81 @@ package main
 import (
 	"context"
 	"fmt"
-	"net/http"
 
-	"github.com/DaiYuANg/toolkit4go/httpx"
-	"github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
-	"github.com/DaiYuANg/toolkit4go/logx"
+	"github.com/DaiYuANg/arcgo/httpx"
+	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
+	"github.com/DaiYuANg/arcgo/logx"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-// UserEndpoint 用户相关端点
-type UserEndpoint struct {
-	httpx.BaseEndpoint
+type ListUsersOutput struct {
+	Body struct {
+		Users []string `json:"users"`
+	}
 }
 
-// ListUsers 获取用户列表
-func (e *UserEndpoint) ListUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"users": []string{"Alice", "Bob", "Charlie"},
-	})
-	return nil
+type GetUserInput struct {
+	ID string `query:"id"`
 }
 
-// GetUser 获取单个用户
-func (e *UserEndpoint) GetUser(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	id := e.GetQuery(r, "id", "1")
-	e.Success(w, map[string]interface{}{
-		"user": map[string]string{
-			"id":   id,
-			"name": "User" + id,
-		},
-	})
-	return nil
-}
-
-// CreateNewUser 创建用户
-func (e *UserEndpoint) CreateNewUser(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"message": "user created successfully",
-	})
-	return nil
-}
-
-// UpdateUserInfo 更新用户信息
-func (e *UserEndpoint) UpdateUserInfo(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"message": "user updated successfully",
-	})
-	return nil
-}
-
-// DeleteUserAccount 删除用户账户
-func (e *UserEndpoint) DeleteUserAccount(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	e.Success(w, map[string]interface{}{
-		"message": "user deleted successfully",
-	})
-	return nil
+type GetUserOutput struct {
+	Body struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
 }
 
 func main() {
-	// 创建 logx logger
-	logger, err := logx.New(
-		logx.WithConsole(true),
-		logx.WithDebugLevel(),
-	)
+	logger, err := logx.New(logx.WithConsole(true), logx.WithDebugLevel())
 	if err != nil {
 		panic(err)
 	}
 	defer logger.Close()
 
-	// 创建 slog logger
 	slogLogger := logx.NewSlog(logger)
-
-	// 创建端点实例
-	userEndpoint := &UserEndpoint{}
-
-	// 创建 std 适配器（基于 chi）
 	stdAdapter := std.New()
+	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
 
-	// 使用 chi 原生方式注册中间件
-	stdAdapter.Router().Use(
-		middleware.Logger,
-		middleware.Recoverer,
-		middleware.RequestID,
-	)
-
-	// 启用 Huma OpenAPI 文档
-	stdAdapter.WithHuma(httpx.ToAdapterHumaOptions(httpx.HumaOptions{
-		Enabled:     true,
-		Title:       "My API",
-		Version:     "1.0.0",
-		Description: "API built with httpx",
-	}))
-
-	// 创建服务器
 	server := httpx.NewServer(
 		httpx.WithAdapter(stdAdapter),
 		httpx.WithLogger(slogLogger),
 		httpx.WithPrintRoutes(true),
+		httpx.WithHuma(httpx.HumaOptions{
+			Enabled:     true,
+			Title:       "ArcGo API",
+			Version:     "1.0.0",
+			Description: "Typed API built with httpx",
+		}),
 	)
 
-	// 注册端点
-	_ = server.Register(userEndpoint)
-
-	// 注册带前缀的端点
-	_ = server.RegisterWithPrefix("/api/v1", userEndpoint)
-
-	// 打印路由信息
-	fmt.Println("\n=== Registered Routes ===")
-	fmt.Printf("Total routes: %d\n\n", server.RouteCount())
-
-	// 按方法分组打印
-	methods := []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete}
-	for _, method := range methods {
-		routes := server.GetRoutesByMethod(method)
-		if len(routes) > 0 {
-			fmt.Printf("%s:\n", method)
-			for _, route := range routes {
-				fmt.Printf("  %-30s -> %s\n", route.Path, route.HandlerName)
-			}
-			fmt.Println()
-		}
+	if err = httpx.Get(server, "/users", func(ctx context.Context, input *struct{}) (*ListUsersOutput, error) {
+		out := &ListUsersOutput{}
+		out.Body.Users = []string{"Alice", "Bob", "Charlie"}
+		return out, nil
+	}, huma.OperationTags("users")); err != nil {
+		panic(err)
 	}
 
-	// 打印 OpenAPI 信息
-	if server.HasHuma() {
-		fmt.Println("=== OpenAPI Documentation ===")
-		fmt.Printf("OpenAPI JSON: http://localhost:8080/openapi.json\n")
-		fmt.Printf("Swagger UI:   http://localhost:8080/docs\n")
-		fmt.Println()
+	api := server.Group("/api/v1")
+	if err = httpx.GroupGet(api, "/user", func(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
+		id := input.ID
+		if id == "" {
+			id = "1"
+		}
+		out := &GetUserOutput{}
+		out.Body.ID = id
+		out.Body.Name = "User" + id
+		return out, nil
+	}, huma.OperationTags("users")); err != nil {
+		panic(err)
 	}
 
 	fmt.Println("Server starting on :8080")
+	fmt.Println("OpenAPI JSON: http://localhost:8080/openapi.json")
+	fmt.Println("Swagger UI:   http://localhost:8080/docs")
 
-	// 启动服务器
-	err = server.ListenAndServe(":8080")
-	if err != nil {
+	if err = server.ListenAndServe(":8080"); err != nil {
 		panic(err)
 	}
 }

@@ -43,25 +43,25 @@ httpx/
 ### 使用 Gin
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
+go get github.com/DaiYuANg/arcgo/httpx/adapter/gin
 ```
 
 ### 使用 Fiber
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/fiber
+go get github.com/DaiYuANg/arcgo/httpx/adapter/fiber
 ```
 
 ### 使用 Echo
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/echo
+go get github.com/DaiYuANg/arcgo/httpx/adapter/echo
 ```
 
 ### 使用标准库
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/std
+go get github.com/DaiYuANg/arcgo/httpx/adapter/std
 ```
 
 ## 快速示例
@@ -75,8 +75,8 @@ import (
     "context"
     "net/http"
 
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
 )
 
 type UserEndpoint struct {
@@ -126,8 +126,8 @@ import (
     "context"
     "net/http"
 
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/fiber"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/fiber"
 )
 
 type UserEndpoint struct {
@@ -176,8 +176,8 @@ import (
     "context"
     "net/http"
 
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/echo"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/echo"
 )
 
 type UserEndpoint struct {
@@ -226,8 +226,8 @@ import (
     "context"
     "net/http"
 
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/std"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/std"
     "github.com/go-chi/chi/v5/middleware"
 )
 

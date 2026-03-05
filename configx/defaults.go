@@ -20,21 +20,18 @@ func loadDefaultsStruct(k *koanf.Koanf, defaults any) error {
 // structToMap 使用 reflect 将 struct 转换为 map[string]any
 // 支持 map[string]any, map[string]interface{}, struct
 func structToMap(s any) (map[string]any, error) {
-	result := make(map[string]any)
-
 	// Case 1: already map[string]any
 	if m, ok := s.(map[string]any); ok {
 		return m, nil
 	}
-	// Case 2: map[string]interface{}
-	if m, ok := s.(map[string]interface{}); ok {
-		for k, v := range m {
-			result[k] = v
-		}
-		return result, nil
+
+	if s == nil {
+		return nil, &structToMapError{"expected struct or map, got <nil>"}
 	}
 
-	// Case 3: struct
+	result := make(map[string]any)
+
+	// Case 2: struct
 	v := reflect.ValueOf(s)
 	t := reflect.TypeOf(s)
 

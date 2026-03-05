@@ -120,3 +120,35 @@ func TestEnvPrefixWithoutTrailingUnderscore(t *testing.T) {
 	assert.Equal(t, "env-app", cfg.Name)
 	assert.Equal(t, 8088, cfg.Port)
 }
+
+func TestGetAs_GenericValue(t *testing.T) {
+	cfg, err := LoadConfig(
+		WithDefaults(map[string]any{
+			"service.port": 9090,
+			"service.name": "arcgo",
+		}),
+	)
+	assert.NoError(t, err)
+
+	port, err := GetAs[int](cfg, "service.port")
+	assert.NoError(t, err)
+	assert.Equal(t, 9090, port)
+
+	name, err := GetAs[string](cfg, "service.name")
+	assert.NoError(t, err)
+	assert.Equal(t, "arcgo", name)
+}
+
+func TestGetAsOr_And_MustGetAs(t *testing.T) {
+	cfg, err := LoadConfig(
+		WithDefaults(map[string]any{
+			"service.port": 9090,
+		}),
+	)
+	assert.NoError(t, err)
+
+	got := GetAsOr[int](cfg, "service.missing", 8080)
+	assert.Equal(t, 8080, got)
+
+	assert.Equal(t, 9090, MustGetAs[int](cfg, "service.port"))
+}

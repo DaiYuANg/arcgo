@@ -14,7 +14,7 @@ sidebar_position: 2
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {
@@ -269,7 +269,7 @@ import (
     "fmt"
     "net/http"
     "time"
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 type Server struct {

@@ -5,13 +5,14 @@ package fiber
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
+	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humafiber"
 	"github.com/gofiber/fiber/v2"
@@ -52,12 +53,19 @@ func New(app ...*fiber.App) *Adapter {
 // WithHuma 启用 Huma OpenAPI 文档
 func (a *Adapter) WithHuma(opts adapter.HumaOptions) *Adapter {
 	a.humaCfg = opts
-	a.huma = humafiber.New(a.app, huma.DefaultConfig(opts.Title, opts.Version))
+	cfg := huma.DefaultConfig(opts.Title, opts.Version)
+	cfg.OpenAPI.Info.Description = opts.Description
+	a.huma = humafiber.New(a.app, cfg)
 
 	// Fiber 需要直接注册路由到 app
 	a.registerHumaDocs()
 
 	return a
+}
+
+// EnableHuma 启用 Huma OpenAPI 文档
+func (a *Adapter) EnableHuma(opts adapter.HumaOptions) {
+	a.WithHuma(opts)
 }
 
 // registerHumaDocs 注册 Huma 文档路由到 Fiber
@@ -140,6 +148,42 @@ func (a *Adapter) App() *fiber.App {
 	return a.app
 }
 
+// Listen 直接透传到底层 Fiber 应用。
+func (a *Adapter) Listen(addr string) error {
+	return a.app.Listen(addr)
+}
+
+// Shutdown 直接透传到底层 Fiber 应用。
+func (a *Adapter) Shutdown() error {
+	return a.app.Shutdown()
+}
+
+// ListenContext 启动 Fiber 并在 ctx 结束时优雅关闭。
+func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- a.Listen(addr)
+	}()
+
+	select {
+	case err := <-errCh:
+		if isExpectedFiberClose(err) {
+			return nil
+		}
+		return err
+	case <-ctx.Done():
+		shutdownErr := a.Shutdown()
+		listenErr := <-errCh
+		if shutdownErr != nil {
+			return shutdownErr
+		}
+		if isExpectedFiberClose(listenErr) {
+			return nil
+		}
+		return listenErr
+	}
+}
+
 // wrapHandler 包装处理函数为 Fiber 格式
 func (a *Adapter) wrapHandler(handler adapter.HandlerFunc) fiber.Handler {
 	return func(c *fiber.Ctx) error {
@@ -180,7 +224,7 @@ func convertRequest(c *fiber.Ctx) *http.Request {
 		RemoteAddr:    c.IP(),
 	}
 
-	return req.WithContext(userContext(c))
+	return req.WithContext(adapter.WithRouteParams(userContext(c), c.AllParams()))
 }
 
 // responseWriter 适配 Fiber 响应
@@ -245,4 +289,18 @@ func normalizeHumaPath(path, fallback string) string {
 	trimmed := strings.TrimSpace(path)
 	p := mo.TupleToOption(trimmed, trimmed != "").OrElse(fallback)
 	return lo.Ternary(strings.HasPrefix(p, "/"), p, "/"+p)
+}
+
+func isExpectedFiberClose(err error) bool {
+	if err == nil {
+		return true
+	}
+
+	if errors.Is(err, http.ErrServerClosed) {
+		return true
+	}
+
+	lower := strings.ToLower(err.Error())
+	return strings.Contains(lower, "server is not running") ||
+		strings.Contains(lower, "use of closed network connection")
 }

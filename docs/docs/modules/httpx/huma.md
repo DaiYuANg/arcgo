@@ -22,8 +22,8 @@ Huma 是一个现代化的 Go Web 框架，提供：
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
 )
 
 func main() {
@@ -308,8 +308,8 @@ import (
     "context"
     "net/http"
     "time"
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
 )
 
 // User 用户模型

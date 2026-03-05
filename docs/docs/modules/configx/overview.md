@@ -19,7 +19,7 @@ sidebar_position: 1
 ## 安装
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/configx
+go get github.com/DaiYuANg/arcgo/configx
 ```
 
 ## 快速示例
@@ -31,7 +31,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {
@@ -65,7 +65,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 func main() {

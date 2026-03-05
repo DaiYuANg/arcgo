@@ -2,9 +2,9 @@
 sidebar_position: 1
 ---
 
-# Welcome to toolkit4go
+# Welcome to arcgo
 
-**toolkit4go** is a concise and efficient Go toolkit focused on common infrastructure components, helping you reduce boilerplate and focus on business logic.
+**arcgo** is a concise and efficient Go toolkit focused on common infrastructure components, helping you reduce boilerplate and focus on business logic.
 
 ## Design goals
 
@@ -30,7 +30,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {
@@ -74,8 +74,8 @@ import (
     "context"
     "net/http"
 
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
 )
 
 type UserEndpoint struct {
@@ -116,7 +116,7 @@ Key features:
 ```go
 package main
 
-import "github.com/DaiYuANg/toolkit4go/logx"
+import "github.com/DaiYuANg/arcgo/logx"
 
 func main() {
     logger := logx.MustNew(

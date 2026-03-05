@@ -39,10 +39,10 @@ httpx/
 ## Install
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/fiber
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/echo
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/std
+go get github.com/DaiYuANg/arcgo/httpx/adapter/gin
+go get github.com/DaiYuANg/arcgo/httpx/adapter/fiber
+go get github.com/DaiYuANg/arcgo/httpx/adapter/echo
+go get github.com/DaiYuANg/arcgo/httpx/adapter/std
 ```
 
 ## Quick example (Gin)
@@ -54,8 +54,8 @@ import (
     "context"
     "net/http"
 
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
 )
 
 type UserEndpoint struct { httpx.BaseEndpoint }

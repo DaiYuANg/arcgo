@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Quick Start
 
-This guide helps you get started with toolkit4go quickly.
+This guide helps you get started with arcgo quickly.
 
 ## Requirements
 
@@ -17,22 +17,22 @@ This guide helps you get started with toolkit4go quickly.
 
 ```bash
 # Configuration loader
-go get github.com/DaiYuANg/toolkit4go/configx
+go get github.com/DaiYuANg/arcgo/configx
 
 # Logger
-go get github.com/DaiYuANg/toolkit4go/logx
+go get github.com/DaiYuANg/arcgo/logx
 
 # HTTP adapters (choose one)
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/fiber
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/echo
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/std
+go get github.com/DaiYuANg/arcgo/httpx/adapter/gin
+go get github.com/DaiYuANg/arcgo/httpx/adapter/fiber
+go get github.com/DaiYuANg/arcgo/httpx/adapter/echo
+go get github.com/DaiYuANg/arcgo/httpx/adapter/std
 ```
 
 ### Install all modules
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/...
+go get github.com/DaiYuANg/arcgo/...
 ```
 
 ## Quick examples
@@ -69,7 +69,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {
@@ -111,7 +111,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {
@@ -148,8 +148,8 @@ import (
     "context"
     "net/http"
 
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
 )
 
 type UserEndpoint struct {

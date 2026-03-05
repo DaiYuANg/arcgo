@@ -1,10 +1,10 @@
 ---
 slug: /
-title: toolkit4go - 一套简洁高效的 Go 工具库
+title: arcgo - 一套简洁高效的 Go 工具库
 sidebar_label: 首页
 ---
 
-# toolkit4go
+# arcgo
 
 <div style={{textAlign: 'center', fontSize: '1.2rem', marginBottom: '2rem'}}>
 一套简洁高效的 Go 工具库
@@ -12,7 +12,7 @@ sidebar_label: 首页
 
 <div style={{textAlign: 'center', marginBottom: '3rem'}}>
   <a href="/docs/intro" style={{marginRight: '1rem'}} className="button button--primary button--lg">快速开始</a>
-  <a href="https://github.com/DaiYuANg/toolkit4go" className="button button--secondary button--lg">GitHub</a>
+  <a href="https://github.com/DaiYuANg/arcgo" className="button button--secondary button--lg">GitHub</a>
 </div>
 
 ## 📦 模块介绍
@@ -29,7 +29,7 @@ sidebar_label: 首页
 - ✅ 基于 validator 的结构体验证
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/configx
+go get github.com/DaiYuANg/arcgo/configx
 ```
 
 [了解更多 →](/docs/modules/configx/overview)
@@ -52,7 +52,7 @@ go get github.com/DaiYuANg/toolkit4go/configx
 - 标准库 (基于 chi)
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
+go get github.com/DaiYuANg/arcgo/httpx/adapter/gin
 ```
 
 [了解更多 →](/docs/modules/httpx/overview)
@@ -70,7 +70,7 @@ go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
 - ✅ 简洁易用的 API
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/logx
+go get github.com/DaiYuANg/arcgo/logx
 ```
 
 [了解更多 →](/docs/modules/logx/overview)
@@ -81,20 +81,20 @@ go get github.com/DaiYuANg/toolkit4go/logx
 
 ```bash
 # 安装配置模块
-go get github.com/DaiYuANg/toolkit4go/configx
+go get github.com/DaiYuANg/arcgo/configx
 
 # 安装日志模块
-go get github.com/DaiYuANg/toolkit4go/logx
+go get github.com/DaiYuANg/arcgo/logx
 
 # 安装 HTTP 模块（以 Gin 为例）
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
+go get github.com/DaiYuANg/arcgo/httpx/adapter/gin
 ```
 
 ---
 
 ## 📖 文档导航
 
-- [快速开始](/docs/quick-start) - 快速了解 toolkit4go
+- [快速开始](/docs/quick-start) - 快速了解 arcgo
 - [configx 文档](/docs/modules/configx/overview) - 配置加载详解
 - [httpx 文档](/docs/modules/httpx/overview) - HTTP 框架适配器详解
 - [logx 文档](/docs/modules/logx/overview) - 日志记录器详解
@@ -103,9 +103,9 @@ go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
 
 ## 🔗 相关链接
 
-- [GitHub 仓库](https://github.com/DaiYuANg/toolkit4go)
-- [Issues](https://github.com/DaiYuANg/toolkit4go/issues)
-- [Discussions](https://github.com/DaiYuANg/toolkit4go/discussions)
+- [GitHub 仓库](https://github.com/DaiYuANg/arcgo)
+- [Issues](https://github.com/DaiYuANg/arcgo/issues)
+- [Discussions](https://github.com/DaiYuANg/arcgo/discussions)
 
 ---
 

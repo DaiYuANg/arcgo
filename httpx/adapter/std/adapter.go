@@ -1,11 +1,14 @@
 package std
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
-	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
+	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humachi"
 	"github.com/go-chi/chi/v5"
@@ -38,8 +41,15 @@ func New() *Adapter {
 // WithHuma 启用 Huma OpenAPI 文档
 func (a *Adapter) WithHuma(opts adapter.HumaOptions) *Adapter {
 	a.humaCfg = opts
-	a.huma = humachi.New(a.router, huma.DefaultConfig(opts.Title, opts.Version))
+	cfg := huma.DefaultConfig(opts.Title, opts.Version)
+	cfg.OpenAPI.Info.Description = opts.Description
+	a.huma = humachi.New(a.router, cfg)
 	return a
+}
+
+// EnableHuma 启用 Huma OpenAPI 文档
+func (a *Adapter) EnableHuma(opts adapter.HumaOptions) {
+	a.WithHuma(opts)
 }
 
 // WithLogger 设置日志记录器
@@ -84,6 +94,47 @@ func (a *Adapter) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // 例如：adapter.Router().Use(yourMiddleware...)
 func (a *Adapter) Router() *chi.Mux {
 	return a.router
+}
+
+// Listen 启动标准 HTTP 服务。
+func (a *Adapter) Listen(addr string) error {
+	return http.ListenAndServe(addr, a.router)
+}
+
+// ListenContext 启动标准 HTTP 服务并在 ctx 结束时优雅关闭。
+func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	server := &http.Server{
+		Addr:    addr,
+		Handler: a.router,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- server.ListenAndServe()
+	}()
+
+	select {
+	case err := <-errCh:
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
+		err := <-errCh
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	}
 }
 
 // wrapHandler 包装处理函数

@@ -85,11 +85,7 @@ func loadConfigFromOptions(opts *Options) (*Config, error) {
 
 	// 加载默认值（struct 形式）
 	if opts.defaultsStruct != nil {
-		defaultMap, err := structToMap(opts.defaultsStruct)
-		if err != nil {
-			return nil, err
-		}
-		if err := k.Load(confmap.Provider(defaultMap, "."), nil); err != nil {
+		if err := loadDefaultsStruct(k, opts.defaultsStruct); err != nil {
 			return nil, err
 		}
 	}

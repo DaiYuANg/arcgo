@@ -3,10 +3,13 @@
 package gin
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
-	"github.com/DaiYuANg/toolkit4go/httpx/adapter"
+	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/adapters/humagin"
 	"github.com/gin-gonic/gin"
@@ -45,8 +48,15 @@ func New(engine ...*gin.Engine) *Adapter {
 // WithHuma 启用 Huma OpenAPI 文档
 func (a *Adapter) WithHuma(opts adapter.HumaOptions) *Adapter {
 	a.humaCfg = opts
-	a.huma = humagin.New(a.engine, huma.DefaultConfig(opts.Title, opts.Version))
+	cfg := huma.DefaultConfig(opts.Title, opts.Version)
+	cfg.OpenAPI.Info.Description = opts.Description
+	a.huma = humagin.New(a.engine, cfg)
 	return a
+}
+
+// EnableHuma 启用 Huma OpenAPI 文档
+func (a *Adapter) EnableHuma(opts adapter.HumaOptions) {
+	a.WithHuma(opts)
 }
 
 // WithLogger 设置日志记录器
@@ -88,13 +98,61 @@ func (a *Adapter) Engine() *gin.Engine {
 	return a.engine
 }
 
+// Listen 启动 Gin 服务。
+func (a *Adapter) Listen(addr string) error {
+	return a.engine.Run(addr)
+}
+
+// ListenContext 启动 Gin 服务并在 ctx 结束时优雅关闭。
+func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
+	if ctx == nil {
+		ctx = context.Background()
+	}
+
+	server := &http.Server{
+		Addr:    addr,
+		Handler: a.engine,
+	}
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- server.ListenAndServe()
+	}()
+
+	select {
+	case err := <-errCh:
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	case <-ctx.Done():
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			return err
+		}
+		err := <-errCh
+		if errors.Is(err, http.ErrServerClosed) {
+			return nil
+		}
+		return err
+	}
+}
+
 // wrapHandler 包装处理函数为 Gin 格式
 func (a *Adapter) wrapHandler(handler adapter.HandlerFunc) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if err := handler(c.Request.Context(), c.Writer, c.Request); err != nil {
+		params := make(map[string]string, len(c.Params))
+		for _, p := range c.Params {
+			params[p.Key] = p.Value
+		}
+
+		req := c.Request.WithContext(adapter.WithRouteParams(c.Request.Context(), params))
+
+		if err := handler(req.Context(), c.Writer, req); err != nil {
 			a.logger.Error("Handler error",
-				slog.String("method", c.Request.Method),
-				slog.String("path", c.Request.URL.Path),
+				slog.String("method", req.Method),
+				slog.String("path", req.URL.Path),
 				slog.String("error", err.Error()),
 			)
 			c.Error(err)

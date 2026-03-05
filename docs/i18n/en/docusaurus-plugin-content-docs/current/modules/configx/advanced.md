@@ -12,7 +12,7 @@ This page covers advanced `configx` patterns, including custom validators and re
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
     "github.com/go-playground/validator/v10"
 )
 

@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer = otel.Tracer("github.com/DaiYuANg/toolkit4go/httpx")
+var tracer = otel.Tracer("github.com/DaiYuANg/arcgo/httpx")
 
 // OpenTelemetryMiddleware OpenTelemetry 追踪中间件
 func OpenTelemetryMiddleware(next http.Handler) http.Handler {

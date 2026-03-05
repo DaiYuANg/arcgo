@@ -19,7 +19,7 @@ sidebar_position: 1
 ## Install
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/configx
+go get github.com/DaiYuANg/arcgo/configx
 ```
 
 ## Quick example
@@ -29,7 +29,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {

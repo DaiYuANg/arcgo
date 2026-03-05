@@ -1,10 +1,10 @@
 ---
 slug: /
-title: toolkit4go - A concise and efficient Go toolkit
+title: arcgo - A concise and efficient Go toolkit
 sidebar_label: Home
 ---
 
-# toolkit4go
+# arcgo
 
 <div style={{textAlign: 'center', fontSize: '1.2rem', marginBottom: '2rem'}}>
 A concise and efficient Go toolkit
@@ -12,7 +12,7 @@ A concise and efficient Go toolkit
 
 <div style={{textAlign: 'center', marginBottom: '3rem'}}>
   <a href="/docs/intro" style={{marginRight: '1rem'}} className="button button--primary button--lg">Quick Start</a>
-  <a href="https://github.com/DaiYuANg/toolkit4go" className="button button--secondary button--lg">GitHub</a>
+  <a href="https://github.com/DaiYuANg/arcgo" className="button button--secondary button--lg">GitHub</a>
 </div>
 
 ## Modules
@@ -29,7 +29,7 @@ A configuration loader built on top of [koanf](https://github.com/knadh/koanf) a
 - Supports struct validation via validator
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/configx
+go get github.com/DaiYuANg/arcgo/configx
 ```
 
 [Learn more ->](/docs/modules/configx/overview)
@@ -52,7 +52,7 @@ Supported frameworks:
 - Standard library (based on chi)
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
+go get github.com/DaiYuANg/arcgo/httpx/adapter/gin
 ```
 
 [Learn more ->](/docs/modules/httpx/overview)
@@ -70,7 +70,7 @@ A logger based on [zerolog](https://github.com/rs/zerolog), with file rotation a
 - Simple API
 
 ```bash
-go get github.com/DaiYuANg/toolkit4go/logx
+go get github.com/DaiYuANg/arcgo/logx
 ```
 
 [Learn more ->](/docs/modules/logx/overview)
@@ -81,13 +81,13 @@ go get github.com/DaiYuANg/toolkit4go/logx
 
 ```bash
 # Install config module
-go get github.com/DaiYuANg/toolkit4go/configx
+go get github.com/DaiYuANg/arcgo/configx
 
 # Install logging module
-go get github.com/DaiYuANg/toolkit4go/logx
+go get github.com/DaiYuANg/arcgo/logx
 
 # Install HTTP module (Gin example)
-go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
+go get github.com/DaiYuANg/arcgo/httpx/adapter/gin
 ```
 
 ---
@@ -103,9 +103,9 @@ go get github.com/DaiYuANg/toolkit4go/httpx/adapter/gin
 
 ## Links
 
-- [GitHub Repository](https://github.com/DaiYuANg/toolkit4go)
-- [Issues](https://github.com/DaiYuANg/toolkit4go/issues)
-- [Discussions](https://github.com/DaiYuANg/toolkit4go/discussions)
+- [GitHub Repository](https://github.com/DaiYuANg/arcgo)
+- [Issues](https://github.com/DaiYuANg/arcgo/issues)
+- [Discussions](https://github.com/DaiYuANg/arcgo/discussions)
 
 ---
 

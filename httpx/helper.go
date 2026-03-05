@@ -3,9 +3,9 @@ package httpx
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
-	"reflect"
 
 	"github.com/samber/lo"
 )
@@ -106,14 +106,10 @@ func (e *HandlerEndpoint) DeleteUserByID(ctx context.Context, w http.ResponseWri
 func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
 	body, err := json.Marshal(payload)
 	if err != nil {
-		payloadType := "<nil>"
-		if t := reflect.TypeOf(payload); t != nil {
-			payloadType = t.String()
-		}
 		slog.Default().Error(
 			"Failed to marshal JSON response",
 			slog.Int("status", status),
-			slog.String("payload_type", payloadType),
+			slog.String("payload_type", typeNameOf(payload)),
 			slog.String("error", err.Error()),
 		)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -132,4 +128,11 @@ func writeJSON(w http.ResponseWriter, status int, payload interface{}) {
 		)
 		return
 	}
+}
+
+func typeNameOf(v any) string {
+	if v == nil {
+		return "<nil>"
+	}
+	return fmt.Sprintf("%T", v)
 }

@@ -77,7 +77,7 @@ package main
 import (
     "context"
     "net/http"
-    "github.com/DaiYuANg/toolkit4go/httpx"
+    "github.com/DaiYuANg/arcgo/httpx"
 )
 
 type UserEndpoint struct {
@@ -344,9 +344,9 @@ package main
 import (
     "context"
     "net/http"
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 type UserService struct {

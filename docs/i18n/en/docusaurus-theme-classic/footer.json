@@ -29,11 +29,11 @@
   },
   "link.item.label.GitHub Issues": {
     "message": "GitHub Issues",
-    "description": "The label of footer link with label=GitHub Issues linking to https://github.com/DaiYuANg/toolkit4go/issues"
+    "description": "The label of footer link with label=GitHub Issues linking to https://github.com/DaiYuANg/arcgo/issues"
   },
   "link.item.label.GitHub Discussions": {
     "message": "GitHub Discussions",
-    "description": "The label of footer link with label=GitHub Discussions linking to https://github.com/DaiYuANg/toolkit4go/discussions"
+    "description": "The label of footer link with label=GitHub Discussions linking to https://github.com/DaiYuANg/arcgo/discussions"
   },
   "link.item.label.Blog": {
     "message": "Blog",
@@ -41,7 +41,7 @@
   },
   "link.item.label.GitHub": {
     "message": "GitHub",
-    "description": "The label of footer link with label=GitHub linking to https://github.com/DaiYuANg/toolkit4go"
+    "description": "The label of footer link with label=GitHub linking to https://github.com/DaiYuANg/arcgo"
   },
   "copyright": {
     "message": "Copyright © 2026 DaiYuANg. Built with Docusaurus.",

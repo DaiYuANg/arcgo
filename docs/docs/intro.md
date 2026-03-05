@@ -2,9 +2,9 @@
 sidebar_position: 1
 ---
 
-# 欢迎使用 toolkit4go
+# 欢迎使用 arcgo
 
-**toolkit4go** 是一套简洁高效的 Go 工具库，旨在提供常用的基础设施组件，减少样板代码，让你专注于业务逻辑。
+**arcgo** 是一套简洁高效的 Go 工具库，旨在提供常用的基础设施组件，减少样板代码，让你专注于业务逻辑。
 
 ## 🎯 设计目标
 
@@ -32,7 +32,7 @@ package main
 
 import (
     "fmt"
-    "github.com/DaiYuANg/toolkit4go/configx"
+    "github.com/DaiYuANg/arcgo/configx"
 )
 
 type Config struct {
@@ -77,8 +77,8 @@ package main
 import (
     "context"
     "net/http"
-    "github.com/DaiYuANg/toolkit4go/httpx"
-    "github.com/DaiYuANg/toolkit4go/httpx/adapter/gin"
+    "github.com/DaiYuANg/arcgo/httpx"
+    "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
 )
 
 type UserEndpoint struct {
@@ -122,7 +122,7 @@ func main() {
 package main
 
 import (
-    "github.com/DaiYuANg/toolkit4go/logx"
+    "github.com/DaiYuANg/arcgo/logx"
 )
 
 func main() {

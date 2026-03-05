@@ -8,59 +8,65 @@ import (
 	"strings"
 	"testing"
 
-	adapterpkg "github.com/DaiYuANg/toolkit4go/httpx/adapter"
+	"github.com/DaiYuANg/arcgo/httpx/adapter"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/stretchr/testify/assert"
 )
 
-type PanicEndpoint struct {
-	BaseEndpoint
-}
+type fakeFiberAdapterNoApp struct{}
 
-func (e *PanicEndpoint) GetPanic(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
-	panic("boom")
-}
+func (f *fakeFiberAdapterNoApp) Name() string { return "fiber" }
 
-type VariadicEndpoint struct {
-	BaseEndpoint
-}
+func (f *fakeFiberAdapterNoApp) Handle(method, path string, handler adapter.HandlerFunc) {}
 
-func (e *VariadicEndpoint) GetVariadic(ctx context.Context, args ...string) error {
-	return nil
-}
+func (f *fakeFiberAdapterNoApp) Group(prefix string) adapter.Adapter { return f }
 
-type DuplicateParamEndpoint struct {
-	BaseEndpoint
-}
+func (f *fakeFiberAdapterNoApp) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
 
-func (e *DuplicateParamEndpoint) GetDuplicate(ctx context.Context, r1 *http.Request, r2 *http.Request) error {
-	return nil
-}
+func (f *fakeFiberAdapterNoApp) EnableHuma(opts adapter.HumaOptions) {}
 
-type MultiReturnEndpoint struct {
-	BaseEndpoint
-}
+func (f *fakeFiberAdapterNoApp) HumaAPI() huma.API { return nil }
 
-func (e *MultiReturnEndpoint) GetMultiReturn(ctx context.Context, w http.ResponseWriter, r *http.Request) (error, error) {
-	return nil, nil
-}
+func (f *fakeFiberAdapterNoApp) HasHuma() bool { return false }
 
-type TagPathEndpoint struct {
-	GetUsers func() `http:"POST users"`
-}
+func (f *fakeFiberAdapterNoApp) Listen(addr string) error { return ErrAdapterNotFound }
 
-type FakeFiberAdapterNoApp struct{}
+type fakeAdapterWithoutHuma struct{}
 
-func (f *FakeFiberAdapterNoApp) Name() string { return "fiber" }
+func (f *fakeAdapterWithoutHuma) Name() string { return "fake" }
 
-func (f *FakeFiberAdapterNoApp) Handle(method, path string, handler adapterpkg.HandlerFunc) {}
+func (f *fakeAdapterWithoutHuma) Handle(method, path string, handler adapter.HandlerFunc) {}
 
-func (f *FakeFiberAdapterNoApp) Group(prefix string) adapterpkg.Adapter { return f }
+func (f *fakeAdapterWithoutHuma) Group(prefix string) adapter.Adapter { return f }
 
-func (f *FakeFiberAdapterNoApp) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
+func (f *fakeAdapterWithoutHuma) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
 
-func TestServer_PanicInHandlerReturns500(t *testing.T) {
+func (f *fakeAdapterWithoutHuma) EnableHuma(opts adapter.HumaOptions) {}
+
+func (f *fakeAdapterWithoutHuma) HumaAPI() huma.API { return nil }
+
+func (f *fakeAdapterWithoutHuma) HasHuma() bool { return false }
+
+func TestServer_GenericHandlerReturnsHTTPXError(t *testing.T) {
 	server := NewServer()
-	err := server.Register(&PanicEndpoint{})
+	err := Get(server, "/forbidden", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		return nil, NewError(http.StatusForbidden, "no permission")
+	})
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest(http.MethodGet, "/forbidden", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusForbidden, w.Code)
+	assert.Contains(t, w.Body.String(), "no permission")
+}
+
+func TestServer_GenericHandlerPanic(t *testing.T) {
+	server := NewServer()
+	err := Get(server, "/panic", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		panic("boom")
+	})
 	assert.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodGet, "/panic", nil)
@@ -68,57 +74,40 @@ func TestServer_PanicInHandlerReturns500(t *testing.T) {
 	server.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
-	assert.Contains(t, strings.ToLower(w.Body.String()), "panic in handler getpanic")
+	assert.Contains(t, strings.ToLower(w.Body.String()), "panic in handler")
 }
 
-func TestServer_Register_VariadicHandler(t *testing.T) {
+func TestServer_GenericHandlerNilOutputReturnsNoContent(t *testing.T) {
 	server := NewServer()
-	err := server.Register(&VariadicEndpoint{})
-	assert.Error(t, err)
-	assert.True(t, IsInvalidHandlerSignature(err))
-}
-
-func TestServer_Register_DuplicateParamType(t *testing.T) {
-	server := NewServer()
-	err := server.Register(&DuplicateParamEndpoint{})
-	assert.Error(t, err)
-	assert.True(t, IsInvalidHandlerSignature(err))
-}
-
-func TestServer_Register_MultiReturn(t *testing.T) {
-	server := NewServer()
-	err := server.Register(&MultiReturnEndpoint{})
-	assert.Error(t, err)
-	assert.True(t, IsInvalidHandlerSignature(err))
-}
-
-func TestRouterGenerator_TagPathWithoutLeadingSlash(t *testing.T) {
-	gen := NewRouterGenerator(GeneratorOptions{
-		BasePath:   "/api",
-		UseComment: false,
-		UseTag:     true,
-		UseNaming:  false,
-		TagKey:     "route",
+	err := Get(server, "/empty", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		return nil, nil
 	})
-
-	routes, err := gen.Generate(&TagPathEndpoint{}).Get()
 	assert.NoError(t, err)
-	assert.Len(t, routes, 1)
-	assert.Equal(t, http.MethodPost, routes[0].Method)
-	assert.Equal(t, "/api/users", routes[0].Path)
+
+	req := httptest.NewRequest(http.MethodGet, "/empty", nil)
+	w := httptest.NewRecorder()
+	server.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNoContent, w.Code)
 }
 
-func TestServer_RegisterWithPrefix_NormalizedPath(t *testing.T) {
-	server := NewServer(WithBasePath("/api/"))
-	err := server.RegisterWithPrefix("/v1/", &TestServerEndpoint{})
-	assert.NoError(t, err)
+func TestServer_WithHumaEnabledButAdapterWithoutAPI(t *testing.T) {
+	server := NewServer(
+		WithAdapter(&fakeAdapterWithoutHuma{}),
+		WithHuma(HumaOptions{Enabled: true, Title: "x", Version: "1.0.0"}),
+	)
 
-	assert.True(t, server.HasRoute(http.MethodGet, "/api/v1/items"))
-	assert.True(t, server.HasRoute(http.MethodPost, "/api/v1/item"))
+	err := Get(server, "/huma", func(ctx context.Context, input *struct{}) (*humaPingOutput, error) {
+		out := &humaPingOutput{}
+		out.Body.Message = "ok"
+		return out, nil
+	})
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrAdapterNotFound))
 }
 
 func TestServer_ListenAndServe_FiberWithoutApp(t *testing.T) {
-	server := NewServer(WithAdapter(&FakeFiberAdapterNoApp{}))
+	server := NewServer(WithAdapter(&fakeFiberAdapterNoApp{}))
 	err := server.ListenAndServe(":0")
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrAdapterNotFound))

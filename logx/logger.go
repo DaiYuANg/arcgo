@@ -5,9 +5,11 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
@@ -21,6 +23,9 @@ type Logger struct {
 	logger  zerolog.Logger
 	closers []io.Closer
 	config  *config
+
+	slogOnce   sync.Once
+	slogLogger *slog.Logger
 }
 
 // Close 关闭日志记录器，释放文件句柄
@@ -200,11 +205,7 @@ func (l *Logger) Panic(msg string, fields ...interface{}) {
 
 // WithField 添加字段到 logger
 func (l *Logger) WithField(key string, value interface{}) *Logger {
-	return &Logger{
-		logger:  l.logger.With().Interface(key, value).Logger(),
-		closers: l.closers,
-		config:  l.config,
-	}
+	return l.derive(l.logger.With().Interface(key, value).Logger())
 }
 
 // WithFields 添加多个字段到 logger
@@ -213,36 +214,20 @@ func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
 	for k, v := range fields {
 		logger = logger.With().Interface(k, v).Logger()
 	}
-	return &Logger{
-		logger:  logger,
-		closers: l.closers,
-		config:  l.config,
-	}
+	return l.derive(logger)
 }
 
 // WithError 添加 error 到 logger
 func (l *Logger) WithError(err error) *Logger {
-	return &Logger{
-		logger:  l.logger.With().Err(err).Logger(),
-		closers: l.closers,
-		config:  l.config,
-	}
+	return l.derive(l.logger.With().Err(err).Logger())
 }
 
 // WithCaller 启用/禁用调用者信息
 func (l *Logger) WithCaller(enabled bool) *Logger {
 	if enabled {
-		return &Logger{
-			logger:  l.logger.With().Caller().Logger(),
-			closers: l.closers,
-			config:  l.config,
-		}
+		return l.derive(l.logger.With().Caller().Logger())
 	}
-	return &Logger{
-		logger:  l.logger,
-		closers: l.closers,
-		config:  l.config,
-	}
+	return l.derive(l.logger)
 }
 
 // Helper 标记为辅助函数（用于跳过调用栈）
@@ -290,4 +275,12 @@ func (l *Logger) IsWarn() bool {
 // IsError 检查是否启用 error 级别
 func (l *Logger) IsError() bool {
 	return l.config.level <= ErrorLevel
+}
+
+func (l *Logger) derive(z zerolog.Logger) *Logger {
+	return &Logger{
+		logger:  z,
+		closers: l.closers,
+		config:  l.config,
+	}
 }

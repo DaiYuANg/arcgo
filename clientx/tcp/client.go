@@ -3,27 +3,33 @@ package tcp
 import (
 	"context"
 	"crypto/tls"
-	"fmt"
+	"errors"
 	"net"
+	"time"
+
+	"github.com/DaiYuANg/arcgo/clientx"
+	clientcodec "github.com/DaiYuANg/arcgo/clientx/codec"
 )
 
-type Client struct {
-	cfg Config
+type DefaultClient struct {
+	cfg   Config
+	hooks []clientx.Hook
 }
 
-func New(cfg Config, opts ...Option) *Client {
-	c := &Client{cfg: cfg}
+func New(cfg Config, opts ...Option) Client {
+	c := &DefaultClient{cfg: cfg}
 	for _, opt := range opts {
 		opt(c)
 	}
 	return c
 }
 
-func (c *Client) Dial(ctx context.Context) (net.Conn, error) {
+func (c *DefaultClient) Dial(ctx context.Context) (net.Conn, error) {
 	network := c.cfg.Network
 	if network == "" {
 		network = "tcp"
 	}
+	start := time.Now()
 
 	dialer := &net.Dialer{
 		Timeout:   c.cfg.DialTimeout,
@@ -36,25 +42,75 @@ func (c *Client) Dial(ctx context.Context) (net.Conn, error) {
 			ServerName:         c.cfg.TLS.ServerName,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("dial tls tcp failed: %w", err)
+			wrappedErr := clientx.WrapError(clientx.ProtocolTCP, "dial", c.cfg.Address, err)
+			clientx.EmitDial(c.hooks, clientx.DialEvent{
+				Protocol: clientx.ProtocolTCP,
+				Op:       "dial",
+				Network:  network,
+				Addr:     c.cfg.Address,
+				Duration: time.Since(start),
+				Err:      wrappedErr,
+			})
+			return nil, wrappedErr
 		}
-		defer func(conn *tls.Conn) {
-			_ = conn.Close()
-		}(conn)
-		return wrapConn(conn, c.cfg), nil
+		clientx.EmitDial(c.hooks, clientx.DialEvent{
+			Protocol: clientx.ProtocolTCP,
+			Op:       "dial",
+			Network:  network,
+			Addr:     c.cfg.Address,
+			Duration: time.Since(start),
+		})
+		return wrapConn(conn, c.cfg, c.hooks), nil
 	}
 
 	conn, err := dialer.DialContext(ctx, network, c.cfg.Address)
 	if err != nil {
-		return nil, fmt.Errorf("dial tcp failed: %w", err)
+		wrappedErr := clientx.WrapError(clientx.ProtocolTCP, "dial", c.cfg.Address, err)
+		clientx.EmitDial(c.hooks, clientx.DialEvent{
+			Protocol: clientx.ProtocolTCP,
+			Op:       "dial",
+			Network:  network,
+			Addr:     c.cfg.Address,
+			Duration: time.Since(start),
+			Err:      wrappedErr,
+		})
+		return nil, wrappedErr
 	}
-	return wrapConn(conn, c.cfg), nil
+	clientx.EmitDial(c.hooks, clientx.DialEvent{
+		Protocol: clientx.ProtocolTCP,
+		Op:       "dial",
+		Network:  network,
+		Addr:     c.cfg.Address,
+		Duration: time.Since(start),
+	})
+	return wrapConn(conn, c.cfg, c.hooks), nil
 }
 
-func wrapConn(conn net.Conn, cfg Config) net.Conn {
+func (c *DefaultClient) DialCodec(ctx context.Context, codec clientcodec.Codec, framer clientcodec.Framer) (*CodecConn, error) {
+	if codec == nil {
+		return nil, clientx.WrapErrorWithKind(
+			clientx.ProtocolTCP, "dial_codec", c.cfg.Address, clientx.ErrorKindCodec, errors.New("codec is nil"),
+		)
+	}
+	if framer == nil {
+		return nil, clientx.WrapErrorWithKind(
+			clientx.ProtocolTCP, "dial_codec", c.cfg.Address, clientx.ErrorKindCodec, errors.New("framer is nil"),
+		)
+	}
+
+	conn, err := c.Dial(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewCodecConn(conn, codec, framer, c.cfg.Address), nil
+}
+
+func wrapConn(conn net.Conn, cfg Config, hooks []clientx.Hook) net.Conn {
 	return &timeoutConn{
 		Conn:         conn,
 		readTimeout:  cfg.ReadTimeout,
 		writeTimeout: cfg.WriteTimeout,
+		addr:         cfg.Address,
+		hooks:        hooks,
 	}
 }

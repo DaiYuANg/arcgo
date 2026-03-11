@@ -19,6 +19,9 @@ weight: 5
 - Unified typed route registration across adapters (`Get`, `Post`, `Put`, `Patch`, `Delete`...)
 - Adapter-based runtime integration (`std`, `gin`, `echo`, `fiber`)
 - First-class OpenAPI and documentation control
+- Typed Server-Sent Events (SSE) route registration (`GetSSE`, `GroupGetSSE`)
+- Policy-based route capabilities (`RouteWithPolicies`, `GroupRouteWithPolicies`)
+- Conditional request handling (`If-Match`, `If-None-Match`, `If-Modified-Since`, `If-Unmodified-Since`)
 - Direct Huma escape hatches (`HumaAPI`, `OpenAPI`, `ConfigureOpenAPI`)
 - Group-level Huma middleware and operation customization
 - Optional request validation via `go-playground/validator`
@@ -211,6 +214,84 @@ Available group API:
 - `DefaultSummaryPrefix(...)`
 - `DefaultDescription(...)`
 
+### Policy Route Registration
+
+```go
+_ = httpx.RouteWithPolicies(server, httpx.MethodGet, "/resources/{id}", handler,
+    httpx.PolicyOperation[GetInput, GetOutput](huma.OperationTags("resources")),
+    httpx.PolicyConditionalRead[GetInput, GetOutput](stateGetter),
+)
+```
+
+Available policy route API:
+
+- `RouteWithPolicies(...)`
+- `GroupRouteWithPolicies(...)`
+- `MustRouteWithPolicies(...)`
+- `MustGroupRouteWithPolicies(...)`
+
+### SSE
+
+```go
+httpx.MustRouteSSEWithPolicies(server, httpx.MethodGet, "/events", map[string]any{
+    "tick": TickEvent{},
+    "done": DoneEvent{},
+}, func(ctx context.Context, input *StreamInput, send httpx.SSESender) {
+    _ = send.Data(TickEvent{Index: 1})
+    _ = send(httpx.SSEMessage{ID: 2, Data: DoneEvent{Message: "ok"}})
+}, httpx.SSEPolicyOperation[StreamInput](huma.OperationTags("stream")))
+```
+
+Available SSE API:
+
+- `RouteSSEWithPolicies(...)`
+- `GroupRouteSSEWithPolicies(...)`
+- `MustRouteSSEWithPolicies(...)`
+- `MustGroupRouteSSEWithPolicies(...)`
+- `SSEPolicyOperation(...)`
+- `GetSSE(...)`
+- `GroupGetSSE(...)`
+- `MustGetSSE(...)`
+- `MustGroupGetSSE(...)`
+
+### Conditional Requests
+
+```go
+type GetInput struct {
+    httpx.ConditionalParams
+}
+
+_ = httpx.RouteWithPolicies(server, httpx.MethodGet, "/resources/{id}", func(ctx context.Context, input *GetInput) (*Output, error) {
+    return out, nil
+}, httpx.PolicyConditionalRead[GetInput, Output](func(ctx context.Context, input *GetInput) (string, time.Time, error) {
+    return currentETag, modifiedAt, nil
+}))
+```
+
+Available conditional helpers:
+
+- `ConditionalParams`
+- `PolicyConditionalRead(...)`
+- `PolicyConditionalWrite(...)`
+- `OperationConditionalRead()`
+- `OperationConditionalWrite()`
+
+### Adapter Bridge Hook
+
+```go
+httpx.UseAdapter[adapter.LoggerConfigurer](server, func(cfg adapter.LoggerConfigurer) {
+    cfg.SetLogger(logger)
+})
+```
+
+### Graceful Shutdown Hooks (humacli)
+
+```go
+cli := humacli.New(func(hooks humacli.Hooks, opts *Options) {
+    httpx.BindGracefulShutdownHooks(hooks, server, ":8888")
+})
+```
+
 ## Typed Input Patterns
 
 ```go
@@ -369,3 +450,7 @@ No. Keep adapter-native middleware on the adapter itself, and use `httpx` for Hu
 - Organization: `go run ./httpx/examples/organization`
   - Documentation paths, security, global headers, and group defaults
   - See [`httpx/examples/organization/README.md`](https://github.com/DaiYuANg/arcgo/tree/main/httpx/examples/organization)
+- SSE: `go run ./httpx/examples/sse`
+  - Typed event streaming over `text/event-stream`
+- Conditional Requests: `go run ./httpx/examples/conditional`
+  - ETag and Last-Modified based precondition checks

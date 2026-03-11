@@ -10,6 +10,9 @@ type PriorityQueue[T any] struct {
 
 // NewPriorityQueue creates a priority queue with comparator and optional items.
 func NewPriorityQueue[T any](less func(a, b T) bool, items ...T) *PriorityQueue[T] {
+	if less == nil {
+		panic("list: priority queue comparator cannot be nil")
+	}
 	pq := &PriorityQueue[T]{
 		h: &priorityQueueHeap[T]{
 			items: make([]T, 0, len(items)),

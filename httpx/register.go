@@ -13,46 +13,47 @@ import (
 )
 
 // Route registers a typed handler on the server.
-func Route[I, O any](s *Server, method, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
-	if s == nil {
+func Route[I, O any](s ServerRuntime, method, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+	server := unwrapServer(s)
+	if server == nil {
 		return fmt.Errorf("%w: server is nil", ErrRouteNotRegistered)
 	}
-	fullPath := joinRoutePath(s.basePath, path)
-	return registerTyped(s, s.HumaAPI(), method, fullPath, fullPath, handler, operationOptions...)
+	fullPath := joinRoutePath(server.basePath, path)
+	return registerTyped(server, server.HumaAPI(), method, fullPath, fullPath, handler, operationOptions, nil)
 }
 
 // Get registers a typed GET handler on the server.
-func Get[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+func Get[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return Route(s, MethodGet, path, handler, operationOptions...)
 }
 
 // Post registers a typed POST handler on the server.
-func Post[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+func Post[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return Route(s, MethodPost, path, handler, operationOptions...)
 }
 
 // Put registers a typed PUT handler on the server.
-func Put[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+func Put[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return Route(s, MethodPut, path, handler, operationOptions...)
 }
 
 // Patch registers a typed PATCH handler on the server.
-func Patch[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+func Patch[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return Route(s, MethodPatch, path, handler, operationOptions...)
 }
 
 // Delete registers a typed DELETE handler on the server.
-func Delete[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+func Delete[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return Route(s, MethodDelete, path, handler, operationOptions...)
 }
 
 // Head registers a typed HEAD handler on the server.
-func Head[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+func Head[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return Route(s, MethodHead, path, handler, operationOptions...)
 }
 
 // Options registers a typed OPTIONS handler on the server.
-func Options[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+func Options[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return Route(s, MethodOptions, path, handler, operationOptions...)
 }
 
@@ -70,7 +71,7 @@ func GroupRoute[I, O any](g *Group, method, path string, handler TypedHandler[I,
 		registerPath = path
 	}
 
-	return registerTyped(g.server, target, method, registerPath, fullPath, handler, operationOptions...)
+	return registerTyped(g.server, target, method, registerPath, fullPath, handler, operationOptions, nil)
 }
 
 // GroupGet registers a typed GET handler under a route group.
@@ -99,42 +100,42 @@ func GroupDelete[I, O any](g *Group, path string, handler TypedHandler[I, O], op
 }
 
 // MustRoute registers a route and panics if registration fails.
-func MustRoute[I, O any](s *Server, method, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+func MustRoute[I, O any](s ServerRuntime, method, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
 	lo.Must0(Route(s, method, path, handler, operationOptions...))
 }
 
 // MustGet registers a GET route and panics if registration fails.
-func MustGet[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+func MustGet[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
 	lo.Must0(Get(s, path, handler, operationOptions...))
 }
 
 // MustPost registers a POST route and panics if registration fails.
-func MustPost[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+func MustPost[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
 	lo.Must0(Post(s, path, handler, operationOptions...))
 }
 
 // MustPut registers a PUT route and panics if registration fails.
-func MustPut[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+func MustPut[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
 	lo.Must0(Put(s, path, handler, operationOptions...))
 }
 
 // MustPatch registers a PATCH route and panics if registration fails.
-func MustPatch[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+func MustPatch[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
 	lo.Must0(Patch(s, path, handler, operationOptions...))
 }
 
 // MustDelete registers a DELETE route and panics if registration fails.
-func MustDelete[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+func MustDelete[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
 	lo.Must0(Delete(s, path, handler, operationOptions...))
 }
 
 // MustHead registers a HEAD route and panics if registration fails.
-func MustHead[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+func MustHead[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
 	lo.Must0(Head(s, path, handler, operationOptions...))
 }
 
 // MustOptions registers an OPTIONS route and panics if registration fails.
-func MustOptions[I, O any](s *Server, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+func MustOptions[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
 	lo.Must0(Options(s, path, handler, operationOptions...))
 }
 
@@ -169,7 +170,14 @@ func MustGroupDelete[I, O any](g *Group, path string, handler TypedHandler[I, O]
 }
 
 // registerTyped converts an httpx typed handler into a Huma operation registration.
-func registerTyped[I, O any](s *Server, api huma.API, method, registerPath, fullPath string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
+func registerTyped[I, O any](
+	s *Server,
+	api huma.API,
+	method, registerPath, fullPath string,
+	handler TypedHandler[I, O],
+	operationOptions []OperationOption,
+	policies []RoutePolicy[I, O],
+) error {
 	if s == nil {
 		return fmt.Errorf("%w: server is nil", ErrRouteNotRegistered)
 	}
@@ -178,6 +186,7 @@ func registerTyped[I, O any](s *Server, api huma.API, method, registerPath, full
 	}
 
 	wrappedHandler := withInputValidation(s, handler)
+	wrappedHandler = applyRoutePolicies(wrappedHandler, policies)
 
 	opID := defaultOperationID(method, fullPath)
 	handlerName := handlerName(handler)
@@ -193,13 +202,16 @@ func registerTyped[I, O any](s *Server, api huma.API, method, registerPath, full
 			opt(&op)
 		}
 	})
+	applyPolicyOperations(&op, policies)
 
-	lo.ForEach(s.operationModifiers, func(modifier func(*huma.Operation), _ int) {
+	lo.ForEach(s.operationModifiers.Values(), func(modifier func(*huma.Operation), _ int) {
 		if modifier != nil {
 			modifier(&op)
 		}
 	})
 
+	s.openAPIMu.Lock()
+	defer s.openAPIMu.Unlock()
 	huma.Register(api, op, func(ctx context.Context, input *I) (*O, error) {
 		return wrappedHandler(ctx, input)
 	})

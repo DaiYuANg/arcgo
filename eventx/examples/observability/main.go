@@ -49,7 +49,7 @@ func main() {
 		panic(err)
 	}
 
-	metricsServer := httpx.NewServer(
+	metricsServer := httpx.New(
 		httpx.WithAdapter(std.New()),
 		httpx.WithOpenAPIDocs(false),
 	)

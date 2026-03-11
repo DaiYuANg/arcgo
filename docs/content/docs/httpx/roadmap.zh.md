@@ -29,6 +29,30 @@ weight: 90
 - 补齐这部分的单元测试和示例
 - 补文档：明确 `httpx` 层日志、adapter bridge 日志、框架原生日志边界
 
+## P0 执行记录（2026-03-11）
+
+- Huma 版本已从 `v2.36.0` 升级到 `v2.37.2`
+- 回归验证通过：
+  - `go test ./httpx/...`
+  - `go test ./...`
+- 已补齐 adapter 构造期 `Options` 测试（`std`/`gin`/`echo`/`fiber`）：
+  - 覆盖 logger 注入与错误日志路径
+  - 覆盖 timeout/shutdown 默认值与覆盖值合并行为
+- 已更新示例以展示构造期 `Options` 用法：
+  - `httpx/examples/std`
+  - `httpx/examples/gin`
+  - `httpx/examples/echo`
+  - `httpx/examples/fiber`
+- 兼容性清单（已核对）：
+  - 类型化路由注册（`huma.Register`）行为保持兼容
+  - Group 相关能力（middleware/modifier/transformer）行为保持兼容
+  - OpenAPI/doc 路径配置与运行时 `ConfigureDocs(...)` 重绑定行为保持兼容
+  - Security / Components / Global 参数相关 OpenAPI patch 行为保持兼容
+  - `std`/`gin`/`echo`/`fiber` adapter 的 Huma docs 控制器行为保持兼容
+- 仍需后续跟进：
+  - `fiber` adapter 不支持 `net/http` `ServeHTTP`（当前设计返回 `501`）
+  - `httpx/fx` 仍是轻量封装，缺少生命周期集成测试
+
 ### P1（下一阶段）
 
 - 落地 `UseAdapterMiddleware(...)` 或同级正式入口

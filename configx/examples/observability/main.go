@@ -36,7 +36,7 @@ func main() {
 
 	fmt.Printf("loaded config: %+v\n", cfg)
 
-	metricsServer := httpx.NewServer(
+	metricsServer := httpx.New(
 		httpx.WithAdapter(std.New()),
 		httpx.WithOpenAPIDocs(false),
 	)

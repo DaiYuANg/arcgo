@@ -111,6 +111,7 @@ func (l *ConcurrentList[T]) RemoveAt(index int) (T, bool) {
 	}
 	removed := l.items[index]
 	copy(l.items[index:], l.items[index+1:])
+	l.items[len(l.items)-1] = zero
 	l.items = l.items[:len(l.items)-1]
 	return removed, true
 }

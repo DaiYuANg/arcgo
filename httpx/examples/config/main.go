@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/DaiYuANg/arcgo/httpx"
@@ -26,7 +27,7 @@ func main() {
 	defer func() { _ = logger.Close() }()
 	slogLogger := logx.NewSlog(logger)
 
-	fmt.Println("=== Example 1: Using ServerOptions + adapter construction options ===")
+	slogLogger.Info("config example section", slog.String("section", "server options + adapter options"))
 	serverOpts := options.DefaultServerOptions()
 	serverOpts.Logger = slogLogger
 	serverOpts.BasePath = "/api"
@@ -54,34 +55,37 @@ func main() {
 	})
 	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
 
-	server := httpx.NewServer(append(serverOpts.Build(), httpx.WithAdapter(stdAdapter))...)
+	server := httpx.New(append(serverOpts.Build(), httpx.WithAdapter(stdAdapter))...)
 	httpx.MustGet(server, "/users", func(ctx context.Context, input *struct{}) (*UserOutput, error) {
 		out := &UserOutput{}
 		out.Body.Users = []string{"Alice", "Bob", "Charlie"}
 		return out, nil
 	}, huma.OperationTags("users"))
 
-	fmt.Println("=== Example 2: Using HTTP Client Options ===")
+	slogLogger.Info("config example section", slog.String("section", "http client options"))
 	clientOpts := &options.HTTPClientOptions{Timeout: 30 * time.Second}
 	client := clientOpts.Build()
-	fmt.Printf("HTTP Client Timeout: %v\n", client.Timeout)
+	slogLogger.Info("http client configured", slog.Duration("timeout", client.Timeout))
 
-	fmt.Println("=== Example 3: Using Context Options ===")
+	slogLogger.Info("config example section", slog.String("section", "context options"))
 	ctxOpts := &options.ContextOptions{Timeout: 5 * time.Second}
 	ctxOpts = options.WithContextValueOpt(ctxOpts, "request_id", "12345")
 	ctx, cancel := ctxOpts.Build()
 	defer cancel()
-	fmt.Printf("Context value request_id: %v\n", ctx.Value("request_id"))
+	slogLogger.Info("context configured", slog.Any("request_id", ctx.Value("request_id")))
 
 	port := randomport.MustFind()
 	addr := fmt.Sprintf(":%d", port)
-	fmt.Printf("Config example server running on %s\n", addr)
-	fmt.Printf("GET  /api/users\n")
-	fmt.Printf("OpenAPI: http://localhost%s/openapi.json\n", addr)
-	fmt.Printf("Docs:    http://localhost%s/docs\n", addr)
-	fmt.Println(server.GetRoutes())
+	slogLogger.Info("example server starting",
+		slog.String("example", "config"),
+		slog.String("address", addr),
+		slog.String("openapi", fmt.Sprintf("http://localhost%s/openapi.json", addr)),
+		slog.String("docs", fmt.Sprintf("http://localhost%s/docs", addr)),
+		slog.Any("routes", server.GetRoutes()),
+	)
 
 	if err := server.ListenAndServe(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		slogLogger.Error("server exited with error", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 }

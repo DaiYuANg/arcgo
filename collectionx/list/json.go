@@ -54,6 +54,22 @@ func (d *Deque[T]) String() string {
 	return common.JSONResultString(data, err, "[]")
 }
 
+// ToJSON serializes concurrent-deque values to JSON.
+func (d *ConcurrentDeque[T]) ToJSON() ([]byte, error) {
+	return json.Marshal(d.Values())
+}
+
+// MarshalJSON implements json.Marshaler.
+func (d *ConcurrentDeque[T]) MarshalJSON() ([]byte, error) {
+	return d.ToJSON()
+}
+
+// String implements fmt.Stringer.
+func (d *ConcurrentDeque[T]) String() string {
+	data, err := d.ToJSON()
+	return common.JSONResultString(data, err, "[]")
+}
+
 // ToJSON serializes ring-buffer values to JSON.
 func (r *RingBuffer[T]) ToJSON() ([]byte, error) {
 	return json.Marshal(r.Values())
@@ -66,6 +82,22 @@ func (r *RingBuffer[T]) MarshalJSON() ([]byte, error) {
 
 // String implements fmt.Stringer.
 func (r *RingBuffer[T]) String() string {
+	data, err := r.ToJSON()
+	return common.JSONResultString(data, err, "[]")
+}
+
+// ToJSON serializes concurrent-ring-buffer values to JSON.
+func (r *ConcurrentRingBuffer[T]) ToJSON() ([]byte, error) {
+	return json.Marshal(r.Values())
+}
+
+// MarshalJSON implements json.Marshaler.
+func (r *ConcurrentRingBuffer[T]) MarshalJSON() ([]byte, error) {
+	return r.ToJSON()
+}
+
+// String implements fmt.Stringer.
+func (r *ConcurrentRingBuffer[T]) String() string {
 	data, err := r.ToJSON()
 	return common.JSONResultString(data, err, "[]")
 }

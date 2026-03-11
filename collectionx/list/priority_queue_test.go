@@ -29,3 +29,11 @@ func TestPriorityQueue_MaxHeap(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 10, v)
 }
+
+func TestPriorityQueue_PanicOnNilComparator(t *testing.T) {
+	t.Parallel()
+
+	require.PanicsWithValue(t, "list: priority queue comparator cannot be nil", func() {
+		NewPriorityQueue[int](nil)
+	})
+}

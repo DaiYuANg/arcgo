@@ -341,15 +341,28 @@ func (t *Tree[K, V]) Descendants(id K) []*Node[K, V] {
 		return nil
 	}
 
-	descendants := collectionlist.NewList[*Node[K, V]]()
-	var walk func(current *Node[K, V])
-	walk = func(current *Node[K, V]) {
-		lo.ForEach(current.Children(), func(child *Node[K, V], _ int) {
-			descendants.Add(child)
-			walk(child)
-		})
+	children := node.Children()
+	if len(children) == 0 {
+		return nil
 	}
-	walk(node)
+
+	descendants := collectionlist.NewList[*Node[K, V]]()
+	stack := make([]*Node[K, V], 0, len(children))
+	for i := len(children) - 1; i >= 0; i-- {
+		stack = append(stack, children[i])
+	}
+
+	for len(stack) > 0 {
+		current := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		descendants.Add(current)
+
+		currentChildren := current.Children()
+		for i := len(currentChildren) - 1; i >= 0; i-- {
+			stack = append(stack, currentChildren[i])
+		}
+	}
+
 	return descendants.Values()
 }
 
@@ -358,9 +371,20 @@ func (t *Tree[K, V]) RangeDFS(fn func(node *Node[K, V]) bool) {
 	if t == nil || fn == nil {
 		return
 	}
+
 	for _, root := range t.Roots() {
-		if !walkDFS(root, fn) {
-			return
+		stack := []*Node[K, V]{root}
+		for len(stack) > 0 {
+			current := stack[len(stack)-1]
+			stack = stack[:len(stack)-1]
+			if !fn(current) {
+				return
+			}
+
+			children := current.Children()
+			for i := len(children) - 1; i >= 0; i-- {
+				stack = append(stack, children[i])
+			}
 		}
 	}
 }
@@ -398,33 +422,29 @@ func (t *Tree[K, V]) Clone() *Tree[K, V] {
 		return cloned
 	}
 
-	var cloneNode func(current *Node[K, V], parentID mo.Option[K]) bool
-	cloneNode = func(current *Node[K, V], parentID mo.Option[K]) bool {
-		if current == nil {
-			return true
-		}
-
-		if parentID.IsPresent() {
-			if err := cloned.AddChild(parentID.MustGet(), current.ID(), current.Value()); err != nil {
-				return false
-			}
-		} else {
-			if err := cloned.AddRoot(current.ID(), current.Value()); err != nil {
-				return false
-			}
-		}
-
-		for _, child := range current.Children() {
-			if !cloneNode(child, mo.Some(current.ID())) {
-				return false
-			}
-		}
-		return true
+	type pair struct {
+		source *Node[K, V]
+		target *Node[K, V]
 	}
 
+	stack := make([]pair, 0)
 	for _, root := range t.Roots() {
-		if !cloneNode(root, mo.None[K]()) {
-			return NewTree[K, V]()
+		rootClone := newNode(root.ID(), root.Value())
+		cloned.roots.Add(rootClone)
+		cloned.nodes.Set(rootClone.ID(), rootClone)
+		stack = append(stack, pair{source: root, target: rootClone})
+	}
+
+	for len(stack) > 0 {
+		current := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		for _, sourceChild := range current.source.Children() {
+			targetChild := newNode(sourceChild.ID(), sourceChild.Value())
+			targetChild.parent = current.target
+			current.target.children.Add(targetChild)
+			cloned.nodes.Set(targetChild.ID(), targetChild)
+			stack = append(stack, pair{source: sourceChild, target: targetChild})
 		}
 	}
 
@@ -458,13 +478,32 @@ func (t *Tree[K, V]) detach(node *Node[K, V]) {
 }
 
 func (t *Tree[K, V]) removeSubtree(node *Node[K, V]) {
-	lo.ForEach(node.Children(), func(child *Node[K, V], _ int) {
-		t.removeSubtree(child)
-	})
+	if node == nil {
+		return
+	}
 
-	_ = t.nodes.Delete(node.id)
-	node.parent = nil
-	node.children.Clear()
+	type stackItem struct {
+		node    *Node[K, V]
+		visited bool
+	}
+	stack := []stackItem{{node: node}}
+	for len(stack) > 0 {
+		item := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		if !item.visited {
+			stack = append(stack, stackItem{node: item.node, visited: true})
+			children := item.node.Children()
+			for i := len(children) - 1; i >= 0; i-- {
+				stack = append(stack, stackItem{node: children[i]})
+			}
+			continue
+		}
+
+		_ = t.nodes.Delete(item.node.id)
+		item.node.parent = nil
+		item.node.children.Clear()
+	}
 }
 
 func newNode[K comparable, V any](id K, value V) *Node[K, V] {
@@ -475,16 +514,31 @@ func newNode[K comparable, V any](id K, value V) *Node[K, V] {
 	}
 }
 
-func walkDFS[K comparable, V any](node *Node[K, V], fn func(node *Node[K, V]) bool) bool {
-	if !fn(node) {
-		return false
+func cloneSubtreeDetached[K comparable, V any](root *Node[K, V]) *Node[K, V] {
+	if root == nil {
+		return nil
 	}
-	for _, child := range node.Children() {
-		if !walkDFS(child, fn) {
-			return false
+
+	rootClone := newNode(root.ID(), root.Value())
+	type pair struct {
+		source *Node[K, V]
+		target *Node[K, V]
+	}
+	stack := []pair{{source: root, target: rootClone}}
+
+	for len(stack) > 0 {
+		current := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+
+		for _, sourceChild := range current.source.Children() {
+			targetChild := newNode(sourceChild.ID(), sourceChild.Value())
+			targetChild.parent = current.target
+			current.target.children.Add(targetChild)
+			stack = append(stack, pair{source: sourceChild, target: targetChild})
 		}
 	}
-	return true
+
+	return rootClone
 }
 
 func hasParentCycle[K comparable, V any](node *Node[K, V]) bool {

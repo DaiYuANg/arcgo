@@ -4,17 +4,17 @@ import "github.com/samber/lo"
 
 // Endpoint is an optional route-module interface for organizing related routes.
 type Endpoint interface {
-	RegisterRoutes(server *Server)
+	RegisterRoutes(server ServerRuntime)
 }
 
 // BaseEndpoint provides a no-op `RegisterRoutes` implementation for embedding.
 type BaseEndpoint struct{}
 
 // RegisterRoutes is a no-op default implementation.
-func (e *BaseEndpoint) RegisterRoutes(server *Server) {}
+func (e *BaseEndpoint) RegisterRoutes(server ServerRuntime) {}
 
 // EndpointHookFunc runs before or after endpoint registration.
-type EndpointHookFunc func(server *Server, endpoint Endpoint)
+type EndpointHookFunc func(server ServerRuntime, endpoint Endpoint)
 
 // EndpointHooks wraps optional before/after endpoint registration hooks.
 type EndpointHooks struct {

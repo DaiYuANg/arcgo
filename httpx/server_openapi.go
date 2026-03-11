@@ -81,13 +81,16 @@ func (s *Server) ConfigureDocs(fn func(*DocsOptions)) {
 	if s == nil || fn == nil {
 		return
 	}
+	if !s.allowConfigMutation("ConfigureDocs") {
+		return
+	}
 
 	docs := s.Docs()
 	fn(&docs)
 	applyDocsOptionsToHumaOptions(&s.humaOptions, docs)
-	if configurable, ok := s.adapter.(adapter.HumaOptionsConfigurer); ok {
+	UseAdapter(s, func(configurable adapter.HumaOptionsConfigurer) {
 		configurable.ConfigureHumaOptions(s.humaOptions)
-	}
+	})
 }
 
 // ConfigureOpenAPI mutates the underlying Huma OpenAPI document.
@@ -95,10 +98,15 @@ func (s *Server) ConfigureOpenAPI(fn func(*huma.OpenAPI)) {
 	if fn == nil {
 		return
 	}
+	if !s.allowConfigMutation("ConfigureOpenAPI") {
+		return
+	}
 	openAPI := s.OpenAPI()
 	if openAPI == nil {
 		return
 	}
+	s.openAPIMu.Lock()
+	defer s.openAPIMu.Unlock()
 	fn(openAPI)
 }
 
@@ -107,12 +115,27 @@ func (s *Server) PatchOpenAPI(fn func(*huma.OpenAPI)) {
 	s.ConfigureOpenAPI(fn)
 }
 
+// UseOpenAPIPatch appends an OpenAPI patch and applies it immediately.
+func (s *Server) UseOpenAPIPatch(fn func(*huma.OpenAPI)) {
+	if s == nil || fn == nil {
+		return
+	}
+	if !s.allowConfigMutation("UseOpenAPIPatch") {
+		return
+	}
+	s.openAPIPatches.Add(fn)
+	s.ConfigureOpenAPI(fn)
+}
+
 // UseHumaMiddleware registers API-level Huma middleware.
 func (s *Server) UseHumaMiddleware(middlewares ...func(huma.Context, func(huma.Context))) {
 	if len(middlewares) == 0 {
 		return
 	}
-	s.humaMiddlewares = append(s.humaMiddlewares, middlewares...)
+	if !s.allowConfigMutation("UseHumaMiddleware") {
+		return
+	}
+	s.humaMiddlewares.Add(middlewares...)
 	if api := s.HumaAPI(); api != nil {
 		api.UseMiddleware(middlewares...)
 	}
@@ -123,12 +146,18 @@ func (s *Server) UseOperationModifier(modifier func(*huma.Operation)) {
 	if s == nil || modifier == nil {
 		return
 	}
-	s.operationModifiers = append(s.operationModifiers, modifier)
+	if !s.allowConfigMutation("UseOperationModifier") {
+		return
+	}
+	s.operationModifiers.Add(modifier)
 }
 
 // AddTag registers OpenAPI tag metadata.
 func (s *Server) AddTag(tag *huma.Tag) {
 	if s == nil || tag == nil || tag.Name == "" {
+		return
+	}
+	if !s.allowConfigMutation("AddTag") {
 		return
 	}
 	s.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
@@ -145,6 +174,9 @@ func (s *Server) RegisterSecurityScheme(name string, scheme *huma.SecurityScheme
 	if s == nil || name == "" || scheme == nil {
 		return
 	}
+	if !s.allowConfigMutation("RegisterSecurityScheme") {
+		return
+	}
 	s.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
 		components := ensureComponents(doc)
 		if components.SecuritySchemes == nil {
@@ -159,6 +191,9 @@ func (s *Server) SetDefaultSecurity(requirements ...map[string][]string) {
 	if s == nil {
 		return
 	}
+	if !s.allowConfigMutation("SetDefaultSecurity") {
+		return
+	}
 	s.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
 		doc.Security = cloneSecurityRequirements(requirements)
 	})
@@ -167,6 +202,9 @@ func (s *Server) SetDefaultSecurity(requirements ...map[string][]string) {
 // RegisterComponentParameter registers a reusable OpenAPI parameter component.
 func (s *Server) RegisterComponentParameter(name string, param *huma.Param) {
 	if s == nil || name == "" || param == nil {
+		return
+	}
+	if !s.allowConfigMutation("RegisterComponentParameter") {
 		return
 	}
 	s.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
@@ -183,6 +221,9 @@ func (s *Server) RegisterComponentHeader(name string, header *huma.Param) {
 	if s == nil || name == "" || header == nil {
 		return
 	}
+	if !s.allowConfigMutation("RegisterComponentHeader") {
+		return
+	}
 	s.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
 		components := ensureComponents(doc)
 		if components.Headers == nil {
@@ -195,6 +236,9 @@ func (s *Server) RegisterComponentHeader(name string, header *huma.Param) {
 // RegisterGlobalParameter adds a parameter to all current and future operations.
 func (s *Server) RegisterGlobalParameter(param *huma.Param) {
 	if s == nil || param == nil || param.Name == "" || param.In == "" {
+		return
+	}
+	if !s.allowConfigMutation("RegisterGlobalParameter") {
 		return
 	}
 
@@ -214,20 +258,26 @@ func (s *Server) RegisterGlobalHeader(header *huma.Param) {
 	if header == nil {
 		return
 	}
+	if !s.allowConfigMutation("RegisterGlobalHeader") {
+		return
+	}
 	cloned := cloneParam(header)
 	cloned.In = "header"
 	s.RegisterGlobalParameter(cloned)
 }
 
 func (s *Server) applyPendingHumaConfig() {
-	if configurable, ok := s.adapter.(adapter.HumaOptionsConfigurer); ok {
-		if !isZeroDocsOptions(s.humaOptions) {
+	if !isZeroDocsOptions(s.humaOptions) {
+		UseAdapter(s, func(configurable adapter.HumaOptionsConfigurer) {
 			configurable.ConfigureHumaOptions(s.humaOptions)
-		}
+		})
 	}
 	s.applyStoredOpenAPIPatches()
-	if api := s.HumaAPI(); api != nil && len(s.humaMiddlewares) > 0 {
-		api.UseMiddleware(s.humaMiddlewares...)
+	if api := s.HumaAPI(); api != nil {
+		middlewares := s.humaMiddlewares.Values()
+		if len(middlewares) > 0 {
+			api.UseMiddleware(middlewares...)
+		}
 	}
 }
 
@@ -236,7 +286,7 @@ func (s *Server) applyStoredOpenAPIPatches() {
 	if openAPI == nil {
 		return
 	}
-	for _, patch := range s.openAPIPatches {
+	for _, patch := range s.openAPIPatches.Values() {
 		if patch != nil {
 			patch(openAPI)
 		}
@@ -293,10 +343,10 @@ func appendOperationParameter(op *huma.Operation, param *huma.Param) {
 	if op == nil || param == nil {
 		return
 	}
-	for _, existing := range op.Parameters {
-		if existing != nil && existing.Name == param.Name && existing.In == param.In {
-			return
-		}
+	if len(lo.Filter(op.Parameters, func(existing *huma.Param, _ int) bool {
+		return existing != nil && existing.Name == param.Name && existing.In == param.In
+	})) > 0 {
+		return
 	}
 	op.Parameters = append(op.Parameters, cloneParam(param))
 }
@@ -307,7 +357,8 @@ func cloneParam(param *huma.Param) *huma.Param {
 	}
 	cloned := *param
 	if param.Schema != nil {
-		cloned.Schema = new(*param.Schema)
+		schema := *param.Schema
+		cloned.Schema = &schema
 	}
 	if param.Examples != nil {
 		cloned.Examples = make(map[string]*huma.Example, len(param.Examples))
@@ -386,12 +437,13 @@ func cloneSecurityRequirements(requirements []map[string][]string) []map[string]
 }
 
 func findTag(tags []*huma.Tag, name string) int {
-	for i, tag := range tags {
-		if tag != nil && tag.Name == name {
-			return i
-		}
+	indexes := lo.FilterMap(tags, func(tag *huma.Tag, i int) (int, bool) {
+		return i, tag != nil && tag.Name == name
+	})
+	if len(indexes) == 0 {
+		return -1
 	}
-	return -1
+	return indexes[0]
 }
 
 func isZeroDocsOptions(opts adapter.HumaOptions) bool {

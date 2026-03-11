@@ -93,7 +93,7 @@ type humaPingOutput struct {
 }
 
 func TestServer_GenericGetWithDefaultHuma(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	err := Get(server, "/ping", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
 		out := &pingOutput{}
@@ -111,7 +111,7 @@ func TestServer_GenericGetWithDefaultHuma(t *testing.T) {
 }
 
 func TestServer_GenericPostDecodeBody(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	err := Post(server, "/echo", func(ctx context.Context, input *echoInput) (*echoOutput, error) {
 		out := &echoOutput{}
@@ -132,7 +132,7 @@ func TestServer_GenericPostDecodeBody(t *testing.T) {
 }
 
 func TestServer_GenericPostInvalidJSON(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	err := Post(server, "/echo", func(ctx context.Context, input *echoInput) (*echoOutput, error) {
 		out := &echoOutput{}
@@ -152,7 +152,7 @@ func TestServer_GenericPostInvalidJSON(t *testing.T) {
 }
 
 func TestServer_WithValidation_InvalidBody(t *testing.T) {
-	server := NewServer(WithValidation())
+	server := newServer(WithValidation())
 
 	err := Post(server, "/validated", func(ctx context.Context, input *validatedBodyInput) (*validatedBodyOutput, error) {
 		out := &validatedBodyOutput{}
@@ -171,7 +171,7 @@ func TestServer_WithValidation_InvalidBody(t *testing.T) {
 }
 
 func TestServer_WithValidation_ValidBody(t *testing.T) {
-	server := NewServer(WithValidation())
+	server := newServer(WithValidation())
 
 	err := Post(server, "/validated", func(ctx context.Context, input *validatedBodyInput) (*validatedBodyOutput, error) {
 		out := &validatedBodyOutput{}
@@ -190,7 +190,7 @@ func TestServer_WithValidation_ValidBody(t *testing.T) {
 }
 
 func TestServer_CustomRequestBinder(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	err := Get(server, "/custom-bind", func(ctx context.Context, input *customBindInput) (*customBindOutput, error) {
 		out := &customBindOutput{}
@@ -212,7 +212,7 @@ func TestServer_CustomRequestBinder(t *testing.T) {
 }
 
 func TestServer_CustomRequestBinderError(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	err := Get(server, "/custom-bind", func(ctx context.Context, input *customBindInput) (*customBindOutput, error) {
 		out := &customBindOutput{}
@@ -231,7 +231,7 @@ func TestServer_CustomRequestBinderError(t *testing.T) {
 }
 
 func TestServer_GroupWithBasePath(t *testing.T) {
-	server := NewServer(WithBasePath("/api"))
+	server := newServer(WithBasePath("/api"))
 	v1 := server.Group("/v1")
 
 	err := GroupGet(v1, "/health", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
@@ -250,7 +250,7 @@ func TestServer_GroupWithBasePath(t *testing.T) {
 }
 
 func TestServer_StrongTypedQueryAndHeaderBinding(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	err := Get(server, "/params", func(ctx context.Context, input *paramsInput) (*paramsOutput, error) {
 		out := &paramsOutput{}
@@ -273,7 +273,7 @@ func TestServer_StrongTypedQueryAndHeaderBinding(t *testing.T) {
 }
 
 func TestServer_StrongTypedPathBindingOnStdAdapter(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	type in struct {
 		UserID int `path:"id"`
@@ -300,7 +300,7 @@ func TestServer_StrongTypedPathBindingOnStdAdapter(t *testing.T) {
 }
 
 func TestServer_StrongTypedPathBindingOnGinAdapter(t *testing.T) {
-	server := NewServer(WithAdapter(adaptergin.New(nil)))
+	server := newServer(WithAdapter(adaptergin.New(nil)))
 
 	type in struct {
 		UserID int `path:"id"`
@@ -327,7 +327,7 @@ func TestServer_StrongTypedPathBindingOnGinAdapter(t *testing.T) {
 }
 
 func TestServer_StrongTypedPathBindingOnEchoAdapter(t *testing.T) {
-	server := NewServer(WithAdapter(adapterecho.New(nil)))
+	server := newServer(WithAdapter(adapterecho.New(nil)))
 
 	type in struct {
 		UserID int `path:"id"`
@@ -354,7 +354,7 @@ func TestServer_StrongTypedPathBindingOnEchoAdapter(t *testing.T) {
 }
 
 func TestServer_StrongTypedPathBindingOnFiberAdapter(t *testing.T) {
-	server := NewServer(WithAdapter(adapterfiber.New(nil)))
+	server := newServer(WithAdapter(adapterfiber.New(nil)))
 
 	type in struct {
 		UserID int `path:"id"`
@@ -385,7 +385,7 @@ func TestServer_WithMiddleware(t *testing.T) {
 	// configured on the router/engine before calling adapter.New().
 
 	// This test verifies that a server created with a default adapter works correctly.
-	server := NewServer()
+	server := newServer()
 	err := Get(server, "/items", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
 		out := &pingOutput{}
 		out.Body.Message = "ok"
@@ -402,7 +402,7 @@ func TestServer_WithMiddleware(t *testing.T) {
 }
 
 func TestServer_DefaultHumaEnabled(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	err := Get(server, "/huma", func(ctx context.Context, input *struct{}) (*humaPingOutput, error) {
 		out := &humaPingOutput{}
@@ -421,7 +421,7 @@ func TestServer_DefaultHumaEnabled(t *testing.T) {
 }
 
 func TestServer_WithValidation_WorksWithHuma(t *testing.T) {
-	server := NewServer(
+	server := newServer(
 		WithValidation(),
 	)
 
@@ -447,7 +447,7 @@ func TestServer_WithCustomValidator(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	server := NewServer(WithValidator(customValidator))
+	server := newServer(WithValidator(customValidator))
 
 	err = Post(server, "/custom-validate", func(ctx context.Context, input *customValidatedInput) (*validatedBodyOutput, error) {
 		out := &validatedBodyOutput{}
@@ -466,7 +466,7 @@ func TestServer_WithCustomValidator(t *testing.T) {
 }
 
 func TestServer_GetRoutesAndFilters(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	err := Get(server, "/users", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
 		out := &pingOutput{}
@@ -495,7 +495,7 @@ func TestServer_GetRoutesAndFilters(t *testing.T) {
 }
 
 func TestServer_WithOpenAPIInfo_UpdatesDocument(t *testing.T) {
-	server := NewServer(WithOpenAPIInfo("Arc API", "2.0.0", "typed service"))
+	server := newServer(WithOpenAPIInfo("Arc API", "2.0.0", "typed service"))
 
 	openAPI := server.OpenAPI()
 	if assert.NotNil(t, openAPI) && assert.NotNil(t, openAPI.Info) {
@@ -506,7 +506,7 @@ func TestServer_WithOpenAPIInfo_UpdatesDocument(t *testing.T) {
 }
 
 func TestServer_WithOpenAPIDocs_DisablesDefaultDocsRoutes(t *testing.T) {
-	server := NewServer(WithOpenAPIDocs(false))
+	server := newServer(WithOpenAPIDocs(false))
 
 	docsReq := httptest.NewRequest(http.MethodGet, "/docs", nil)
 	docsRec := httptest.NewRecorder()
@@ -520,7 +520,7 @@ func TestServer_WithOpenAPIDocs_DisablesDefaultDocsRoutes(t *testing.T) {
 }
 
 func TestServer_ConfigureOpenAPI_PatchesDocument(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 	server.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
 		doc.Tags = append(doc.Tags, &huma.Tag{Name: "internal"})
 	})
@@ -533,7 +533,7 @@ func TestServer_ConfigureOpenAPI_PatchesDocument(t *testing.T) {
 }
 
 func TestGroup_HumaMiddlewareAndModifier(t *testing.T) {
-	server := NewServer(WithBasePath("/api"))
+	server := newServer(WithBasePath("/api"))
 	group := server.Group("/v1")
 	group.UseHumaMiddleware(func(ctx huma.Context, next func(huma.Context)) {
 		ctx.AppendHeader("X-Group", "v1")
@@ -564,7 +564,7 @@ func TestGroup_HumaMiddlewareAndModifier(t *testing.T) {
 }
 
 func TestServer_WithDocs_CustomPaths(t *testing.T) {
-	server := NewServer(WithDocs(DocsOptions{
+	server := newServer(WithDocs(DocsOptions{
 		Enabled:     true,
 		DocsPath:    "/reference",
 		OpenAPIPath: "/spec",
@@ -596,7 +596,7 @@ func TestServer_WithDocs_CustomPaths(t *testing.T) {
 }
 
 func TestServer_SecurityComponentsAndGlobalHeader(t *testing.T) {
-	server := NewServer(
+	server := newServer(
 		WithSecurity(SecurityOptions{
 			Schemes: map[string]*huma.SecurityScheme{
 				"bearerAuth": {
@@ -646,12 +646,44 @@ func TestServer_SecurityComponentsAndGlobalHeader(t *testing.T) {
 		if assert.Len(t, pathItem.Get.Parameters, 1) {
 			assert.Equal(t, "X-Request-Id", pathItem.Get.Parameters[0].Name)
 			assert.Equal(t, "header", pathItem.Get.Parameters[0].In)
+			if assert.NotNil(t, pathItem.Get.Parameters[0].Schema) {
+				assert.Equal(t, "string", pathItem.Get.Parameters[0].Schema.Type)
+			}
+		}
+	}
+}
+
+func TestServer_RegisterGlobalParameter_ClonesSchema(t *testing.T) {
+	server := newServer()
+	param := &huma.Param{
+		Name:   "X-Clone",
+		In:     "header",
+		Schema: &huma.Schema{Type: "string"},
+	}
+	server.RegisterGlobalParameter(param)
+
+	// Mutating the original parameter after registration should not affect future operations.
+	param.Schema.Type = "integer"
+
+	err := Get(server, "/clone-param", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		out := &pingOutput{}
+		out.Body.Message = "ok"
+		return out, nil
+	})
+	assert.NoError(t, err)
+
+	pathItem := server.OpenAPI().Paths["/clone-param"]
+	if assert.NotNil(t, pathItem) && assert.NotNil(t, pathItem.Get) {
+		if assert.Len(t, pathItem.Get.Parameters, 1) {
+			if assert.NotNil(t, pathItem.Get.Parameters[0].Schema) {
+				assert.Equal(t, "string", pathItem.Get.Parameters[0].Schema.Type)
+			}
 		}
 	}
 }
 
 func TestGroup_DefaultTagsAndSecurity(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 	server.RegisterSecurityScheme("apiKey", &huma.SecurityScheme{
 		Type: "apiKey",
 		Name: "X-API-Key",
@@ -680,7 +712,7 @@ func TestGroup_DefaultTagsAndSecurity(t *testing.T) {
 }
 
 func TestServer_ConfigureDocs_RebindsRoutesAtRuntime(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 
 	server.ConfigureDocs(func(d *DocsOptions) {
 		d.DocsPath = "/reference"
@@ -713,7 +745,7 @@ func TestServer_ConfigureDocs_RebindsRoutesAtRuntime(t *testing.T) {
 
 func TestServer_ConfigureDocs_WithExternalAdapter(t *testing.T) {
 	stdAdapter := adapterstd.New()
-	server := NewServer(WithAdapter(stdAdapter))
+	server := newServer(WithAdapter(stdAdapter))
 
 	server.ConfigureDocs(func(d *DocsOptions) {
 		d.Enabled = false
@@ -726,7 +758,7 @@ func TestServer_ConfigureDocs_WithExternalAdapter(t *testing.T) {
 }
 
 func TestGroup_DefaultParametersSummaryAndDescription(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 	group := server.Group("/reports")
 	group.DefaultParameters(&huma.Param{
 		Name:        "X-Tenant",
@@ -758,7 +790,7 @@ func TestGroup_DefaultParametersSummaryAndDescription(t *testing.T) {
 }
 
 func TestGroup_RegisterTagsExternalDocsAndExtensions(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 	group := server.Group("/admin")
 	group.RegisterTags(
 		&huma.Tag{Name: "admin", Description: "Administrative endpoints"},
@@ -797,7 +829,7 @@ func TestGroup_RegisterTagsExternalDocsAndExtensions(t *testing.T) {
 }
 
 func TestServer_WithPanicRecover_Enabled(t *testing.T) {
-	server := NewServer(WithPanicRecover(true))
+	server := newServer(WithPanicRecover(true))
 
 	err := Get(server, "/panic", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
 		panic("boom")
@@ -813,7 +845,7 @@ func TestServer_WithPanicRecover_Enabled(t *testing.T) {
 }
 
 func TestServer_WithPanicRecover_Disabled(t *testing.T) {
-	server := NewServer(WithPanicRecover(false))
+	server := newServer(WithPanicRecover(false))
 
 	err := Get(server, "/panic", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
 		panic("boom")
@@ -831,7 +863,7 @@ func TestServer_WithPanicRecover_Disabled(t *testing.T) {
 func TestServer_WithAccessLog_LogsRequests(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewJSONHandler(&logs, nil))
-	server := NewServer(
+	server := newServer(
 		WithLogger(logger),
 		WithAccessLog(true),
 	)
@@ -863,7 +895,7 @@ func TestServer_WithAccessLog_LogsRequests(t *testing.T) {
 func TestServer_WithPrintRoutes_LogsOnRegistration(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logs, nil))
-	server := NewServer(
+	server := newServer(
 		WithLogger(logger),
 		WithPrintRoutes(true),
 	)
@@ -884,7 +916,7 @@ func TestServer_WithLogger_PropagatesToAdapter(t *testing.T) {
 	var logs bytes.Buffer
 	logger := slog.New(slog.NewTextHandler(&logs, nil))
 	stdAdapter := adapterstd.New()
-	server := NewServer(
+	server := newServer(
 		WithLogger(logger),
 		WithAdapter(stdAdapter),
 	)

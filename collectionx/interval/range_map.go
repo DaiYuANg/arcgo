@@ -3,6 +3,7 @@ package interval
 import (
 	"cmp"
 	"slices"
+	"sort"
 
 	"github.com/samber/mo"
 )
@@ -36,33 +37,59 @@ func (m *RangeMap[T, V]) Put(start T, end T, value V) bool {
 	if !input.IsValid() {
 		return false
 	}
+	inputEntry := RangeEntry[T, V]{Range: input, Value: value}
+
+	if len(m.entries) == 0 {
+		m.entries = append(m.entries, inputEntry)
+		return true
+	}
+
+	first := sort.Search(len(m.entries), func(i int) bool {
+		return m.entries[i].Range.End > input.Start
+	})
+	if first == len(m.entries) {
+		m.entries = append(m.entries, inputEntry)
+		return true
+	}
 
 	next := make([]RangeEntry[T, V], 0, len(m.entries)+1)
-	for _, entry := range m.entries {
-		if !entry.Range.Overlaps(input) {
+	next = append(next, m.entries[:first]...)
+
+	for i := first; i < len(m.entries); i++ {
+		entry := m.entries[i]
+		if entry.Range.Start >= input.End {
+			next = append(next, inputEntry)
+			next = append(next, m.entries[i:]...)
+			m.entries = next
+			return true
+		}
+
+		if entry.Range.End <= input.Start {
 			next = append(next, entry)
 			continue
 		}
 
-		// Keep left remaining part.
 		if entry.Range.Start < input.Start {
 			next = append(next, RangeEntry[T, V]{
 				Range: Range[T]{Start: entry.Range.Start, End: input.Start},
 				Value: entry.Value,
 			})
 		}
-		// Keep right remaining part.
+
 		if input.End < entry.Range.End {
+			next = append(next, inputEntry)
 			next = append(next, RangeEntry[T, V]{
 				Range: Range[T]{Start: input.End, End: entry.Range.End},
 				Value: entry.Value,
 			})
+			next = append(next, m.entries[i+1:]...)
+			m.entries = next
+			return true
 		}
 	}
 
-	next = append(next, RangeEntry[T, V]{Range: input, Value: value})
+	next = append(next, inputEntry)
 	m.entries = next
-	m.normalize()
 	return true
 }
 
@@ -72,10 +99,11 @@ func (m *RangeMap[T, V]) Get(point T) (V, bool) {
 	if m == nil || len(m.entries) == 0 {
 		return zero, false
 	}
-	for _, entry := range m.entries {
-		if entry.Range.Contains(point) {
-			return entry.Value, true
-		}
+	index := sort.Search(len(m.entries), func(i int) bool {
+		return m.entries[i].Range.End > point
+	})
+	if index < len(m.entries) && m.entries[index].Range.Contains(point) {
+		return m.entries[index].Value, true
 	}
 	return zero, false
 }
@@ -99,13 +127,29 @@ func (m *RangeMap[T, V]) DeleteRange(start T, end T) bool {
 		return false
 	}
 
+	first := sort.Search(len(m.entries), func(i int) bool {
+		return m.entries[i].Range.End > input.Start
+	})
+	if first == len(m.entries) {
+		return false
+	}
+
 	changed := false
 	next := make([]RangeEntry[T, V], 0, len(m.entries))
-	for _, entry := range m.entries {
-		if !entry.Range.Overlaps(input) {
+	next = append(next, m.entries[:first]...)
+
+	for i := first; i < len(m.entries); i++ {
+		entry := m.entries[i]
+		if entry.Range.Start >= input.End {
+			next = append(next, m.entries[i:]...)
+			m.entries = next
+			return changed
+		}
+		if entry.Range.End <= input.Start {
 			next = append(next, entry)
 			continue
 		}
+
 		changed = true
 		if entry.Range.Start < input.Start {
 			next = append(next, RangeEntry[T, V]{
@@ -118,6 +162,9 @@ func (m *RangeMap[T, V]) DeleteRange(start T, end T) bool {
 				Range: Range[T]{Start: input.End, End: entry.Range.End},
 				Value: entry.Value,
 			})
+			next = append(next, m.entries[i+1:]...)
+			m.entries = next
+			return true
 		}
 	}
 
@@ -164,16 +211,4 @@ func (m *RangeMap[T, V]) Range(fn func(entry RangeEntry[T, V]) bool) {
 			return
 		}
 	}
-}
-
-func (m *RangeMap[T, V]) normalize() {
-	if len(m.entries) <= 1 {
-		return
-	}
-	slices.SortFunc(m.entries, func(a RangeEntry[T, V], b RangeEntry[T, V]) int {
-		if a.Range.Start != b.Range.Start {
-			return cmp.Compare(a.Range.Start, b.Range.Start)
-		}
-		return cmp.Compare(a.Range.End, b.Range.End)
-	})
 }

@@ -7,6 +7,6 @@ import (
 
 func NewHttpxModule(options ...httpx.ServerOption) {
 	fx.Module("httpx", fx.Provide(
-		httpx.NewServer(options...),
+		httpx.New(options...),
 	))
 }

@@ -17,7 +17,7 @@ type benchmarkPingOutput struct {
 func benchmarkServerWithPingRoute(b *testing.B) *Server {
 	b.Helper()
 
-	server := NewServer()
+	server := newServer()
 	err := Get(server, "/ping", func(ctx context.Context, input *struct{}) (*benchmarkPingOutput, error) {
 		_ = ctx
 		_ = input
@@ -36,7 +36,7 @@ func BenchmarkServerRegisterGet(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		server := NewServer()
+		server := newServer()
 		path := "/bench/" + strconv.Itoa(i)
 		err := Get(server, path, func(ctx context.Context, input *struct{}) (*benchmarkPingOutput, error) {
 			_ = ctx

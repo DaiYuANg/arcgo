@@ -19,6 +19,9 @@ weight: 5
 - 跨适配器的统一类型化路由注册（`Get`、`Post`、`Put`、`Patch`、`Delete`...）
 - 基于适配器的运行时集成（`std`、`gin`、`echo`、`fiber`）
 - 一流的 OpenAPI 和文档控制
+- 类型化 Server-Sent Events（SSE）路由注册（`GetSSE`、`GroupGetSSE`）
+- 基于策略的路由能力（`RouteWithPolicies`、`GroupRouteWithPolicies`）
+- 条件请求处理（`If-Match`、`If-None-Match`、`If-Modified-Since`、`If-Unmodified-Since`）
 - 直接 Huma 逃生舱（`HumaAPI`、`OpenAPI`、`ConfigureOpenAPI`）
 - 组级 Huma 中间件和操作自定义
 - 通过 `go-playground/validator` 进行可选请求验证
@@ -211,6 +214,84 @@ api.DefaultDescription("Administrative APIs")
 - `DefaultSummaryPrefix(...)`
 - `DefaultDescription(...)`
 
+### 策略路由注册
+
+```go
+_ = httpx.RouteWithPolicies(server, httpx.MethodGet, "/resources/{id}", handler,
+    httpx.PolicyOperation[GetInput, GetOutput](huma.OperationTags("resources")),
+    httpx.PolicyConditionalRead[GetInput, GetOutput](stateGetter),
+)
+```
+
+可用策略路由 API：
+
+- `RouteWithPolicies(...)`
+- `GroupRouteWithPolicies(...)`
+- `MustRouteWithPolicies(...)`
+- `MustGroupRouteWithPolicies(...)`
+
+### SSE
+
+```go
+httpx.MustRouteSSEWithPolicies(server, httpx.MethodGet, "/events", map[string]any{
+    "tick": TickEvent{},
+    "done": DoneEvent{},
+}, func(ctx context.Context, input *StreamInput, send httpx.SSESender) {
+    _ = send.Data(TickEvent{Index: 1})
+    _ = send(httpx.SSEMessage{ID: 2, Data: DoneEvent{Message: "ok"}})
+}, httpx.SSEPolicyOperation[StreamInput](huma.OperationTags("stream")))
+```
+
+可用 SSE API：
+
+- `RouteSSEWithPolicies(...)`
+- `GroupRouteSSEWithPolicies(...)`
+- `MustRouteSSEWithPolicies(...)`
+- `MustGroupRouteSSEWithPolicies(...)`
+- `SSEPolicyOperation(...)`
+- `GetSSE(...)`
+- `GroupGetSSE(...)`
+- `MustGetSSE(...)`
+- `MustGroupGetSSE(...)`
+
+### 条件请求
+
+```go
+type GetInput struct {
+    httpx.ConditionalParams
+}
+
+_ = httpx.RouteWithPolicies(server, httpx.MethodGet, "/resources/{id}", func(ctx context.Context, input *GetInput) (*Output, error) {
+    return out, nil
+}, httpx.PolicyConditionalRead[GetInput, Output](func(ctx context.Context, input *GetInput) (string, time.Time, error) {
+    return currentETag, modifiedAt, nil
+}))
+```
+
+可用辅助 API：
+
+- `ConditionalParams`
+- `PolicyConditionalRead(...)`
+- `PolicyConditionalWrite(...)`
+- `OperationConditionalRead()`
+- `OperationConditionalWrite()`
+
+### Adapter Bridge Hook
+
+```go
+httpx.UseAdapter[adapter.LoggerConfigurer](server, func(cfg adapter.LoggerConfigurer) {
+    cfg.SetLogger(logger)
+})
+```
+
+### Graceful Shutdown Hooks（humacli）
+
+```go
+cli := humacli.New(func(hooks humacli.Hooks, opts *Options) {
+    httpx.BindGracefulShutdownHooks(hooks, server, ":8888")
+})
+```
+
 ## 类型化输入模式
 
 ```go
@@ -369,3 +450,7 @@ if rec.Code != http.StatusOK {
 - Organization: `go run ./httpx/examples/organization`
   - 文档路径、安全、全局头和组默认值
   - 查看 [`httpx/examples/organization/README.md`](https://github.com/DaiYuANg/arcgo/tree/main/httpx/examples/organization)
+- SSE: `go run ./httpx/examples/sse`
+  - 基于 `text/event-stream` 的类型化事件流
+- Conditional Requests: `go run ./httpx/examples/conditional`
+  - 基于 ETag 和 Last-Modified 的前置条件校验

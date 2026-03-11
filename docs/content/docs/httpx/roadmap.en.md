@@ -29,6 +29,30 @@ weight: 90
 - Add tests and examples around adapter build options
 - Document clear boundaries among `httpx` logs, adapter-bridge logs, and framework-native logs
 
+## P0 Execution Record (2026-03-11)
+
+- Upgraded Huma from `v2.36.0` to `v2.37.2`
+- Regression checks passed:
+  - `go test ./httpx/...`
+  - `go test ./...`
+- Added adapter build-time `Options` tests for `std` / `gin` / `echo` / `fiber`:
+  - logger injection and native error logging path
+  - timeout/shutdown default + override merge behavior
+- Updated examples to demonstrate build-time `Options` usage:
+  - `httpx/examples/std`
+  - `httpx/examples/gin`
+  - `httpx/examples/echo`
+  - `httpx/examples/fiber`
+- Compatibility checklist (verified):
+  - Typed route registration (`huma.Register`) remains compatible
+  - Group capabilities (middleware/modifier/transformer) remain compatible
+  - OpenAPI/docs path config and runtime `ConfigureDocs(...)` rebinding remain compatible
+  - Security / Components / Global parameter OpenAPI patch behavior remains compatible
+  - Huma docs-controller behavior remains compatible across `std` / `gin` / `echo` / `fiber` adapters
+- Follow-up items:
+  - `fiber` adapter still does not support `net/http` `ServeHTTP` (currently returns `501`)
+  - `httpx/fx` is still a thin wrapper and lacks lifecycle integration tests
+
 ### P1 (Next)
 
 - Land `UseAdapterMiddleware(...)` (or equivalent formal entrypoint)

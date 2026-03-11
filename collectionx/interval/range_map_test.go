@@ -49,3 +49,23 @@ func TestRangeMap_DeleteRangeAndOption(t *testing.T) {
 	require.True(t, m.GetOption(4).IsAbsent())
 	require.True(t, m.GetOption(9).IsPresent())
 }
+
+func TestRangeMap_PutKeepsEntriesSorted(t *testing.T) {
+	t.Parallel()
+
+	m := NewRangeMap[int, string]()
+	require.True(t, m.Put(10, 20, "A"))
+	require.True(t, m.Put(0, 5, "B"))
+	require.True(t, m.Put(5, 10, "C"))
+	require.True(t, m.Put(3, 12, "D"))
+
+	require.Equal(
+		t,
+		[]RangeEntry[int, string]{
+			{Range: Range[int]{Start: 0, End: 3}, Value: "B"},
+			{Range: Range[int]{Start: 3, End: 12}, Value: "D"},
+			{Range: Range[int]{Start: 12, End: 20}, Value: "A"},
+		},
+		m.Entries(),
+	)
+}

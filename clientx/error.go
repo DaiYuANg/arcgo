@@ -82,8 +82,8 @@ func (e *Error) Temporary() bool {
 	if e.Kind == ErrorKindTemporary {
 		return true
 	}
-	var netErr net.Error
-	return errors.As(e.Err, &netErr) && netErr.Temporary()
+	// net.Error.Temporary() 已弃用，这里仅检查 Kind 标记
+	return false
 }
 
 func WrapError(protocol Protocol, op, addr string, err error) error {
@@ -94,8 +94,7 @@ func WrapErrorWithKind(protocol Protocol, op, addr string, kind ErrorKind, err e
 	if err == nil {
 		return nil
 	}
-	var e *Error
-	if errors.As(err, &e) {
+	if _, ok := errors.AsType[*Error](err); ok {
 		return err
 	}
 	if protocol == "" {
@@ -150,9 +149,7 @@ func classifyErrorKind(err error) ErrorKind {
 		if netErr.Timeout() {
 			return ErrorKindTimeout
 		}
-		if netErr.Temporary() {
-			return ErrorKindTemporary
-		}
+		// netErr.Temporary() 已弃用，不再使用
 	}
 
 	var opErr *net.OpError

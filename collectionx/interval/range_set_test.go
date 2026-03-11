@@ -37,3 +37,21 @@ func TestRangeSet_RemoveSplit(t *testing.T) {
 		s.Ranges(),
 	)
 }
+
+func TestRangeSet_BoundariesAndOverlaps(t *testing.T) {
+	t.Parallel()
+
+	s := NewRangeSet[int]()
+	s.Add(0, 10)
+	s.Add(20, 30)
+
+	require.True(t, s.Contains(0))
+	require.True(t, s.Contains(9))
+	require.False(t, s.Contains(10))
+	require.False(t, s.Contains(19))
+	require.True(t, s.Contains(20))
+
+	require.False(t, s.Overlaps(10, 20))
+	require.True(t, s.Overlaps(9, 11))
+	require.True(t, s.Overlaps(29, 40))
+}

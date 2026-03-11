@@ -3,6 +3,7 @@ package httpx
 import (
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/samber/lo"
 )
@@ -41,12 +42,18 @@ func (g *Group) UseHumaMiddleware(middlewares ...func(huma.Context, func(huma.Co
 	if g == nil || g.humaGroup == nil || len(middlewares) == 0 {
 		return
 	}
+	if !g.server.allowConfigMutation("Group.UseHumaMiddleware") {
+		return
+	}
 	g.humaGroup.UseMiddleware(middlewares...)
 }
 
 // UseOperationModifier registers a Huma operation modifier on the group.
 func (g *Group) UseOperationModifier(modifier func(*huma.Operation, func(*huma.Operation))) {
 	if g == nil || g.humaGroup == nil || modifier == nil {
+		return
+	}
+	if !g.server.allowConfigMutation("Group.UseOperationModifier") {
 		return
 	}
 	g.humaGroup.UseModifier(modifier)
@@ -57,12 +64,18 @@ func (g *Group) UseSimpleOperationModifier(modifier func(*huma.Operation)) {
 	if g == nil || g.humaGroup == nil || modifier == nil {
 		return
 	}
+	if !g.server.allowConfigMutation("Group.UseSimpleOperationModifier") {
+		return
+	}
 	g.humaGroup.UseSimpleModifier(modifier)
 }
 
 // UseResponseTransformer registers response transformers on the group.
 func (g *Group) UseResponseTransformer(transformers ...huma.Transformer) {
 	if g == nil || g.humaGroup == nil || len(transformers) == 0 {
+		return
+	}
+	if !g.server.allowConfigMutation("Group.UseResponseTransformer") {
 		return
 	}
 	g.humaGroup.UseTransformer(transformers...)
@@ -73,9 +86,13 @@ func (g *Group) DefaultTags(tags ...string) {
 	if g == nil || g.humaGroup == nil || len(tags) == 0 {
 		return
 	}
+	if !g.server.allowConfigMutation("Group.DefaultTags") {
+		return
+	}
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
+		existing := set.NewSet(op.Tags...)
 		newTags := lo.Filter(tags, func(tag string, _ int) bool {
-			return tag != "" && !lo.Contains(op.Tags, tag)
+			return tag != "" && !existing.Contains(tag)
 		})
 		op.Tags = append(op.Tags, newTags...)
 	})
@@ -84,6 +101,9 @@ func (g *Group) DefaultTags(tags ...string) {
 // DefaultSecurity applies group-level default security to operations that do not override it.
 func (g *Group) DefaultSecurity(requirements ...map[string][]string) {
 	if g == nil || g.humaGroup == nil || len(requirements) == 0 {
+		return
+	}
+	if !g.server.allowConfigMutation("Group.DefaultSecurity") {
 		return
 	}
 	cloned := cloneSecurityRequirements(requirements)
@@ -97,6 +117,9 @@ func (g *Group) DefaultSecurity(requirements ...map[string][]string) {
 // DefaultParameters applies group-level parameters to future operations.
 func (g *Group) DefaultParameters(params ...*huma.Param) {
 	if g == nil || g.humaGroup == nil || len(params) == 0 {
+		return
+	}
+	if !g.server.allowConfigMutation("Group.DefaultParameters") {
 		return
 	}
 	cloned := lo.FilterMap(params, func(param *huma.Param, _ int) (*huma.Param, bool) {
@@ -120,6 +143,9 @@ func (g *Group) DefaultSummaryPrefix(prefix string) {
 	if g == nil || g.humaGroup == nil || strings.TrimSpace(prefix) == "" {
 		return
 	}
+	if !g.server.allowConfigMutation("Group.DefaultSummaryPrefix") {
+		return
+	}
 	trimmed := strings.TrimSpace(prefix)
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
 		if strings.TrimSpace(op.Summary) == "" {
@@ -138,6 +164,9 @@ func (g *Group) DefaultDescription(description string) {
 	if g == nil || g.humaGroup == nil || strings.TrimSpace(description) == "" {
 		return
 	}
+	if !g.server.allowConfigMutation("Group.DefaultDescription") {
+		return
+	}
 	trimmed := strings.TrimSpace(description)
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
 		if strings.TrimSpace(op.Description) == "" {
@@ -149,6 +178,9 @@ func (g *Group) DefaultDescription(description string) {
 // RegisterTags adds OpenAPI tag metadata for this group context.
 func (g *Group) RegisterTags(tags ...*huma.Tag) {
 	if g == nil || g.server == nil || len(tags) == 0 {
+		return
+	}
+	if !g.server.allowConfigMutation("Group.RegisterTags") {
 		return
 	}
 	lo.ForEach(tags, func(tag *huma.Tag, _ int) {
@@ -164,6 +196,9 @@ func (g *Group) DefaultExternalDocs(docs *huma.ExternalDocs) {
 	if g == nil || g.humaGroup == nil || docs == nil {
 		return
 	}
+	if !g.server.allowConfigMutation("Group.DefaultExternalDocs") {
+		return
+	}
 	cloned := cloneExternalDocs(docs)
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
 		if op.ExternalDocs == nil {
@@ -175,6 +210,9 @@ func (g *Group) DefaultExternalDocs(docs *huma.ExternalDocs) {
 // DefaultExtensions applies group-level OpenAPI extensions to future operations.
 func (g *Group) DefaultExtensions(extensions map[string]any) {
 	if g == nil || g.humaGroup == nil || len(extensions) == 0 {
+		return
+	}
+	if !g.server.allowConfigMutation("Group.DefaultExtensions") {
 		return
 	}
 	cloned := cloneExtensions(extensions)

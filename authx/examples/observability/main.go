@@ -72,7 +72,7 @@ func main() {
 	}
 	fmt.Println("allowed:", allowed)
 
-	metricsServer := httpx.NewServer(
+	metricsServer := httpx.New(
 		httpx.WithAdapter(std.New()),
 		httpx.WithOpenAPIDocs(false),
 	)

@@ -3,7 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
@@ -49,7 +50,7 @@ func main() {
 	}).WithLogger(slogLogger)
 	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
 
-	server := httpx.NewServer(
+	server := httpx.New(
 		httpx.WithAdapter(stdAdapter),
 		httpx.WithLogger(slogLogger),
 		httpx.WithPrintRoutes(true),
@@ -76,11 +77,15 @@ func main() {
 
 	port := randomport.MustFind()
 	addr := fmt.Sprintf(":%d", port)
-	fmt.Printf("Server starting on %s\n", addr)
-	fmt.Printf("OpenAPI JSON: http://localhost%s/openapi.json\n", addr)
-	fmt.Printf("Swagger UI:   http://localhost%s/docs\n", addr)
+	slogLogger.Info("example server starting",
+		slog.String("example", "main"),
+		slog.String("address", addr),
+		slog.String("openapi", fmt.Sprintf("http://localhost%s/openapi.json", addr)),
+		slog.String("docs", fmt.Sprintf("http://localhost%s/docs", addr)),
+	)
 
 	if err := server.ListenAndServe(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		slogLogger.Error("server exited with error", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 }

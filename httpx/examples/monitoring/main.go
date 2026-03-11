@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
@@ -27,6 +28,7 @@ func main() {
 		panic(err)
 	}
 	defer func() { _ = logger.Close() }()
+	slogLogger := logx.NewSlog(logger)
 
 	stdAdapter := std.New(adapter.HumaOptions{
 		Title:       "ArcGo Monitoring API",
@@ -34,11 +36,11 @@ func main() {
 		Description: "Monitoring API",
 		DocsPath:    "/docs",
 		OpenAPIPath: "/openapi.json",
-	}).WithLogger(logx.NewSlog(logger))
+	}).WithLogger(slogLogger)
 
-	server := httpx.NewServer(
+	server := httpx.New(
 		httpx.WithAdapter(stdAdapter),
-		httpx.WithLogger(logx.NewSlog(logger)),
+		httpx.WithLogger(slogLogger),
 		httpx.WithPrintRoutes(true),
 	)
 
@@ -62,13 +64,17 @@ func main() {
 
 	port := randomport.MustFind()
 	addr := fmt.Sprintf(":%d", port)
-	fmt.Printf("Monitoring server starting on %s\n", addr)
-	fmt.Printf("Health:     http://localhost%s/health\n", addr)
-	fmt.Printf("Metrics:    http://localhost%s/metrics\n", addr)
-	fmt.Printf("OpenAPI:    http://localhost%s/openapi.json\n", addr)
-	fmt.Printf("Docs:       http://localhost%s/docs\n", addr)
+	slogLogger.Info("example server starting",
+		slog.String("example", "monitoring"),
+		slog.String("address", addr),
+		slog.String("health", fmt.Sprintf("http://localhost%s/health", addr)),
+		slog.String("metrics", fmt.Sprintf("http://localhost%s/metrics", addr)),
+		slog.String("openapi", fmt.Sprintf("http://localhost%s/openapi.json", addr)),
+		slog.String("docs", fmt.Sprintf("http://localhost%s/docs", addr)),
+	)
 
 	if err := server.ListenAndServe(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		slogLogger.Error("server exited with error", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 }

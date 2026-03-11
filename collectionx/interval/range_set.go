@@ -3,6 +3,7 @@ package interval
 import (
 	"cmp"
 	"slices"
+	"sort"
 )
 
 // RangeSet is a normalized set of half-open ranges [start, end).
@@ -28,8 +29,41 @@ func (s *RangeSet[T]) AddRange(r Range[T]) bool {
 	if s == nil || !r.IsValid() {
 		return false
 	}
-	s.ranges = append(s.ranges, r)
-	s.normalize()
+
+	if len(s.ranges) == 0 {
+		s.ranges = append(s.ranges, r)
+		return true
+	}
+
+	first := sort.Search(len(s.ranges), func(i int) bool {
+		return s.ranges[i].End >= r.Start
+	})
+	if first == len(s.ranges) {
+		s.ranges = append(s.ranges, r)
+		return true
+	}
+
+	next := make([]Range[T], 0, len(s.ranges)+1)
+	next = append(next, s.ranges[:first]...)
+
+	merged := r
+	index := first
+	for ; index < len(s.ranges); index++ {
+		current := s.ranges[index]
+		if current.Start > merged.End {
+			break
+		}
+		if current.Start < merged.Start {
+			merged.Start = current.Start
+		}
+		if current.End > merged.End {
+			merged.End = current.End
+		}
+	}
+
+	next = append(next, merged)
+	next = append(next, s.ranges[index:]...)
+	s.ranges = next
 	return true
 }
 
@@ -43,19 +77,37 @@ func (s *RangeSet[T]) Remove(start T, end T) bool {
 		return false
 	}
 
+	first := sort.Search(len(s.ranges), func(i int) bool {
+		return s.ranges[i].End > cut.Start
+	})
+	if first == len(s.ranges) {
+		return false
+	}
+
 	changed := false
 	next := make([]Range[T], 0, len(s.ranges))
-	for _, current := range s.ranges {
-		if !current.Overlaps(cut) {
+	next = append(next, s.ranges[:first]...)
+	for i := first; i < len(s.ranges); i++ {
+		current := s.ranges[i]
+		if current.Start >= cut.End {
+			next = append(next, s.ranges[i:]...)
+			s.ranges = next
+			return changed
+		}
+		if current.End <= cut.Start {
 			next = append(next, current)
 			continue
 		}
+
 		changed = true
 		if current.Start < cut.Start {
 			next = append(next, Range[T]{Start: current.Start, End: cut.Start})
 		}
 		if cut.End < current.End {
 			next = append(next, Range[T]{Start: cut.End, End: current.End})
+			next = append(next, s.ranges[i+1:]...)
+			s.ranges = next
+			return true
 		}
 	}
 	s.ranges = next
@@ -67,10 +119,10 @@ func (s *RangeSet[T]) Contains(value T) bool {
 	if s == nil || len(s.ranges) == 0 {
 		return false
 	}
-	i := slices.IndexFunc(s.ranges, func(r Range[T]) bool {
-		return r.Contains(value)
+	index := sort.Search(len(s.ranges), func(i int) bool {
+		return s.ranges[i].End > value
 	})
-	return i >= 0
+	return index < len(s.ranges) && s.ranges[index].Contains(value)
 }
 
 // Overlaps reports whether input range overlaps any stored range.
@@ -82,9 +134,10 @@ func (s *RangeSet[T]) Overlaps(start T, end T) bool {
 	if !input.IsValid() {
 		return false
 	}
-	return slices.IndexFunc(s.ranges, func(r Range[T]) bool {
-		return r.Overlaps(input)
-	}) >= 0
+	index := sort.Search(len(s.ranges), func(i int) bool {
+		return s.ranges[i].End > input.Start
+	})
+	return index < len(s.ranges) && s.ranges[index].Start < input.End
 }
 
 // Ranges returns copied normalized ranges.
@@ -126,33 +179,4 @@ func (s *RangeSet[T]) Range(fn func(r Range[T]) bool) {
 			return
 		}
 	}
-}
-
-func (s *RangeSet[T]) normalize() {
-	if len(s.ranges) <= 1 {
-		return
-	}
-
-	slices.SortFunc(s.ranges, func(a Range[T], b Range[T]) int {
-		if a.Start != b.Start {
-			return cmp.Compare(a.Start, b.Start)
-		}
-		return cmp.Compare(a.End, b.End)
-	})
-
-	merged := make([]Range[T], 0, len(s.ranges))
-	for _, current := range s.ranges {
-		if len(merged) == 0 {
-			merged = append(merged, current)
-			continue
-		}
-
-		last := merged[len(merged)-1]
-		if combined, ok := last.Merge(current); ok {
-			merged[len(merged)-1] = combined
-			continue
-		}
-		merged = append(merged, current)
-	}
-	s.ranges = merged
 }

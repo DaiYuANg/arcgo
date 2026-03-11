@@ -40,7 +40,7 @@ func (f *fakeAdapterWithoutHuma) ServeHTTP(w http.ResponseWriter, r *http.Reques
 func (f *fakeAdapterWithoutHuma) HumaAPI() huma.API { return nil }
 
 func TestServer_GenericHandlerReturnsHTTPXError(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 	err := Get(server, "/forbidden", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
 		return nil, NewError(http.StatusForbidden, "no permission")
 	})
@@ -55,7 +55,7 @@ func TestServer_GenericHandlerReturnsHTTPXError(t *testing.T) {
 }
 
 func TestServer_GenericHandlerPanic(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 	err := Get(server, "/panic", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
 		panic("boom")
 	})
@@ -70,7 +70,7 @@ func TestServer_GenericHandlerPanic(t *testing.T) {
 }
 
 func TestServer_GenericHandlerNilOutputReturnsNoContent(t *testing.T) {
-	server := NewServer()
+	server := newServer()
 	err := Get(server, "/empty", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
 		return nil, nil
 	})
@@ -84,7 +84,7 @@ func TestServer_GenericHandlerNilOutputReturnsNoContent(t *testing.T) {
 }
 
 func TestServer_AdapterWithoutHumaAPI(t *testing.T) {
-	server := NewServer(
+	server := newServer(
 		WithAdapter(&fakeAdapterWithoutHuma{}),
 	)
 
@@ -98,7 +98,7 @@ func TestServer_AdapterWithoutHumaAPI(t *testing.T) {
 }
 
 func TestServer_ListenAndServe_FiberWithoutApp(t *testing.T) {
-	server := NewServer(WithAdapter(&fakeFiberAdapterNoApp{}))
+	server := newServer(WithAdapter(&fakeFiberAdapterNoApp{}))
 	err := server.ListenAndServe(":0")
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrAdapterNotFound))

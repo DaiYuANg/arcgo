@@ -18,7 +18,7 @@ func TestServer_Docs1(t *testing.T) {
 		Description: "test",
 	})
 
-	s := NewServer(
+	s := newServer(
 		WithAdapter(a),
 		WithOpenAPIInfo("My API", "1.0.0", "My Description"),
 	)
@@ -37,7 +37,7 @@ func TestServer_Docs2(t *testing.T) {
 	// 最简单的场景：只用 std.New()
 	a := std.New()
 
-	s := NewServer(
+	s := newServer(
 		WithAdapter(a),
 	)
 

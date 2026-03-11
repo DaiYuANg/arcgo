@@ -33,6 +33,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // ListenAndServe starts related services.
 func (s *Server) ListenAndServe(addr string) error {
+	s.freezeConfiguration()
+
 	routeCount := s.RouteCount()
 	s.logger.Info("Starting server",
 		slog.String("address", addr),
@@ -40,9 +42,12 @@ func (s *Server) ListenAndServe(addr string) error {
 		slog.Int("routes", routeCount),
 	)
 
-	if listenable, ok := s.adapter.(adapter.ListenableAdapter); ok {
-		if err := listenable.Listen(addr); err != nil {
-			return fmt.Errorf("httpx: adapter %q listen on %q: %w", s.adapter.Name(), addr, err)
+	var listenErr error
+	if UseAdapter(s, func(listenable adapter.ListenableAdapter) {
+		listenErr = listenable.Listen(addr)
+	}) {
+		if listenErr != nil {
+			return fmt.Errorf("httpx: adapter %q listen on %q: %w", s.adapter.Name(), addr, listenErr)
 		}
 		return nil
 	}
@@ -55,8 +60,13 @@ func (s *Server) ListenAndServe(addr string) error {
 
 // ListenAndServeContext starts related services.
 func (s *Server) ListenAndServeContext(ctx context.Context, addr string) error {
-	if listenable, ok := s.adapter.(adapter.ContextListenableAdapter); ok {
-		return listenable.ListenContext(ctx, addr)
+	s.freezeConfiguration()
+
+	var listenErr error
+	if UseAdapter(s, func(listenable adapter.ContextListenableAdapter) {
+		listenErr = listenable.ListenContext(ctx, addr)
+	}) {
+		return listenErr
 	}
 
 	server := &http.Server{

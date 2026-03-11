@@ -22,7 +22,7 @@ func main() {
 	obs.AddCounter(ctx, "demo_counter_total", 1, observabilityx.String("result", "ok"))
 	obs.RecordHistogram(ctx, "demo_duration_ms", 12, observabilityx.String("result", "ok"))
 
-	metricsServer := httpx.NewServer(
+	metricsServer := httpx.New(
 		httpx.WithAdapter(std.New()),
 		httpx.WithOpenAPIDocs(false),
 	)

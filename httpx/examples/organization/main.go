@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
+	"github.com/DaiYuANg/arcgo/httpx/examples/shared"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/danielgtaylor/huma/v2"
 )
@@ -29,7 +31,13 @@ type tenantOutput struct {
 }
 
 func main() {
-	server := httpx.NewServer(
+	logger, closeLogger, err := shared.NewLogger()
+	if err != nil {
+		panic(err)
+	}
+	defer closeLogger()
+
+	server := httpx.New(
 		httpx.WithAdapter(std.New()),
 		httpx.WithBasePath("/api"),
 		httpx.WithOpenAPIInfo("httpx organization example", "1.0.0", "Docs, security, and group defaults"),
@@ -100,11 +108,15 @@ func main() {
 
 	port := randomport.MustFind()
 	addr := fmt.Sprintf(":%d", port)
-	fmt.Printf("Server starting on %s\n", addr)
-	fmt.Printf("Docs:    http://localhost%s/reference\n", addr)
-	fmt.Printf("OpenAPI: http://localhost%s/spec.json\n", addr)
+	logger.Info("example server starting",
+		slog.String("example", "organization"),
+		slog.String("address", addr),
+		slog.String("openapi", fmt.Sprintf("http://localhost%s/spec.json", addr)),
+		slog.String("docs", fmt.Sprintf("http://localhost%s/reference", addr)),
+	)
 
 	if err := server.ListenAndServe(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		logger.Error("server exited with error", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 }

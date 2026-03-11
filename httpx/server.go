@@ -2,6 +2,8 @@ package httpx
 
 import (
 	"log/slog"
+	"sync"
+	"sync/atomic"
 
 	"github.com/DaiYuANg/arcgo/collectionx/list"
 	"github.com/DaiYuANg/arcgo/collectionx/set"
@@ -25,21 +27,26 @@ type Server struct {
 	panicRecover       bool
 	accessLog          bool
 	humaOptions        adapter.HumaOptions
-	openAPIPatches     []func(*huma.OpenAPI)
-	humaMiddlewares    []func(huma.Context, func(huma.Context))
-	operationModifiers []func(*huma.Operation)
+	openAPIPatches     *list.ConcurrentList[func(*huma.OpenAPI)]
+	humaMiddlewares    *list.ConcurrentList[func(huma.Context, func(huma.Context))]
+	operationModifiers *list.ConcurrentList[func(*huma.Operation)]
+	openAPIMu          sync.Mutex
+	frozen             atomic.Bool
 }
 
 // ServerOption mutates a server during construction.
 type ServerOption func(*Server)
 
-// NewServer constructs a server, creating a default std adapter when none is provided.
-func NewServer(opts ...ServerOption) *Server {
+// newServer constructs a server, creating a default std adapter when none is provided.
+func newServer(opts ...ServerOption) *Server {
 	s := &Server{
-		logger:       slog.Default(),
-		routes:       list.NewConcurrentList[RouteInfo](),
-		routeKeys:    set.NewConcurrentSet[string](),
-		panicRecover: true,
+		logger:             slog.Default(),
+		routes:             list.NewConcurrentList[RouteInfo](),
+		routeKeys:          set.NewConcurrentSet[string](),
+		panicRecover:       true,
+		openAPIPatches:     list.NewConcurrentList[func(*huma.OpenAPI)](),
+		humaMiddlewares:    list.NewConcurrentList[func(huma.Context, func(huma.Context))](),
+		operationModifiers: list.NewConcurrentList[func(*huma.Operation)](),
 	}
 
 	lo.ForEach(opts, func(opt ServerOption, _ int) {

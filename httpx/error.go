@@ -13,6 +13,7 @@ var (
 	ErrInvalidHandlerName = errors.New("httpx: invalid handler function name")
 	ErrInvalidHandlerSig  = errors.New("httpx: invalid handler signature")
 	ErrRouteNotRegistered = errors.New("httpx: route not registered")
+	ErrServerFrozen       = errors.New("httpx: server configuration is frozen")
 )
 
 // Error wraps an HTTP status code, message, and optional underlying cause.

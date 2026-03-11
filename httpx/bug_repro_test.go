@@ -12,7 +12,7 @@ import (
 // 配置 WithDocs 后 /docs 和 /openapi.json 返回 404
 func TestServer_BugRepro_DocsEnabled(t *testing.T) {
 	// 精确复现用户的配置
-	s := NewServer(
+	s := newServer(
 		WithDocs(DocsOptions{
 			Enabled:     true,
 			DocsPath:    "/docs",
@@ -39,7 +39,7 @@ func TestServer_BugRepro_DocsEnabled(t *testing.T) {
 // TestServer_BugRepro_DocsWithoutConfig 验证不配置 WithDocs 时正常工作
 func TestServer_BugRepro_DocsWithoutConfig(t *testing.T) {
 	// 不配置 WithDocs
-	s := NewServer()
+	s := newServer()
 
 	// 测试 /docs
 	docsReq := httptest.NewRequest(http.MethodGet, "/docs", nil)
@@ -59,7 +59,7 @@ func TestServer_BugRepro_DocsWithoutConfig(t *testing.T) {
 // TestServer_BugRepro_DocsWithOpenAPIInfo 测试 WithOpenAPIInfo + WithDocs 的组合
 func TestServer_BugRepro_DocsWithOpenAPIInfo(t *testing.T) {
 	// 测试 WithOpenAPIInfo + WithDocs 的组合
-	s := NewServer(
+	s := newServer(
 		WithOpenAPIInfo("My API", "1.0.0", "My Description"),
 		WithDocs(DocsOptions{
 			Enabled:     true,
@@ -87,7 +87,7 @@ func TestServer_BugRepro_DocsWithOpenAPIInfo(t *testing.T) {
 // TestServer_BugRepro_OnlyWithOpenAPIInfo 测试只用 WithOpenAPIInfo（不用 WithDocs）
 func TestServer_BugRepro_OnlyWithOpenAPIInfo(t *testing.T) {
 	// 只用 WithOpenAPIInfo，不用 WithDocs
-	s := NewServer(
+	s := newServer(
 		WithOpenAPIInfo("My API", "1.0.0", "My Description"),
 	)
 
@@ -108,7 +108,7 @@ func TestServer_BugRepro_OnlyWithOpenAPIInfo(t *testing.T) {
 
 // TestServer_BugRepro_DocsDisabled 测试 Enabled: false 的情况
 func TestServer_BugRepro_DocsDisabled(t *testing.T) {
-	s := NewServer(
+	s := newServer(
 		WithDocs(DocsOptions{
 			Enabled:     false,
 			DocsPath:    "/docs",
@@ -127,7 +127,7 @@ func TestServer_BugRepro_DocsDisabled(t *testing.T) {
 
 // TestServer_BugRepro_DocsEnabledDefaultPaths 测试 Enabled: true 但使用默认路径
 func TestServer_BugRepro_DocsEnabledDefaultPaths(t *testing.T) {
-	s := NewServer(
+	s := newServer(
 		WithDocs(DocsOptions{
 			Enabled:  true,
 			Renderer: DocsRendererScalar,

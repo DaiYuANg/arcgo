@@ -12,7 +12,7 @@ tool (
 require (
 	github.com/aarondl/authboss/v3 v3.5.3
 	github.com/casbin/casbin/v3 v3.10.0
-	github.com/danielgtaylor/huma/v2 v2.36.0
+	github.com/danielgtaylor/huma/v2 v2.37.2
 	github.com/fsnotify/fsnotify v1.9.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-chi/chi/v5 v5.2.5

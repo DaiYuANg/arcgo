@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
+	"github.com/DaiYuANg/arcgo/httpx/examples/shared"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
@@ -51,7 +53,7 @@ type listUsersOutput struct {
 	} `json:"body"`
 }
 
-func (e *UserEndpoint) RegisterRoutes(server *httpx.Server) {
+func (e *UserEndpoint) RegisterRoutes(server httpx.ServerRuntime) {
 	api := server.Group("/api/v1/users")
 
 	httpx.MustGroupGet(api, "", func(ctx context.Context, input *struct{}) (*listUsersOutput, error) {
@@ -88,7 +90,7 @@ type healthOutput struct {
 	} `json:"body"`
 }
 
-func (e *HealthEndpoint) RegisterRoutes(server *httpx.Server) {
+func (e *HealthEndpoint) RegisterRoutes(server httpx.ServerRuntime) {
 	httpx.MustGet(server, "/health", func(ctx context.Context, input *struct{}) (*healthOutput, error) {
 		out := &healthOutput{}
 		out.Body.Status = "ok"
@@ -117,7 +119,7 @@ type createOrderOutput struct {
 	} `json:"body"`
 }
 
-func (e *OrderEndpoint) RegisterRoutes(server *httpx.Server) {
+func (e *OrderEndpoint) RegisterRoutes(server httpx.ServerRuntime) {
 	api := server.Group("/api/v1/orders")
 
 	httpx.MustGroupPost(api, "", func(ctx context.Context, input *createOrderInput) (*createOrderOutput, error) {
@@ -130,8 +132,11 @@ func (e *OrderEndpoint) RegisterRoutes(server *httpx.Server) {
 }
 
 func main() {
-	logger := log.Default()
-	_ = logger
+	logger, closeLogger, err := shared.NewLogger()
+	if err != nil {
+		panic(err)
+	}
+	defer closeLogger()
 
 	stdAdapter := std.New(adapter.HumaOptions{
 		Title:       "Endpoint Example API",
@@ -142,7 +147,7 @@ func main() {
 	})
 	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer)
 
-	server := httpx.NewServer(
+	server := httpx.New(
 		httpx.WithAdapter(stdAdapter),
 		httpx.WithBasePath("/"),
 		httpx.WithValidation(),
@@ -173,11 +178,15 @@ func main() {
 
 	port := randomport.MustFind()
 	addr := fmt.Sprintf(":%d", port)
-	fmt.Printf("Server starting on %s\n", addr)
-	fmt.Printf("OpenAPI JSON: http://localhost%s/openapi.json\n", addr)
-	fmt.Printf("Swagger UI:   http://localhost%s/docs\n", addr)
+	logger.Info("example server starting",
+		slog.String("example", "endpoint"),
+		slog.String("address", addr),
+		slog.String("openapi", fmt.Sprintf("http://localhost%s/openapi.json", addr)),
+		slog.String("docs", fmt.Sprintf("http://localhost%s/docs", addr)),
+	)
 
 	if err := server.ListenAndServe(addr); err != nil {
-		log.Fatalf("Failed to start server: %v", err)
+		logger.Error("server exited with error", slog.String("error", err.Error()))
+		os.Exit(1)
 	}
 }

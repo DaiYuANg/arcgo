@@ -12,8 +12,10 @@ import (
 func WithAdapter(a adapter.Adapter) ServerOption {
 	return func(s *Server) {
 		s.adapter = a
-		if loggerAdapter, ok := a.(adapter.LoggerConfigurer); ok && s.logger != nil {
-			loggerAdapter.SetLogger(s.logger)
+		if s.logger != nil {
+			withAdapterCapability(a, func(loggerAdapter adapter.LoggerConfigurer) {
+				loggerAdapter.SetLogger(s.logger)
+			})
 		}
 	}
 }
@@ -29,8 +31,10 @@ func WithBasePath(path string) ServerOption {
 func WithLogger(logger *slog.Logger) ServerOption {
 	return func(s *Server) {
 		s.logger = logger
-		if loggerAdapter, ok := s.adapter.(adapter.LoggerConfigurer); ok && logger != nil {
-			loggerAdapter.SetLogger(logger)
+		if logger != nil {
+			UseAdapter(s, func(loggerAdapter adapter.LoggerConfigurer) {
+				loggerAdapter.SetLogger(logger)
+			})
 		}
 	}
 }
@@ -81,7 +85,7 @@ func WithOpenAPIInfo(title, version, description string) ServerOption {
 			}
 		}
 
-		s.openAPIPatches = append(s.openAPIPatches, patch)
+		s.openAPIPatches.Add(patch)
 	}
 }
 
@@ -139,7 +143,7 @@ func WithOpenAPIPatch(fn func(*huma.OpenAPI)) ServerOption {
 		if fn == nil {
 			return
 		}
-		s.openAPIPatches = append(s.openAPIPatches, fn)
+		s.openAPIPatches.Add(fn)
 	}
 }
 
@@ -149,7 +153,7 @@ func WithHumaMiddleware(middlewares ...func(huma.Context, func(huma.Context))) S
 		if len(middlewares) == 0 {
 			return
 		}
-		s.humaMiddlewares = append(s.humaMiddlewares, middlewares...)
+		s.humaMiddlewares.Add(middlewares...)
 	}
 }
 
@@ -158,7 +162,7 @@ func WithSecurity(opts SecurityOptions) ServerOption {
 	return func(s *Server) {
 		for name, scheme := range opts.Schemes {
 			if name != "" && scheme != nil {
-				s.openAPIPatches = append(s.openAPIPatches, func(doc *huma.OpenAPI) {
+				s.openAPIPatches.Add(func(doc *huma.OpenAPI) {
 					components := ensureComponents(doc)
 					if components.SecuritySchemes == nil {
 						components.SecuritySchemes = map[string]*huma.SecurityScheme{}
@@ -170,7 +174,7 @@ func WithSecurity(opts SecurityOptions) ServerOption {
 
 		if len(opts.Requirements) > 0 {
 			requirements := cloneSecurityRequirements(opts.Requirements)
-			s.openAPIPatches = append(s.openAPIPatches, func(doc *huma.OpenAPI) {
+			s.openAPIPatches.Add(func(doc *huma.OpenAPI) {
 				doc.Security = cloneSecurityRequirements(requirements)
 			})
 		}
@@ -186,7 +190,7 @@ func WithGlobalHeaders(headers ...*huma.Param) ServerOption {
 			}
 			cloned := cloneParam(header)
 			cloned.In = "header"
-			s.operationModifiers = append(s.operationModifiers, func(op *huma.Operation) {
+			s.operationModifiers.Add(func(op *huma.Operation) {
 				appendOperationParameter(op, cloned)
 			})
 		}

@@ -24,8 +24,8 @@ type UserOutput struct {
 
 func main() {
 	logger, _ := logx.New(logx.WithConsole(true))
-	defer func() { _ = logger.Close() }()
-	slogLogger := logx.NewSlog(logger)
+	defer func() { _ = logx.Close(logger) }()
+	slogLogger := logger
 
 	slogLogger.Info("config example section", slog.String("section", "server options + adapter options"))
 	serverOpts := options.DefaultServerOptions()

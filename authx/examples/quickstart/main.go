@@ -41,10 +41,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = logger.Close() }()
+	defer func() { _ = logx.Close(logger) }()
 
 	manager, err := authx.NewManager(
-		authx.WithLogger(logx.NewSlog(logger)),
+		authx.WithLogger(logger),
 		authx.WithSource(policySource),
 		authx.WithProvider(primaryProvider),
 		authx.WithProvider(secondaryProvider),

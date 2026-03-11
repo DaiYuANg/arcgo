@@ -1,24 +1,25 @@
 package logx
 
 import (
-	"io"
+	"log/slog"
 	"testing"
-
-	"github.com/rs/zerolog"
 )
 
-func benchmarkLogger() *Logger {
-	cfg := defaultConfig()
-	cfg.console = false
+func benchmarkLogger(b *testing.B) *slog.Logger {
+	b.Helper()
 
-	return &Logger{
-		logger: zerolog.New(io.Discard).Level(zerolog.DebugLevel).With().Timestamp().Logger(),
-		config: &cfg,
+	logger, err := New(WithConsole(false), WithDebugLevel())
+	if err != nil {
+		b.Fatal(err)
 	}
+	b.Cleanup(func() {
+		_ = Close(logger)
+	})
+	return logger
 }
 
 func BenchmarkLoggerInfo(b *testing.B) {
-	logger := benchmarkLogger()
+	logger := benchmarkLogger(b)
 
 	b.ReportAllocs()
 	b.ResetTimer()
@@ -29,7 +30,7 @@ func BenchmarkLoggerInfo(b *testing.B) {
 }
 
 func BenchmarkLoggerWithFieldsInfo(b *testing.B) {
-	logger := benchmarkLogger()
+	logger := benchmarkLogger(b)
 	fields := map[string]interface{}{
 		"service": "arcgo",
 		"env":     "bench",
@@ -39,13 +40,12 @@ func BenchmarkLoggerWithFieldsInfo(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		logger.WithFields(fields).Info("with-fields")
+		WithFields(logger, fields).Info("with-fields")
 	}
 }
 
 func BenchmarkSlogInfo(b *testing.B) {
-	logger := benchmarkLogger()
-	slogLogger := NewSlog(logger)
+	slogLogger := benchmarkLogger(b)
 
 	b.ReportAllocs()
 	b.ResetTimer()

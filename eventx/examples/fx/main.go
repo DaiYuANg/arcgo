@@ -45,7 +45,7 @@ func main() {
 		),
 
 		// 初始化订阅者
-		fx.Invoke(func(bus eventx.BusRuntime, logger *logx.Logger) {
+		fx.Invoke(func(bus eventx.BusRuntime, logger *slog.Logger) {
 			logger.Info("🚀 正在注册通知订阅者...")
 
 			// 订阅邮件通知
@@ -54,7 +54,7 @@ func main() {
 					if event.Type != "email" {
 						return nil
 					}
-					logger.WithFields(map[string]interface{}{
+					logx.WithFields(logger, map[string]any{
 						"user_id":  event.UserID,
 						"msg_type": "email",
 					}).Info("📧 发送邮件")
@@ -64,7 +64,7 @@ func main() {
 				},
 			)
 			if err != nil {
-				logger.WithError(err).Error("注册邮件订阅者失败")
+				logx.WithError(logger, err).Error("注册邮件订阅者失败")
 				panic(err)
 			}
 
@@ -74,7 +74,7 @@ func main() {
 					if event.Type != "sms" {
 						return nil
 					}
-					logger.WithFields(map[string]interface{}{
+					logx.WithFields(logger, map[string]any{
 						"user_id":  event.UserID,
 						"msg_type": "sms",
 					}).Info("📱 发送短信")
@@ -84,7 +84,7 @@ func main() {
 				},
 			)
 			if err != nil {
-				logger.WithError(err).Error("注册短信订阅者失败")
+				logx.WithError(logger, err).Error("注册短信订阅者失败")
 				panic(err)
 			}
 
@@ -94,7 +94,7 @@ func main() {
 					if event.Type != "push" {
 						return nil
 					}
-					logger.WithFields(map[string]interface{}{
+					logx.WithFields(logger, map[string]any{
 						"user_id":  event.UserID,
 						"msg_type": "push",
 					}).Info("🔔 发送推送")
@@ -104,7 +104,7 @@ func main() {
 				},
 			)
 			if err != nil {
-				logger.WithError(err).Error("注册推送订阅者失败")
+				logx.WithError(logger, err).Error("注册推送订阅者失败")
 				panic(err)
 			}
 
@@ -112,7 +112,7 @@ func main() {
 		}),
 
 		// 运行业务逻辑
-		fx.Invoke(func(lc fx.Lifecycle, bus eventx.BusRuntime, logger *logx.Logger) {
+		fx.Invoke(func(lc fx.Lifecycle, bus eventx.BusRuntime, logger *slog.Logger) {
 			lc.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					logger.Info("📨 开始发布通知事件...")
@@ -127,7 +127,7 @@ func main() {
 					}
 
 					for i, event := range events {
-						logger.WithFields(map[string]interface{}{
+						logx.WithFields(logger, map[string]any{
 							"index":   i + 1,
 							"type":    event.Type,
 							"user_id": event.UserID,
@@ -136,9 +136,9 @@ func main() {
 
 						err := bus.PublishAsync(context.Background(), event)
 						if err != nil {
-							logger.WithFields(map[string]interface{}{
+							logx.WithError(logx.WithFields(logger, map[string]any{
 								"event": event,
-							}).WithError(err).Error("发布事件失败")
+							}), err).Error("发布事件失败")
 						}
 					}
 

@@ -3,32 +3,31 @@ package logx
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"github.com/samber/oops"
 )
 
-// LogOops logs related events.
-func (l *Logger) LogOops(err error) {
-	if l == nil {
+// LogOops logs oops-compatible errors.
+func LogOops(logger *slog.Logger, err error) {
+	if logger == nil {
 		return
 	}
-
-	// Note.
-	l.Error("Error", "error", err)
+	logger.Error("error", "error", err)
 }
 
-// LogOopsWithStack logs related events.
-func (l *Logger) LogOopsWithStack(err error) {
-	l.LogOops(err)
+// LogOopsWithStack logs oops-compatible errors with stack fields.
+func LogOopsWithStack(logger *slog.Logger, err error) {
+	LogOops(logger, err)
 }
 
-// Oops creates related functionality.
-func (l *Logger) Oops() error {
+// Oops creates a default oops error.
+func Oops() error {
 	return oops.New("error")
 }
 
-// Oopsf creates related functionality.
-func (l *Logger) Oopsf(format string, args ...interface{}) error {
+// Oopsf creates a formatted oops error.
+func Oopsf(format string, args ...any) error {
 	msg := fmt.Sprintf(format, args...)
 	if msg == "" {
 		msg = "error"
@@ -36,8 +35,8 @@ func (l *Logger) Oopsf(format string, args ...interface{}) error {
 	return oops.New(msg)
 }
 
-// OopsWith creates related functionality.
-func (l *Logger) OopsWith(ctx context.Context) error {
+// OopsWith creates an oops error from context.
+func OopsWith(ctx context.Context) error {
 	_ = ctx
 	return oops.New("error")
 }

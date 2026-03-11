@@ -13,7 +13,7 @@ func NewLogger() (*slog.Logger, func(), error) {
 		return nil, nil, err
 	}
 
-	return logx.NewSlog(base), func() {
-		_ = base.Close()
+	return base, func() {
+		_ = logx.Close(base)
 	}, nil
 }

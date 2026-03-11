@@ -42,13 +42,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = logger.Close() }()
+	defer func() { _ = logx.Close(logger) }()
 
 	prom := promobs.New(promobs.WithNamespace("authx_example"))
 	obs := observabilityx.Multi(otelobs.New(), prom)
 
 	manager, err := authx.NewManager(
-		authx.WithLogger(logx.NewSlog(logger)),
+		authx.WithLogger(logger),
 		authx.WithObservability(obs),
 		authx.WithProvider(provider),
 		authx.WithSource(source),

@@ -1,6 +1,7 @@
 package fx
 
 import (
+	"context"
 	"log/slog"
 
 	"go.uber.org/fx"
@@ -12,6 +13,8 @@ import (
 type LogParams struct {
 	fx.In
 
+	Lifecycle fx.Lifecycle
+
 	// Options for creating logger.
 	Options []logx.Option `optional:"true"`
 }
@@ -21,7 +24,7 @@ type LogResult struct {
 	fx.Out
 
 	// Logger is the created logger.
-	Logger *logx.Logger
+	Logger *slog.Logger
 }
 
 // NewLogger creates a new logger.
@@ -30,12 +33,12 @@ func NewLogger(params LogParams) (LogResult, error) {
 	if err != nil {
 		return LogResult{}, err
 	}
+	params.Lifecycle.Append(fx.Hook{
+		OnStop: func(context.Context) error {
+			return logx.Close(logger)
+		},
+	})
 	return LogResult{Logger: logger}, nil
-}
-
-// NewSlogLogger creates a slog.Logger from logx.Logger.
-func NewSlogLogger(logger *logx.Logger) *slog.Logger {
-	return logger.SlogLogger()
 }
 
 // NewLogxModule creates a logx module.
@@ -48,15 +51,9 @@ func NewLogxModule(opts ...logx.Option) fx.Option {
 	)
 }
 
-// NewLogxModuleWithSlog creates a logx module with slog.Logger support.
+// NewLogxModuleWithSlog keeps parity with previous API; logger is slog-first by default.
 func NewLogxModuleWithSlog(opts ...logx.Option) fx.Option {
-	return fx.Module("logx",
-		fx.Provide(
-			func() []logx.Option { return opts },
-			NewLogger,
-			NewSlogLogger,
-		),
-	)
+	return NewLogxModule(opts...)
 }
 
 // NewDevelopmentModule creates a development logx module.

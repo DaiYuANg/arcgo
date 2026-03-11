@@ -12,7 +12,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = logger.Close() }()
+	defer func() { _ = logx.Close(logger) }()
 
 	traceID, err := trace.TraceIDFromHex("4bf92f3577b34da6a3ce929d0e0e4736")
 	if err != nil {
@@ -30,5 +30,5 @@ func main() {
 	})
 	ctx := trace.ContextWithSpanContext(context.Background(), spanContext)
 
-	logger.WithTraceContext(ctx).Info("request accepted", "endpoint", "/api/orders")
+	logx.WithTraceContext(logger, ctx).Info("request accepted", "endpoint", "/api/orders")
 }

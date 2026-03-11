@@ -2,8 +2,7 @@ package logx
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"log/slog"
 	"time"
 )
 
@@ -12,7 +11,7 @@ type Option func(*config)
 
 // config documents related behavior.
 type config struct {
-	level      Level
+	level      slog.Level
 	console    bool
 	noColor    bool
 	filePath   string
@@ -26,10 +25,26 @@ type config struct {
 	compress   bool
 }
 
+// Config is an exported read-only snapshot of logger build options.
+type Config struct {
+	Level      slog.Level
+	Console    bool
+	NoColor    bool
+	FilePath   string
+	MaxSizeMB  int
+	MaxAgeDays int
+	MaxBackups int
+	TimeFormat string
+	SetGlobal  bool
+	AddCaller  bool
+	LocalTime  bool
+	Compress   bool
+}
+
 // defaultConfig provides default behavior.
 func defaultConfig() config {
 	return config{
-		level:      InfoLevel,
+		level:      slog.LevelInfo,
 		console:    true,
 		noColor:    false,
 		timeFormat: "2006-01-02 15:04:05",
@@ -43,34 +58,14 @@ func defaultConfig() config {
 
 // validate documents related behavior.
 func (c *config) validate() error {
-	// Note.
-	if c.level < TraceLevel || c.level > DisabledLevel {
-		return fmt.Errorf("invalid log level: %v", c.level)
-	}
-
-	// Note.
-	if c.filePath != "" {
-		// Note.
-		dir := filepath.Dir(c.filePath)
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			// Note.
-			if err := os.MkdirAll(dir, 0o755); err != nil {
-				return fmt.Errorf("cannot create log directory %s: %w", dir, err)
-			}
-		}
-	}
-
-	// Note.
 	if c.maxSize < 1 {
 		return fmt.Errorf("maxSize must be at least 1MB, got %d", c.maxSize)
 	}
 
-	// Note.
 	if c.maxAge < 0 {
 		return fmt.Errorf("maxAge cannot be negative, got %d", c.maxAge)
 	}
 
-	// Note.
 	if c.maxBackups < 0 {
 		return fmt.Errorf("maxBackups cannot be negative, got %d", c.maxBackups)
 	}
@@ -78,11 +73,27 @@ func (c *config) validate() error {
 	return nil
 }
 
+func (c config) export() Config {
+	return Config{
+		Level:      c.level,
+		Console:    c.console,
+		NoColor:    c.noColor,
+		FilePath:   c.filePath,
+		MaxSizeMB:  c.maxSize,
+		MaxAgeDays: c.maxAge,
+		MaxBackups: c.maxBackups,
+		TimeFormat: c.timeFormat,
+		SetGlobal:  c.setGlobal,
+		AddCaller:  c.addCaller,
+		LocalTime:  c.localTime,
+		Compress:   c.compress,
+	}
+}
+
 // Note.
 
-// WithLevel configures related behavior.
-// Note.
-func WithLevel(level Level) Option {
+// WithLevel configures logger level using slog.Level.
+func WithLevel(level slog.Level) Option {
 	return func(c *config) {
 		c.level = level
 	}
@@ -100,37 +111,37 @@ func WithLevelString(level string) Option {
 
 // WithTraceLevel enables related functionality.
 func WithTraceLevel() Option {
-	return WithLevel(TraceLevel)
+	return WithLevel(LevelTrace)
 }
 
 // WithDebugLevel enables related functionality.
 func WithDebugLevel() Option {
-	return WithLevel(DebugLevel)
+	return WithLevel(slog.LevelDebug)
 }
 
 // WithInfoLevel enables related functionality.
 func WithInfoLevel() Option {
-	return WithLevel(InfoLevel)
+	return WithLevel(slog.LevelInfo)
 }
 
 // WithWarnLevel enables related functionality.
 func WithWarnLevel() Option {
-	return WithLevel(WarnLevel)
+	return WithLevel(slog.LevelWarn)
 }
 
 // WithErrorLevel enables related functionality.
 func WithErrorLevel() Option {
-	return WithLevel(ErrorLevel)
+	return WithLevel(slog.LevelError)
 }
 
 // WithFatalLevel enables related functionality.
 func WithFatalLevel() Option {
-	return WithLevel(FatalLevel)
+	return WithLevel(LevelFatal)
 }
 
 // WithPanicLevel enables related functionality.
 func WithPanicLevel() Option {
-	return WithLevel(PanicLevel)
+	return WithLevel(LevelPanic)
 }
 
 // Note.

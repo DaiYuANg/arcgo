@@ -2,165 +2,91 @@ package logx
 
 import (
 	"fmt"
+	"log/slog"
 	"strings"
 
 	"github.com/rs/zerolog"
 )
 
-// Level documents related behavior.
-type Level int
-
 const (
-	// TraceLevel documents related behavior.
-	TraceLevel Level = iota
-	// DebugLevel documents related behavior.
-	DebugLevel
-	// InfoLevel logs related events.
-	InfoLevel
-	// WarnLevel logs related events.
-	WarnLevel
-	// ErrorLevel logs related events.
-	ErrorLevel
-	// FatalLevel logs related events.
-	FatalLevel
-	// PanicLevel logs related events.
-	PanicLevel
-	// DisabledLevel disables related functionality.
-	DisabledLevel
-	// NoLevel documents related behavior.
-	NoLevel
+	// LevelTrace is the trace level for slog-compatible logger configuration.
+	LevelTrace slog.Level = slog.LevelDebug - 4
+	// LevelFatal is the fatal level for slog-compatible logger configuration.
+	LevelFatal slog.Level = slog.LevelError + 4
+	// LevelPanic is the panic level for slog-compatible logger configuration.
+	LevelPanic slog.Level = slog.LevelError + 8
+	// LevelDisabled effectively disables log emission for slog-compatible logger configuration.
+	LevelDisabled slog.Level = slog.Level(127)
 )
 
-// String returns related data.
-func (l Level) String() string {
-	switch l {
-	case TraceLevel:
-		return "trace"
-	case DebugLevel:
-		return "debug"
-	case InfoLevel:
-		return "info"
-	case WarnLevel:
-		return "warn"
-	case ErrorLevel:
-		return "error"
-	case FatalLevel:
-		return "fatal"
-	case PanicLevel:
-		return "panic"
-	case DisabledLevel:
-		return "disabled"
-	case NoLevel:
-		return "none"
-	default:
-		return "unknown"
-	}
-}
+const (
+	// TraceLevel is a backward-compatible alias of LevelTrace.
+	TraceLevel = LevelTrace
+	// DebugLevel is a backward-compatible alias of slog.LevelDebug.
+	DebugLevel = slog.LevelDebug
+	// InfoLevel is a backward-compatible alias of slog.LevelInfo.
+	InfoLevel = slog.LevelInfo
+	// WarnLevel is a backward-compatible alias of slog.LevelWarn.
+	WarnLevel = slog.LevelWarn
+	// ErrorLevel is a backward-compatible alias of slog.LevelError.
+	ErrorLevel = slog.LevelError
+	// FatalLevel is a backward-compatible alias of LevelFatal.
+	FatalLevel = LevelFatal
+	// PanicLevel is a backward-compatible alias of LevelPanic.
+	PanicLevel = LevelPanic
+	// DisabledLevel is a backward-compatible alias of LevelDisabled.
+	DisabledLevel = LevelDisabled
+)
 
-// ParseLevel parses related input.
-func ParseLevel(s string) (Level, error) {
-	switch strings.ToLower(strings.TrimSpace(s)) {
+// ParseLevel parses a level string into slog.Level.
+func ParseLevel(input string) (slog.Level, error) {
+	text := strings.TrimSpace(strings.ToLower(input))
+	switch text {
 	case "trace":
-		return TraceLevel, nil
-	case "debug":
-		return DebugLevel, nil
-	case "info":
-		return InfoLevel, nil
-	case "warn", "warning":
-		return WarnLevel, nil
-	case "error":
-		return ErrorLevel, nil
+		return LevelTrace, nil
 	case "fatal":
-		return FatalLevel, nil
+		return LevelFatal, nil
 	case "panic":
-		return PanicLevel, nil
-	case "disabled", "disable":
-		return DisabledLevel, nil
-	case "none", "no", "":
-		return NoLevel, nil
-	default:
-		return NoLevel, fmt.Errorf("invalid log level: %s", s)
+		return LevelPanic, nil
+	case "disabled", "disable", "off":
+		return LevelDisabled, nil
 	}
+
+	var level slog.Level
+	if err := level.UnmarshalText([]byte(text)); err != nil {
+		return slog.LevelInfo, fmt.Errorf("invalid log level %q: %w", input, err)
+	}
+	return level, nil
 }
 
-// MustParseLevel parses related input.
-func MustParseLevel(s string) Level {
-	level, err := ParseLevel(s)
+// MustParseLevel parses a level string and panics on error.
+func MustParseLevel(input string) slog.Level {
+	level, err := ParseLevel(input)
 	if err != nil {
 		panic(err)
 	}
 	return level
 }
 
-// ToZerologLevel converts related values.
-func (l Level) ToZerologLevel() zerolog.Level {
-	switch l {
-	case TraceLevel:
+func toZerologLevel(level slog.Level) zerolog.Level {
+	switch {
+	case level <= LevelTrace:
 		return zerolog.TraceLevel
-	case DebugLevel:
+	case level <= slog.LevelDebug:
 		return zerolog.DebugLevel
-	case InfoLevel:
+	case level <= slog.LevelInfo:
 		return zerolog.InfoLevel
-	case WarnLevel:
+	case level <= slog.LevelWarn:
 		return zerolog.WarnLevel
-	case ErrorLevel:
+	case level <= slog.LevelError:
 		return zerolog.ErrorLevel
-	case FatalLevel:
+	case level <= LevelFatal:
 		return zerolog.FatalLevel
-	case PanicLevel:
+	case level <= LevelPanic:
 		return zerolog.PanicLevel
-	case DisabledLevel:
+	case level >= LevelDisabled:
 		return zerolog.Disabled
-	case NoLevel:
-		return zerolog.NoLevel
 	default:
 		return zerolog.InfoLevel
 	}
-}
-
-// Enabled checks related state.
-func (l Level) Enabled(current Level) bool {
-	return l >= current
-}
-
-// Note.
-
-// Trace returns related data.
-func Trace() Level {
-	return TraceLevel
-}
-
-// Debug returns related data.
-func Debug() Level {
-	return DebugLevel
-}
-
-// Info returns related data.
-func Info() Level {
-	return InfoLevel
-}
-
-// Warn returns related data.
-func Warn() Level {
-	return WarnLevel
-}
-
-// Error returns related data.
-func Error() Level {
-	return ErrorLevel
-}
-
-// Fatal returns related data.
-func Fatal() Level {
-	return FatalLevel
-}
-
-// Panic returns related data.
-func Panic() Level {
-	return PanicLevel
-}
-
-// Disabled returns related data.
-func Disabled() Level {
-	return DisabledLevel
 }

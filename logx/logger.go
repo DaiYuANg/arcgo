@@ -8,65 +8,94 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"runtime"
 	"sync"
 
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/samber/lo"
 	oopszerolog "github.com/samber/oops/loggers/zerolog"
+	slogzerolog "github.com/samber/slog-zerolog/v2"
 	"go.opentelemetry.io/otel/trace"
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// Logger logs related events.
-type Logger struct {
-	logger  zerolog.Logger
+var oopsMarshalerOnce sync.Once
+
+type lifecycleState struct {
+	cfg     config
 	closers []io.Closer
-	config  *config
 
-	slogOnce   sync.Once
-	slogLogger *slog.Logger
+	closeOnce sync.Once
+	closeErr  error
 }
 
-// Close closes related resources.
-func (l *Logger) Close() error {
-	errs := lo.FilterMap(l.closers, func(closer io.Closer, _ int) (error, bool) {
-		if closer == nil {
-			return nil, false
-		}
-		err := closer.Close()
-		return err, err != nil
+func (s *lifecycleState) close() error {
+	if s == nil {
+		return nil
+	}
+
+	s.closeOnce.Do(func() {
+		errs := lo.FilterMap(s.closers, func(closer io.Closer, _ int) (error, bool) {
+			if closer == nil {
+				return nil, false
+			}
+			err := closer.Close()
+			return err, err != nil
+		})
+		s.closeErr = errors.Join(errs...)
 	})
-	return errors.Join(errs...)
+
+	return s.closeErr
 }
 
-// Config returns related data.
-func (l *Logger) Config() *config {
-	return l.config
+type managedHandler struct {
+	slog.Handler
+	state *lifecycleState
 }
 
-// New creates related functionality.
-// Note.
-// Note.
-func New(opts ...Option) (*Logger, error) {
+func (h *managedHandler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	if h == nil {
+		return nil
+	}
+	return &managedHandler{
+		Handler: h.Handler.WithAttrs(attrs),
+		state:   h.state,
+	}
+}
+
+func (h *managedHandler) WithGroup(name string) slog.Handler {
+	if h == nil {
+		return nil
+	}
+	return &managedHandler{
+		Handler: h.Handler.WithGroup(name),
+		state:   h.state,
+	}
+}
+
+func (h *managedHandler) Close() error {
+	if h == nil {
+		return nil
+	}
+	return h.state.close()
+}
+
+// New creates a slog.Logger using logx options.
+func New(opts ...Option) (*slog.Logger, error) {
 	cfg := defaultConfig()
-
-	lo.ForEach(opts, func(opt Option, _ int) {
+	for _, opt := range opts {
 		if opt != nil {
 			opt(&cfg)
 		}
-	})
+	}
 
-	// Note.
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
-	var writers []io.Writer
-	var closers []io.Closer
+	writers := make([]io.Writer, 0, 2)
+	closers := make([]io.Closer, 0, 1)
 
-	// console
 	if cfg.console {
 		writers = append(writers, zerolog.ConsoleWriter{
 			Out:        os.Stdout,
@@ -75,14 +104,12 @@ func New(opts ...Option) (*Logger, error) {
 		})
 	}
 
-	// file
 	if cfg.filePath != "" {
-		// Note.
 		if err := os.MkdirAll(filepath.Dir(cfg.filePath), 0o755); err != nil {
 			return nil, fmt.Errorf("failed to create log directory: %w", err)
 		}
 
-		lj := &lumberjack.Logger{
+		fileWriter := &lumberjack.Logger{
 			Filename:   cfg.filePath,
 			MaxSize:    cfg.maxSize,
 			MaxAge:     cfg.maxAge,
@@ -90,49 +117,47 @@ func New(opts ...Option) (*Logger, error) {
 			LocalTime:  cfg.localTime,
 			Compress:   cfg.compress,
 		}
-		writers = append(writers, lj)
-		closers = append(closers, lj)
+		writers = append(writers, fileWriter)
+		closers = append(closers, fileWriter)
 	}
 
-	// Note.
 	if len(writers) == 0 {
 		writers = append(writers, os.Stdout)
 	}
 
-	level := cfg.level.ToZerologLevel()
+	oopsMarshalerOnce.Do(func() {
+		zerolog.ErrorStackMarshaler = oopszerolog.OopsStackMarshaller
+		zerolog.ErrorMarshalFunc = oopszerolog.OopsMarshalFunc
+	})
 
-	mw := io.MultiWriter(writers...)
-
-	// Note.
-	builder := zerolog.New(mw).
-		Level(level).
+	base := zerolog.New(io.MultiWriter(writers...)).
+		Level(toZerologLevel(cfg.level)).
 		With().
-		Timestamp()
+		Timestamp().
+		Logger()
 
-	if cfg.addCaller {
-		builder = builder.Caller()
-	}
-
-	z := builder.Logger()
-
-	// Note.
-	zerolog.ErrorStackMarshaler = oopszerolog.OopsStackMarshaller
-	zerolog.ErrorMarshalFunc = oopszerolog.OopsMarshalFunc
-
-	// Note.
 	if cfg.setGlobal {
-		zlog.Logger = z
+		zlog.Logger = base
 	}
 
-	return &Logger{
-		logger:  z,
+	state := &lifecycleState{
+		cfg:     cfg,
 		closers: closers,
-		config:  &cfg,
-	}, nil
+	}
+	handler := slogzerolog.Option{
+		Logger:    &base,
+		AddSource: cfg.addCaller,
+		Level:     cfg.level,
+	}.NewZerologHandler()
+
+	return slog.New(&managedHandler{
+		Handler: handler,
+		state:   state,
+	}), nil
 }
 
-// MustNew creates related functionality.
-func MustNew(opts ...Option) *Logger {
+// MustNew creates a logger and panics on invalid configuration.
+func MustNew(opts ...Option) *slog.Logger {
 	logger, err := New(opts...)
 	if err != nil {
 		panic(err)
@@ -140,167 +165,110 @@ func MustNew(opts ...Option) *Logger {
 	return logger
 }
 
-// NewDevelopment creates related functionality.
-// Note.
-func NewDevelopment() (*Logger, error) {
-	return New(
-		WithConsole(true),
-		WithLevel(DebugLevel),
-		WithCaller(true),
-	)
+// NewDevelopment creates a development logger.
+func NewDevelopment() (*slog.Logger, error) {
+	return New(DevelopmentConfig()...)
 }
 
-// NewProduction creates related functionality.
-// Note.
-func NewProduction() (*Logger, error) {
-	return New(
-		WithConsole(false),
-		WithLevel(InfoLevel),
-	)
+// NewProduction creates a production logger.
+func NewProduction() (*slog.Logger, error) {
+	return New(ProductionConfig("")...)
 }
 
-// SetGlobalLogger configures related behavior.
-func (l *Logger) SetGlobalLogger() {
-	zlog.Logger = l.logger
+// SetDefault sets slog default logger.
+func SetDefault(logger *slog.Logger) *slog.Logger {
+	if logger == nil {
+		logger = slog.Default()
+	}
+	slog.SetDefault(logger)
+	return logger
 }
 
-// WithContext documents related behavior.
-func (l *Logger) WithContext(ctx context.Context) zerolog.Context {
-	return l.logger.With().Ctx(ctx)
+// Close closes resources associated with the logger.
+func Close(logger *slog.Logger) error {
+	if logger == nil {
+		return nil
+	}
+	closer, ok := logger.Handler().(interface{ Close() error })
+	if !ok {
+		return nil
+	}
+	return closer.Close()
 }
 
-// WithTraceContext enriches logger with trace/span IDs from context when available.
-func (l *Logger) WithTraceContext(ctx context.Context) *Logger {
-	if l == nil || ctx == nil {
-		return l
+// ConfigOf returns logger build config when logger was created by logx.New.
+func ConfigOf(logger *slog.Logger) (Config, bool) {
+	if logger == nil {
+		return Config{}, false
+	}
+
+	handler, ok := logger.Handler().(*managedHandler)
+	if !ok || handler.state == nil {
+		return Config{}, false
+	}
+	return handler.state.cfg.export(), true
+}
+
+// WithField adds one field and returns a derived logger.
+func WithField(logger *slog.Logger, key string, value any) *slog.Logger {
+	if logger == nil {
+		return nil
+	}
+	return logger.With(key, value)
+}
+
+// WithFields adds fields and returns a derived logger.
+func WithFields(logger *slog.Logger, fields map[string]any) *slog.Logger {
+	if logger == nil {
+		return nil
+	}
+	if len(fields) == 0 {
+		return logger
+	}
+	args := lo.FlatMap(lo.Entries(fields), func(entry lo.Entry[string, any], _ int) []any {
+		return []any{entry.Key, entry.Value}
+	})
+	return logger.With(args...)
+}
+
+// WithError adds an error field and returns a derived logger.
+func WithError(logger *slog.Logger, err error) *slog.Logger {
+	if logger == nil {
+		return nil
+	}
+	return logger.With("error", err)
+}
+
+// WithTraceContext adds trace/span IDs from context and returns a derived logger.
+func WithTraceContext(logger *slog.Logger, ctx context.Context) *slog.Logger {
+	if logger == nil || ctx == nil {
+		return logger
 	}
 
 	spanContext := trace.SpanContextFromContext(ctx)
 	if !spanContext.IsValid() {
-		return l
+		return logger
 	}
 
-	return l.WithFields(map[string]interface{}{
-		"trace_id": spanContext.TraceID().String(),
-		"span_id":  spanContext.SpanID().String(),
-	})
+	return logger.With(
+		"trace_id", spanContext.TraceID().String(),
+		"span_id", spanContext.SpanID().String(),
+	)
 }
 
-// Logger returns related data.
-func (l *Logger) Logger() zerolog.Logger {
-	return l.logger
-}
-
-// Note.
-
-// Debug logs related events.
-func (l *Logger) Debug(msg string, fields ...interface{}) {
-	l.logger.Debug().Fields(fields).Msg(msg)
-}
-
-// Info logs related events.
-func (l *Logger) Info(msg string, fields ...interface{}) {
-	l.logger.Info().Fields(fields).Msg(msg)
-}
-
-// Warn logs related events.
-func (l *Logger) Warn(msg string, fields ...interface{}) {
-	l.logger.Warn().Fields(fields).Msg(msg)
-}
-
-// Error logs related events.
-func (l *Logger) Error(msg string, fields ...interface{}) {
-	l.logger.Error().Fields(fields).Msg(msg)
-}
-
-// Fatal logs related events.
-func (l *Logger) Fatal(msg string, fields ...interface{}) {
-	l.logger.Fatal().Fields(fields).Msg(msg)
-}
-
-// Panic logs related events.
-func (l *Logger) Panic(msg string, fields ...interface{}) {
-	l.logger.Panic().Fields(fields).Msg(msg)
-}
-
-// WithField documents related behavior.
-func (l *Logger) WithField(key string, value interface{}) *Logger {
-	return l.derive(l.logger.With().Interface(key, value).Logger())
-}
-
-// WithFields documents related behavior.
-func (l *Logger) WithFields(fields map[string]interface{}) *Logger {
-	logger := l.logger
-	for k, v := range fields {
-		logger = logger.With().Interface(k, v).Logger()
+// LevelOf returns configured level when logger was created by logx.New.
+func LevelOf(logger *slog.Logger) (slog.Level, bool) {
+	cfg, ok := ConfigOf(logger)
+	if !ok {
+		return slog.LevelInfo, false
 	}
-	return l.derive(logger)
+	return cfg.Level, true
 }
 
-// WithError documents related behavior.
-func (l *Logger) WithError(err error) *Logger {
-	return l.derive(l.logger.With().Err(err).Logger())
-}
-
-// WithCaller enables related functionality.
-func (l *Logger) WithCaller(enabled bool) *Logger {
-	if enabled {
-		return l.derive(l.logger.With().Caller().Logger())
+// IsEnabled checks whether a level is enabled for current logger.
+func IsEnabled(logger *slog.Logger, level slog.Level) bool {
+	if logger == nil {
+		return false
 	}
-	return l.derive(l.logger)
-}
-
-// Helper documents related behavior.
-func Helper() {
-	_, file, line, _ := runtime.Caller(1)
-	fmt.Printf("Called from %s:%d\n", file, line)
-}
-
-// Sync synchronizes related state.
-func (l *Logger) Sync() error {
-	// zerolog synchronizes related state.
-	return nil
-}
-
-// GetLevel retrieves related data.
-func (l *Logger) GetLevel() Level {
-	return l.config.level
-}
-
-// GetLevelString retrieves related data.
-func (l *Logger) GetLevelString() string {
-	return l.config.level.String()
-}
-
-// IsDebug checks related state.
-func (l *Logger) IsDebug() bool {
-	return l.config.level <= DebugLevel
-}
-
-// IsTrace checks related state.
-func (l *Logger) IsTrace() bool {
-	return l.config.level <= TraceLevel
-}
-
-// IsInfo checks related state.
-func (l *Logger) IsInfo() bool {
-	return l.config.level <= InfoLevel
-}
-
-// IsWarn checks related state.
-func (l *Logger) IsWarn() bool {
-	return l.config.level <= WarnLevel
-}
-
-// IsError checks related state.
-func (l *Logger) IsError() bool {
-	return l.config.level <= ErrorLevel
-}
-
-func (l *Logger) derive(z zerolog.Logger) *Logger {
-	return &Logger{
-		logger:  z,
-		closers: l.closers,
-		config:  l.config,
-	}
+	return logger.Enabled(context.Background(), level)
 }

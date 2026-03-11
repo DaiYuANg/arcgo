@@ -27,8 +27,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = logger.Close() }()
-	slogLogger := logx.NewSlog(logger)
+	defer func() { _ = logx.Close(logger) }()
+	slogLogger := logger
 
 	stdAdapter := std.New(adapter.HumaOptions{
 		Title:       "ArcGo Monitoring API",

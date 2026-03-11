@@ -131,6 +131,6 @@ type PriorityQueue[T any] interface {
 	jsonStringer
 }
 
-func NewPriorityQueue[T any](less func(a, b T) bool, items ...T) PriorityQueue[T] {
+func NewPriorityQueue[T any](less func(a, b T) bool, items ...T) (PriorityQueue[T], error) {
 	return list.NewPriorityQueue(less, items...)
 }

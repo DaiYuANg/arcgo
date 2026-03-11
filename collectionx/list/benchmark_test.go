@@ -32,9 +32,12 @@ func BenchmarkDequePushPop(b *testing.B) {
 }
 
 func BenchmarkPriorityQueuePushPop(b *testing.B) {
-	pq := NewPriorityQueue(func(a, c int) bool {
+	pq, err := NewPriorityQueue(func(a, c int) bool {
 		return a < c
 	})
+	if err != nil {
+		b.Fatalf("NewPriorityQueue() error = %v", err)
+	}
 
 	b.ReportAllocs()
 	b.ResetTimer()

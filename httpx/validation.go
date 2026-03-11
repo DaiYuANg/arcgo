@@ -9,25 +9,50 @@ import (
 	"github.com/samber/lo"
 )
 
-// validateInput validates a typed input value when a validator is configured.
-func (s *Server) validateInput(input any) error {
-	if s == nil || s.validator == nil || input == nil {
+// compileInputValidator compiles one typed validation function so request path does not
+// repeat reflection shape checks for every invocation.
+func compileInputValidator[I any](v *validator.Validate) func(*I) error {
+	if v == nil {
 		return nil
 	}
 
-	value := reflect.ValueOf(input)
-	for value.IsValid() && value.Kind() == reflect.Pointer {
-		if value.IsNil() {
+	inputType := reflect.TypeFor[I]()
+	hasNestedPointer := false
+	for inputType.Kind() == reflect.Pointer {
+		hasNestedPointer = true
+		inputType = inputType.Elem()
+	}
+	if inputType.Kind() != reflect.Struct {
+		return nil
+	}
+
+	if !hasNestedPointer {
+		return func(input *I) error {
+			if input == nil {
+				return nil
+			}
+			return v.Struct(input)
+		}
+	}
+
+	return func(input *I) error {
+		if input == nil {
 			return nil
 		}
-		value = value.Elem()
-	}
 
-	if !value.IsValid() || value.Kind() != reflect.Struct {
-		return nil
-	}
+		value := reflect.ValueOf(input)
+		for value.IsValid() && value.Kind() == reflect.Pointer {
+			if value.IsNil() {
+				return nil
+			}
+			value = value.Elem()
+		}
+		if !value.IsValid() || value.Kind() != reflect.Struct {
+			return nil
+		}
 
-	return s.validator.Struct(input)
+		return v.Struct(input)
+	}
 }
 
 // validationErrorMessage converts validator errors into a concise HTTP-facing message.

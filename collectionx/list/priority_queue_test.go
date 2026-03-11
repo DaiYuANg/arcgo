@@ -9,7 +9,8 @@ import (
 func TestPriorityQueue_MinHeap(t *testing.T) {
 	t.Parallel()
 
-	pq := NewPriorityQueue(func(a int, b int) bool { return a < b }, 5, 1, 3, 2)
+	pq, err := NewPriorityQueue(func(a int, b int) bool { return a < b }, 5, 1, 3, 2)
+	require.NoError(t, err)
 	require.Equal(t, []int{1, 2, 3, 5}, pq.ValuesSorted())
 
 	v, ok := pq.Pop()
@@ -20,7 +21,8 @@ func TestPriorityQueue_MinHeap(t *testing.T) {
 func TestPriorityQueue_MaxHeap(t *testing.T) {
 	t.Parallel()
 
-	pq := NewPriorityQueue(func(a int, b int) bool { return a > b })
+	pq, err := NewPriorityQueue(func(a int, b int) bool { return a > b })
+	require.NoError(t, err)
 	pq.Push(10)
 	pq.Push(2)
 	pq.Push(8)
@@ -30,10 +32,10 @@ func TestPriorityQueue_MaxHeap(t *testing.T) {
 	require.Equal(t, 10, v)
 }
 
-func TestPriorityQueue_PanicOnNilComparator(t *testing.T) {
+func TestPriorityQueue_ErrorOnNilComparator(t *testing.T) {
 	t.Parallel()
 
-	require.PanicsWithValue(t, "list: priority queue comparator cannot be nil", func() {
-		NewPriorityQueue[int](nil)
-	})
+	pq, err := NewPriorityQueue[int](nil)
+	require.Nil(t, pq)
+	require.ErrorIs(t, err, ErrNilPriorityQueueComparator)
 }

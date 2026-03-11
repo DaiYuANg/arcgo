@@ -1,6 +1,11 @@
 package list
 
-import "container/heap"
+import (
+	"container/heap"
+	"errors"
+)
+
+var ErrNilPriorityQueueComparator = errors.New("list: priority queue comparator cannot be nil")
 
 // PriorityQueue is a generic heap-based queue.
 // less(a, b) should return true when a has higher priority than b.
@@ -9,9 +14,9 @@ type PriorityQueue[T any] struct {
 }
 
 // NewPriorityQueue creates a priority queue with comparator and optional items.
-func NewPriorityQueue[T any](less func(a, b T) bool, items ...T) *PriorityQueue[T] {
+func NewPriorityQueue[T any](less func(a, b T) bool, items ...T) (*PriorityQueue[T], error) {
 	if less == nil {
-		panic("list: priority queue comparator cannot be nil")
+		return nil, ErrNilPriorityQueueComparator
 	}
 	pq := &PriorityQueue[T]{
 		h: &priorityQueueHeap[T]{
@@ -21,7 +26,7 @@ func NewPriorityQueue[T any](less func(a, b T) bool, items ...T) *PriorityQueue[
 	}
 	pq.h.items = append(pq.h.items, items...)
 	heap.Init(pq.h)
-	return pq
+	return pq, nil
 }
 
 // Push inserts value.

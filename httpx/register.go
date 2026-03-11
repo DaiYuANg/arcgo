@@ -231,6 +231,8 @@ func withInputValidation[I, O any](s *Server, handler TypedHandler[I, O]) TypedH
 		return handler
 	}
 
+	validateInput := compileInputValidator[I](s.validator)
+
 	return func(ctx context.Context, input *I) (out *O, err error) {
 		if s.panicRecover {
 			defer func() {
@@ -241,9 +243,11 @@ func withInputValidation[I, O any](s *Server, handler TypedHandler[I, O]) TypedH
 			}()
 		}
 
-		if err = s.validateInput(input); err != nil {
-			message := validationErrorMessage(err)
-			return nil, huma.Error400BadRequest(message, err)
+		if validateInput != nil {
+			if err = validateInput(input); err != nil {
+				message := validationErrorMessage(err)
+				return nil, huma.Error400BadRequest(message, err)
+			}
 		}
 
 		out, err = handler(ctx, input)

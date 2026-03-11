@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 
 	"github.com/DaiYuANg/arcgo/collectionx/list"
+	"github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
@@ -21,6 +22,9 @@ type Server struct {
 	basePath           string
 	routes             *list.ConcurrentList[RouteInfo]
 	routeKeys          *set.ConcurrentSet[string]
+	routesByMethod     *mapping.ConcurrentMultiMap[string, RouteInfo]
+	routeExact         *mapping.ConcurrentMap[string, RouteInfo]
+	routePatterns      *mapping.ConcurrentMultiMap[string, RouteInfo]
 	logger             *slog.Logger
 	printRoutes        bool
 	validator          *validator.Validate
@@ -43,6 +47,9 @@ func newServer(opts ...ServerOption) *Server {
 		logger:             slog.Default(),
 		routes:             list.NewConcurrentList[RouteInfo](),
 		routeKeys:          set.NewConcurrentSet[string](),
+		routesByMethod:     mapping.NewConcurrentMultiMap[string, RouteInfo](),
+		routeExact:         mapping.NewConcurrentMap[string, RouteInfo](),
+		routePatterns:      mapping.NewConcurrentMultiMap[string, RouteInfo](),
 		panicRecover:       true,
 		openAPIPatches:     list.NewConcurrentList[func(*huma.OpenAPI)](),
 		humaMiddlewares:    list.NewConcurrentList[func(huma.Context, func(huma.Context))](),

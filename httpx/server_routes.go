@@ -20,9 +20,10 @@ func (s *Server) GetRoutes() []RouteInfo {
 // GetRoutesByMethod returns routes matching the given HTTP method.
 func (s *Server) GetRoutesByMethod(method string) []RouteInfo {
 	method = strings.ToUpper(method)
-	return lo.Filter(s.routesSnapshot(), func(route RouteInfo, _ int) bool {
-		return route.Method == method
-	})
+	if s == nil || method == "" {
+		return nil
+	}
+	return s.routesByMethod.Get(method)
 }
 
 // GetRoutesByPath returns routes whose path starts with the given prefix.
@@ -37,7 +38,12 @@ func (s *Server) GetRoutesByPath(prefix string) []RouteInfo {
 
 // HasRoute reports whether a route has been registered.
 func (s *Server) HasRoute(method, path string) bool {
-	return s.routeKeys.Contains(routeKey(strings.ToUpper(method), path))
+	if s == nil {
+		return false
+	}
+	key := routeKey(strings.ToUpper(method), path)
+	_, ok := s.routeExact.Get(key)
+	return ok
 }
 
 // RouteCount returns the number of unique registered routes.
@@ -63,9 +69,18 @@ func (s *Server) printRoutesIfEnabled() {
 }
 
 func (s *Server) addRoute(route RouteInfo) {
-	key := routeKey(route.Method, route.Path)
-	if s.routeKeys.Contains(key) {
+	if s == nil {
 		return
+	}
+	route.Method = strings.ToUpper(route.Method)
+	key := routeKey(route.Method, route.Path)
+	if _, loaded := s.routeExact.GetOrStore(key, route); loaded {
+		return
+	}
+
+	s.routesByMethod.Put(route.Method, route)
+	if isParameterizedRoute(route.Path) {
+		s.routePatterns.Put(route.Method, route)
 	}
 
 	s.routeKeys.Add(key)
@@ -82,15 +97,27 @@ func routeKey(method, path string) string {
 }
 
 func (s *Server) matchRoute(method, path string) (RouteInfo, bool) {
-	for _, route := range s.routesSnapshot() {
-		if route.Method != method {
-			continue
-		}
-		if route.Path == path || routePatternMatches(route.Path, path) {
+	if s == nil {
+		return RouteInfo{}, false
+	}
+
+	method = strings.ToUpper(method)
+	key := routeKey(method, path)
+
+	if route, ok := s.routeExact.Get(key); ok {
+		return route, true
+	}
+
+	for _, route := range s.routePatterns.Get(method) {
+		if routePatternMatches(route.Path, path) {
 			return route, true
 		}
 	}
 	return RouteInfo{}, false
+}
+
+func isParameterizedRoute(path string) bool {
+	return strings.Contains(path, "{") && strings.Contains(path, "}")
 }
 
 func routePatternMatches(pattern, path string) bool {

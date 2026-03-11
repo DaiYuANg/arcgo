@@ -10,6 +10,7 @@ import (
 // Zero value is ready to use.
 type Table[R comparable, C comparable, V any] struct {
 	data map[R]map[C]V
+	size int
 }
 
 // NewTable creates an empty table.
@@ -26,6 +27,9 @@ func (t *Table[R, C, V]) Put(rowKey R, columnKey C, value V) {
 	}
 	t.ensureInit()
 	row := t.ensureRow(rowKey)
+	if _, existed := row[columnKey]; !existed {
+		t.size++
+	}
 	row[columnKey] = value
 }
 
@@ -59,11 +63,14 @@ func (t *Table[R, C, V]) SetRow(rowKey R, rowValues map[C]V) {
 		return
 	}
 	t.ensureInit()
+	oldSize := len(t.data[rowKey])
 	if len(rowValues) == 0 {
 		delete(t.data, rowKey)
+		t.size -= oldSize
 		return
 	}
 	t.data[rowKey] = lo.Assign(map[C]V{}, rowValues)
+	t.size += len(rowValues) - oldSize
 }
 
 // Row returns one row as a copied map.
@@ -107,6 +114,7 @@ func (t *Table[R, C, V]) Delete(rowKey R, columnKey C) bool {
 	}
 
 	delete(row, columnKey)
+	t.size--
 	if len(row) == 0 {
 		delete(t.data, rowKey)
 	}
@@ -120,6 +128,7 @@ func (t *Table[R, C, V]) DeleteRow(rowKey R) bool {
 	}
 	_, existed := t.data[rowKey]
 	if existed {
+		t.size -= len(t.data[rowKey])
 		delete(t.data, rowKey)
 	}
 	return existed
@@ -135,6 +144,7 @@ func (t *Table[R, C, V]) DeleteColumn(columnKey C) int {
 		if _, ok := row[columnKey]; ok {
 			delete(row, columnKey)
 			removed++
+			t.size--
 		}
 		if len(row) == 0 {
 			delete(t.data, rowKey)
@@ -159,12 +169,10 @@ func (t *Table[R, C, V]) RowCount() int {
 
 // Len returns total cell count.
 func (t *Table[R, C, V]) Len() int {
-	if t == nil || len(t.data) == 0 {
+	if t == nil {
 		return 0
 	}
-	return lo.SumBy(lo.Values(t.data), func(row map[C]V) int {
-		return len(row)
-	})
+	return t.size
 }
 
 // IsEmpty reports whether table has no cells.
@@ -178,6 +186,7 @@ func (t *Table[R, C, V]) Clear() {
 		return
 	}
 	clear(t.data)
+	t.size = 0
 }
 
 // RowKeys returns all row keys.

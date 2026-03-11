@@ -10,7 +10,8 @@ import (
 // MultiMap stores one key with multiple values.
 // Zero value is ready to use.
 type MultiMap[K comparable, V any] struct {
-	items map[K][]V
+	items      map[K][]V
+	valueCount int
 }
 
 // NewMultiMap creates an empty multimap.
@@ -32,6 +33,7 @@ func (m *MultiMap[K, V]) PutAll(key K, values ...V) {
 	}
 	m.ensureInit()
 	m.items[key] = append(m.items[key], values...)
+	m.valueCount += len(values)
 }
 
 // Set replaces all values for key.
@@ -41,11 +43,15 @@ func (m *MultiMap[K, V]) Set(key K, values ...V) {
 		return
 	}
 	m.ensureInit()
+
+	oldCount := len(m.items[key])
 	if len(values) == 0 {
 		delete(m.items, key)
+		m.valueCount -= oldCount
 		return
 	}
 	m.items[key] = slices.Clone(values)
+	m.valueCount += len(values) - oldCount
 }
 
 // Get returns a copy of values for key.
@@ -74,9 +80,10 @@ func (m *MultiMap[K, V]) Delete(key K) bool {
 	if m == nil || m.items == nil {
 		return false
 	}
-	_, existed := m.items[key]
+	values, existed := m.items[key]
 	if existed {
 		delete(m.items, key)
+		m.valueCount -= len(values)
 	}
 	return existed
 }
@@ -101,6 +108,7 @@ func (m *MultiMap[K, V]) DeleteValueIf(key K, predicate func(value V) bool) int 
 	} else {
 		m.items[key] = next
 	}
+	m.valueCount -= removed
 	return removed
 }
 
@@ -123,12 +131,10 @@ func (m *MultiMap[K, V]) Len() int {
 
 // ValueCount returns total stored value count.
 func (m *MultiMap[K, V]) ValueCount() int {
-	if m == nil || len(m.items) == 0 {
+	if m == nil {
 		return 0
 	}
-	return lo.SumBy(lo.Values(m.items), func(values []V) int {
-		return len(values)
-	})
+	return m.valueCount
 }
 
 // IsEmpty reports whether map has no keys.
@@ -142,6 +148,7 @@ func (m *MultiMap[K, V]) Clear() {
 		return
 	}
 	clear(m.items)
+	m.valueCount = 0
 }
 
 // Keys returns all keys.

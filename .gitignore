@@ -75,3 +75,4 @@ Temporary Items
 .gocache
 .pnpm-store
 .cache
+*.db

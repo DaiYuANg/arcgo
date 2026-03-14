@@ -76,6 +76,8 @@ type HumaOptions struct {
 	DocsRenderer string
 	// DisableDocsRoutes disables docs, OpenAPI, and schema routes.
 	DisableDocsRoutes bool
+	// Transformers modifies response bodies before serialization.
+	Transformers []huma.Transformer
 }
 
 // DefaultHumaOptions provides default behavior.
@@ -103,6 +105,9 @@ func MergeHumaOptions(opts ...HumaOptions) HumaOptions {
 		result.SchemasPath = lo.Ternary(opt.SchemasPath != "", opt.SchemasPath, result.SchemasPath)
 		result.DocsRenderer = lo.Ternary(opt.DocsRenderer != "", opt.DocsRenderer, result.DocsRenderer)
 		result.DisableDocsRoutes = lo.Ternary(opt.DisableDocsRoutes, true, result.DisableDocsRoutes)
+		if len(opt.Transformers) > 0 {
+			result.Transformers = append(result.Transformers, opt.Transformers...)
+		}
 	})
 	return result
 }
@@ -127,6 +132,9 @@ func ApplyHumaConfig(cfg *huma.Config, opts HumaOptions) {
 	cfg.SchemasPath = normalizeSchemasPath(opts.SchemasPath)
 	if opts.DocsRenderer != "" {
 		cfg.DocsRenderer = opts.DocsRenderer
+	}
+	if len(opts.Transformers) > 0 {
+		cfg.Transformers = append(cfg.Transformers, opts.Transformers...)
 	}
 }
 

@@ -10,11 +10,45 @@ A reusable backend scaffold example with:
 - Observability: `observabilityx` + Prometheus metrics
 - AuthN: JWT (HS256)
 - AuthZ: authx engine + RBAC tables via bun (`sqlite/mysql/postgres`)
+- Layered architecture: `endpoint -> service -> repository`
+- HTTP endpoint registration: `httpx.Endpoint` + `server.RegisterOnly(...)`
+
+## Project Layout
+
+- `cmd/server`: application entrypoint
+- `internal/app`: fx composition root (module wiring + app bootstrap)
+- `internal/app/eventsub`: event subscribers registration
+- `internal/http`: HTTP adapter, middleware, infra routes, lifecycle start/stop
+- `internal/endpoint`: top-level route composition
+- `internal/endpoint/auth`: auth endpoints
+- `internal/endpoint/book`: book endpoints
+- `internal/endpoint/user`: user endpoints
+- `internal/endpoint/role`: role endpoints
+- `internal/endpoint/operation`: endpoint operation timing helper
+- `internal/endpoint/eventpublish`: endpoint async event publish helper
+- `internal/endpoint/events`: domain events for event bus
+- `internal/service/auth`: auth + authorization + jwt services
+- `internal/service/book`: book service
+- `internal/service/user`: user service
+- `internal/service/role`: role service
+- `internal/repository/core`: bun store bootstrap + generic base repository
+- `internal/repository/auth`: auth + authorization repositories
+- `internal/repository/book`: book repository
+- `internal/repository/user`: user repository
+- `internal/repository/role`: role repository
+- `internal/model/auth`: auth API DTO models
+- `internal/model/book`: book API DTO models
+- `internal/model/user`: user API DTO models
+- `internal/model/role`: role API DTO models
+- `internal/entity`: database entities
+- `internal/authn`: authx guard/middleware and auth resolver mapping
+- `internal/config`: configx-based app config
+- `pkg/appfx`: reusable fx start/stop bootstrap helper
 
 ## Run
 
 ```bash
-go run ./examples/rbac_backend
+go run ./examples/rbac_backend/cmd/server
 ```
 
 Default address: `:18080`
@@ -43,10 +77,30 @@ Tables:
 
 Seed permissions:
 
-- admin: `query:book`, `create:book`, `delete:book`
+- admin: full CRUD on `book/user/role`
 - user: `query:book`
 
 ## API Quick Try
+
+Response envelope (success):
+
+```json
+{
+  "code": 0,
+  "message": "ok",
+  "data": {}
+}
+```
+
+Response envelope (error):
+
+```json
+{
+  "code": 401,
+  "message": "invalid username or password",
+  "data": null
+}
+```
 
 Login and get JWT:
 
@@ -79,6 +133,25 @@ Delete book (admin allowed):
 ```bash
 curl -X DELETE http://127.0.0.1:18080/api/v1/books/1 \
   -H "Authorization: Bearer ${TOKEN}"
+```
+
+Basic user/role CRUD (admin allowed):
+
+```bash
+# list users
+curl http://127.0.0.1:18080/api/v1/users -H "Authorization: Bearer ${TOKEN}"
+
+# create role
+curl -X POST http://127.0.0.1:18080/api/v1/roles \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"code":"editor","name":"Editor"}'
+
+# create user with roles
+curl -X POST http://127.0.0.1:18080/api/v1/users \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"username":"charlie","password":"charlie123","role_codes":["editor"]}'
 ```
 
 ## Optional Env

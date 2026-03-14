@@ -1,4 +1,4 @@
-package main
+package authn
 
 import (
 	"context"
@@ -12,8 +12,12 @@ import (
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	collectionset "github.com/DaiYuANg/arcgo/collectionx/set"
+	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/config"
+	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
+	authsvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/auth"
 	"github.com/DaiYuANg/arcgo/observabilityx"
 	"github.com/gofiber/fiber/v2"
+	"github.com/samber/mo"
 )
 
 type bearerCredential struct {
@@ -28,9 +32,9 @@ var actionMapping = collectionmapping.NewMapFrom(map[string]string{
 	http.MethodPatch:  "update",
 })
 
-func newAuthxEngineOptions(
-	s *store,
-	jwtSvc *jwtService,
+func NewAuthxEngineOptions(
+	authz *authsvc.AuthorizationService,
+	jwtSvc *authsvc.JWTService,
 	obs observabilityx.Observability,
 ) []authx.EngineOption {
 	return []authx.EngineOption{
@@ -43,7 +47,7 @@ func newAuthxEngineOptions(
 					ctx, span := obs.StartSpan(ctx, "rbac.auth.check")
 					defer span.End()
 
-					principal, err := jwtSvc.parseToken(credential.Token)
+					principal, err := jwtSvc.ParseToken(credential.Token)
 					if err != nil {
 						span.RecordError(err)
 						obs.AddCounter(ctx, "rbac_auth_check_total", 1,
@@ -66,11 +70,11 @@ func newAuthxEngineOptions(
 			ctx, span := obs.StartSpan(ctx, "rbac.auth.can")
 			defer span.End()
 
-			principal, ok := input.Principal.(appPrincipal)
+			principal, ok := input.Principal.(entity.Principal)
 			if !ok {
 				return authx.Decision{Allowed: false, Reason: "invalid_principal"}, nil
 			}
-			allowed, err := s.can(ctx, principal.UserID, input.Action, input.Resource)
+			allowed, err := authz.Can(ctx, principal.UserID, input.Action, input.Resource)
 			if err != nil {
 				span.RecordError(err)
 				return authx.Decision{}, err
@@ -93,7 +97,7 @@ func newAuthxEngineOptions(
 	}
 }
 
-func newGuard(engine *authx.Engine) *authhttp.Guard {
+func NewGuard(engine *authx.Engine) *authhttp.Guard {
 	return authhttp.NewGuard(
 		engine,
 		authhttp.WithCredentialResolverFunc(resolveCredential),
@@ -101,16 +105,16 @@ func newGuard(engine *authx.Engine) *authhttp.Guard {
 	)
 }
 
-func newAuthMiddleware(cfg appConfig, guard *authhttp.Guard) fiber.Handler {
+func NewAuthMiddleware(cfg config.AppConfig, guard *authhttp.Guard) fiber.Handler {
 	require := authfiber.RequireFast(guard)
-	loginPath := strings.TrimRight(cfg.basePath(), "/") + "/login"
-	docsPrefix := strings.TrimRight(cfg.docsPath(), "/") + "/"
+	loginPath := strings.TrimRight(cfg.BasePath(), "/") + "/login"
+	docsPrefix := strings.TrimRight(cfg.DocsPath(), "/") + "/"
 
 	publicPaths := collectionset.NewSet(
 		"/health",
-		cfg.metricsPath(),
-		cfg.docsPath(),
-		cfg.openAPIPath(),
+		cfg.MetricsPath(),
+		cfg.DocsPath(),
+		cfg.OpenAPIPath(),
 		loginPath,
 	)
 	publicPrefixes := collectionlist.NewList(docsPrefix, "/schemas/")
@@ -173,7 +177,8 @@ func resolveAuthorization(
 }
 
 func resolveAction(method string) (string, error) {
-	action, ok := actionMapping.Get(strings.ToUpper(strings.TrimSpace(method)))
+	actionOpt := mo.TupleToOption(actionMapping.Get(strings.ToUpper(strings.TrimSpace(method))))
+	action, ok := actionOpt.Get()
 	if !ok {
 		return "", fmt.Errorf("unsupported method for action mapping: %s", method)
 	}
@@ -187,6 +192,12 @@ func resolveResource(req authhttp.RequestInfo) (string, error) {
 	}
 	if strings.Contains(pattern, "/books") {
 		return "book", nil
+	}
+	if strings.Contains(pattern, "/users") {
+		return "user", nil
+	}
+	if strings.Contains(pattern, "/roles") {
+		return "role", nil
 	}
 	return "", fmt.Errorf("unsupported route pattern for resource mapping: %s", pattern)
 }

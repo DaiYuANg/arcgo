@@ -1,4 +1,4 @@
-package main
+package auth
 
 import (
 	"errors"
@@ -7,10 +7,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/config"
+	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-type jwtService struct {
+type JWTService struct {
 	secret    []byte
 	issuer    string
 	expiresIn time.Duration
@@ -23,15 +25,15 @@ type userClaims struct {
 	jwt.RegisteredClaims
 }
 
-func newJWTService(cfg appConfig) *jwtService {
-	return &jwtService{
+func NewJWTService(cfg config.AppConfig) *JWTService {
+	return &JWTService{
 		secret:    []byte(cfg.JWT.Secret),
 		issuer:    cfg.JWT.Issuer,
-		expiresIn: cfg.jwtExpiresIn(),
+		expiresIn: cfg.JWTExpiresIn(),
 	}
 }
 
-func (s *jwtService) issueToken(user appPrincipal) (string, error) {
+func (s *JWTService) IssueToken(user entity.Principal) (string, error) {
 	if s == nil {
 		return "", errors.New("jwt service is nil")
 	}
@@ -52,13 +54,13 @@ func (s *jwtService) issueToken(user appPrincipal) (string, error) {
 	return token.SignedString(s.secret)
 }
 
-func (s *jwtService) parseToken(rawToken string) (appPrincipal, error) {
+func (s *JWTService) ParseToken(rawToken string) (entity.Principal, error) {
 	if s == nil {
-		return appPrincipal{}, errors.New("jwt service is nil")
+		return entity.Principal{}, errors.New("jwt service is nil")
 	}
 	rawToken = strings.TrimSpace(rawToken)
 	if rawToken == "" {
-		return appPrincipal{}, errors.New("empty token")
+		return entity.Principal{}, errors.New("empty token")
 	}
 
 	claims := &userClaims{}
@@ -69,13 +71,13 @@ func (s *jwtService) parseToken(rawToken string) (appPrincipal, error) {
 		return s.secret, nil
 	})
 	if err != nil {
-		return appPrincipal{}, err
+		return entity.Principal{}, err
 	}
 	if token == nil || !token.Valid {
-		return appPrincipal{}, errors.New("invalid token")
+		return entity.Principal{}, errors.New("invalid token")
 	}
 
-	return appPrincipal{
+	return entity.Principal{
 		UserID:   claims.UserID,
 		Username: claims.Username,
 		Roles:    claims.Roles,

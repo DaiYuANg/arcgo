@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"fmt"
@@ -8,7 +8,7 @@ import (
 	"github.com/DaiYuANg/arcgo/configx"
 )
 
-type appConfig struct {
+type AppConfig struct {
 	Version string `mapstructure:"version" validate:"required"`
 	HTTP    struct {
 		Addr string `mapstructure:"addr" validate:"required"`
@@ -42,20 +42,20 @@ type appConfig struct {
 	} `mapstructure:"event" validate:"required"`
 }
 
-func newConfig() (appConfig, error) {
-	cfg, err := configx.LoadTErr[appConfig](
+func New() (AppConfig, error) {
+	cfg, err := configx.LoadTErr[AppConfig](
 		configx.WithEnvPrefix("RBAC"),
 		configx.WithDefaultsFrom(defaultAppConfig()),
 		configx.WithValidateLevel(configx.ValidateLevelRequired),
 	)
 	if err != nil {
-		return appConfig{}, fmt.Errorf("load app config: %w", err)
+		return AppConfig{}, fmt.Errorf("load app config: %w", err)
 	}
 	return cfg, nil
 }
 
-func defaultAppConfig() appConfig {
-	cfg := appConfig{}
+func defaultAppConfig() AppConfig {
+	cfg := AppConfig{}
 	cfg.Version = "0.4.0"
 	cfg.HTTP.Addr = ":18080"
 	cfg.Base.Path = "/api/v1"
@@ -72,34 +72,34 @@ func defaultAppConfig() appConfig {
 	return cfg
 }
 
-func (c appConfig) addr() string {
+func (c AppConfig) Addr() string {
 	return c.HTTP.Addr
 }
 
-func (c appConfig) basePath() string {
+func (c AppConfig) BasePath() string {
 	return c.Base.Path
 }
 
-func (c appConfig) docsPath() string {
+func (c AppConfig) DocsPath() string {
 	return c.Docs.Path
 }
 
-func (c appConfig) openAPIPath() string {
+func (c AppConfig) OpenAPIPath() string {
 	return c.OpenAPI.Path
 }
 
-func (c appConfig) metricsPath() string {
+func (c AppConfig) MetricsPath() string {
 	return c.Metrics.Path
 }
 
-func (c appConfig) dbDSN() string {
+func (c AppConfig) DBDSN() string {
 	return c.DB.DSN
 }
 
-func (c appConfig) dbDriver() string {
+func (c AppConfig) DBDriver() string {
 	return strings.ToLower(strings.TrimSpace(c.DB.Driver))
 }
 
-func (c appConfig) jwtExpiresIn() time.Duration {
+func (c AppConfig) JWTExpiresIn() time.Duration {
 	return time.Duration(c.JWT.Expires.Minutes) * time.Minute
 }

@@ -1,4 +1,4 @@
-package main
+package core
 
 import (
 	"context"
@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/config"
+	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
 	"github.com/DaiYuANg/arcgo/observabilityx"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
@@ -19,24 +21,24 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
-type store struct {
+type Store struct {
 	db     *bun.DB
 	obs    observabilityx.Observability
 	logger *slog.Logger
 }
 
-func newStore(
+func NewStore(
 	lc fx.Lifecycle,
-	cfg appConfig,
+	cfg config.AppConfig,
 	obs observabilityx.Observability,
 	logger *slog.Logger,
-) (*store, error) {
+) (*Store, error) {
 	db, err := openBunDB(cfg)
 	if err != nil {
 		return nil, err
 	}
 
-	s := &store{
+	s := &Store{
 		db:     db,
 		obs:    obs,
 		logger: logger,
@@ -60,61 +62,75 @@ func newStore(
 	return s, nil
 }
 
-func openBunDB(cfg appConfig) (*bun.DB, error) {
-	switch cfg.dbDriver() {
+func (s *Store) DB() *bun.DB {
+	if s == nil {
+		return nil
+	}
+	return s.db
+}
+
+func openBunDB(cfg config.AppConfig) (*bun.DB, error) {
+	switch cfg.DBDriver() {
 	case "sqlite":
-		sqlDB, err := sql.Open(sqliteshim.ShimName, cfg.dbDSN())
+		sqlDB, err := sql.Open(sqliteshim.ShimName, cfg.DBDSN())
 		if err != nil {
 			return nil, fmt.Errorf("open sqlite failed: %w", err)
 		}
 		return bun.NewDB(sqlDB, sqlitedialect.New()), nil
 	case "mysql":
-		sqlDB, err := sql.Open("mysql", cfg.dbDSN())
+		sqlDB, err := sql.Open("mysql", cfg.DBDSN())
 		if err != nil {
 			return nil, fmt.Errorf("open mysql failed: %w", err)
 		}
 		return bun.NewDB(sqlDB, mysqldialect.New()), nil
 	case "postgres":
-		sqlDB := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(cfg.dbDSN())))
+		sqlDB := sql.OpenDB(pgdriver.NewConnector(pgdriver.WithDSN(cfg.DBDSN())))
 		return bun.NewDB(sqlDB, pgdialect.New()), nil
 	default:
-		return nil, fmt.Errorf("unsupported db driver: %s", cfg.dbDriver())
+		return nil, fmt.Errorf("unsupported db driver: %s", cfg.DBDriver())
 	}
 }
 
-func (s *store) close() error {
+func (s *Store) close() error {
 	if s == nil || s.db == nil {
 		return nil
 	}
 	return s.db.Close()
 }
 
-func (s *store) initSchema(ctx context.Context) error {
+func (s *Store) initSchema(ctx context.Context) error {
 	ctx, span := s.obs.StartSpan(ctx, "rbac.store.init_schema")
 	defer span.End()
 
 	models := []any{
-		(*userModel)(nil),
-		(*roleModel)(nil),
-		(*permissionModel)(nil),
-		(*userRoleModel)(nil),
-		(*rolePermissionModel)(nil),
-		(*bookModel)(nil),
+		(*entity.UserModel)(nil),
+		(*entity.RoleModel)(nil),
+		(*entity.PermissionModel)(nil),
+		(*entity.UserRoleModel)(nil),
+		(*entity.RolePermissionModel)(nil),
+		(*entity.BookModel)(nil),
 	}
-	for _, model := range models {
-		if _, err := s.db.NewCreateTable().Model(model).IfNotExists().Exec(ctx); err != nil {
-			span.RecordError(err)
-			return err
+	err := lo.Reduce(models, func(acc error, model any, _ int) error {
+		if acc != nil {
+			return acc
 		}
+		if _, createErr := s.db.NewCreateTable().Model(model).IfNotExists().Exec(ctx); createErr != nil {
+			span.RecordError(createErr)
+			return createErr
+		}
+		return nil
+	}, nil)
+	if err != nil {
+		return err
 	}
 	return nil
 }
 
-func (s *store) seed(ctx context.Context) error {
+func (s *Store) seed(ctx context.Context) error {
 	ctx, span := s.obs.StartSpan(ctx, "rbac.store.seed")
 	defer span.End()
 
-	count, err := s.db.NewSelect().Model((*userModel)(nil)).Count(ctx)
+	count, err := s.db.NewSelect().Model((*entity.UserModel)(nil)).Count(ctx)
 	if err != nil {
 		span.RecordError(err)
 		return err
@@ -123,44 +139,58 @@ func (s *store) seed(ctx context.Context) error {
 		return nil
 	}
 
-	roles := []roleModel{{Code: "admin", Name: "Administrator"}, {Code: "user", Name: "User"}}
+	roles := []entity.RoleModel{{Code: "admin", Name: "Administrator"}, {Code: "user", Name: "User"}}
 	if _, err = s.db.NewInsert().Model(&roles).Exec(ctx); err != nil {
 		span.RecordError(err)
 		return err
 	}
 
-	var roleRows []roleModel
+	var roleRows []entity.RoleModel
 	if err = s.db.NewSelect().Model(&roleRows).Scan(ctx); err != nil {
 		span.RecordError(err)
 		return err
 	}
-	roleIDs := lo.SliceToMap(roleRows, func(item roleModel) (string, int64) {
+	roleIDs := lo.SliceToMap(roleRows, func(item entity.RoleModel) (string, int64) {
 		return item.Code, item.ID
 	})
 
-	permissions := []permissionModel{
-		{Action: "query", Resource: "book"},
-		{Action: "create", Resource: "book"},
-		{Action: "delete", Resource: "book"},
-	}
+	adminResources := []string{"book", "user", "role"}
+	adminActions := []string{"query", "create", "update", "delete"}
+	permissions := lo.FlatMap(adminResources, func(resource string, _ int) []entity.PermissionModel {
+		return lo.Map(adminActions, func(action string, _ int) entity.PermissionModel {
+			return entity.PermissionModel{
+				Action:   action,
+				Resource: resource,
+			}
+		})
+	})
 	if _, err = s.db.NewInsert().Model(&permissions).Exec(ctx); err != nil {
 		span.RecordError(err)
 		return err
 	}
 
-	var permissionRows []permissionModel
+	var permissionRows []entity.PermissionModel
 	if err = s.db.NewSelect().Model(&permissionRows).Scan(ctx); err != nil {
 		span.RecordError(err)
 		return err
 	}
-	permissionIDs := lo.SliceToMap(permissionRows, func(item permissionModel) (string, int64) {
+	permissionIDs := lo.SliceToMap(permissionRows, func(item entity.PermissionModel) (string, int64) {
 		return item.Action + ":" + item.Resource, item.ID
 	})
 
-	rolePermissions := []rolePermissionModel{
+	rolePermissions := []entity.RolePermissionModel{
 		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["query:book"]},
 		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["create:book"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["update:book"]},
 		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["delete:book"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["query:user"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["create:user"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["update:user"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["delete:user"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["query:role"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["create:role"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["update:role"]},
+		{RoleID: roleIDs["admin"], PermissionID: permissionIDs["delete:role"]},
 		{RoleID: roleIDs["user"], PermissionID: permissionIDs["query:book"]},
 	}
 	if _, err = s.db.NewInsert().Model(&rolePermissions).Exec(ctx); err != nil {
@@ -168,7 +198,7 @@ func (s *store) seed(ctx context.Context) error {
 		return err
 	}
 
-	users := []userModel{
+	users := []entity.UserModel{
 		{Username: "alice", Password: "admin123"},
 		{Username: "bob", Password: "user123"},
 	}
@@ -181,7 +211,7 @@ func (s *store) seed(ctx context.Context) error {
 		return err
 	}
 
-	userRoles := []userRoleModel{
+	userRoles := []entity.UserRoleModel{
 		{UserID: users[0].ID, RoleID: roleIDs["admin"]},
 		{UserID: users[1].ID, RoleID: roleIDs["user"]},
 	}
@@ -190,7 +220,7 @@ func (s *store) seed(ctx context.Context) error {
 		return err
 	}
 
-	books := []bookModel{
+	books := []entity.BookModel{
 		{Title: "Distributed Systems", Author: "Tanenbaum", CreatedBy: users[0].ID},
 		{Title: "Go in Action", Author: "Kennedy", CreatedBy: users[0].ID},
 	}

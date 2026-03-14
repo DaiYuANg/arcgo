@@ -1,4 +1,4 @@
-package main
+package httpapp
 
 import (
 	"log/slog"
@@ -9,7 +9,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 )
 
-func newRequestObservabilityMiddleware(obs observabilityx.Observability) fiber.Handler {
+func NewRequestObservabilityMiddleware(obs observabilityx.Observability) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		method := c.Method()
 		path := c.Path()
@@ -41,7 +41,7 @@ func newRequestObservabilityMiddleware(obs observabilityx.Observability) fiber.H
 	}
 }
 
-func newRequestLogMiddleware(logger *slog.Logger) fiber.Handler {
+func NewRequestLogMiddleware(logger *slog.Logger) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		started := time.Now()
 		err := c.Next()

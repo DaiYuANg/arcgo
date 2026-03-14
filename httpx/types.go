@@ -78,6 +78,8 @@ type HumaOptions struct {
 	DocsRenderer string
 	// DisableDocsRoutes disables docs, OpenAPI, and schema routes.
 	DisableDocsRoutes bool
+	// Transformers modifies response bodies before serialization.
+	Transformers []huma.Transformer
 }
 
 // DefaultHumaOptions provides default behavior.
@@ -94,7 +96,17 @@ func DefaultHumaOptions() HumaOptions {
 
 // ToAdapterHumaOptions converts package-level Huma options to adapter options.
 func ToAdapterHumaOptions(opts HumaOptions) adapter.HumaOptions {
-	return adapter.HumaOptions(opts)
+	return adapter.HumaOptions{
+		Title:             opts.Title,
+		Version:           opts.Version,
+		Description:       opts.Description,
+		DocsPath:          opts.DocsPath,
+		OpenAPIPath:       opts.OpenAPIPath,
+		SchemasPath:       opts.SchemasPath,
+		DocsRenderer:      opts.DocsRenderer,
+		DisableDocsRoutes: opts.DisableDocsRoutes,
+		Transformers:      opts.Transformers,
+	}
 }
 
 // DocsOptions configures docs UI and OpenAPI/schema route exposure.

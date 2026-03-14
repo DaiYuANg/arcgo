@@ -3,19 +3,17 @@ package app
 import (
 	"log/slog"
 
-	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
+	"github.com/DaiYuANg/arcgo/pkg/fxx"
 )
 
 // Run boots the rbac backend application and blocks until shutdown.
 func Run() error {
-	fxApp := fx.New(
+	app, err := fxx.CreateApplicationContainer[*slog.Logger](
 		newAppModule(),
-		fx.WithLogger(func(logger *slog.Logger) fxevent.Logger {
-			return &fxevent.SlogLogger{Logger: logger}
-		}),
 	)
-
-	fxApp.Run()
+	if err != nil {
+		return nil
+	}
+	app.Run()
 	return nil
 }

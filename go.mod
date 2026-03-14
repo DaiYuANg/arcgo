@@ -1,6 +1,6 @@
 module github.com/DaiYuANg/arcgo
 
-go 1.26.0
+go 1.26.1
 
 tool (
 	github.com/evilmartians/lefthook/v2

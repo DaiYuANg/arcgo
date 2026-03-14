@@ -12,6 +12,7 @@ import (
 	rolesvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/role"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/danielgtaylor/huma/v2"
 )
 
 type Endpoint struct {
@@ -45,7 +46,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			Items: items,
 			Total: len(items),
 		}), nil
-	})
+	}, huma.OperationTags("role"))
 
 	httpx.MustGet(server, "/roles/{id}", func(ctx context.Context, input *modelrole.GetInput) (*modelrole.GetOutput, error) {
 		item, err := roleSvc.Get(ctx, input.ID)
@@ -56,7 +57,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			return nil, err
 		}
 		return endpointresponse.OK(item), nil
-	})
+	}, huma.OperationTags("role"))
 
 	httpx.MustPost(server, "/roles", func(ctx context.Context, input *modelrole.CreateInput) (*modelrole.CreateOutput, error) {
 		item, err := roleSvc.Create(ctx, rolesvc.CreateCommand{Code: input.Body.Code, Name: input.Body.Name})
@@ -64,7 +65,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			return nil, err
 		}
 		return endpointresponse.OK(item), nil
-	})
+	}, huma.OperationTags("role"))
 
 	httpx.MustPut(server, "/roles/{id}", func(ctx context.Context, input *modelrole.UpdateInput) (*modelrole.UpdateOutput, error) {
 		item, err := roleSvc.Update(ctx, input.ID, rolesvc.UpdateCommand{Code: input.Body.Code, Name: input.Body.Name})
@@ -75,7 +76,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			return nil, err
 		}
 		return endpointresponse.OK(item), nil
-	})
+	}, huma.OperationTags("role"))
 
 	httpx.MustDelete(server, "/roles/{id}", func(ctx context.Context, input *modelrole.DeleteInput) (*modelrole.DeleteOutput, error) {
 		deleted, err := roleSvc.Delete(ctx, input.ID)
@@ -86,5 +87,5 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			return nil, endpointhttperr.NotFound("role not found")
 		}
 		return endpointresponse.OK(modelrole.DeleteData{Deleted: true}), nil
-	})
+	}, huma.OperationTags("role"))
 }

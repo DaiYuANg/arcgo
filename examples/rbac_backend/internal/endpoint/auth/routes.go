@@ -14,6 +14,7 @@ import (
 	authsvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/auth"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/danielgtaylor/huma/v2"
 )
 
 type Endpoint struct {
@@ -69,5 +70,5 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			Username: principal.Username,
 			Roles:    principal.Roles,
 		}), nil
-	})
+	}, huma.OperationTags("auth"))
 }

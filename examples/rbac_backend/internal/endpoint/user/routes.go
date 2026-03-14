@@ -12,6 +12,7 @@ import (
 	usersvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/user"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/danielgtaylor/huma/v2"
 )
 
 type Endpoint struct {
@@ -45,7 +46,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			Items: items,
 			Total: len(items),
 		}), nil
-	})
+	}, huma.OperationTags("user"))
 
 	httpx.MustGet(server, "/users/{id}", func(ctx context.Context, input *modeluser.GetInput) (*modeluser.GetOutput, error) {
 		item, err := userSvc.Get(ctx, input.ID)
@@ -56,7 +57,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			return nil, err
 		}
 		return endpointresponse.OK(item), nil
-	})
+	}, huma.OperationTags("user"))
 
 	httpx.MustPost(server, "/users", func(ctx context.Context, input *modeluser.CreateInput) (*modeluser.CreateOutput, error) {
 		item, err := userSvc.Create(ctx, usersvc.CreateCommand{
@@ -68,7 +69,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			return nil, err
 		}
 		return endpointresponse.OK(item), nil
-	})
+	}, huma.OperationTags("user"))
 
 	httpx.MustPut(server, "/users/{id}", func(ctx context.Context, input *modeluser.UpdateInput) (*modeluser.UpdateOutput, error) {
 		item, err := userSvc.Update(ctx, input.ID, usersvc.UpdateCommand{
@@ -83,7 +84,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			return nil, err
 		}
 		return endpointresponse.OK(item), nil
-	})
+	}, huma.OperationTags("user"))
 
 	httpx.MustDelete(server, "/users/{id}", func(ctx context.Context, input *modeluser.DeleteInput) (*modeluser.DeleteOutput, error) {
 		deleted, err := userSvc.Delete(ctx, input.ID)
@@ -94,5 +95,5 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			return nil, endpointhttperr.NotFound("user not found")
 		}
 		return endpointresponse.OK(modeluser.DeleteData{Deleted: true}), nil
-	})
+	}, huma.OperationTags("user"))
 }

@@ -16,6 +16,7 @@ import (
 	booksvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/book"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/danielgtaylor/huma/v2"
 )
 
 type Endpoint struct {
@@ -62,7 +63,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 			Items: items,
 			Total: len(items),
 		}), nil
-	})
+	}, huma.OperationTags("book"))
 
 	httpx.MustPost(server, "/books", func(ctx context.Context, input *modelbook.CreateInput) (*modelbook.CreateOutput, error) {
 		ctx, span, done := endpointoperation.Begin(ctx, obs, "rbac.route.create_book")
@@ -90,7 +91,7 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 
 		endpointoperation.CountRouteResult(ctx, obs, "create_book", "ok")
 		return endpointresponse.OK(item), nil
-	})
+	}, huma.OperationTags("book"))
 
 	httpx.MustDelete(server, "/books/{id}", func(ctx context.Context, input *modelbook.DeleteInput) (*modelbook.DeleteOutput, error) {
 		ctx, span, done := endpointoperation.Begin(ctx, obs, "rbac.route.delete_book")
@@ -119,5 +120,5 @@ func (e *Endpoint) RegisterRoutes(server httpx.ServerRuntime) {
 
 		endpointoperation.CountRouteResult(ctx, obs, "delete_book", "ok")
 		return endpointresponse.OK(modelbook.DeleteData{Deleted: true}), nil
-	})
+	}, huma.OperationTags("book"))
 }

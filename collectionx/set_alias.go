@@ -18,6 +18,8 @@ type setWritable[T comparable] interface {
 type Set[T comparable] interface {
 	setReadable[T]
 	setWritable[T]
+	Merge(other *set.Set[T]) *set.Set[T]
+	MergeSlice(items []T) *set.Set[T]
 	clonable[*set.Set[T]]
 	Union(other *set.Set[T]) *set.Set[T]
 	Intersect(other *set.Set[T]) *set.Set[T]
@@ -32,6 +34,9 @@ func NewSet[T comparable](items ...T) Set[T] {
 type ConcurrentSet[T comparable] interface {
 	setReadable[T]
 	setWritable[T]
+	Merge(other *set.Set[T]) *set.ConcurrentSet[T]
+	MergeConcurrent(other *set.ConcurrentSet[T]) *set.ConcurrentSet[T]
+	MergeSlice(items []T) *set.ConcurrentSet[T]
 	AddIfAbsent(item T) bool
 	snapshotable[*set.Set[T]]
 	jsonStringer

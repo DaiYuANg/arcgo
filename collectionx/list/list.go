@@ -33,10 +33,10 @@ func (l *List[T]) Merge(other *List[T]) *List[T] {
 	if l == nil {
 		return nil
 	}
-	if other == nil {
+	if other == nil || len(other.items) == 0 {
 		return l
 	}
-	l.Add(other.Values()...)
+	l.items = append(l.items, other.items...)
 	return l
 }
 

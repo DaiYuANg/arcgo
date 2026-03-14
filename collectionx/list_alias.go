@@ -18,6 +18,8 @@ type listWritable[T any] interface {
 	AddAt(index int, item T) bool
 	AddAllAt(index int, items ...T) bool
 	Set(index int, item T) bool
+	SetAll(mapper func(item T) T) int
+	SetAllIndexed(mapper func(index int, item T) T) int
 	RemoveAt(index int) (T, bool)
 	RemoveAtOption(index int) mo.Option[T]
 	RemoveIf(predicate func(item T) bool) int
@@ -27,6 +29,8 @@ type listWritable[T any] interface {
 type List[T any] interface {
 	listReadable[T]
 	listWritable[T]
+	Merge(other *list.List[T]) *list.List[T]
+	MergeSlice(items []T) *list.List[T]
 	clonable[*list.List[T]]
 	jsonStringer
 }
@@ -38,6 +42,9 @@ func NewList[T any](items ...T) List[T] {
 type ConcurrentList[T any] interface {
 	listReadable[T]
 	listWritable[T]
+	Merge(other *list.List[T]) *list.ConcurrentList[T]
+	MergeSlice(items []T) *list.ConcurrentList[T]
+	MergeConcurrent(other *list.ConcurrentList[T]) *list.ConcurrentList[T]
 	snapshotable[*list.List[T]]
 	jsonStringer
 }

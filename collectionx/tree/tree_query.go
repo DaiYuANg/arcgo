@@ -1,6 +1,6 @@
 package tree
 
-import collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
+import collectionlist "github.com/DaiYuANg/archgo/collectionx/list"
 
 // Get returns node by id.
 func (t *Tree[K, V]) Get(id K) (*Node[K, V], bool) {

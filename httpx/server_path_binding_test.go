@@ -6,9 +6,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	adapterecho "github.com/DaiYuANg/arcgo/httpx/adapter/echo"
-	adapterfiber "github.com/DaiYuANg/arcgo/httpx/adapter/fiber"
-	adaptergin "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
+	adapterecho "github.com/DaiYuANg/archgo/httpx/adapter/echo"
+	adapterfiber "github.com/DaiYuANg/archgo/httpx/adapter/fiber"
+	adaptergin "github.com/DaiYuANg/archgo/httpx/adapter/gin"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -1,6 +1,6 @@
 package set
 
-import collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+import collectionmapping "github.com/DaiYuANg/archgo/collectionx/mapping"
 
 // Set is a generic hash set.
 // Zero value is ready to use.

@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"errors"
 
-	endpointhttperr "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/endpoint/httperr"
-	endpointoperation "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/endpoint/operation"
-	endpointresponse "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/endpoint/response"
-	modelrole "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/model/role"
-	rolesvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/role"
-	"github.com/DaiYuANg/arcgo/httpx"
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	endpointhttperr "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/endpoint/httperr"
+	endpointoperation "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/endpoint/operation"
+	endpointresponse "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/endpoint/response"
+	modelrole "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/model/role"
+	rolesvc "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/service/role"
+	"github.com/DaiYuANg/archgo/httpx"
+	"github.com/DaiYuANg/archgo/observabilityx"
 	"github.com/danielgtaylor/huma/v2"
 )
 

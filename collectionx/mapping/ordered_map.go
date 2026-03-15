@@ -1,7 +1,7 @@
 package mapping
 
 import (
-	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
+	collectionlist "github.com/DaiYuANg/archgo/collectionx/list"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 )

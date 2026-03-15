@@ -3,17 +3,17 @@ package endpoint
 import (
 	"log/slog"
 
-	"github.com/DaiYuANg/arcgo/eventx"
-	endpointauth "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/endpoint/auth"
-	endpointbook "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/endpoint/book"
-	endpointrole "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/endpoint/role"
-	endpointuser "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/endpoint/user"
-	authsvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/auth"
-	booksvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/book"
-	rolesvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/role"
-	usersvc "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/service/user"
-	"github.com/DaiYuANg/arcgo/httpx"
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/archgo/eventx"
+	endpointauth "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/endpoint/auth"
+	endpointbook "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/endpoint/book"
+	endpointrole "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/endpoint/role"
+	endpointuser "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/endpoint/user"
+	authsvc "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/service/auth"
+	booksvc "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/service/book"
+	rolesvc "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/service/role"
+	usersvc "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/service/user"
+	"github.com/DaiYuANg/archgo/httpx"
+	"github.com/DaiYuANg/archgo/observabilityx"
 )
 
 func RegisterHTTPRoutes(

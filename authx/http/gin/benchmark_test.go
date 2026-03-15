@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
-	authgin "github.com/DaiYuANg/arcgo/authx/http/gin"
-	"github.com/DaiYuANg/arcgo/authx/http/internal/benchmarksupport"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
+	authgin "github.com/DaiYuANg/archgo/authx/http/gin"
+	"github.com/DaiYuANg/archgo/authx/http/internal/benchmarksupport"
 	"github.com/gin-gonic/gin"
 )
 

@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	modelresult "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/model/resultx"
+	modelresult "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/model/resultx"
 	"github.com/danielgtaylor/huma/v2"
 )
 

@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/collectionx/interval"
-	"github.com/DaiYuANg/arcgo/collectionx/list"
-	"github.com/DaiYuANg/arcgo/collectionx/mapping"
-	"github.com/DaiYuANg/arcgo/collectionx/prefix"
-	"github.com/DaiYuANg/arcgo/collectionx/set"
-	"github.com/DaiYuANg/arcgo/collectionx/tree"
+	"github.com/DaiYuANg/archgo/collectionx/interval"
+	"github.com/DaiYuANg/archgo/collectionx/list"
+	"github.com/DaiYuANg/archgo/collectionx/mapping"
+	"github.com/DaiYuANg/archgo/collectionx/prefix"
+	"github.com/DaiYuANg/archgo/collectionx/set"
+	"github.com/DaiYuANg/archgo/collectionx/tree"
 )
 
 func main() {

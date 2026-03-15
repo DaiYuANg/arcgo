@@ -3,7 +3,7 @@ package parse
 import (
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/sqltmplx/scan"
+	"github.com/DaiYuANg/archgo/sqltmplx/scan"
 	"github.com/expr-lang/expr"
 )
 

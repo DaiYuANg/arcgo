@@ -4,9 +4,9 @@ import (
 	"context"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
-	modelrole "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/model/role"
-	reporole "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/repository/role"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
+	modelrole "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/model/role"
+	reporole "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/repository/role"
 	"github.com/samber/lo"
 )
 

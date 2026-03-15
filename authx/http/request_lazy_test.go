@@ -3,7 +3,7 @@ package authhttp_test
 import (
 	"testing"
 
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
 )
 
 type nativeLookupStub struct {

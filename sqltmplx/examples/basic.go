@@ -3,9 +3,9 @@ package main
 import (
 	"fmt"
 
-	"github.com/DaiYuANg/arcgo/sqltmplx"
-	"github.com/DaiYuANg/arcgo/sqltmplx/dialect"
-	"github.com/DaiYuANg/arcgo/sqltmplx/validate"
+	"github.com/DaiYuANg/archgo/sqltmplx"
+	"github.com/DaiYuANg/archgo/sqltmplx/dialect"
+	"github.com/DaiYuANg/archgo/sqltmplx/validate"
 )
 
 func main() {

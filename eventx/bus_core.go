@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/archgo/collectionx"
+	"github.com/DaiYuANg/archgo/observabilityx"
 	"github.com/panjf2000/ants/v2"
 	"github.com/samber/lo"
 )

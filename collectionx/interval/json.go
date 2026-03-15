@@ -1,6 +1,6 @@
 package interval
 
-import common "github.com/DaiYuANg/arcgo/collectionx/internal"
+import common "github.com/DaiYuANg/archgo/collectionx/internal"
 
 // ToJSON serializes normalized ranges to JSON.
 func (s *RangeSet[T]) ToJSON() ([]byte, error) {

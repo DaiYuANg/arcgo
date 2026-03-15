@@ -1,6 +1,6 @@
 package list
 
-import common "github.com/DaiYuANg/arcgo/collectionx/internal"
+import common "github.com/DaiYuANg/archgo/collectionx/internal"
 
 // ToJSON serializes list values to JSON.
 func (l *List[T]) ToJSON() ([]byte, error) {

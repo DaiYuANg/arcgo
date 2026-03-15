@@ -10,9 +10,9 @@ import (
 	"testing"
 	"time"
 
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
-	authfiber "github.com/DaiYuANg/arcgo/authx/http/fiber"
-	"github.com/DaiYuANg/arcgo/authx/http/internal/benchmarksupport"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
+	authfiber "github.com/DaiYuANg/archgo/authx/http/fiber"
+	"github.com/DaiYuANg/archgo/authx/http/internal/benchmarksupport"
 	"github.com/gofiber/fiber/v2"
 )
 

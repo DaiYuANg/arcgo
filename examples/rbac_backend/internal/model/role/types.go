@@ -1,6 +1,6 @@
 package role
 
-import modelresult "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/model/resultx"
+import modelresult "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/model/resultx"
 
 type RoleItem struct {
 	ID   int64  `json:"id"`

@@ -12,7 +12,7 @@ draft: false
 ## 快速开始
 
 ```bash
-go get github.com/DaiYuANg/arcgo/{package}
+go get github.com/DaiYuANg/archgo/{package}
 ```
 
 ## 核心特性
@@ -125,5 +125,5 @@ httpx.Get(s, "/health", func(ctx context.Context, input *struct{}) (*HealthOutpu
 
 ## 链接
 
-- [GitHub 仓库](https://github.com/DaiYuANg/arcgo)
-- [Go 模块](https://pkg.go.dev/github.com/DaiYuANg/arcgo)
+- [GitHub 仓库](https://github.com/DaiYuANg/archgo)
+- [Go 模块](https://pkg.go.dev/github.com/DaiYuANg/archgo)

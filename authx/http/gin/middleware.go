@@ -5,8 +5,8 @@ package gin
 import (
 	"net/http"
 
-	"github.com/DaiYuANg/arcgo/authx"
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
+	"github.com/DaiYuANg/archgo/authx"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
 	"github.com/gin-gonic/gin"
 	"github.com/samber/lo"
 )

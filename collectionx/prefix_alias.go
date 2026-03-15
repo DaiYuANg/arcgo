@@ -1,7 +1,7 @@
 package collectionx
 
 import (
-	"github.com/DaiYuANg/arcgo/collectionx/prefix"
+	"github.com/DaiYuANg/archgo/collectionx/prefix"
 	"github.com/samber/mo"
 )
 

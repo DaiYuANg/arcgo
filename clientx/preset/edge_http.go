@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
-	clienthttp "github.com/DaiYuANg/arcgo/clientx/http"
+	"github.com/DaiYuANg/archgo/clientx"
+	clienthttp "github.com/DaiYuANg/archgo/clientx/http"
 )
 
 type edgeHTTPPreset struct {

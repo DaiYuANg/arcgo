@@ -200,4 +200,4 @@ _, _ = eventx.Subscribe(
 
 ## 示例
 
-- [observability](https://github.com/DaiYuANg/arcgo/tree/main/eventx/examples/observability): 带有可选 OTel + Prometheus 可观测性的事件总线。
+- [observability](https://github.com/DaiYuANg/archgo/tree/main/eventx/examples/observability): 带有可选 OTel + Prometheus 可观测性的事件总线。

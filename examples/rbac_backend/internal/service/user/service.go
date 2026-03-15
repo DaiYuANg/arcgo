@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
-	modeluser "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/model/user"
-	repouser "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/repository/user"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
+	modeluser "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/model/user"
+	repouser "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/repository/user"
 	"golang.org/x/crypto/bcrypt"
 )
 

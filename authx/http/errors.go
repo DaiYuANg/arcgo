@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/DaiYuANg/arcgo/authx"
+	"github.com/DaiYuANg/archgo/authx"
 )
 
 var (

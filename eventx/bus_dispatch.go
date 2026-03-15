@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/archgo/observabilityx"
 	"github.com/samber/lo"
 )
 

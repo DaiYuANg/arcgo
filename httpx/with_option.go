@@ -3,7 +3,7 @@ package httpx
 import (
 	"log/slog"
 
-	"github.com/DaiYuANg/arcgo/httpx/adapter"
+	"github.com/DaiYuANg/archgo/httpx/adapter"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-playground/validator/v10"
 )

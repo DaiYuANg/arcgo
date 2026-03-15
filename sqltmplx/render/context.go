@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/sqltmplx/dialect"
+	"github.com/DaiYuANg/archgo/sqltmplx/dialect"
 )
 
 type state struct {

@@ -3,8 +3,8 @@ package tcp
 import (
 	"context"
 
-	"github.com/DaiYuANg/arcgo/clientx"
-	clientcodec "github.com/DaiYuANg/arcgo/clientx/codec"
+	"github.com/DaiYuANg/archgo/clientx"
+	clientcodec "github.com/DaiYuANg/archgo/clientx/codec"
 )
 
 type Client interface {

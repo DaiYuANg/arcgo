@@ -1,0 +1,19 @@
+package shared
+
+import (
+	"log/slog"
+
+	"github.com/DaiYuANg/archgo/logx"
+)
+
+// NewLogger builds a common example logger and returns a cleanup function.
+func NewLogger() (*slog.Logger, func(), error) {
+	base, err := logx.New(logx.WithConsole(true), logx.WithDebugLevel())
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return base, func() {
+		_ = logx.Close(base)
+	}, nil
+}

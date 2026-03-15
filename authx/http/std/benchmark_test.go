@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
-	"github.com/DaiYuANg/arcgo/authx/http/internal/benchmarksupport"
-	authstd "github.com/DaiYuANg/arcgo/authx/http/std"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
+	"github.com/DaiYuANg/archgo/authx/http/internal/benchmarksupport"
+	authstd "github.com/DaiYuANg/archgo/authx/http/std"
 )
 
 func BenchmarkRequireCheckCan10kUsers10kPermissions(b *testing.B) {

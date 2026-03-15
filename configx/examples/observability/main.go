@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/DaiYuANg/arcgo/configx"
-	"github.com/DaiYuANg/arcgo/httpx"
-	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
-	"github.com/DaiYuANg/arcgo/observabilityx"
-	otelobs "github.com/DaiYuANg/arcgo/observabilityx/otel"
-	promobs "github.com/DaiYuANg/arcgo/observabilityx/prometheus"
+	"github.com/DaiYuANg/archgo/configx"
+	"github.com/DaiYuANg/archgo/httpx"
+	"github.com/DaiYuANg/archgo/httpx/adapter/std"
+	"github.com/DaiYuANg/archgo/observabilityx"
+	otelobs "github.com/DaiYuANg/archgo/observabilityx/otel"
+	promobs "github.com/DaiYuANg/archgo/observabilityx/prometheus"
 )
 
 type appConfig struct {

@@ -6,8 +6,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
-	repoauth "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/repository/auth"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
+	repoauth "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/repository/auth"
 	"golang.org/x/crypto/bcrypt"
 )
 

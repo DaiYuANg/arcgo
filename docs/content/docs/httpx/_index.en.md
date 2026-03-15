@@ -46,8 +46,8 @@ package main
 import (
     "context"
 
-    "github.com/DaiYuANg/arcgo/httpx"
-    "github.com/DaiYuANg/arcgo/httpx/adapter/std"
+    "github.com/DaiYuANg/archgo/httpx"
+    "github.com/DaiYuANg/archgo/httpx/adapter/std"
     "github.com/go-chi/chi/v5/middleware"
 )
 
@@ -446,10 +446,10 @@ No. Keep adapter-native middleware on the adapter itself, and use `httpx` for Hu
   - Minimal typed routing + validation + base path
 - Auth: `go run ./httpx/examples/auth`
   - Security schemes, global headers, and typed auth header binding
-  - See [`httpx/examples/auth/README.md`](https://github.com/DaiYuANg/arcgo/tree/main/httpx/examples/auth)
+  - See [`httpx/examples/auth/README.md`](https://github.com/DaiYuANg/archgo/tree/main/httpx/examples/auth)
 - Organization: `go run ./httpx/examples/organization`
   - Documentation paths, security, global headers, and group defaults
-  - See [`httpx/examples/organization/README.md`](https://github.com/DaiYuANg/arcgo/tree/main/httpx/examples/organization)
+  - See [`httpx/examples/organization/README.md`](https://github.com/DaiYuANg/archgo/tree/main/httpx/examples/organization)
 - SSE: `go run ./httpx/examples/sse`
   - Typed event streaming over `text/event-stream`
 - Conditional Requests: `go run ./httpx/examples/conditional`

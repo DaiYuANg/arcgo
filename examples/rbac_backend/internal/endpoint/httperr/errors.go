@@ -1,6 +1,6 @@
 package httperr
 
-import "github.com/DaiYuANg/arcgo/httpx"
+import "github.com/DaiYuANg/archgo/httpx"
 
 func Unauthorized(message string) error {
 	return httpx.NewError(401, message)

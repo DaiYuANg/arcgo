@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/httpx"
-	"github.com/DaiYuANg/arcgo/httpx/adapter"
+	"github.com/DaiYuANg/archgo/httpx"
+	"github.com/DaiYuANg/archgo/httpx/adapter"
 	"github.com/go-playground/validator/v10"
 	"github.com/samber/lo"
 	"github.com/samber/mo"

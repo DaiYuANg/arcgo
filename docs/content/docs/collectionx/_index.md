@@ -40,7 +40,7 @@ Go standard containers are intentionally minimal. `collectionx` focuses on:
 
 ## 0 to 1 Runnable Example
 
-- Quick start directory: [collectionx/examples/quickstart](https://github.com/DaiYuANg/arcgo/tree/main/collectionx/examples/quickstart)
+- Quick start directory: [collectionx/examples/quickstart](https://github.com/DaiYuANg/archgo/tree/main/collectionx/examples/quickstart)
 - Run from repository root:
 
 ```bash

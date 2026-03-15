@@ -1,6 +1,6 @@
 package set
 
-import collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+import collectionmapping "github.com/DaiYuANg/archgo/collectionx/mapping"
 
 // MultiSet is a bag-like set with occurrence counts.
 // Zero value is ready to use.

@@ -3,8 +3,8 @@ package tree
 import (
 	"errors"
 
-	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
-	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+	collectionlist "github.com/DaiYuANg/archgo/collectionx/list"
+	collectionmapping "github.com/DaiYuANg/archgo/collectionx/mapping"
 	"github.com/samber/mo"
 )
 

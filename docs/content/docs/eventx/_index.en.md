@@ -200,4 +200,4 @@ Pass cancellable contexts in handlers and enforce timeouts.
 
 ## Examples
 
-- [observability](https://github.com/DaiYuANg/arcgo/tree/main/eventx/examples/observability): Event bus with optional OTel + Prometheus observability.
+- [observability](https://github.com/DaiYuANg/archgo/tree/main/eventx/examples/observability): Event bus with optional OTel + Prometheus observability.

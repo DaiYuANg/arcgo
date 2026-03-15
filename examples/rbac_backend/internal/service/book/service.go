@@ -3,9 +3,9 @@ package book
 import (
 	"context"
 
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
-	modelbook "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/model/book"
-	repobook "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/repository/book"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
+	modelbook "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/model/book"
+	repobook "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/repository/book"
 	"github.com/samber/lo"
 )
 

@@ -3,7 +3,7 @@ package preset
 import (
 	"time"
 
-	clientudp "github.com/DaiYuANg/arcgo/clientx/udp"
+	clientudp "github.com/DaiYuANg/archgo/clientx/udp"
 )
 
 type lowLatencyUDPPreset struct {

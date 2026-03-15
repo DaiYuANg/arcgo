@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/collectionx/set"
+	"github.com/DaiYuANg/archgo/collectionx/set"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/samber/lo"
 )

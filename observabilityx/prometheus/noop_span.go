@@ -1,6 +1,6 @@
 package prometheus
 
-import "github.com/DaiYuANg/arcgo/observabilityx"
+import "github.com/DaiYuANg/archgo/observabilityx"
 
 type noopSpan struct{}
 

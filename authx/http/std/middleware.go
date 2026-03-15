@@ -3,8 +3,8 @@ package std
 import (
 	"net/http"
 
-	"github.com/DaiYuANg/arcgo/authx"
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
+	"github.com/DaiYuANg/archgo/authx"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
 )
 
 type Option func(*config)

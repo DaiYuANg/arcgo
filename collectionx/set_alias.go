@@ -1,6 +1,6 @@
 package collectionx
 
-import "github.com/DaiYuANg/arcgo/collectionx/set"
+import "github.com/DaiYuANg/archgo/collectionx/set"
 
 type setReadable[T comparable] interface {
 	Contains(item T) bool

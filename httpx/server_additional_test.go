@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/httpx/adapter"
+	"github.com/DaiYuANg/archgo/httpx/adapter"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/stretchr/testify/assert"
 )

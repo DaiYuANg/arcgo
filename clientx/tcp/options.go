@@ -3,7 +3,7 @@ package tcp
 import (
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
+	"github.com/DaiYuANg/archgo/clientx"
 	"github.com/samber/lo"
 )
 

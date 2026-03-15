@@ -1,6 +1,6 @@
 package collectionx
 
-import "github.com/DaiYuANg/arcgo/collectionx/tree"
+import "github.com/DaiYuANg/archgo/collectionx/tree"
 
 type treeWritable[K comparable, V any] interface {
 	AddRoot(id K, value V) error

@@ -12,7 +12,7 @@ draft: false
 ## 快速开始
 
 ```bash
-go get github.com/DaiYuANg/arcgo/{package}
+go get github.com/DaiYuANg/archgo/{package}
 ```
 
 ## 包概览
@@ -102,6 +102,6 @@ go tool task git:hooks:run
 
 ## 链接
 
-- [GitHub 仓库](https://github.com/DaiYuANg/arcgo)
-- [Go 模块](https://pkg.go.dev/github.com/DaiYuANg/arcgo)
+- [GitHub 仓库](https://github.com/DaiYuANg/archgo)
+- [Go 模块](https://pkg.go.dev/github.com/DaiYuANg/archgo)
 

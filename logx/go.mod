@@ -1,4 +1,4 @@
-module github.com/DaiYuANg/arcgo/logx
+module github.com/DaiYuANg/archgo/logx
 
 go 1.26.1
 
@@ -8,7 +8,7 @@ require (
 	github.com/samber/oops v1.21.0
 	github.com/samber/oops/loggers/zerolog v0.0.0-20260225193831-1a99714a330e
 	github.com/samber/slog-zerolog/v2 v2.9.1
-	go.opentelemetry.io/otel/trace v1.40.0
+	go.opentelemetry.io/otel/trace v1.42.0
 	go.uber.org/fx v1.24.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
@@ -21,10 +21,10 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/samber/slog-common v0.20.0 // indirect
-	go.opentelemetry.io/otel v1.40.0 // indirect
+	go.opentelemetry.io/otel v1.42.0 // indirect
 	go.uber.org/dig v1.19.0 // indirect
-	go.uber.org/multierr v1.10.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
-	golang.org/x/text v0.34.0 // indirect
+	go.uber.org/multierr v1.11.0 // indirect
+	go.uber.org/zap v1.27.1 // indirect
+	golang.org/x/sys v0.42.0 // indirect
+	golang.org/x/text v0.35.0 // indirect
 )

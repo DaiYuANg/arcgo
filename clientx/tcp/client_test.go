@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
-	clientcodec "github.com/DaiYuANg/arcgo/clientx/codec"
+	"github.com/DaiYuANg/archgo/clientx"
+	clientcodec "github.com/DaiYuANg/archgo/clientx/codec"
 	"github.com/samber/lo"
 )
 

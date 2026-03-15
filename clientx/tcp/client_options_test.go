@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
+	"github.com/DaiYuANg/archgo/clientx"
 )
 
 func TestDialWithConcurrencyLimitOption(t *testing.T) {

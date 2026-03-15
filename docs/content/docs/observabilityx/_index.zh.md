@@ -75,4 +75,4 @@ metricsServer.Adapter().Handle(httpx.MethodGet, "/metrics", func(
 
 ## 示例
 
-- [multi](https://github.com/DaiYuANg/arcgo/tree/main/observabilityx/examples/multi): 组合 OTel + Prometheus 后端。
+- [multi](https://github.com/DaiYuANg/archgo/tree/main/observabilityx/examples/multi): 组合 OTel + Prometheus 后端。

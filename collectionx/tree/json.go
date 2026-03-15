@@ -1,7 +1,7 @@
 package tree
 
 import (
-	common "github.com/DaiYuANg/arcgo/collectionx/internal"
+	common "github.com/DaiYuANg/archgo/collectionx/internal"
 	"github.com/samber/lo"
 )
 

@@ -12,7 +12,7 @@ draft: false
 ## Quick Start
 
 ```bash
-go get github.com/DaiYuANg/arcgo/{package}
+go get github.com/DaiYuANg/archgo/{package}
 ```
 
 ## Package Overview
@@ -102,5 +102,5 @@ The `pre-commit` hook runs:
 
 ## Links
 
-- [GitHub Repository](https://github.com/DaiYuANg/arcgo)
-- [Go Module](https://pkg.go.dev/github.com/DaiYuANg/arcgo)
+- [GitHub Repository](https://github.com/DaiYuANg/archgo)
+- [Go Module](https://pkg.go.dev/github.com/DaiYuANg/archgo)

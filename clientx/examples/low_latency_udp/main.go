@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx/preset"
-	clientudp "github.com/DaiYuANg/arcgo/clientx/udp"
+	"github.com/DaiYuANg/archgo/clientx/preset"
+	clientudp "github.com/DaiYuANg/archgo/clientx/udp"
 )
 
 func main() {

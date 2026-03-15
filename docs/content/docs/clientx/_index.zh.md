@@ -41,8 +41,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
-	clienthttp "github.com/DaiYuANg/arcgo/clientx/http"
+	"github.com/DaiYuANg/archgo/clientx"
+	clienthttp "github.com/DaiYuANg/archgo/clientx/http"
 )
 
 func main() {
@@ -78,8 +78,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
-	"github.com/DaiYuANg/arcgo/clientx/tcp"
+	"github.com/DaiYuANg/archgo/clientx"
+	"github.com/DaiYuANg/archgo/clientx/tcp"
 )
 
 func main() {
@@ -111,8 +111,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
-	"github.com/DaiYuANg/arcgo/clientx/udp"
+	"github.com/DaiYuANg/archgo/clientx"
+	"github.com/DaiYuANg/archgo/clientx/udp"
 )
 
 func main() {

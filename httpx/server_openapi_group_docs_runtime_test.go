@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	adapterstd "github.com/DaiYuANg/arcgo/httpx/adapter/std"
+	adapterstd "github.com/DaiYuANg/archgo/httpx/adapter/std"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/stretchr/testify/assert"
 )

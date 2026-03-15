@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/sqltmplx/dialect"
-	"github.com/DaiYuANg/arcgo/sqltmplx/parse"
+	"github.com/DaiYuANg/archgo/sqltmplx/dialect"
+	"github.com/DaiYuANg/archgo/sqltmplx/parse"
 	"github.com/expr-lang/expr/vm"
 )
 

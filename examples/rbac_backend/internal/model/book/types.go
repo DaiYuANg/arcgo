@@ -1,6 +1,6 @@
 package book
 
-import modelresult "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/model/resultx"
+import modelresult "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/model/resultx"
 
 type BookItem struct {
 	ID        int64  `json:"id"`

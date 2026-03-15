@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/bunx"
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
-	repocore "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/repository/core"
+	"github.com/DaiYuANg/archgo/bunx"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
+	repocore "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/repository/core"
 )
 
 type Repository interface {

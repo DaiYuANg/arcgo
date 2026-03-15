@@ -3,7 +3,7 @@ package authhttp
 import (
 	"context"
 
-	"github.com/DaiYuANg/arcgo/authx"
+	"github.com/DaiYuANg/archgo/authx"
 )
 
 type TypedCredentialResolverFunc[C any] func(ctx context.Context, req RequestInfo) (C, error)

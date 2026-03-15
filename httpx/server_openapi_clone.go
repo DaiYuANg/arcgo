@@ -13,8 +13,7 @@ func cloneParam(param *huma.Param) *huma.Param {
 	}
 	cloned := *param
 	if param.Schema != nil {
-		schema := *param.Schema
-		cloned.Schema = &schema
+		cloned.Schema = new(*param.Schema)
 	}
 	if param.Examples != nil {
 		cloned.Examples = make(map[string]*huma.Example, len(param.Examples))

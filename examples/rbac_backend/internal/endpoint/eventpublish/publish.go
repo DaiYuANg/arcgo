@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/DaiYuANg/arcgo/eventx"
-	"github.com/DaiYuANg/arcgo/logx"
+	"github.com/DaiYuANg/archgo/eventx"
+	"github.com/DaiYuANg/archgo/logx"
 )
 
 func Async(ctx context.Context, bus eventx.BusRuntime, event eventx.Event, logger *slog.Logger) {

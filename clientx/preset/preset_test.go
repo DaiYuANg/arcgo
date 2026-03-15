@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
-	clienthttp "github.com/DaiYuANg/arcgo/clientx/http"
-	clienttcp "github.com/DaiYuANg/arcgo/clientx/tcp"
-	clientudp "github.com/DaiYuANg/arcgo/clientx/udp"
+	"github.com/DaiYuANg/archgo/clientx"
+	clienthttp "github.com/DaiYuANg/archgo/clientx/http"
+	clienttcp "github.com/DaiYuANg/archgo/clientx/tcp"
+	clientudp "github.com/DaiYuANg/archgo/clientx/udp"
 	"resty.dev/v3"
 )
 

@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
-	authecho "github.com/DaiYuANg/arcgo/authx/http/echo"
-	"github.com/DaiYuANg/arcgo/authx/http/internal/benchmarksupport"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
+	authecho "github.com/DaiYuANg/archgo/authx/http/echo"
+	"github.com/DaiYuANg/archgo/authx/http/internal/benchmarksupport"
 	"github.com/labstack/echo/v4"
 )
 

@@ -1,6 +1,6 @@
 package sqltmplx
 
-import "github.com/DaiYuANg/arcgo/sqltmplx/dialect"
+import "github.com/DaiYuANg/archgo/sqltmplx/dialect"
 
 type Engine struct {
 	dialect dialect.Dialect

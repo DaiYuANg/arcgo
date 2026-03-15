@@ -7,9 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/authx"
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
-	authstd "github.com/DaiYuANg/arcgo/authx/http/std"
+	"github.com/DaiYuANg/archgo/authx"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
+	authstd "github.com/DaiYuANg/archgo/authx/http/std"
 )
 
 type middlewareCredential struct {

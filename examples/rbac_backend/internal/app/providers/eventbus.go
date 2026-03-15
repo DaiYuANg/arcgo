@@ -4,10 +4,10 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/DaiYuANg/arcgo/eventx"
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/config"
-	"github.com/DaiYuANg/arcgo/logx"
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/archgo/eventx"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/config"
+	"github.com/DaiYuANg/archgo/logx"
+	"github.com/DaiYuANg/archgo/observabilityx"
 	"go.uber.org/fx"
 )
 

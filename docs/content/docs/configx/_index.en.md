@@ -228,4 +228,4 @@ Keep default structs simple and use predictable `mapstructure` tags for exported
 
 ## Examples
 
-- [observability](https://github.com/DaiYuANg/arcgo/tree/main/configx/examples/observability): Load configuration with optional OTel + Prometheus instrumentation.
+- [observability](https://github.com/DaiYuANg/archgo/tree/main/configx/examples/observability): Load configuration with optional OTel + Prometheus instrumentation.

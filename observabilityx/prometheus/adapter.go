@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"net/http"
 
-	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	collectionmapping "github.com/DaiYuANg/archgo/collectionx/mapping"
+	"github.com/DaiYuANg/archgo/observabilityx"
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )

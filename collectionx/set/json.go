@@ -1,6 +1,6 @@
 package set
 
-import common "github.com/DaiYuANg/arcgo/collectionx/internal"
+import common "github.com/DaiYuANg/archgo/collectionx/internal"
 
 // ToJSON serializes set values to JSON.
 func (s *Set[T]) ToJSON() ([]byte, error) {

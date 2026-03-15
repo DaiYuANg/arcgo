@@ -75,4 +75,4 @@ metricsServer.Adapter().Handle(httpx.MethodGet, "/metrics", func(
 
 ## Examples
 
-- [multi](https://github.com/DaiYuANg/arcgo/tree/main/observabilityx/examples/multi): Compose OTel + Prometheus backends.
+- [multi](https://github.com/DaiYuANg/archgo/tree/main/observabilityx/examples/multi): Compose OTel + Prometheus backends.

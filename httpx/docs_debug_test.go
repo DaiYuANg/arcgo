@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/httpx/adapter"
-	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
+	"github.com/DaiYuANg/archgo/httpx/adapter"
+	"github.com/DaiYuANg/archgo/httpx/adapter/std"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -139,21 +139,18 @@ func classifyErrorKind(err error) ErrorKind {
 		return ErrorKindClosed
 	}
 
-	var dnsErr *net.DNSError
-	if errors.As(err, &dnsErr) {
+	if _, ok := errors.AsType[*net.DNSError](err); ok {
 		return ErrorKindDNS
 	}
 
-	var netErr net.Error
-	if errors.As(err, &netErr) {
+	if netErr, ok := errors.AsType[net.Error](err); ok {
 		if netErr.Timeout() {
 			return ErrorKindTimeout
 		}
 		// netErr.Temporary() 已弃用，不再使用
 	}
 
-	var opErr *net.OpError
-	if errors.As(err, &opErr) && opErr.Err != nil {
+	if opErr, ok := errors.AsType[*net.OpError](err); ok && opErr.Err != nil {
 		if isConnRefused(opErr.Err) {
 			return ErrorKindConnRefused
 		}
@@ -179,12 +176,10 @@ func isConnRefused(err error) bool {
 	if errors.Is(err, syscall.ECONNREFUSED) {
 		return true
 	}
-	var errno syscall.Errno
-	if errors.As(err, &errno) {
+	if errno, ok := errors.AsType[syscall.Errno](err); ok {
 		return lo.Contains([]syscall.Errno{syscall.ECONNREFUSED, syscall.Errno(10061)}, errno)
 	}
-	var sysErr *os.SyscallError
-	if errors.As(err, &sysErr) {
+	if sysErr, ok := errors.AsType[*os.SyscallError](err); ok {
 		return isConnRefused(sysErr.Err)
 	}
 	return false

@@ -46,8 +46,8 @@ package main
 import (
     "context"
 
-    "github.com/DaiYuANg/arcgo/httpx"
-    "github.com/DaiYuANg/arcgo/httpx/adapter/std"
+    "github.com/DaiYuANg/archgo/httpx"
+    "github.com/DaiYuANg/archgo/httpx/adapter/std"
     "github.com/go-chi/chi/v5/middleware"
 )
 
@@ -446,10 +446,10 @@ if rec.Code != http.StatusOK {
   - 最小类型化路由 + 验证 + 基础路径
 - Auth: `go run ./httpx/examples/auth`
   - 安全方案、全局头和类型化认证头绑定
-  - 查看 [`httpx/examples/auth/README.md`](https://github.com/DaiYuANg/arcgo/tree/main/httpx/examples/auth)
+  - 查看 [`httpx/examples/auth/README.md`](https://github.com/DaiYuANg/archgo/tree/main/httpx/examples/auth)
 - Organization: `go run ./httpx/examples/organization`
   - 文档路径、安全、全局头和组默认值
-  - 查看 [`httpx/examples/organization/README.md`](https://github.com/DaiYuANg/arcgo/tree/main/httpx/examples/organization)
+  - 查看 [`httpx/examples/organization/README.md`](https://github.com/DaiYuANg/archgo/tree/main/httpx/examples/organization)
 - SSE: `go run ./httpx/examples/sse`
   - 基于 `text/event-stream` 的类型化事件流
 - Conditional Requests: `go run ./httpx/examples/conditional`

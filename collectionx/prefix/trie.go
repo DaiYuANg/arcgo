@@ -3,7 +3,7 @@ package prefix
 import (
 	"slices"
 
-	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+	collectionmapping "github.com/DaiYuANg/archgo/collectionx/mapping"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
@@ -253,7 +253,6 @@ func (t *Trie[V]) pairsWithPrefix(prefix string) []keyValue[V] {
 	}
 
 	out := make([]keyValue[V], 0)
-	path := []rune(prefix)
-	t.collectPairs(startNode, &path, &out)
+	t.collectPairs(startNode, new([]rune(prefix)), &out)
 	return out
 }

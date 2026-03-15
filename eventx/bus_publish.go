@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/archgo/observabilityx"
 )
 
 // Publish dispatches one event synchronously to all matching subscribers.

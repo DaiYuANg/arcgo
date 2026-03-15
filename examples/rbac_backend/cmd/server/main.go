@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/app"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/app"
 )
 
 func main() {

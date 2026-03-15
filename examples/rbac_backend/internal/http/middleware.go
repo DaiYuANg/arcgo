@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/archgo/observabilityx"
 	"github.com/gofiber/fiber/v2"
 )
 

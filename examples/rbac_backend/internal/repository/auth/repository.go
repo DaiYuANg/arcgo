@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
-	repocore "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/repository/core"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
+	repocore "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/repository/core"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
 )

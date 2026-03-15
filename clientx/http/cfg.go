@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/clientx"
-	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/DaiYuANg/archgo/clientx"
+	"github.com/DaiYuANg/archgo/collectionx"
 )
 
 type Config struct {

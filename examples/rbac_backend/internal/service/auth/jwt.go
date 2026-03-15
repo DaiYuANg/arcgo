@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/config"
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/config"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
 	"github.com/golang-jwt/jwt/v5"
 )
 

@@ -1,6 +1,6 @@
 package mapping
 
-import common "github.com/DaiYuANg/arcgo/collectionx/internal"
+import common "github.com/DaiYuANg/archgo/collectionx/internal"
 
 // ToJSON serializes map entries to JSON.
 func (m *Map[K, V]) ToJSON() ([]byte, error) {

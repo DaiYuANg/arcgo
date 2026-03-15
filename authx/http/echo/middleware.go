@@ -5,8 +5,8 @@ package echo
 import (
 	"net/http"
 
-	"github.com/DaiYuANg/arcgo/authx"
-	authhttp "github.com/DaiYuANg/arcgo/authx/http"
+	"github.com/DaiYuANg/archgo/authx"
+	authhttp "github.com/DaiYuANg/archgo/authx/http"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/lo"
 )

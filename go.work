@@ -1,31 +1,24 @@
 go 1.26.1
 
 use (
-	authx
-	bunx
-	clientx
-	collectionx
-	configx
-	dix
-	eventx
-	examples/rbac_backend
-	httpx
-	logx
-	observabilityx
-	sqltmplx
+	.
+	./authx
+	./bunx
+	./clientx
+	./collectionx
+	./configx
+	./dix
+	./docs
+	./eventx
+	./examples/authx
+	./examples/eventx
+	./examples/httpx
+	./examples/logx
+	./examples/observabilityx
+
+	./examples/rbac_backend
+	./httpx
+	./logx
+	./observabilityx
+	./sqltmplx
 )
-
-
-replace github.com/DaiYuANg/arcgo/collectionx => ../collectionx
-
-replace github.com/DaiYuANg/arcgo/logx => ../logx
-
-replace github.com/DaiYuANg/arcgo/httpx => ../httpx
-
-replace github.com/DaiYuANg/arcgo/collectionx => ../collectionx
-
-replace github.com/DaiYuANg/arcgo/observabilityx => ../observabilityx
-
-replace github.com/DaiYuANg/arcgo/pkg => ../pkg
-
-replace github.com/DaiYuANg/arcgo/bunx => ../bunx

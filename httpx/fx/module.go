@@ -1,7 +1,7 @@
 package fx
 
 import (
-	"github.com/DaiYuANg/arcgo/httpx"
+	"github.com/DaiYuANg/archgo/httpx"
 	"github.com/samber/lo"
 	"go.uber.org/fx"
 )

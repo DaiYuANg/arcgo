@@ -3,7 +3,7 @@ package collectionx
 import (
 	"cmp"
 
-	"github.com/DaiYuANg/arcgo/collectionx/interval"
+	"github.com/DaiYuANg/archgo/collectionx/interval"
 	"github.com/samber/mo"
 )
 

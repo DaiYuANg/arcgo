@@ -228,4 +228,4 @@ struct 到 map 的转换是基于反射的。
 
 ## 示例
 
-- [observability](https://github.com/DaiYuANg/arcgo/tree/main/configx/examples/observability): 使用可选的 OTel + Prometheus 工具加载配置。
+- [observability](https://github.com/DaiYuANg/archgo/tree/main/configx/examples/observability): 使用可选的 OTel + Prometheus 工具加载配置。

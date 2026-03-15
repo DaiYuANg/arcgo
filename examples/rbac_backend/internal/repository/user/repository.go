@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/bunx"
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
-	repocore "github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/repository/core"
+	"github.com/DaiYuANg/archgo/bunx"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
+	repocore "github.com/DaiYuANg/archgo/examples/rbac_backend/internal/repository/core"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
 )
@@ -121,10 +121,9 @@ func (r *bunRepository) ReplaceUserRoles(ctx context.Context, userID int64, role
 		if len(roles) == 0 {
 			return nil
 		}
-		mappings := lo.Map(roles, func(role entity.RoleModel, _ int) entity.UserRoleModel {
+		if _, err := tx.NewInsert().Model(new(lo.Map(roles, func(role entity.RoleModel, _ int) entity.UserRoleModel {
 			return entity.UserRoleModel{UserID: userID, RoleID: role.ID}
-		})
-		if _, err := tx.NewInsert().Model(&mappings).Exec(ctx); err != nil {
+		}))).Exec(ctx); err != nil {
 			return err
 		}
 		return nil

@@ -1,6 +1,6 @@
 package httpx
 
-import "github.com/DaiYuANg/arcgo/httpx/adapter"
+import "github.com/DaiYuANg/archgo/httpx/adapter"
 
 // UseAdapter runs `use` with the underlying adapter capability when available.
 // It returns true when the capability exists and `use` was called.

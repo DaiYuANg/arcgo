@@ -1,8 +1,8 @@
 package set
 
 import (
-	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
-	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+	collectionlist "github.com/DaiYuANg/archgo/collectionx/list"
+	collectionmapping "github.com/DaiYuANg/archgo/collectionx/mapping"
 )
 
 // OrderedSet keeps insertion order of unique items.

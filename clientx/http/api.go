@@ -3,7 +3,7 @@ package http
 import (
 	"context"
 
-	"github.com/DaiYuANg/arcgo/clientx"
+	"github.com/DaiYuANg/archgo/clientx"
 	"resty.dev/v3"
 )
 

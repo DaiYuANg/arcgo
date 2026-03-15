@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/archgo/observabilityx"
 	"github.com/stretchr/testify/require"
 )
 

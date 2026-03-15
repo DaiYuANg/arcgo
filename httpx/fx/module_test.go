@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/httpx"
+	"github.com/DaiYuANg/archgo/httpx"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
 )

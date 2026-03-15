@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/httpx/adapter"
+	"github.com/DaiYuANg/archgo/httpx/adapter"
 	"github.com/samber/mo"
 )
 

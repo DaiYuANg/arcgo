@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/DaiYuANg/arcgo/bunx"
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/config"
-	"github.com/DaiYuANg/arcgo/examples/rbac_backend/internal/entity"
-	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/archgo/bunx"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/config"
+	"github.com/DaiYuANg/archgo/examples/rbac_backend/internal/entity"
+	"github.com/DaiYuANg/archgo/observabilityx"
 	"github.com/samber/lo"
 	"github.com/uptrace/bun"
 	"go.uber.org/fx"
@@ -178,12 +178,11 @@ func (s *Store) seed(ctx context.Context) error {
 
 		adminResources := []string{"book", "user", "role"}
 		adminActions := []string{"query", "create", "update", "delete"}
-		permissions := lo.FlatMap(adminResources, func(resource string, _ int) []entity.PermissionModel {
+		if _, err := tx.NewInsert().Model(new(lo.FlatMap(adminResources, func(resource string, _ int) []entity.PermissionModel {
 			return lo.Map(adminActions, func(action string, _ int) entity.PermissionModel {
 				return entity.PermissionModel{Action: action, Resource: resource}
 			})
-		})
-		if _, err := tx.NewInsert().Model(&permissions).Exec(ctx); err != nil {
+		}))).Exec(ctx); err != nil {
 			return fmt.Errorf("insert permissions: %w", err)
 		}
 

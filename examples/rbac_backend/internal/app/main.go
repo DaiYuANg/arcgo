@@ -3,7 +3,7 @@ package app
 import (
 	"log/slog"
 
-	"github.com/DaiYuANg/arcgo/dix"
+	"github.com/DaiYuANg/archgo/dix"
 )
 
 // Run boots the rbac backend application and blocks until shutdown.

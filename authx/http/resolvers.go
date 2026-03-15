@@ -3,7 +3,7 @@ package authhttp
 import (
 	"context"
 
-	"github.com/DaiYuANg/arcgo/authx"
+	"github.com/DaiYuANg/archgo/authx"
 )
 
 // CredentialResolver resolves auth credential from HTTP request shape.

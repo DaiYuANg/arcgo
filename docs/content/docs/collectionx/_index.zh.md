@@ -40,7 +40,7 @@ Go 标准容器是有意保持最小化。`collectionx` 专注于：
 
 ## 0 到 1 可运行示例
 
-- 快速开始目录：[collectionx/examples/quickstart](https://github.com/DaiYuANg/arcgo/tree/main/collectionx/examples/quickstart)
+- 快速开始目录：[collectionx/examples/quickstart](https://github.com/DaiYuANg/archgo/tree/main/collectionx/examples/quickstart)
 - 从仓库根目录运行：
 
 ```bash

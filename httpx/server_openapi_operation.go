@@ -1,7 +1,7 @@
 package httpx
 
 import (
-	"github.com/DaiYuANg/arcgo/collectionx/list"
+	"github.com/DaiYuANg/archgo/collectionx/list"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/samber/lo"
 )

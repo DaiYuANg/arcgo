@@ -1,5 +1,3 @@
-//go:build !no_fiber
-
 package fiber
 
 import (

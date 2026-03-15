@@ -3,22 +3,37 @@ go 1.26.1
 use (
 	.
 	./authx
+	./authx/fx
+	./authx/http/echo
+	./authx/http/fiber
+	./authx/http/gin
+	./authx/http/std
 	./bunx
 	./clientx
 	./collectionx
 	./configx
+	./configx/fx
 	./dix
 	./docs
 	./eventx
+	./eventx/fx
 	./examples/authx
+	./examples/collectionx
 	./examples/eventx
 	./examples/httpx
 	./examples/logx
 	./examples/observabilityx
 
 	./examples/rbac_backend
+	./examples/sqltmplx
 	./httpx
+	./httpx/adapter/echo
+	./httpx/adapter/fiber
+	./httpx/adapter/gin
+	./httpx/adapter/std
+	./httpx/fx
 	./logx
+	./logx/fx
 	./observabilityx
 	./sqltmplx
 )

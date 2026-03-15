@@ -58,6 +58,8 @@ require (
 	resty.dev/v3 v3.0.0-beta.6
 )
 
+require github.com/samber/go-type-to-string v1.8.0 // indirect
+
 require (
 	4d63.com/gocheckcompilerdirectives v1.3.0 // indirect
 	4d63.com/gochecknoglobals v0.2.2 // indirect
@@ -335,6 +337,7 @@ require (
 	github.com/ryancurrah/gomodguard v1.4.1 // indirect
 	github.com/ryanrolds/sqlclosecheck v0.5.1 // indirect
 	github.com/sajari/fuzzy v1.0.0 // indirect
+	github.com/samber/do/v2 v2.0.0
 	github.com/samber/slog-common v0.20.0 // indirect
 	github.com/sanposhiho/wastedassign/v2 v2.1.0 // indirect
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2 // indirect

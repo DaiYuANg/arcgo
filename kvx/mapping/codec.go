@@ -201,3 +201,9 @@ func (c *HashCodec) decodeField(v reflect.Value, data []byte) error {
 		return c.serializer.Unmarshal(data, v.Addr().Interface())
 	}
 }
+
+// EncodeSingleValue encodes a single value to bytes.
+func (c *HashCodec) EncodeSingleValue(value interface{}) ([]byte, error) {
+	v := reflect.ValueOf(value)
+	return c.encodeField(v)
+}

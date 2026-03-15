@@ -32,6 +32,7 @@ use (
 	./httpx/adapter/gin
 	./httpx/adapter/std
 	./httpx/fx
+	./kvx
 	./logx
 	./logx/fx
 	./observabilityx

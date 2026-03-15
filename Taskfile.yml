@@ -175,3 +175,4 @@ tasks:
       DOCS_BRANCH: '{{.BRANCH}}'
     cmds:
       - go run ./scripts/deploy-docs deploy
+

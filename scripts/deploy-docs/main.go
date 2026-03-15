@@ -53,7 +53,7 @@ func main() {
 		Usage: "Run local Hugo server",
 		Action: func(a *goyek.A) {
 			a.Log("visit: http://127.0.0.1:1313")
-			if !execHugo(a, ctx, "server -D --bind 0.0.0.0") {
+			if !execHugo(a, ctx, "server -D --buildDrafts --disableFastRender") {
 				a.FailNow()
 			}
 		},

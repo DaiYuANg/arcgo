@@ -3,25 +3,28 @@ package render
 import (
 	"reflect"
 	"strings"
+
+	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
-func lookup(params any, name string) (any, bool) {
+func lookup(params any, name string) mo.Option[any] {
 	v := reflect.ValueOf(params)
 	for v.IsValid() && v.Kind() == reflect.Pointer {
 		if v.IsNil() {
-			return nil, false
+			return mo.None[any]()
 		}
 		v = v.Elem()
 	}
 	if !v.IsValid() {
-		return nil, false
+		return mo.None[any]()
 	}
 	if v.Kind() == reflect.Map {
 		mv := v.MapIndex(reflect.ValueOf(name))
 		if mv.IsValid() {
-			return mv.Interface(), true
+			return mo.Some(mv.Interface())
 		}
-		return nil, false
+		return mo.None[any]()
 	}
 	if v.Kind() == reflect.Struct {
 		t := v.Type()
@@ -31,11 +34,11 @@ func lookup(params any, name string) (any, bool) {
 				continue
 			}
 			if f.Name == name || strings.EqualFold(f.Name, name) {
-				return v.Field(i).Interface(), true
+				return mo.Some(v.Field(i).Interface())
 			}
 		}
 	}
-	return nil, false
+	return mo.None[any]()
 }
 
 func isEmpty(v any) bool {
@@ -57,4 +60,22 @@ func isEmpty(v any) bool {
 		return rv.Len() == 0
 	}
 	return false
+}
+
+// isBlank checks if value is nil or empty using lo.IsEmpty
+func isBlank(v any) bool {
+	if v == nil {
+		return true
+	}
+	rv := reflect.ValueOf(v)
+	for rv.IsValid() && rv.Kind() == reflect.Pointer {
+		if rv.IsNil() {
+			return true
+		}
+		rv = rv.Elem()
+	}
+	if !rv.IsValid() {
+		return true
+	}
+	return lo.IsEmpty(rv.Interface())
 }

@@ -3,6 +3,8 @@ package scan
 import (
 	"fmt"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 func Scan(input string) ([]Token, error) {
@@ -36,5 +38,5 @@ func Scan(input string) ([]Token, error) {
 }
 
 func isTemplateDirective(s string) bool {
-	return s == "where" || s == "set" || s == "end" || strings.HasPrefix(s, "if ")
+	return lo.Contains([]string{"where", "set", "end"}, s) || strings.HasPrefix(s, "if ")
 }

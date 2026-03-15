@@ -23,10 +23,11 @@ func bindText(input string, st *state) (string, error) {
 			raw := strings.TrimSpace(input[i+2 : i+2+end])
 			spread := strings.HasSuffix(raw, "*")
 			name := strings.TrimSpace(strings.TrimSuffix(raw, "*"))
-			val, ok := lookup(st.params, name)
-			if !ok {
+			valOpt := lookup(st.params, name)
+			if valOpt.IsAbsent() {
 				return "", fmt.Errorf("sqltmplx: parameter %q not found", name)
 			}
+			val := valOpt.MustGet()
 			if !spread {
 				out.WriteString(st.nextBind())
 				st.args = append(st.args, val)

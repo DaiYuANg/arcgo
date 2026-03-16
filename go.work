@@ -41,7 +41,7 @@ use (
 	./logx
 	./logx/fx
 	./observabilityx
-	./pkg/fxx
+	./pkg/fx
 	./pkg/randomport
 	./sqltmplx
 )

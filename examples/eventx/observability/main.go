@@ -27,7 +27,7 @@ func main() {
 
 	bus := eventx.New(
 		eventx.WithObservability(obs),
-		eventx.WithAsyncWorkers(2),
+		eventx.WithAntsPool(2),
 		eventx.WithAsyncQueueSize(16),
 		eventx.WithMiddleware(eventx.RecoverMiddleware()),
 	)

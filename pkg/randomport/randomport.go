@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/samber/lo"
 )
 
 var (
@@ -51,9 +52,5 @@ func Release(port int) {
 
 // MustFind returns a random available port or panics if none can be found.
 func MustFind() int {
-	port, err := Find()
-	if err != nil {
-		panic(err)
-	}
-	return port
+	return lo.Must(Find())
 }

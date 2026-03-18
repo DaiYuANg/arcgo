@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/DaiYuANg/arcgo/examples/httpx/shared"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
-	"github.com/DaiYuANg/arcgo/httpx/examples/shared"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/danielgtaylor/huma/v2"
 )

@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/examples/httpx/shared"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/fiber"
-	"github.com/DaiYuANg/arcgo/httpx/examples/shared"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	fiberlogger "github.com/gofiber/fiber/v2/middleware/logger"
 	fiberrecover "github.com/gofiber/fiber/v2/middleware/recover"

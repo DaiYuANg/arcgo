@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/eventx"
-	eventxfx "github.com/DaiYuANg/arcgo/eventx/fxx"
+	eventxfx "github.com/DaiYuANg/arcgo/eventx/fx"
 	"github.com/DaiYuANg/arcgo/logx"
-	logxfx "github.com/DaiYuANg/arcgo/logx/fxx"
+	logxfx "github.com/DaiYuANg/arcgo/logx/fx"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 )

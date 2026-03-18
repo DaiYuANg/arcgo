@@ -15,7 +15,6 @@ use (
 	./configx
 	./configx/fx
 	./dbx
-	./dbx/bunx
 	./dbx/sqltmplx
 	./dbx/sqltmplx/dialect
 	./dbx/sqltmplx/validate
@@ -34,8 +33,6 @@ use (
 	./examples/httpx
 	./examples/logx
 	./examples/observabilityx
-
-	./examples/rbac_backend
 	./examples/sqltmplx
 	./httpx
 	./httpx/adapter/echo

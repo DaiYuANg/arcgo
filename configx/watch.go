@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/knadh/koanf/providers/file"
@@ -15,6 +16,8 @@ import (
 // cfg holds the freshly loaded config; err is non-nil when the reload failed.
 // When err is non-nil, cfg is nil and the previous config remains active.
 type ChangeHandler func(cfg *Config, err error)
+
+type changeHandlers []ChangeHandler
 
 // Watcher manages a live-reloading *Config.
 //
@@ -48,18 +51,19 @@ type ChangeHandler func(cfg *Config, err error)
 //	// Always use w.Config() to get the latest snapshot.
 //	port := w.Config().GetInt("server.port")
 type Watcher struct {
-	// mu guards cfg.
-	mu  sync.RWMutex
-	cfg *Config
+	// cfg is replaced atomically after each successful reload.
+	cfg atomic.Pointer[Config]
 
 	opts *Options
 
-	// subsMu guards subs.
-	subsMu sync.RWMutex
-	subs   []ChangeHandler
+	// subsMu serializes subscriber registration; notify reads an immutable
+	// snapshot through subs without taking a lock.
+	subsMu sync.Mutex
+	subs   atomic.Pointer[changeHandlers]
 
 	// providers are used *only* for change detection – actual loading is
-	// always done by a fresh call to loadConfigFromOptions.
+	// always done by a fresh call to loadConfigFromOptions. They are immutable
+	// after construction, so a plain slice remains the cheapest representation.
 	providers []*file.File
 
 	// stopCh is closed by Close to signal the Start loop to exit.
@@ -90,20 +94,19 @@ func newWatcherFromOptions(opts *Options) (*Watcher, error) {
 		return nil, fmt.Errorf("configx: watcher initial load: %w", err)
 	}
 
-	return &Watcher{
-		cfg:       cfg,
+	w := &Watcher{
 		opts:      opts,
 		providers: buildWatchProviders(opts.files),
 		stopCh:    make(chan struct{}),
-	}, nil
+	}
+	w.cfg.Store(cfg)
+	return w, nil
 }
 
 // Config returns the most recently successfully loaded config snapshot.
 // It is safe to call from multiple goroutines.
 func (w *Watcher) Config() *Config {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
-	return w.cfg
+	return w.cfg.Load()
 }
 
 // OnChange registers fn to be called after every reload attempt.
@@ -121,7 +124,12 @@ func (w *Watcher) OnChange(fn ChangeHandler) {
 	}
 	w.subsMu.Lock()
 	defer w.subsMu.Unlock()
-	w.subs = append(w.subs, fn)
+
+	current := w.loadSubscribers()
+	next := make(changeHandlers, len(current), len(current)+1)
+	copy(next, current)
+	next = append(next, fn)
+	w.subs.Store(&next)
 }
 
 // Start begins watching config files for changes and blocks until ctx is
@@ -236,18 +244,14 @@ func (w *Watcher) reload() {
 		return
 	}
 
-	w.mu.Lock()
-	w.cfg = newCfg
-	w.mu.Unlock()
+	w.cfg.Store(newCfg)
 
 	w.notify(newCfg, nil)
 }
 
 // notify calls every registered ChangeHandler in order.
 func (w *Watcher) notify(cfg *Config, err error) {
-	w.subsMu.RLock()
-	defer w.subsMu.RUnlock()
-	for _, fn := range w.subs {
+	for _, fn := range w.loadSubscribers() {
 		fn(cfg, err)
 	}
 }
@@ -258,6 +262,14 @@ func (w *Watcher) handleErr(err error) {
 		return
 	}
 	w.opts.watchErrHandler(err)
+}
+
+func (w *Watcher) loadSubscribers() []ChangeHandler {
+	subs := w.subs.Load()
+	if subs == nil {
+		return nil
+	}
+	return *subs
 }
 
 // buildWatchProviders creates one *file.File provider per supported config

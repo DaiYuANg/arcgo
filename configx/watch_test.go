@@ -204,7 +204,7 @@ func TestWatcher_OnChange_NilHandlerIsIgnored(t *testing.T) {
 
 	// Should not panic.
 	w.OnChange(nil)
-	assert.Len(t, w.subs, 0)
+	assert.Len(t, w.loadSubscribers(), 0)
 }
 
 func TestWatcher_OnChange_MultipleSubscribers(t *testing.T) {
@@ -273,6 +273,43 @@ func TestWatcher_OnChange_OrderIsPreserved(t *testing.T) {
 	mu.Lock()
 	defer mu.Unlock()
 	assert.Equal(t, []int{0, 1, 2}, order)
+}
+
+func TestWatcher_OnChange_RegisterDuringNotify_AppliesOnNextNotify(t *testing.T) {
+	w, err := NewWatcher(
+		WithDefaults(map[string]any{"n": 1}),
+	)
+	require.NoError(t, err)
+
+	registered := false
+	lateCalls := make(chan int, 1)
+	var registerOnce sync.Once
+
+	w.OnChange(func(_ *Config, err error) {
+		if err != nil {
+			return
+		}
+		registerOnce.Do(func() {
+			w.OnChange(func(cfg *Config, err error) {
+				if err == nil {
+					lateCalls <- cfg.GetInt("n")
+				}
+			})
+			registered = true
+		})
+	})
+
+	w.notify(w.Config(), nil)
+	assert.True(t, registered)
+
+	select {
+	case got := <-lateCalls:
+		t.Fatalf("late subscriber should not run on the same notify, got %d", got)
+	default:
+	}
+
+	w.notify(w.Config(), nil)
+	assert.Equal(t, 1, <-lateCalls)
 }
 
 // ── error handling ────────────────────────────────────────────────────────────

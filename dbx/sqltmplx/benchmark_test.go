@@ -1,0 +1,98 @@
+package sqltmplx
+
+import (
+	"testing"
+
+	mysqlDialect "github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/mysql"
+)
+
+var benchmarkTemplateText = `
+SELECT id, tenant, status
+FROM users
+/*%where */
+/*%if present(Tenant) */
+  AND tenant = /* Tenant */'acme'
+/*%end */
+/*%if present(Status) */
+  AND status = /* Status */'active'
+/*%end */
+/*%if !empty(IDs) */
+  AND id IN (/* IDs */(1, 2, 3))
+/*%end */
+/*%end */
+ORDER BY id DESC
+`
+
+type benchmarkQuery struct {
+	Tenant string `db:"tenant"`
+	Status string `json:"status"`
+	IDs    []int  `json:"ids"`
+}
+
+func BenchmarkCompile(b *testing.B) {
+	engine := New(mysqlDialect.Dialect{})
+
+	for b.Loop() {
+		if _, err := engine.Compile(benchmarkTemplateText); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkEngineRenderStruct(b *testing.B) {
+	engine := New(mysqlDialect.Dialect{})
+	params := benchmarkQuery{Tenant: "acme", Status: "active", IDs: []int{1, 2, 3}}
+
+	b.ResetTimer()
+	for b.Loop() {
+		if _, err := engine.Render(benchmarkTemplateText, params); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkEngineRenderMap(b *testing.B) {
+	engine := New(mysqlDialect.Dialect{})
+	params := map[string]any{"Tenant": "acme", "Status": "active", "IDs": []int{1, 2, 3}}
+
+	b.ResetTimer()
+	for b.Loop() {
+		if _, err := engine.Render(benchmarkTemplateText, params); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkTemplateRenderReuse(b *testing.B) {
+	engine := New(mysqlDialect.Dialect{})
+	tpl, err := engine.Compile(benchmarkTemplateText)
+	if err != nil {
+		b.Fatal(err)
+	}
+	params := benchmarkQuery{Tenant: "acme", Status: "active", IDs: []int{1, 2, 3}}
+
+	b.ResetTimer()
+	for b.Loop() {
+		if _, err := tpl.Render(params); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
+func BenchmarkTemplateRenderReuseParallel(b *testing.B) {
+	engine := New(mysqlDialect.Dialect{})
+	tpl, err := engine.Compile(benchmarkTemplateText)
+	if err != nil {
+		b.Fatal(err)
+	}
+	params := benchmarkQuery{Tenant: "acme", Status: "active", IDs: []int{1, 2, 3}}
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			if _, err := tpl.Render(params); err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}

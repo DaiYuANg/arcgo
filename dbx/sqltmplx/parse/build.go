@@ -3,6 +3,7 @@ package parse
 import (
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/scan"
 	"github.com/expr-lang/expr"
 )
@@ -23,10 +24,11 @@ type frame struct {
 
 func Build(tokens []scan.Token) ([]Node, error) {
 	var nodes []Node
-	stack := []frame{{kind: frameRoot, out: &nodes}}
+	stack := collectionx.NewListWithCapacity[frame](4, frame{kind: frameRoot, out: &nodes})
 
 	appendNode := func(n Node) {
-		out := stack[len(stack)-1].out
+		current, _ := stack.Get(stack.Len() - 1)
+		out := current.out
 		*out = append(*out, n)
 	}
 
@@ -47,25 +49,25 @@ func Build(tokens []scan.Token) ([]Node, error) {
 				}
 				node := &IfNode{RawExpr: d.If.Expr, Program: program}
 				appendNode(node)
-				stack = append(stack, frame{kind: frameIf, out: &node.Body})
+				stack.Add(frame{kind: frameIf, out: &node.Body})
 			case d.Where != nil:
 				node := &WhereNode{}
 				appendNode(node)
-				stack = append(stack, frame{kind: frameWhere, out: &node.Body})
+				stack.Add(frame{kind: frameWhere, out: &node.Body})
 			case d.Set != nil:
 				node := &SetNode{}
 				appendNode(node)
-				stack = append(stack, frame{kind: frameSet, out: &node.Body})
+				stack.Add(frame{kind: frameSet, out: &node.Body})
 			case d.End != nil:
-				if len(stack) == 1 {
+				if stack.Len() == 1 {
 					return nil, fmt.Errorf("sqltmplx: unexpected end")
 				}
-				stack = stack[:len(stack)-1]
+				_, _ = stack.RemoveAt(stack.Len() - 1)
 			}
 		}
 	}
 
-	if len(stack) != 1 {
+	if stack.Len() != 1 {
 		return nil, fmt.Errorf("sqltmplx: unclosed block")
 	}
 	return nodes, nil

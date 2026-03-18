@@ -75,40 +75,45 @@ menu:
       nameEn: Dix
       pageRef: /docs/dix
       weight: 7
+    - identifier: sqltmplx
+      name: SQLtmplX
+      nameEn: SQLtmplX
+      pageRef: /docs/sqltmplx
+      weight: 8
     - identifier: eventx
       name: EventX
       nameEn: EventX
       pageRef: /docs/eventx
-      weight: 8
+      weight: 9
     - identifier: httpx
       name: HTTPX
       nameEn: HTTPX
       pageRef: /docs/httpx
-      weight: 9
+      weight: 10
     - identifier: logx
       name: LogX
       nameEn: LogX
       pageRef: /docs/logx
-      weight: 10
+      weight: 11
     - identifier: observabilityx
       name: ObservabilityX
       nameEn: ObservabilityX
       pageRef: /docs/observabilityx
-      weight: 11
+      weight: 12
     - identifier: github
       name: GitHub
       nameEn: GitHub
       url: https://github.com/DaiYuANg/arcgo
-      weight: 12
+      weight: 13
     - identifier: theme-toggle
       name: Theme
-      weight: 13
+      weight: 14
       params:
         type: theme-toggle
         label: false
     - identifier: language-switch
       name: Language Switcher
-      weight: 14
+      weight: 15
       params:
         type: language-switch
         label: true

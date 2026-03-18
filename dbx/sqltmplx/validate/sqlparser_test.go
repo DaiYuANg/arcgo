@@ -1,27 +1,57 @@
 package validate
 
-import (
-	"testing"
-
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
-)
+import "testing"
 
 func TestNewSQLParser(t *testing.T) {
-	cases := []struct {
-		name string
-		d    dialect.Dialect
-	}{
-		{name: "mysql", d: dialect.MySQL{}},
-		{name: "postgres", d: dialect.Postgres{}},
-		{name: "sqlite", d: dialect.SQLite{}},
-	}
+	t.Run("fallback to noop when backend is not registered", func(t *testing.T) {
+		parserRegistry.Clear()
+		parser := NewSQLParser(testDialect{name: "mysql"})
+		if parser == nil {
+			t.Fatal("parser should not be nil")
+		}
+		analysis, err := parser.Analyze("select 1")
+		if err != nil {
+			t.Fatalf("Analyze returned error: %v", err)
+		}
+		if analysis.Dialect != "mysql" {
+			t.Fatalf("unexpected dialect: %q", analysis.Dialect)
+		}
+	})
 
-	for _, tc := range cases {
-		t.Run(tc.name, func(t *testing.T) {
-			p := NewSQLParser(tc.d)
-			if p == nil {
-				t.Fatal("parser should not be nil")
-			}
+	t.Run("registered backend is selected by dialect name", func(t *testing.T) {
+		parserRegistry.Clear()
+		t.Cleanup(func() {
+			parserRegistry.Clear()
 		})
-	}
+
+		Register("postgres", func() SQLParser { return stubParser{} })
+
+		parser := NewSQLParser(testDialect{name: "postgres"})
+		if parser == nil {
+			t.Fatal("parser should not be nil")
+		}
+
+		if _, ok := parser.(stubParser); !ok {
+			t.Fatalf("unexpected parser type: %T", parser)
+		}
+	})
+}
+
+type testDialect struct {
+	name string
+}
+
+func (d testDialect) BindVar(_ int) string { return "?" }
+func (d testDialect) Name() string         { return d.name }
+
+type stubParser struct{}
+
+func (stubParser) Validate(string) error { return nil }
+
+func (stubParser) Analyze(sql string) (*Analysis, error) {
+	return &Analysis{
+		Dialect:       "postgres",
+		StatementType: detectStatementType(sql),
+		NormalizedSQL: sql,
+	}, nil
 }

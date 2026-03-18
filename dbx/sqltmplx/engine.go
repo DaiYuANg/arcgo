@@ -1,6 +1,9 @@
 package sqltmplx
 
-import "github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+import (
+	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+	"github.com/samber/lo"
+)
 
 type Engine struct {
 	dialect dialect.Dialect
@@ -9,9 +12,11 @@ type Engine struct {
 
 func New(d dialect.Dialect, opts ...Option) *Engine {
 	cfg := config{}
-	for _, opt := range opts {
-		opt(&cfg)
-	}
+	lo.ForEach(opts, func(opt Option, _ int) {
+		if opt != nil {
+			opt(&cfg)
+		}
+	})
 	return &Engine{dialect: d, cfg: cfg}
 }
 

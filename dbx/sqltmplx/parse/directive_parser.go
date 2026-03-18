@@ -4,20 +4,6 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
-
-	"github.com/alecthomas/participle/v2"
-	"github.com/alecthomas/participle/v2/lexer"
-)
-
-var directiveLexer = lexer.MustSimple([]lexer.SimpleRule{
-	{Name: "Keyword", Pattern: `\b(if|where|set|end)\b`},
-	{Name: "Expr", Pattern: `[^\r\n]+`},
-	{Name: "Whitespace", Pattern: `[ \t]+`},
-})
-
-var directiveParser = participle.MustBuild[Directive](
-	participle.Lexer(directiveLexer),
-	participle.Elide("Whitespace"),
 )
 
 var nilRegex = regexp.MustCompile(`\bnil\b`)
@@ -27,15 +13,28 @@ func parseDirective(input string) (*Directive, error) {
 	if !strings.HasPrefix(raw, "%") {
 		return nil, fmt.Errorf("sqltmplx: directive %q must start with %%", raw)
 	}
-	input = strings.TrimSpace(strings.TrimPrefix(raw, "%"))
-	d, err := directiveParser.ParseString("directive", input)
-	if err != nil {
-		return nil, fmt.Errorf("sqltmplx: parse directive %q: %w", input, err)
+	normalized := strings.TrimSpace(strings.TrimPrefix(raw, "%"))
+	switch {
+	case normalized == "where":
+		return &Directive{Where: &WhereDirective{Keyword: "where"}}, nil
+	case normalized == "set":
+		return &Directive{Set: &SetDirective{Keyword: "set"}}, nil
+	case normalized == "end":
+		return &Directive{End: &EndDirective{Keyword: "end"}}, nil
+	case strings.HasPrefix(normalized, "if"):
+		exprText := strings.TrimSpace(strings.TrimPrefix(normalized, "if"))
+		if exprText == "" {
+			return nil, fmt.Errorf("sqltmplx: parse directive %q: missing if expression", normalized)
+		}
+		return &Directive{
+			If: &IfDirective{
+				Keyword: "if",
+				Expr:    normalizeExpr(exprText),
+			},
+		}, nil
+	default:
+		return nil, fmt.Errorf("sqltmplx: parse directive %q: unsupported directive", normalized)
 	}
-	if d.If != nil {
-		d.If.Expr = normalizeExpr(d.If.Expr)
-	}
-	return d, nil
 }
 
 func normalizeExpr(in string) string {

@@ -17,6 +17,11 @@ use (
 	./dbx
 	./dbx/bunx
 	./dbx/sqltmplx
+	./dbx/sqltmplx/dialect
+	./dbx/sqltmplx/validate
+	./dbx/sqltmplx/validate/mysqlparser
+	./dbx/sqltmplx/validate/postgresparser
+	./dbx/sqltmplx/validate/sqliteparser
 	./dix
 	./docs
 	./eventx

@@ -190,11 +190,12 @@ func skipIdentifierExpr(input string, start int) (int, error) {
 func skipExprSuffixes(input string, start int) (int, error) {
 	i := start
 	for {
-		for i < len(input) && unicode.IsSpace(rune(input[i])) {
-			i++
+		next := i
+		for next < len(input) && unicode.IsSpace(rune(input[next])) {
+			next++
 		}
-		if i+1 < len(input) && input[i] == ':' && input[i+1] == ':' {
-			i += 2
+		if next+1 < len(input) && input[next] == ':' && input[next+1] == ':' {
+			i = next + 2
 			if i >= len(input) || !isIdentifierStart(rune(input[i])) {
 				return 0, fmt.Errorf("invalid cast suffix")
 			}
@@ -213,12 +214,13 @@ func skipExprSuffixes(input string, start int) (int, error) {
 			}
 			continue
 		}
-		if i < len(input) && input[i] == '[' {
-			next, err := skipBalanced(input, i, '[', ']')
+		if next < len(input) && input[next] == '[' {
+			i = next
+			nextIndex, err := skipBalanced(input, i, '[', ']')
 			if err != nil {
 				return 0, err
 			}
-			i = next
+			i = nextIndex
 			continue
 		}
 		return i, nil

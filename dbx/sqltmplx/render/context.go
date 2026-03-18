@@ -2,7 +2,6 @@ package render
 
 import (
 	"reflect"
-	"strings"
 
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
 	"github.com/samber/lo"
@@ -33,14 +32,8 @@ func exprEnv(params any) map[string]any {
 }
 
 func envMap(params any) map[string]any {
-	v := reflect.ValueOf(params)
-	for v.IsValid() && v.Kind() == reflect.Pointer {
-		if v.IsNil() {
-			return map[string]any{}
-		}
-		v = v.Elem()
-	}
-	if !v.IsValid() {
+	v, ok := indirectValue(params)
+	if !ok {
 		return map[string]any{}
 	}
 	if v.Kind() == reflect.Map {
@@ -55,18 +48,14 @@ func envMap(params any) map[string]any {
 		return out
 	}
 	if v.Kind() == reflect.Struct {
-		t := v.Type()
-		fields := lo.Filter(lo.Range(t.NumField()), func(i int, _ int) bool {
-			return t.Field(i).IsExported()
-		})
-		return lo.Assign(lo.Map(fields, func(i int, _ int) map[string]any {
-			f := t.Field(i)
-			val := v.Field(i).Interface()
+		meta := cachedStructMetadata(v.Type())
+		return lo.Assign(lo.Map(meta.fields, func(field structFieldMetadata, _ int) map[string]any {
+			val := v.Field(field.index).Interface()
 			out := map[string]any{
-				f.Name:                  val,
-				strings.ToLower(f.Name): val,
+				field.name:       val,
+				field.foldedName: val,
 			}
-			for _, alias := range fieldAliases(f) {
+			for _, alias := range field.aliases {
 				out[alias] = val
 			}
 			return out

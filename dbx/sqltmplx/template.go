@@ -5,12 +5,13 @@ import (
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/parse"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/render"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/scan"
+	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate"
 )
 
 type Template struct {
 	nodes     []parse.Node
 	dialect   dialect.Dialect
-	validator interface{ Validate(string) error }
+	validator validate.Validator
 }
 
 func compileTemplate(tpl string, d dialect.Dialect, cfg config) (*Template, error) {

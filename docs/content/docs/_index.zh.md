@@ -26,6 +26,7 @@ go get github.com/DaiYuANg/arcgo/{package}
 | [dix](./dix) | 应用框架 | 基于 `do` 的强类型模块化应用框架 |
 | [eventx](./eventx) | 事件总线 | 进程内强类型事件总线 |
 | [httpx](./httpx) | HTTP 路由 | 多框架统一强类型 HTTP 路由 |
+| [sqltmplx](./sqltmplx) | SQL 模板 | SQL 优先的条件模板渲染与可选 parser 校验 |
 | [logx](./logx) | 日志记录 | 结构化日志与 slog 互通 |
 | [observabilityx](./observabilityx) | 可观测性 | 可选可观测性抽象（OTel/Prometheus） |
 
@@ -51,6 +52,7 @@ go get github.com/DaiYuANg/arcgo/{package}
 - 需要模块化应用组装、typed DI、生命周期和启动校验：从 `dix` 开始
 - 需要进程内带类型负载的 pub/sub：从 `eventx` 开始
 - 需要跨框架的统一类型化 HTTP 处理器：从 `httpx` 开始
+- 需要 SQL 优先的动态查询模板和可选 parser 校验：从 `sqltmplx` 开始
 - 需要结构化日志和轮转：从 `logx` 开始
 - 需要可选的遥测抽象（OTel/Prometheus）：从 `observabilityx` 开始
 

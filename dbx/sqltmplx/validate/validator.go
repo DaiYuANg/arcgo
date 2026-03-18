@@ -1,6 +1,11 @@
 package validate
 
-import "github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+import (
+	"strings"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+)
 
 type Validator interface {
 	Validate(sql string) error
@@ -26,17 +31,23 @@ type Func func(string) error
 
 func (f Func) Validate(sql string) error { return f(sql) }
 
+type Factory func() SQLParser
+
+var parserRegistry = collectionx.NewConcurrentMap[string, Factory]()
+
 func NewSQLParser(d dialect.Dialect) SQLParser {
-	switch d.Name() {
-	case "mysql":
-		return NewMySQLParser()
-	case "postgres":
-		return NewPostgresParser()
-	case "sqlite":
-		return NewSQLiteParser()
-	default:
-		return &noopParser{dialect: d.Name()}
+	name := strings.ToLower(strings.TrimSpace(d.Name()))
+	if factory, ok := parserRegistry.Get(name); ok {
+		return factory()
 	}
+	return &noopParser{dialect: d.Name()}
+}
+
+func Register(dialectName string, factory Factory) {
+	if factory == nil {
+		return
+	}
+	parserRegistry.Set(strings.ToLower(strings.TrimSpace(dialectName)), factory)
 }
 
 type noopParser struct{ dialect string }

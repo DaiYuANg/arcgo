@@ -1,25 +1,25 @@
 package parse
 
 type Directive struct {
-	If    *IfDirective    `  @@`
-	Where *WhereDirective `| @@`
-	Set   *SetDirective   `| @@`
-	End   *EndDirective   `| @@`
+	If    *IfDirective
+	Where *WhereDirective
+	Set   *SetDirective
+	End   *EndDirective
 }
 
 type IfDirective struct {
-	Keyword string `@"if"`
-	Expr    string `@Expr`
+	Keyword string
+	Expr    string
 }
 
 type WhereDirective struct {
-	Keyword string `@"where"`
+	Keyword string
 }
 
 type SetDirective struct {
-	Keyword string `@"set"`
+	Keyword string
 }
 
 type EndDirective struct {
-	Keyword string `@"end"`
+	Keyword string
 }

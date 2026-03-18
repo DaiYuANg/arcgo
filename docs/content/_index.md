@@ -32,6 +32,7 @@ go get github.com/DaiYuANg/arcgo/{package}
   {{< card link="/docs/dix" title="dix" subtitle="Strongly typed modular app framework built on do" icon="cube" >}}
   {{< card link="/docs/eventx" title="eventx" subtitle="In-process strongly typed event bus" icon="lightning-bolt" >}}
   {{< card link="/docs/httpx" title="httpx" subtitle="Multi-framework unified strongly typed HTTP routing" icon="server" >}}
+  {{< card link="/docs/sqltmplx" title="sqltmplx" subtitle="SQL-first conditional template renderer with optional parser-backed validation" icon="database" >}}
   {{< card link="/docs/logx" title="logx" subtitle="Structured logging with slog interoperability" icon="document-text" >}}
   {{< card link="/docs/observabilityx" title="observabilityx" subtitle="Optional observability abstraction (OTel/Prometheus)" icon="chart-bar" >}}
 {{< /cards >}}
@@ -126,6 +127,7 @@ Choose the package you need:
 - Need modular app composition and typed lifecycle management: Start with [dix](/docs/dix)
 - Need event bus: Start with [eventx](/docs/eventx)
 - Need HTTP routing: Start with [httpx](/docs/httpx)
+- Need SQL-first dynamic query templating and optional parser-backed validation: Start with [sqltmplx](/docs/sqltmplx)
 - Need logging: Start with [logx](/docs/logx)
 - Need observability: Start with [observabilityx](/docs/observabilityx)
 

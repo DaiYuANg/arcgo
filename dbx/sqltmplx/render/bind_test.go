@@ -3,7 +3,7 @@ package render
 import (
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/postgres"
 )
 
 type bindQuery struct {
@@ -12,7 +12,7 @@ type bindQuery struct {
 }
 
 func TestBindCommentPlaceholderWithStructTags(t *testing.T) {
-	st := newState(bindQuery{Name: "alice", IDs: []int{10, 20}}, dialect.Postgres{})
+	st := newState(bindQuery{Name: "alice", IDs: []int{10, 20}}, postgres.Dialect{})
 	out, err := bindText("name = /* name */'bob' AND id IN (/* ids */(1, 2))", st)
 	if err != nil {
 		t.Fatalf("bindText returned error: %v", err)

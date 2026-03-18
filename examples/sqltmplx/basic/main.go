@@ -4,14 +4,15 @@ import (
 	"fmt"
 
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx"
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/mysql"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate"
+	_ "github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/mysqlparser"
 )
 
 func main() {
 	engine := sqltmplx.New(
-		dialect.MySQL{},
-		sqltmplx.WithValidator(validate.Noop{}),
+		mysql.Dialect{},
+		sqltmplx.WithValidator(validate.NewSQLParser(mysql.Dialect{})),
 	)
 
 	tpl := `

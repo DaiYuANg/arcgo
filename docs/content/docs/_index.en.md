@@ -26,6 +26,7 @@ go get github.com/DaiYuANg/arcgo/{package}
 | [dix](./dix) | Application Framework | Strongly typed modular app framework built on `do` |
 | [eventx](./eventx) | Event Bus | In-process strongly typed event bus |
 | [httpx](./httpx) | HTTP Routing | Multi-framework unified strongly typed HTTP routing |
+| [sqltmplx](./sqltmplx) | SQL Templates | SQL-first conditional template renderer with optional parser-backed validation |
 | [logx](./logx) | Logging | Structured logging with slog interoperability |
 | [observabilityx](./observabilityx) | Observability | Optional observability abstraction (OTel/Prometheus) |
 
@@ -51,6 +52,7 @@ go get github.com/DaiYuANg/arcgo/{package}
 - Need modular application composition, typed DI, lifecycle, and startup validation: Start with `dix`
 - Need in-process typed pub/sub: Start with `eventx`
 - Need unified typed HTTP handlers across frameworks: Start with `httpx`
+- Need SQL-first dynamic query templating with optional parser-backed validation: Start with `sqltmplx`
 - Need structured logging with rotation: Start with `logx`
 - Need optional telemetry abstraction (OTel/Prometheus): Start with `observabilityx`
 

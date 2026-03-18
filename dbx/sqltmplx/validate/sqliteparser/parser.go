@@ -1,19 +1,24 @@
-package validate
+package sqliteparser
 
 import (
 	"database/sql"
 	"fmt"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate"
 	rqlitesql "github.com/rqlite/sql"
 	_ "modernc.org/sqlite"
 )
 
-type SQLiteParser struct{}
+func init() {
+	validate.Register("sqlite", New)
+}
 
-func NewSQLiteParser() *SQLiteParser { return &SQLiteParser{} }
+type Parser struct{}
 
-func (p *SQLiteParser) Validate(sqlText string) error {
+func New() validate.SQLParser { return &Parser{} }
+
+func (p *Parser) Validate(sqlText string) error {
 	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
 		return err
@@ -27,7 +32,7 @@ func (p *SQLiteParser) Validate(sqlText string) error {
 	return err
 }
 
-func (p *SQLiteParser) Analyze(sqlText string) (*Analysis, error) {
+func (p *Parser) Analyze(sqlText string) (*validate.Analysis, error) {
 	parser := rqlitesql.NewParser(strings.NewReader(sqlText))
 	astNode, err := parser.ParseStatement()
 	if err != nil {
@@ -36,10 +41,26 @@ func (p *SQLiteParser) Analyze(sqlText string) (*Analysis, error) {
 	if err := p.Validate(sqlText); err != nil {
 		return nil, fmt.Errorf("sqlite engine validation failed after AST parse: %w", err)
 	}
-	return &Analysis{
+	return &validate.Analysis{
 		Dialect:       "sqlite",
 		StatementType: detectStatementType(sqlText),
 		NormalizedSQL: normalizeWhitespace(sqlText),
 		AST:           astNode,
 	}, nil
+}
+
+func normalizeWhitespace(sql string) string {
+	return strings.Join(strings.Fields(sql), " ")
+}
+
+func detectStatementType(sql string) string {
+	sql = strings.TrimSpace(sql)
+	if sql == "" {
+		return "UNKNOWN"
+	}
+	parts := strings.Fields(sql)
+	if len(parts) == 0 {
+		return "UNKNOWN"
+	}
+	return strings.ToUpper(parts[0])
 }

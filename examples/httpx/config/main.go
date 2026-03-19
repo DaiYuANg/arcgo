@@ -14,6 +14,7 @@ import (
 	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
@@ -41,11 +42,13 @@ func main() {
 	serverOpts.EnableAccessLog = true
 
 	// OpenAPI info belongs to httpx; docs route exposure belongs to the host adapter.
-	stdAdapter := std.New(nil, adapter.HumaOptions{
+	router := chi.NewMux()
+	router.Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
+
+	stdAdapter := std.New(router, adapter.HumaOptions{
 		DocsPath:    "/docs",
 		OpenAPIPath: "/openapi.json",
 	})
-	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
 
 	server := httpx.New(append(serverOpts.Build(), httpx.WithAdapter(stdAdapter))...)
 	httpx.MustGet(server, "/users", func(ctx context.Context, input *struct{}) (*UserOutput, error) {

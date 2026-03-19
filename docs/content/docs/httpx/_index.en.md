@@ -48,6 +48,7 @@ import (
 
     "github.com/DaiYuANg/arcgo/httpx"
     "github.com/DaiYuANg/arcgo/httpx/adapter/std"
+    "github.com/go-chi/chi/v5"
     "github.com/go-chi/chi/v5/middleware"
 )
 
@@ -58,8 +59,9 @@ type HealthOutput struct {
 }
 
 func main() {
-    a := std.New(nil)
-    a.Router().Use(middleware.Logger, middleware.Recoverer)
+    router := chi.NewMux()
+    router.Use(middleware.Logger, middleware.Recoverer)
+    a := std.New(router)
 
     s := httpx.New(
         httpx.WithAdapter(a),
@@ -126,6 +128,7 @@ Notes:
 
 - `WithOpenAPIInfo(...)` still patches OpenAPI metadata.
 - Documentation route exposure is adapter-owned and set when constructing the adapter.
+- For `std`/`chi`, register `chi` middlewares on the router before passing it to `std.New(...)`.
 - To disable docs routes, pass `adapter.HumaOptions{DisableDocsRoutes: true}`.
 - Supported built-in renderers:
   - `httpx.DocsRendererStoplightElements`
@@ -314,7 +317,7 @@ type CreateUserInput struct {
 
 Adapter middleware should remain adapter-native:
 
-- `std`: `adapter.Router().Use(...)`
+- `std`: `router := chi.NewMux(); router.Use(...); adapter := std.New(router, ...)`
 - `gin`: `adapter.Router().Use(...)`
 - `echo`: `adapter.Router().Use(...)`
 - `fiber`: `adapter.Router().Use(...)`
@@ -338,6 +341,7 @@ In practice this means:
 
 - Use `httpx.WithLogger(...)` for `httpx`-level logs
 - Continue configuring `chi` / `gin` / `echo` / `fiber` logging middleware on the adapter router or engine/app
+- For `std`/`chi`, add `chi.Use(...)` middleware before constructing `std.New(...)`
 
 ## Adapter Build
 

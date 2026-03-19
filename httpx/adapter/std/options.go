@@ -8,6 +8,8 @@ import (
 )
 
 // New constructs a std adapter backed by a chi router and Huma API.
+// When providing a custom chi router, register chi middlewares on it before
+// calling New, because Huma registers routes during adapter construction.
 func New(router *chi.Mux, opts ...adapter.HumaOptions) *Adapter {
 	if router == nil {
 		router = chi.NewMux()

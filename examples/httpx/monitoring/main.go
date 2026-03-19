@@ -13,6 +13,7 @@ import (
 	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 )
 
 type HealthOutput struct {
@@ -29,7 +30,10 @@ func main() {
 	defer func() { _ = logx.Close(logger) }()
 	slogLogger := logger
 
-	stdAdapter := std.New(nil, adapter.HumaOptions{
+	router := chi.NewMux()
+	router.Use(middleware.PrometheusMiddleware, middleware.OpenTelemetryMiddleware)
+
+	stdAdapter := std.New(router, adapter.HumaOptions{
 		Title:       "ArcGo Monitoring API",
 		Version:     "1.0.0",
 		Description: "Monitoring API",
@@ -43,7 +47,6 @@ func main() {
 		httpx.WithPrintRoutes(true),
 	)
 
-	stdAdapter.Router().Use(middleware.PrometheusMiddleware, middleware.OpenTelemetryMiddleware)
 	stdAdapter.Router().Handle("/metrics", middleware.MetricsHandler())
 
 	httpx.MustGet(server, "/health", func(ctx context.Context, input *struct{}) (*HealthOutput, error) {

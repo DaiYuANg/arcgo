@@ -11,6 +11,7 @@ import (
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
 )
@@ -138,14 +139,16 @@ func main() {
 	}
 	defer closeLogger()
 
-	stdAdapter := std.New(nil, adapter.HumaOptions{
+	router := chi.NewMux()
+	router.Use(middleware.Logger, middleware.Recoverer)
+
+	stdAdapter := std.New(router, adapter.HumaOptions{
 		Title:       "Endpoint Example API",
 		Version:     "1.0.0",
 		Description: "Endpoint pattern example built with httpx",
 		DocsPath:    "/docs",
 		OpenAPIPath: "/openapi.json",
 	})
-	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer)
 
 	server := httpx.New(
 		httpx.WithAdapter(stdAdapter),

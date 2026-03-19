@@ -17,6 +17,25 @@ func TestNew_UsesProvidedRouter(t *testing.T) {
 	assert.Same(t, router, a.Router())
 }
 
+func TestNew_UsesPreconfiguredRouterMiddleware(t *testing.T) {
+	router := chi.NewMux()
+	router.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Test-Middleware", "ok")
+			next.ServeHTTP(w, r)
+		})
+	})
+
+	a := New(router)
+
+	req := httptest.NewRequest(http.MethodGet, "/docs", nil)
+	rec := httptest.NewRecorder()
+	a.Router().ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "ok", rec.Header().Get("X-Test-Middleware"))
+}
+
 func TestNew_AppliesDocsPaths(t *testing.T) {
 	a := New(nil, adapter.HumaOptions{
 		DocsPath:    "/reference",

@@ -9,6 +9,7 @@ import (
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
@@ -20,14 +21,16 @@ func main() {
 	defer closeLogger()
 
 	userService := shared.NewMockUserService()
-	stdAdapter := std.New(nil, adapter.HumaOptions{
+	router := chi.NewMux()
+	router.Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
+
+	stdAdapter := std.New(router, adapter.HumaOptions{
 		Title:       "ArcGo Std API",
 		Version:     "1.0.0",
 		Description: "Typed std API example",
 		DocsPath:    "/docs",
 		OpenAPIPath: "/openapi.json",
 	})
-	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
 
 	server := shared.NewRuntime(stdAdapter, logger)
 	shared.RegisterUserRoutes(server, userService)

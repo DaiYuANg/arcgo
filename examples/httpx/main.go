@@ -12,6 +12,7 @@ import (
 	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
 )
@@ -41,14 +42,16 @@ func main() {
 	defer func() { _ = logx.Close(logger) }()
 
 	slogLogger := logger
-	stdAdapter := std.New(nil, adapter.HumaOptions{
+	router := chi.NewMux()
+	router.Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
+
+	stdAdapter := std.New(router, adapter.HumaOptions{
 		Title:       "ArcGo API",
 		Version:     "1.0.0",
 		Description: "Typed API built with httpx",
 		DocsPath:    "/docs",
 		OpenAPIPath: "/openapi.json",
 	})
-	stdAdapter.Router().Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
 
 	server := httpx.New(
 		httpx.WithAdapter(stdAdapter),

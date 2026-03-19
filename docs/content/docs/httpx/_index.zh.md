@@ -48,6 +48,7 @@ import (
 
     "github.com/DaiYuANg/arcgo/httpx"
     "github.com/DaiYuANg/arcgo/httpx/adapter/std"
+    "github.com/go-chi/chi/v5"
     "github.com/go-chi/chi/v5/middleware"
 )
 
@@ -58,8 +59,9 @@ type HealthOutput struct {
 }
 
 func main() {
-    a := std.New(nil)
-    a.Router().Use(middleware.Logger, middleware.Recoverer)
+    router := chi.NewMux()
+    router.Use(middleware.Logger, middleware.Recoverer)
+    a := std.New(router)
 
     s := httpx.New(
         httpx.WithAdapter(a),
@@ -126,6 +128,7 @@ s.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
 
 - `WithOpenAPIInfo(...)` 仍然用于修补 OpenAPI 元数据。
 - 文档路由暴露属于 adapter 职责，在构造时确定。
+- 对 `std` / `chi`，要先在 router 上注册 `chi` 中间件，再把它传给 `std.New(...)`。
 - 如需关闭文档路由，传入 `adapter.HumaOptions{DisableDocsRoutes: true}`。
 - 支持的内置渲染器：
   - `httpx.DocsRendererStoplightElements`
@@ -314,7 +317,7 @@ type CreateUserInput struct {
 
 适配器中间件应保持适配器原生：
 
-- `std`: `adapter.Router().Use(...)`
+- `std`: `router := chi.NewMux(); router.Use(...); adapter := std.New(router, ...)`
 - `gin`: `adapter.Router().Use(...)`
 - `echo`: `adapter.Router().Use(...)`
 - `fiber`: `adapter.Router().Use(...)`
@@ -338,6 +341,7 @@ type CreateUserInput struct {
 
 - 使用 `httpx.WithLogger(...)` 处理 `httpx` 层日志
 - 继续在 adapter 的 router/engine/app 上配置 `chi` / `gin` / `echo` / `fiber` 的日志中间件
+- 对 `std` / `chi`，需要在构造 `std.New(...)` 之前先调用 `chi.Use(...)`
 
 ## 适配器构建
 

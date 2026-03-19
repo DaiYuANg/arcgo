@@ -26,10 +26,10 @@ use (
 	./eventx
 	./eventx/fx
 	./examples/authx
-	./examples/clientx
-	./examples/collectionx
+	./examples/dbx
 	./examples/dix
 	./examples/eventx
+	./examples/kvx
 	./examples/httpx
 	./examples/logx
 	./examples/observabilityx
@@ -49,3 +49,7 @@ use (
 	./pkg/fx
 	./pkg/randomport
 )
+
+
+
+

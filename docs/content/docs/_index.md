@@ -26,6 +26,7 @@ go get github.com/DaiYuANg/arcgo/{package}
 | [dix](./dix) | Application Framework | Strongly typed modular app framework built on `do` |
 | [eventx](./eventx) | Event Bus | In-process strongly typed event bus |
 | [httpx](./httpx) | HTTP Routing | Multi-framework unified strongly typed HTTP routing |
+| [kvx](./kvx) | Redis / Valkey Access | Strongly typed Redis / Valkey object access and repository layer |
 | [sqltmplx](./sqltmplx) | SQL Templates | SQL-first conditional template renderer with optional parser-backed validation |
 | [logx](./logx) | Logging | Structured logging with slog interoperability |
 | [observabilityx](./observabilityx) | Observability | Optional observability abstraction (OTel/Prometheus) |
@@ -52,6 +53,7 @@ go get github.com/DaiYuANg/arcgo/{package}
 - Need modular application composition, typed DI, lifecycle, and startup validation: Start with `dix`
 - Need in-process typed pub/sub: Start with `eventx`
 - Need unified typed HTTP handlers across frameworks: Start with `httpx`
+- Need strongly typed Redis / Valkey repositories and access helpers: Start with `kvx`
 - Need SQL-first dynamic query templating with optional parser-backed validation: Start with `sqltmplx`
 - Need structured logging with rotation: Start with `logx`
 - Need optional telemetry abstraction (OTel/Prometheus): Start with `observabilityx`
@@ -61,6 +63,7 @@ go get github.com/DaiYuANg/arcgo/{package}
 - **API Service Baseline**: `httpx + configx + logx`
 - **Modular App Baseline**: `dix + configx + logx`
 - **Event-driven within monolith**: `eventx + logx`
+- **Redis / Valkey-backed service**: `kvx + httpx + configx`
 - **Data-intensive tools/internal libraries**: `collectionx + configx`
 
 ## Common Commands
@@ -109,3 +112,4 @@ The `pre-commit` hook runs:
 
 - [GitHub Repository](https://github.com/DaiYuANg/arcgo)
 - [Go Module](https://pkg.go.dev/github.com/DaiYuANg/arcgo)
+

@@ -90,30 +90,36 @@ menu:
       nameEn: HTTPX
       pageRef: /docs/httpx
       weight: 10
+    - identifier: kvx
+      name: KVX
+      nameEn: KVX
+      pageRef: /docs/kvx
+      weight: 11
     - identifier: logx
       name: LogX
       nameEn: LogX
       pageRef: /docs/logx
-      weight: 11
+      weight: 12
     - identifier: observabilityx
       name: ObservabilityX
       nameEn: ObservabilityX
       pageRef: /docs/observabilityx
-      weight: 12
+      weight: 13
     - identifier: github
       name: GitHub
       nameEn: GitHub
       url: https://github.com/DaiYuANg/arcgo
-      weight: 13
+      weight: 14
     - identifier: theme-toggle
       name: Theme
-      weight: 14
+      weight: 16
       params:
         type: theme-toggle
         label: false
     - identifier: language-switch
       name: Language Switcher
-      weight: 15
+      weight: 16
       params:
         type: language-switch
         label: true
+

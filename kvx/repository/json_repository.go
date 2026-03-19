@@ -6,6 +6,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
+	"github.com/samber/mo"
 )
 
 // JSONRepository provides repository operations for JSON-based entities.
@@ -13,7 +14,7 @@ type JSONRepository[T any] struct {
 	base       repositoryBase[T]
 	client     kvx.JSON
 	kv         kvx.KV
-	pipeline   pipelineProvider
+	pipeline   mo.Option[pipelineProvider]
 	serializer mapping.Serializer
 }
 
@@ -24,10 +25,8 @@ func NewJSONRepository[T any](client kvx.JSON, kv kvx.KV, keyPrefix string, opti
 		base:       repositoryBase[T]{keyBuilder: cfg.keyBuilder, tagParser: cfg.tagParser, indexer: cfg.indexer},
 		client:     client,
 		kv:         kv,
+		pipeline:   cfg.pipeline,
 		serializer: cfg.serializer,
-	}
-	if provider, ok := cfg.pipeline.Get(); ok {
-		repo.pipeline = provider
 	}
 	return repo
 }
@@ -73,8 +72,8 @@ func (r *JSONRepository[T]) SaveBatchWithExpiration(ctx context.Context, entitie
 	if len(entities) == 0 {
 		return nil
 	}
-	if r.pipeline != nil {
-		pipe := r.pipeline.Pipeline()
+	if provider, ok := r.pipeline.Get(); ok {
+		pipe := provider.Pipeline()
 		defer pipe.Close()
 		for _, entity := range entities {
 			metadata, err := r.base.metadata(entity)
@@ -128,21 +127,18 @@ func (r *JSONRepository[T]) FindByIDs(ctx context.Context, ids []string) (map[st
 }
 
 func (r *JSONRepository[T]) Exists(ctx context.Context, id string) (bool, error) {
-	data, err := r.client.JSONGet(ctx, r.base.keyFromID(id), "$")
-	if err != nil {
-		return false, err
-	}
-	return len(data) > 0, nil
+	return r.kv.Exists(ctx, r.base.keyFromID(id))
 }
 
 func (r *JSONRepository[T]) ExistsBatch(ctx context.Context, ids []string) (map[string]bool, error) {
+	keys := r.base.keysFromIDs(ids)
+	existsMap, err := r.kv.ExistsMulti(ctx, keys)
+	if err != nil {
+		return nil, err
+	}
 	results := make(map[string]bool, len(ids))
-	for _, id := range ids {
-		exists, err := r.Exists(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		results[id] = exists
+	for i, id := range ids {
+		results[id] = existsMap[keys[i]]
 	}
 	return results, nil
 }
@@ -213,27 +209,23 @@ func (r *JSONRepository[T]) FindByFields(ctx context.Context, fields map[string]
 	if len(fields) == 0 {
 		return r.FindAll(ctx)
 	}
-	var intersection []string
-	first := true
+	idGroups := make([][]string, 0, len(fields))
 	for fieldName, fieldValue := range fields {
 		ids, err := r.base.idsByField(ctx, fieldName, fieldValue)
 		if err != nil {
 			return nil, err
 		}
-		if first {
-			intersection, first = ids, false
-		} else {
-			intersection = stringSliceIntersection(intersection, ids)
-		}
-		if len(intersection) == 0 {
-			return []*T{}, nil
-		}
+		idGroups = append(idGroups, ids)
+	}
+	intersection := intersectStringSlices(idGroups...)
+	if len(intersection) == 0 {
+		return []*T{}, nil
 	}
 	return r.findManyByIDs(ctx, intersection)
 }
 
 func (r *JSONRepository[T]) FindAll(ctx context.Context) ([]*T, error) {
-	keys, _, err := r.kv.Scan(ctx, r.base.keyFromID("*"), 0, 100)
+	keys, err := r.base.scanAllKeys(ctx, r.kv)
 	if err != nil {
 		return nil, err
 	}
@@ -252,7 +244,7 @@ func (r *JSONRepository[T]) FindAll(ctx context.Context) ([]*T, error) {
 }
 
 func (r *JSONRepository[T]) Count(ctx context.Context) (int64, error) {
-	keys, _, err := r.kv.Scan(ctx, r.base.keyFromID("*"), 0, 100)
+	keys, err := r.base.scanAllKeys(ctx, r.kv)
 	if err != nil {
 		return 0, err
 	}

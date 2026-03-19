@@ -3,23 +3,23 @@ package pubsub
 
 import (
 	"context"
-	"sync"
+	"errors"
 
+	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/DaiYuANg/arcgo/kvx"
 )
 
 // PubSub provides high-level pub/sub operations.
 type PubSub struct {
 	client        kvx.PubSub
-	subscriptions map[string]kvx.Subscription
-	mu            sync.RWMutex
+	subscriptions *collectionmapping.ConcurrentMap[string, kvx.Subscription]
 }
 
 // NewPubSub creates a new PubSub instance.
 func NewPubSub(client kvx.PubSub) *PubSub {
 	return &PubSub{
 		client:        client,
-		subscriptions: make(map[string]kvx.Subscription),
+		subscriptions: collectionmapping.NewConcurrentMap[string, kvx.Subscription](),
 	}
 }
 
@@ -35,10 +35,7 @@ func (p *PubSub) PublishString(ctx context.Context, channel string, message stri
 
 // Subscribe subscribes to a channel.
 func (p *PubSub) Subscribe(ctx context.Context, channel string) (<-chan []byte, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if sub, ok := p.subscriptions[channel]; ok {
+	if sub, ok := p.subscriptions.Get(channel); ok {
 		return sub.Channel(), nil
 	}
 
@@ -47,20 +44,21 @@ func (p *PubSub) Subscribe(ctx context.Context, channel string) (<-chan []byte, 
 		return nil, err
 	}
 
-	p.subscriptions[channel] = sub
+	actual, loaded := p.subscriptions.GetOrStore(channel, sub)
+	if loaded {
+		_ = sub.Close()
+		return actual.Channel(), nil
+	}
+
 	return sub.Channel(), nil
 }
 
 // Unsubscribe unsubscribes from a channel.
 func (p *PubSub) Unsubscribe(ctx context.Context, channel string) error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	if sub, ok := p.subscriptions[channel]; ok {
+	if sub, ok := p.subscriptions.LoadAndDelete(channel); ok {
 		if err := sub.Close(); err != nil {
 			return err
 		}
-		delete(p.subscriptions, channel)
 	}
 
 	return nil
@@ -68,16 +66,16 @@ func (p *PubSub) Unsubscribe(ctx context.Context, channel string) error {
 
 // Close closes all subscriptions.
 func (p *PubSub) Close() error {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-
-	var lastErr error
-	for channel, sub := range p.subscriptions {
-		if err := sub.Close(); err != nil {
-			lastErr = err
+	errs := make([]error, 0)
+	for _, channel := range p.subscriptions.Keys() {
+		sub, ok := p.subscriptions.LoadAndDelete(channel)
+		if !ok {
+			continue
 		}
-		delete(p.subscriptions, channel)
+		if err := sub.Close(); err != nil {
+			errs = append(errs, err)
+		}
 	}
 
-	return lastErr
+	return errors.Join(errs...)
 }

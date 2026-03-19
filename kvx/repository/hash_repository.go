@@ -6,6 +6,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
+	"github.com/samber/mo"
 )
 
 // HashRepository provides repository operations for hash-based entities.
@@ -13,7 +14,7 @@ type HashRepository[T any] struct {
 	base     repositoryBase[T]
 	client   kvx.Hash
 	kv       kvx.KV
-	pipeline pipelineProvider
+	pipeline mo.Option[pipelineProvider]
 	codec    *mapping.HashCodec
 }
 
@@ -28,12 +29,10 @@ func NewHashRepository[T any](client kvx.Hash, kv kvx.KV, keyPrefix string, opti
 			tagParser:  cfg.tagParser,
 			indexer:    cfg.indexer,
 		},
-		client: client,
-		kv:     kv,
-		codec:  cfg.codec,
-	}
-	if provider, ok := cfg.pipeline.Get(); ok {
-		repo.pipeline = provider
+		client:   client,
+		kv:       kv,
+		pipeline: cfg.pipeline,
+		codec:    cfg.codec,
 	}
 	return repo
 }
@@ -90,8 +89,8 @@ func (r *HashRepository[T]) SaveBatchWithExpiration(ctx context.Context, entitie
 	if len(entities) == 0 {
 		return nil
 	}
-	if r.pipeline != nil {
-		pipe := r.pipeline.Pipeline()
+	if provider, ok := r.pipeline.Get(); ok {
+		pipe := provider.Pipeline()
 		defer pipe.Close()
 		for _, entity := range entities {
 			metadata, err := r.base.metadata(entity)
@@ -149,10 +148,7 @@ func (r *HashRepository[T]) Exists(ctx context.Context, id string) (bool, error)
 }
 
 func (r *HashRepository[T]) ExistsBatch(ctx context.Context, ids []string) (map[string]bool, error) {
-	keys := make([]string, len(ids))
-	for i, id := range ids {
-		keys[i] = r.base.keyFromID(id)
-	}
+	keys := r.base.keysFromIDs(ids)
 	existsMap, err := r.kv.ExistsMulti(ctx, keys)
 	if err != nil {
 		return nil, err
@@ -204,7 +200,7 @@ func (r *HashRepository[T]) DeleteBatch(ctx context.Context, ids []string) error
 }
 
 func (r *HashRepository[T]) FindAll(ctx context.Context) ([]*T, error) {
-	keys, _, err := r.kv.Scan(ctx, r.base.keyFromID("*"), 0, 100)
+	keys, err := r.base.scanAllKeys(ctx, r.kv)
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +219,7 @@ func (r *HashRepository[T]) FindAll(ctx context.Context) ([]*T, error) {
 }
 
 func (r *HashRepository[T]) Count(ctx context.Context) (int64, error) {
-	keys, _, err := r.kv.Scan(ctx, r.base.keyFromID("*"), 0, 100)
+	keys, err := r.base.scanAllKeys(ctx, r.kv)
 	if err != nil {
 		return 0, err
 	}
@@ -242,21 +238,17 @@ func (r *HashRepository[T]) FindByFields(ctx context.Context, fields map[string]
 	if len(fields) == 0 {
 		return r.FindAll(ctx)
 	}
-	var intersection []string
-	first := true
+	idGroups := make([][]string, 0, len(fields))
 	for fieldName, fieldValue := range fields {
 		entityIDs, err := r.base.idsByField(ctx, fieldName, fieldValue)
 		if err != nil {
 			return nil, err
 		}
-		if first {
-			intersection, first = entityIDs, false
-		} else {
-			intersection = stringSliceIntersection(intersection, entityIDs)
-		}
-		if len(intersection) == 0 {
-			return []*T{}, nil
-		}
+		idGroups = append(idGroups, entityIDs)
+	}
+	intersection := intersectStringSlices(idGroups...)
+	if len(intersection) == 0 {
+		return []*T{}, nil
 	}
 	return r.findManyByIDs(ctx, intersection)
 }
@@ -340,20 +332,6 @@ func encodeHashData(data map[string][]byte) [][]byte {
 	result := make([][]byte, 0, len(data)*2)
 	for k, v := range data {
 		result = append(result, []byte(k), v)
-	}
-	return result
-}
-
-func stringSliceIntersection(a, b []string) []string {
-	set := make(map[string]bool, len(a))
-	for _, s := range a {
-		set[s] = true
-	}
-	result := make([]string, 0)
-	for _, s := range b {
-		if set[s] {
-			result = append(result, s)
-		}
 	}
 	return result
 }

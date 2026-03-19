@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/DaiYuANg/arcgo/kvx"
 )
 
@@ -180,13 +181,14 @@ func generateIdentifier() string {
 // LockManager manages multiple locks.
 type LockManager struct {
 	client kvx.Lock
-	locks  sync.Map
+	locks  *collectionmapping.ConcurrentMap[string, *Lock]
 }
 
 // NewLockManager creates a new LockManager.
 func NewLockManager(client kvx.Lock) *LockManager {
 	return &LockManager{
 		client: client,
+		locks:  collectionmapping.NewConcurrentMap[string, *Lock](),
 	}
 }
 
@@ -196,7 +198,7 @@ func (m *LockManager) Acquire(ctx context.Context, key string, opts *Options) (*
 	if err := lock.Acquire(ctx); err != nil {
 		return nil, err
 	}
-	m.locks.Store(key, lock)
+	m.locks.Set(key, lock)
 	return lock, nil
 }
 
@@ -206,37 +208,37 @@ func (m *LockManager) TryAcquire(ctx context.Context, key string, timeout time.D
 	if err := lock.TryAcquire(ctx, timeout); err != nil {
 		return nil, err
 	}
-	m.locks.Store(key, lock)
+	m.locks.Set(key, lock)
 	return lock, nil
 }
 
 // Release releases a lock by key.
 func (m *LockManager) Release(ctx context.Context, key string) error {
-	if lock, ok := m.locks.Load(key); ok {
-		m.locks.Delete(key)
-		return lock.(*Lock).Release(ctx)
+	if lock, ok := m.locks.LoadAndDelete(key); ok {
+		return lock.Release(ctx)
 	}
 	return ErrLockNotHeld
 }
 
 // ReleaseAll releases all managed locks.
 func (m *LockManager) ReleaseAll(ctx context.Context) error {
-	var lastErr error
-	m.locks.Range(func(key, value interface{}) bool {
-		lock := value.(*Lock)
-		if err := lock.Release(ctx); err != nil {
-			lastErr = err
+	errs := make([]error, 0)
+	for _, key := range m.locks.Keys() {
+		lock, ok := m.locks.LoadAndDelete(key)
+		if !ok {
+			continue
 		}
-		m.locks.Delete(key)
-		return true
-	})
-	return lastErr
+		if err := lock.Release(ctx); err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errors.Join(errs...)
 }
 
 // IsHeld checks if a lock is held.
 func (m *LockManager) IsHeld(ctx context.Context, key string) (bool, error) {
-	if lock, ok := m.locks.Load(key); ok {
-		return lock.(*Lock).IsHeld(ctx)
+	if lock, ok := m.locks.Get(key); ok {
+		return lock.IsHeld(ctx)
 	}
 	return false, nil
 }

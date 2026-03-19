@@ -13,11 +13,11 @@ It keeps control flow inside SQL comments, preserves sample literals for tooling
 ## Package Layout
 
 - Core renderer: `github.com/DaiYuANg/arcgo/dbx/sqltmplx`
-- Dialect contracts: `github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect`
+- Dialect contracts: `github.com/DaiYuANg/arcgo/dbx/dialect`
 - Built-in dialects:
-  - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/mysql`
-  - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/postgres`
-  - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/sqlite`
+  - `github.com/DaiYuANg/arcgo/dbx/dialect/mysql`
+  - `github.com/DaiYuANg/arcgo/dbx/dialect/postgres`
+  - `github.com/DaiYuANg/arcgo/dbx/dialect/sqlite`
 - Validator contract and registry: `github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate`
 - Optional parser-backed validators:
   - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/mysqlparser`
@@ -46,7 +46,7 @@ import (
     "fmt"
 
     "github.com/DaiYuANg/arcgo/dbx/sqltmplx"
-    "github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/postgres"
+    "github.com/DaiYuANg/arcgo/dbx/dialect/postgres"
     "github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate"
     _ "github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/postgresparser"
 )

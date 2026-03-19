@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/dbx/dialect/postgres"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx"
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/postgres"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate"
 	_ "github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/postgresparser"
 )

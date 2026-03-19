@@ -13,11 +13,11 @@ weight: 12
 ## 包结构
 
 - 核心渲染器：`github.com/DaiYuANg/arcgo/dbx/sqltmplx`
-- 方言契约：`github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect`
+- 方言契约：`github.com/DaiYuANg/arcgo/dbx/dialect`
 - 内置方言：
-  - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/mysql`
-  - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/postgres`
-  - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/sqlite`
+  - `github.com/DaiYuANg/arcgo/dbx/dialect/mysql`
+  - `github.com/DaiYuANg/arcgo/dbx/dialect/postgres`
+  - `github.com/DaiYuANg/arcgo/dbx/dialect/sqlite`
 - 校验器契约与注册中心：`github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate`
 - 可选 parser 校验后端：
   - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/mysqlparser`
@@ -46,7 +46,7 @@ import (
     "fmt"
 
     "github.com/DaiYuANg/arcgo/dbx/sqltmplx"
-    "github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/postgres"
+    "github.com/DaiYuANg/arcgo/dbx/dialect/postgres"
     "github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate"
     _ "github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/postgresparser"
 )

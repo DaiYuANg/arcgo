@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx"
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/sqlite"
 )
 
 type UpdateCommand struct {

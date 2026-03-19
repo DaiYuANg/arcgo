@@ -109,6 +109,71 @@ func TestQueryAllScansDTOProjection(t *testing.T) {
 	}
 }
 
+func TestQueryCursorAndEach(t *testing.T) {
+	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
+		Queries: []testsql.QueryPlan{
+			{
+				SQL:     `SELECT "users"."id", "users"."username" FROM "users"`,
+				Columns: []string{"id", "username"},
+				Rows: [][]driver.Value{
+					{int64(1), "alice"},
+					{int64(2), "bob"},
+				},
+			},
+			{
+				SQL:     `SELECT "users"."id", "users"."username" FROM "users"`,
+				Columns: []string{"id", "username"},
+				Rows: [][]driver.Value{
+					{int64(1), "alice"},
+					{int64(2), "bob"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("testsql.Open returned error: %v", err)
+	}
+	defer cleanup()
+
+	users := MustSchema("users", UserSchema{})
+	mapper := MustStructMapper[UserSummary]()
+	query := Select(users.ID, users.Username).From(users)
+	core := New(sqlDB, testSQLiteDialect{})
+
+	cursor, err := QueryCursor(context.Background(), core, query, mapper)
+	if err != nil {
+		t.Fatalf("QueryCursor returned error: %v", err)
+	}
+	defer cursor.Close()
+
+	var fromCursor []UserSummary
+	for cursor.Next() {
+		item, err := cursor.Get()
+		if err != nil {
+			t.Fatalf("cursor.Get returned error: %v", err)
+		}
+		fromCursor = append(fromCursor, item)
+	}
+	if err := cursor.Err(); err != nil {
+		t.Fatalf("cursor.Err returned error: %v", err)
+	}
+	if len(fromCursor) != 2 || fromCursor[0].Username != "alice" || fromCursor[1].ID != 2 {
+		t.Fatalf("unexpected cursor items: %+v", fromCursor)
+	}
+
+	var fromEach []UserSummary
+	QueryEach(context.Background(), core, query, mapper)(func(item UserSummary, err error) bool {
+		if err != nil {
+			t.Fatalf("QueryEach yielded error: %v", err)
+		}
+		fromEach = append(fromEach, item)
+		return true
+	})
+	if len(fromEach) != 2 || fromEach[0].Username != "alice" || fromEach[1].ID != 2 {
+		t.Fatalf("unexpected each items: %+v", fromEach)
+	}
+}
+
 func TestMapperBuildsAssignmentsAndPrimaryPredicate(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
 	mapper := MustMapper[User](users)

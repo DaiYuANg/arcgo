@@ -2,7 +2,10 @@ module github.com/DaiYuANg/arcgo/examples/dbx
 
 go 1.26.1
 
-require modernc.org/sqlite v1.47.0
+require (
+	github.com/samber/mo v1.16.0
+	modernc.org/sqlite v1.47.0
+)
 
 require (
 	github.com/dustin/go-humanize v1.0.1 // indirect

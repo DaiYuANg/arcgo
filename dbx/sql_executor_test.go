@@ -70,6 +70,32 @@ func TestSQLGetAndFind(t *testing.T) {
 		return BoundQuery{SQL: `SELECT "id", "username" FROM "users"`}, nil
 	})
 
+	t.Run("get returns single row", func(t *testing.T) {
+		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
+			Queries: []testsql.QueryPlan{
+				{
+					SQL:     `SELECT "id", "username" FROM "users"`,
+					Columns: []string{"id", "username"},
+					Rows: [][]driver.Value{
+						{int64(1), "alice"},
+					},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatalf("testsql.Open returned error: %v", err)
+		}
+		defer cleanup()
+
+		item, err := SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil, MustStructMapper[UserSummary]())
+		if err != nil {
+			t.Fatalf("SQLGet returned error: %v", err)
+		}
+		if item.ID != 1 || item.Username != "alice" {
+			t.Fatalf("unexpected item: %+v", item)
+		}
+	})
+
 	t.Run("get returns sql.ErrNoRows", func(t *testing.T) {
 		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
 			Queries: []testsql.QueryPlan{
@@ -112,6 +138,39 @@ func TestSQLGetAndFind(t *testing.T) {
 		}
 		if result.IsPresent() {
 			t.Fatalf("expected empty option, got %+v", result)
+		}
+	})
+
+	t.Run("find returns row", func(t *testing.T) {
+		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
+			Queries: []testsql.QueryPlan{
+				{
+					SQL:     `SELECT "id", "username" FROM "users"`,
+					Columns: []string{"id", "username"},
+					Rows: [][]driver.Value{
+						{int64(1), "alice"},
+					},
+				},
+			},
+		})
+		if err != nil {
+			t.Fatalf("testsql.Open returned error: %v", err)
+		}
+		defer cleanup()
+
+		result, err := SQLFind(context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil, MustStructMapper[UserSummary]())
+		if err != nil {
+			t.Fatalf("SQLFind returned error: %v", err)
+		}
+		if !result.IsPresent() {
+			t.Fatal("expected present option")
+		}
+		item, ok := result.Get()
+		if !ok {
+			t.Fatal("expected option value")
+		}
+		if item.ID != 1 || item.Username != "alice" {
+			t.Fatalf("unexpected item: %+v", item)
 		}
 	})
 
@@ -218,4 +277,71 @@ func TestSQLScalarAndScalarOption(t *testing.T) {
 			t.Fatalf("expected ErrTooManyRows, got %v", err)
 		}
 	})
+}
+
+func TestSQLCursorAndEach(t *testing.T) {
+	statement := NewSQLStatement("user.stream", func(_ any) (BoundQuery, error) {
+		return BoundQuery{SQL: `SELECT "id", "username" FROM "users"`}, nil
+	})
+
+	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
+		Queries: []testsql.QueryPlan{
+			{
+				SQL:     `SELECT "id", "username" FROM "users"`,
+				Columns: []string{"id", "username"},
+				Rows: [][]driver.Value{
+					{int64(1), "alice"},
+					{int64(2), "bob"},
+				},
+			},
+			{
+				SQL:     `SELECT "id", "username" FROM "users"`,
+				Columns: []string{"id", "username"},
+				Rows: [][]driver.Value{
+					{int64(1), "alice"},
+					{int64(2), "bob"},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("testsql.Open returned error: %v", err)
+	}
+	defer cleanup()
+
+	executor := New(sqlDB, testSQLiteDialect{}).SQL()
+	mapper := MustStructMapper[UserSummary]()
+
+	cursor, err := SQLCursor(context.Background(), executor, statement, nil, mapper)
+	if err != nil {
+		t.Fatalf("SQLCursor returned error: %v", err)
+	}
+	defer cursor.Close()
+
+	var fromCursor []UserSummary
+	for cursor.Next() {
+		item, err := cursor.Get()
+		if err != nil {
+			t.Fatalf("cursor.Get returned error: %v", err)
+		}
+		fromCursor = append(fromCursor, item)
+	}
+	if err := cursor.Err(); err != nil {
+		t.Fatalf("cursor.Err returned error: %v", err)
+	}
+	if len(fromCursor) != 2 || fromCursor[0].Username != "alice" || fromCursor[1].ID != 2 {
+		t.Fatalf("unexpected cursor items: %+v", fromCursor)
+	}
+
+	var fromEach []UserSummary
+	SQLEach(context.Background(), executor, statement, nil, mapper)(func(item UserSummary, err error) bool {
+		if err != nil {
+			t.Fatalf("SQLEach yielded error: %v", err)
+		}
+		fromEach = append(fromEach, item)
+		return true
+	})
+	if len(fromEach) != 2 || fromEach[0].Username != "alice" || fromEach[1].ID != 2 {
+		t.Fatalf("unexpected each items: %+v", fromEach)
+	}
 }

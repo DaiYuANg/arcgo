@@ -5,10 +5,15 @@ import (
 	"database/sql"
 
 	"github.com/samber/mo"
+	scanlib "github.com/stephenafamo/scan"
 )
 
 type SQLExecutor struct {
 	session Session
+}
+
+type oneRowScanner[E any] interface {
+	scanOneRows(ctx context.Context, rows *sql.Rows) (E, bool, error)
 }
 
 func (x *SQLExecutor) Bind(statement SQLStatementSource, params any) (BoundQuery, error) {
@@ -77,6 +82,24 @@ func SQLList[E any](ctx context.Context, executor *SQLExecutor, statement SQLSta
 }
 
 func SQLGet[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper RowsScanner[E]) (E, error) {
+	if mapper == nil {
+		var zero E
+		return zero, ErrNilMapper
+	}
+
+	if one, ok := mapper.(oneRowScanner[E]); ok {
+		value, found, err := scanStatementOne(ctx, executor, statement, params, one)
+		if err != nil {
+			var zero E
+			return zero, err
+		}
+		if !found {
+			var zero E
+			return zero, sql.ErrNoRows
+		}
+		return value, nil
+	}
+
 	items, err := SQLList(ctx, executor, statement, params, mapper)
 	if err != nil {
 		var zero E
@@ -96,6 +119,18 @@ func SQLGet[E any](ctx context.Context, executor *SQLExecutor, statement SQLStat
 }
 
 func SQLFind[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper RowsScanner[E]) (mo.Option[E], error) {
+	if mapper == nil {
+		return mo.None[E](), ErrNilMapper
+	}
+
+	if one, ok := mapper.(oneRowScanner[E]); ok {
+		value, found, err := scanStatementOne(ctx, executor, statement, params, one)
+		if err != nil {
+			return mo.None[E](), err
+		}
+		return mo.TupleToOption(value, found), nil
+	}
+
 	items, err := SQLList(ctx, executor, statement, params, mapper)
 	if err != nil {
 		return mo.None[E](), err
@@ -143,17 +178,12 @@ func sqlScalar[T any](ctx context.Context, executor *SQLExecutor, statement SQLS
 	}
 	defer rows.Close()
 
-	if !rows.Next() {
-		if err := rows.Err(); err != nil {
+	value, err := scanlib.OneFromRows[T](ctx, scanlib.SingleColumnMapper[T], rows)
+	if err != nil {
+		if err == sql.ErrNoRows {
 			var zero T
-			return zero, false, err
+			return zero, false, nil
 		}
-		var zero T
-		return zero, false, nil
-	}
-
-	var value T
-	if err := rows.Scan(&value); err != nil {
 		var zero T
 		return zero, false, err
 	}
@@ -168,6 +198,17 @@ func sqlScalar[T any](ctx context.Context, executor *SQLExecutor, statement SQLS
 	}
 
 	return value, true, nil
+}
+
+func scanStatementOne[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper oneRowScanner[E]) (E, bool, error) {
+	rows, err := queryStatementRows(ctx, executor, statement, params)
+	if err != nil {
+		var zero E
+		return zero, false, err
+	}
+	defer rows.Close()
+
+	return mapper.scanOneRows(ctx, rows)
 }
 
 func queryStatementRows(ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any) (*sql.Rows, error) {

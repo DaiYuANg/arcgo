@@ -180,6 +180,13 @@ func (p MigrationPlan) HasManualActions() bool {
 }
 
 func PlanSchemaChanges(ctx context.Context, session Session, schemas ...SchemaResource) (MigrationPlan, error) {
+	if plan, ok, err := planSchemaChangesWithAtlas(ctx, session, schemas...); ok || err != nil {
+		return plan, err
+	}
+	return planSchemaChangesLegacy(ctx, session, schemas...)
+}
+
+func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...SchemaResource) (MigrationPlan, error) {
 	schemaDialect, err := requireSchemaDialect(session)
 	if err != nil {
 		return MigrationPlan{}, err

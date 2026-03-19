@@ -91,13 +91,89 @@ func (q *SelectQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 	}
 
 	state := &renderState{dialect: d, args: make([]any, 0, 8)}
-	if err := renderSelectQuery(state, q); err != nil {
+	if err := renderSelectStatement(state, q); err != nil {
 		return BoundQuery{}, err
 	}
 	return state.BoundQuery(), nil
 }
 
+func renderSelectStatement(state *renderState, q *SelectQuery) error {
+	if err := renderCTEs(state, q.CTEs); err != nil {
+		return err
+	}
+	return renderSelectSet(state, q)
+}
+
+func renderSelectSet(state *renderState, q *SelectQuery) error {
+	if len(q.Unions) == 0 {
+		return renderSelectQuery(state, q)
+	}
+
+	if err := renderSelectQueryWithoutTail(state, q); err != nil {
+		return err
+	}
+	for _, union := range q.Unions {
+		if union.Query == nil {
+			return fmt.Errorf("dbx: union query is nil")
+		}
+		if union.All {
+			state.buf.WriteString(" UNION ALL ")
+		} else {
+			state.buf.WriteString(" UNION ")
+		}
+		if err := renderUnionQuery(state, union.Query); err != nil {
+			return err
+		}
+	}
+	return renderSelectTail(state, q)
+}
+
+func renderCTEs(state *renderState, ctes []CTE) error {
+	if len(ctes) == 0 {
+		return nil
+	}
+	state.buf.WriteString("WITH ")
+	for index, cte := range ctes {
+		if strings.TrimSpace(cte.Name) == "" {
+			return fmt.Errorf("dbx: cte name cannot be empty")
+		}
+		if cte.Query == nil {
+			return fmt.Errorf("dbx: cte %s requires query", cte.Name)
+		}
+		if index > 0 {
+			state.buf.WriteString(", ")
+		}
+		state.writeQuotedIdent(strings.TrimSpace(cte.Name))
+		state.buf.WriteString(" AS (")
+		if err := renderSelectStatement(state, cte.Query); err != nil {
+			return err
+		}
+		state.buf.WriteByte(')')
+	}
+	state.buf.WriteByte(' ')
+	return nil
+}
+
+func renderUnionQuery(state *renderState, q *SelectQuery) error {
+	if len(q.CTEs) > 0 || len(q.Unions) > 0 || len(q.Orders) > 0 || q.LimitN != nil || q.OffsetN != nil {
+		state.buf.WriteByte('(')
+		if err := renderSelectStatement(state, q); err != nil {
+			return err
+		}
+		state.buf.WriteByte(')')
+		return nil
+	}
+	return renderSelectQueryWithoutTail(state, q)
+}
+
 func renderSelectQuery(state *renderState, q *SelectQuery) error {
+	if err := renderSelectQueryWithoutTail(state, q); err != nil {
+		return err
+	}
+	return renderSelectTail(state, q)
+}
+
+func renderSelectQueryWithoutTail(state *renderState, q *SelectQuery) error {
 	state.buf.WriteString("SELECT ")
 	if q.Distinct {
 		state.buf.WriteString("DISTINCT ")
@@ -150,6 +226,10 @@ func renderSelectQuery(state *renderState, q *SelectQuery) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func renderSelectTail(state *renderState, q *SelectQuery) error {
 	if len(q.Orders) > 0 {
 		state.buf.WriteString(" ORDER BY ")
 		for i, order := range q.Orders {
@@ -438,7 +518,7 @@ func (p existsPredicate) renderPredicate(state *renderState) error {
 		return fmt.Errorf("dbx: EXISTS predicate requires subquery")
 	}
 	state.buf.WriteString("EXISTS (")
-	if err := renderSelectQuery(state, p.Query); err != nil {
+	if err := renderSelectStatement(state, p.Query); err != nil {
 		return err
 	}
 	state.buf.WriteByte(')')
@@ -525,6 +605,51 @@ func (a Aggregate[T]) renderSelectItem(state *renderState) error {
 	return nil
 }
 
+func (c CaseExpression[T]) renderOperand(state *renderState) (string, error) {
+	if len(c.Branches) == 0 {
+		return "", fmt.Errorf("dbx: CASE expression requires at least one WHEN branch")
+	}
+
+	var builder strings.Builder
+	builder.WriteString("CASE")
+	for _, branch := range c.Branches {
+		if branch.Predicate == nil {
+			return "", fmt.Errorf("dbx: CASE branch requires predicate")
+		}
+		builder.WriteString(" WHEN ")
+		predicateSQL, err := renderPredicateValue(state, branch.Predicate)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteString(predicateSQL)
+		builder.WriteString(" THEN ")
+		valueSQL, err := renderOperandValue(state, branch.Value)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteString(valueSQL)
+	}
+	if c.Else != nil {
+		builder.WriteString(" ELSE ")
+		elseSQL, err := renderOperandValue(state, c.Else)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteString(elseSQL)
+	}
+	builder.WriteString(" END")
+	return builder.String(), nil
+}
+
+func (c CaseExpression[T]) renderSelectItem(state *renderState) error {
+	operand, err := c.renderOperand(state)
+	if err != nil {
+		return err
+	}
+	state.buf.WriteString(operand)
+	return nil
+}
+
 func (o excludedColumnOperand[T]) renderOperand(state *renderState) (string, error) {
 	switch state.dialect.Name() {
 	case "postgres", "sqlite":
@@ -573,13 +698,26 @@ func (s subqueryOperand) renderOperand(state *renderState) (string, error) {
 	original := state.buf
 	var builder strings.Builder
 	state.buf = builder
-	if err := renderSelectQuery(state, s.Query); err != nil {
+	if err := renderSelectStatement(state, s.Query); err != nil {
 		state.buf = original
 		return "", err
 	}
 	rendered := state.buf.String()
 	state.buf = original
 	return "(" + rendered + ")", nil
+}
+
+func renderPredicateValue(state *renderState, predicate Predicate) (string, error) {
+	original := state.buf
+	var builder strings.Builder
+	state.buf = builder
+	if err := renderPredicate(state, predicate); err != nil {
+		state.buf = original
+		return "", err
+	}
+	rendered := state.buf.String()
+	state.buf = original
+	return rendered, nil
 }
 
 func renderOperandValue(state *renderState, value any) (string, error) {

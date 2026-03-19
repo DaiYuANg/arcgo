@@ -8,6 +8,16 @@ type Join struct {
 	Predicate Predicate
 }
 
+type CTE struct {
+	Name  string
+	Query *SelectQuery
+}
+
+type UnionClause struct {
+	All   bool
+	Query *SelectQuery
+}
+
 type SelectQuery struct {
 	Items     []SelectItem
 	FromItem  Table
@@ -19,6 +29,8 @@ type SelectQuery struct {
 	LimitN    *int
 	OffsetN   *int
 	Distinct  bool
+	CTEs      []CTE
+	Unions    []UnionClause
 }
 
 type InsertQuery struct {
@@ -73,6 +85,11 @@ func (q *SelectQuery) DistinctOn() *SelectQuery {
 	return q
 }
 
+func (q *SelectQuery) With(name string, query *SelectQuery) *SelectQuery {
+	q.CTEs = append(q.CTEs, CTE{Name: name, Query: query})
+	return q
+}
+
 func (q *SelectQuery) From(source TableSource) *SelectQuery {
 	q.FromItem = source.tableRef()
 	return q
@@ -105,6 +122,16 @@ func (q *SelectQuery) Limit(limit int) *SelectQuery {
 
 func (q *SelectQuery) Offset(offset int) *SelectQuery {
 	q.OffsetN = &offset
+	return q
+}
+
+func (q *SelectQuery) Union(query *SelectQuery) *SelectQuery {
+	q.Unions = append(q.Unions, UnionClause{Query: query})
+	return q
+}
+
+func (q *SelectQuery) UnionAll(query *SelectQuery) *SelectQuery {
+	q.Unions = append(q.Unions, UnionClause{All: true, Query: query})
 	return q
 }
 

@@ -359,3 +359,87 @@ func TestMutationBuildWithUnsupportedReturning(t *testing.T) {
 		t.Fatal("expected error for mysql returning, got nil")
 	}
 }
+
+func TestSelectBuildWithCTE(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+	activeUsers := NamedTable("active_users")
+	activeID := NamedColumn[int64](activeUsers, "id")
+	activeUsername := NamedColumn[string](activeUsers, "username")
+
+	query := Select(activeID, activeUsername).
+		With("active_users", Select(users.ID, users.Username).From(users).Where(users.Status.Eq(1))).
+		From(activeUsers).
+		OrderBy(activeID.Asc())
+
+	bound, err := query.Build(testPostgresDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `WITH "active_users" AS (SELECT "users"."id", "users"."username" FROM "users" WHERE "users"."status" = $1) SELECT "active_users"."id", "active_users"."username" FROM "active_users" ORDER BY "active_users"."id" ASC`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected cte sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args, []any{1}) {
+		t.Fatalf("unexpected cte args: %#v", bound.Args)
+	}
+}
+
+func TestSelectBuildWithUnionAllAndOuterOrder(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+	roles := MustSchema("roles", RoleSchema{})
+	label := ResultColumn[string]("label")
+
+	query := Select(users.Username.As("label")).
+		From(users).
+		Where(users.Status.Eq(1)).
+		UnionAll(
+			Select(roles.Name.As("label")).
+				From(roles),
+		).
+		OrderBy(label.Asc()).
+		Limit(5)
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "users"."username" AS "label" FROM "users" WHERE "users"."status" = ? UNION ALL SELECT "roles"."name" AS "label" FROM "roles" ORDER BY "label" ASC LIMIT 5`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected union sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args, []any{1}) {
+		t.Fatalf("unexpected union args: %#v", bound.Args)
+	}
+}
+
+func TestSelectBuildWithCaseWhen(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	statusLabel := CaseWhen[string](users.Status.Eq(1), "active").
+		When(users.Status.Eq(2), "blocked").
+		Else("unknown")
+
+	query := Select(
+		users.ID,
+		statusLabel.As("status_label"),
+	).
+		From(users).
+		Where(statusLabel.Ne("unknown")).
+		OrderBy(statusLabel.Asc())
+
+	bound, err := query.Build(testPostgresDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "users"."id", CASE WHEN "users"."status" = $1 THEN $2 WHEN "users"."status" = $3 THEN $4 ELSE $5 END AS "status_label" FROM "users" WHERE CASE WHEN "users"."status" = $6 THEN $7 WHEN "users"."status" = $8 THEN $9 ELSE $10 END <> $11 ORDER BY CASE WHEN "users"."status" = $12 THEN $13 WHEN "users"."status" = $14 THEN $15 ELSE $16 END ASC`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected case sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	expectedArgs := []any{1, "active", 2, "blocked", "unknown", 1, "active", 2, "blocked", "unknown", "unknown", 1, "active", 2, "blocked", "unknown"}
+	if !reflect.DeepEqual(bound.Args, expectedArgs) {
+		t.Fatalf("unexpected case args: %#v", bound.Args)
+	}
+}

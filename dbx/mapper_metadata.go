@@ -16,7 +16,7 @@ type mapperMetadata struct {
 	scanPlans          collectionx.ConcurrentMap[string, *scanPlan]
 }
 
-func buildMapperMetadata(entityType reflect.Type) (*mapperMetadata, error) {
+func buildMapperMetadata(entityType reflect.Type, codecs *codecRegistry) (*mapperMetadata, error) {
 	if entityType.Kind() != reflect.Struct {
 		return nil, ErrUnsupportedEntity
 	}
@@ -24,7 +24,7 @@ func buildMapperMetadata(entityType reflect.Type) (*mapperMetadata, error) {
 	fields := collectionx.NewListWithCapacity[MappedField](entityType.NumField())
 	byColumn := collectionx.NewMapWithCapacity[string, MappedField](entityType.NumField())
 	byNormalizedColumn := collectionx.NewMapWithCapacity[string, MappedField](entityType.NumField())
-	if err := collectMappedFields(entityType, nil, fields, byColumn, byNormalizedColumn); err != nil {
+	if err := collectMappedFields(entityType, nil, fields, byColumn, byNormalizedColumn, codecs); err != nil {
 		return nil, err
 	}
 
@@ -37,13 +37,13 @@ func buildMapperMetadata(entityType reflect.Type) (*mapperMetadata, error) {
 	}, nil
 }
 
-func resolveEntityColumn(field reflect.StructField) (string, map[string]bool) {
+func resolveEntityColumn(field reflect.StructField) (string, map[string]string) {
 	raw := strings.TrimSpace(field.Tag.Get("dbx"))
 	if raw == "-" {
 		return "", nil
 	}
 	if raw == "" {
-		return toSnakeCase(field.Name), map[string]bool{}
+		return toSnakeCase(field.Name), map[string]string{}
 	}
 
 	parts := strings.Split(raw, ",")
@@ -51,18 +51,18 @@ func resolveEntityColumn(field reflect.StructField) (string, map[string]bool) {
 	if name == "" {
 		name = toSnakeCase(field.Name)
 	}
-	options := make(map[string]bool, len(parts)-1)
+	options := make(map[string]string, len(parts)-1)
 	for _, option := range parts[1:] {
-		trimmed := strings.ToLower(strings.TrimSpace(option))
-		if trimmed == "" {
+		key, value := splitTagOption(option)
+		if key == "" {
 			continue
 		}
-		options[trimmed] = true
+		options[key] = value
 	}
 	return name, options
 }
 
-func collectMappedFields(entityType reflect.Type, prefix []int, fields collectionx.List[MappedField], byColumn collectionx.Map[string, MappedField], byNormalizedColumn collectionx.Map[string, MappedField]) error {
+func collectMappedFields(entityType reflect.Type, prefix []int, fields collectionx.List[MappedField], byColumn collectionx.Map[string, MappedField], byNormalizedColumn collectionx.Map[string, MappedField], codecs *codecRegistry) error {
 	for i := 0; i < entityType.NumField(); i++ {
 		field := entityType.Field(i)
 		if !field.IsExported() {
@@ -76,7 +76,7 @@ func collectMappedFields(entityType reflect.Type, prefix []int, fields collectio
 		path := appendIndexPath(prefix, i)
 		if field.Anonymous && rawTag == "" {
 			if embeddedType, ok := indirectStructType(field.Type); ok {
-				if err := collectMappedFields(embeddedType, path, fields, byColumn, byNormalizedColumn); err != nil {
+				if err := collectMappedFields(embeddedType, path, fields, byColumn, byNormalizedColumn, codecs); err != nil {
 					return err
 				}
 				continue
@@ -84,12 +84,12 @@ func collectMappedFields(entityType reflect.Type, prefix []int, fields collectio
 		}
 
 		columnName, options := resolveEntityColumn(field)
-		if options["inline"] {
+		if optionEnabled(options, "inline") {
 			embeddedType, ok := indirectStructType(field.Type)
 			if !ok {
 				return fmt.Errorf("dbx: inline field %s must be a struct or pointer to struct", field.Name)
 			}
-			if err := collectMappedFields(embeddedType, path, fields, byColumn, byNormalizedColumn); err != nil {
+			if err := collectMappedFields(embeddedType, path, fields, byColumn, byNormalizedColumn, codecs); err != nil {
 				return err
 			}
 			continue
@@ -98,14 +98,22 @@ func collectMappedFields(entityType reflect.Type, prefix []int, fields collectio
 			continue
 		}
 
+		codecName := normalizeCodecName(optionValue(options, "codec"))
+		codec, err := resolveMappedFieldCodec(codecs, codecName)
+		if err != nil {
+			return fmt.Errorf("dbx: field %s: %w", field.Name, err)
+		}
+
 		mapped := MappedField{
 			Name:       field.Name,
 			Column:     columnName,
+			Codec:      codecName,
 			Index:      path[0],
 			Path:       path,
 			Type:       field.Type,
-			Insertable: !options["readonly"] && !options["-insert"] && !options["noinsert"],
-			Updatable:  !options["readonly"] && !options["-update"] && !options["noupdate"],
+			Insertable: !optionEnabled(options, "readonly") && !optionEnabled(options, "-insert") && !optionEnabled(options, "noinsert"),
+			Updatable:  !optionEnabled(options, "readonly") && !optionEnabled(options, "-update") && !optionEnabled(options, "noupdate"),
+			codec:      codec,
 		}
 		fields.Add(mapped)
 		byColumn.Set(columnName, mapped)
@@ -115,4 +123,15 @@ func collectMappedFields(entityType reflect.Type, prefix []int, fields collectio
 		}
 	}
 	return nil
+}
+
+func resolveMappedFieldCodec(codecs *codecRegistry, name string) (Codec, error) {
+	if name == "" {
+		return nil, nil
+	}
+	codec, ok := codecs.get(name)
+	if !ok {
+		return nil, fmt.Errorf("%w: %s", ErrUnknownCodec, name)
+	}
+	return codec, nil
 }

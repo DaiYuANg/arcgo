@@ -43,10 +43,14 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate
 		if err != nil {
 			return nil, err
 		}
+		boundValue, err := boundFieldValue(field, fieldValue)
+		if err != nil {
+			return nil, err
+		}
 		return metadataComparisonPredicate{
 			left:  column,
 			op:    OpEq,
-			right: normalizeFieldValue(fieldValue),
+			right: boundValue,
 		}, nil
 	}
 
@@ -69,9 +73,13 @@ func (m Mapper[E]) entityAssignments(schema SchemaResource, entity *E, include f
 		if err != nil {
 			return nil, err
 		}
+		boundValue, err := boundFieldValue(field, fieldValue)
+		if err != nil {
+			return nil, err
+		}
 		assignments.Add(metadataAssignment{
 			meta:  column,
-			value: normalizeFieldValue(fieldValue),
+			value: boundValue,
 		})
 	}
 

@@ -61,7 +61,11 @@ func entityRelationKey[E any](mapper Mapper[E], entity *E, column string) (relat
 	if err != nil {
 		return relationLookupValue{}, err
 	}
-	return normalizeRelationLookupValue(normalizeFieldValue(fieldValue))
+	boundValue, err := boundFieldValue(field, fieldValue)
+	if err != nil {
+		return relationLookupValue{}, err
+	}
+	return normalizeRelationLookupValue(boundValue)
 }
 
 func normalizeRelationLookupValue(value any) (relationLookupValue, error) {

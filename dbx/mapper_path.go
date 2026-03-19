@@ -83,3 +83,10 @@ func normalizeFieldValue(value reflect.Value) any {
 	}
 	return value.Interface()
 }
+
+func boundFieldValue(field MappedField, value reflect.Value) (any, error) {
+	if field.codec == nil {
+		return normalizeFieldValue(value), nil
+	}
+	return field.codec.Encode(value)
+}

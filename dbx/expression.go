@@ -69,6 +69,11 @@ const (
 	AggMax   AggregateFunction = "MAX"
 )
 
+type caseWhenBranch struct {
+	Predicate Predicate
+	Value     any
+}
+
 type valueOperand[T any] struct {
 	Value T
 }
@@ -140,9 +145,20 @@ type Aggregate[T any] struct {
 	star     bool
 }
 
+type CaseBuilder[T any] struct {
+	branches []caseWhenBranch
+}
+
+type CaseExpression[T any] struct {
+	Branches []caseWhenBranch
+	Else     any
+}
+
 func (excludedColumnOperand[T]) expressionNode() {}
 func (Aggregate[T]) expressionNode()             {}
 func (Aggregate[T]) selectItemNode()             {}
+func (CaseExpression[T]) expressionNode()        {}
+func (CaseExpression[T]) selectItemNode()        {}
 
 type aliasedSelectItem struct {
 	Item  SelectItem
@@ -183,6 +199,10 @@ func Exists(query *SelectQuery) Predicate {
 	return existsPredicate{Query: query}
 }
 
+func CaseWhen[T any](predicate Predicate, value any) *CaseBuilder[T] {
+	return (&CaseBuilder[T]{}).When(predicate, value)
+}
+
 func CountAll() Aggregate[int64] {
 	return Aggregate[int64]{Function: AggCount, star: true}
 }
@@ -211,8 +231,39 @@ func Max[E any, T any](expr Column[E, T]) Aggregate[T] {
 	return Aggregate[T]{Function: AggMax, Expr: expr}
 }
 
+func (b *CaseBuilder[T]) When(predicate Predicate, value any) *CaseBuilder[T] {
+	if b == nil {
+		b = &CaseBuilder[T]{}
+	}
+	b.branches = append(b.branches, caseWhenBranch{Predicate: predicate, Value: value})
+	return b
+}
+
+func (b *CaseBuilder[T]) Else(value any) CaseExpression[T] {
+	if b == nil {
+		return CaseExpression[T]{Else: value}
+	}
+	return CaseExpression[T]{
+		Branches: append([]caseWhenBranch(nil), b.branches...),
+		Else:     value,
+	}
+}
+
+func (b *CaseBuilder[T]) End() CaseExpression[T] {
+	if b == nil {
+		return CaseExpression[T]{}
+	}
+	return CaseExpression[T]{
+		Branches: append([]caseWhenBranch(nil), b.branches...),
+	}
+}
+
 func (a Aggregate[T]) As(alias string) SelectItem {
 	return aliasedSelectItem{Item: a, Alias: alias}
+}
+
+func (c CaseExpression[T]) As(alias string) SelectItem {
+	return aliasedSelectItem{Item: c, Alias: alias}
 }
 
 func (a Aggregate[T]) Eq(value T) Predicate {
@@ -269,6 +320,62 @@ func (a Aggregate[T]) Asc() Order {
 
 func (a Aggregate[T]) Desc() Order {
 	return expressionOrder{Expr: a, Descending: true}
+}
+
+func (c CaseExpression[T]) Eq(value T) Predicate {
+	return comparisonPredicate{
+		Left:  c,
+		Op:    OpEq,
+		Right: valueOperand[T]{Value: value},
+	}
+}
+
+func (c CaseExpression[T]) Ne(value T) Predicate {
+	return comparisonPredicate{
+		Left:  c,
+		Op:    OpNe,
+		Right: valueOperand[T]{Value: value},
+	}
+}
+
+func (c CaseExpression[T]) Gt(value T) Predicate {
+	return comparisonPredicate{
+		Left:  c,
+		Op:    OpGt,
+		Right: valueOperand[T]{Value: value},
+	}
+}
+
+func (c CaseExpression[T]) Ge(value T) Predicate {
+	return comparisonPredicate{
+		Left:  c,
+		Op:    OpGe,
+		Right: valueOperand[T]{Value: value},
+	}
+}
+
+func (c CaseExpression[T]) Lt(value T) Predicate {
+	return comparisonPredicate{
+		Left:  c,
+		Op:    OpLt,
+		Right: valueOperand[T]{Value: value},
+	}
+}
+
+func (c CaseExpression[T]) Le(value T) Predicate {
+	return comparisonPredicate{
+		Left:  c,
+		Op:    OpLe,
+		Right: valueOperand[T]{Value: value},
+	}
+}
+
+func (c CaseExpression[T]) Asc() Order {
+	return expressionOrder{Expr: c}
+}
+
+func (c CaseExpression[T]) Desc() Order {
+	return expressionOrder{Expr: c, Descending: true}
 }
 
 func compactPredicates(predicates []Predicate) []Predicate {

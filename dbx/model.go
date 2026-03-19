@@ -25,15 +25,25 @@ type Mapper[E any] struct {
 type MappedField struct {
 	Name       string
 	Column     string
+	Codec      string
 	Index      int
 	Path       []int
 	Type       reflect.Type
 	Insertable bool
 	Updatable  bool
+	codec      Codec
 }
 
 func NewStructMapper[E any]() (StructMapper[E], error) {
-	meta, err := getOrBuildStructMapperMetadata[E]()
+	return NewStructMapperWithOptions[E]()
+}
+
+func NewStructMapperWithOptions[E any](opts ...MapperOption) (StructMapper[E], error) {
+	config, err := applyMapperOptions(opts...)
+	if err != nil {
+		return StructMapper[E]{}, err
+	}
+	meta, err := getOrBuildMapperMetadata[E](config.runtime)
 	if err != nil {
 		return StructMapper[E]{}, err
 	}
@@ -42,6 +52,14 @@ func NewStructMapper[E any]() (StructMapper[E], error) {
 
 func MustStructMapper[E any]() StructMapper[E] {
 	mapper, err := NewStructMapper[E]()
+	if err != nil {
+		panic(err)
+	}
+	return mapper
+}
+
+func MustStructMapperWithOptions[E any](opts ...MapperOption) StructMapper[E] {
+	mapper, err := NewStructMapperWithOptions[E](opts...)
 	if err != nil {
 		panic(err)
 	}
@@ -57,7 +75,19 @@ func MustMapper[E any](schema SchemaResource) Mapper[E] {
 }
 
 func NewMapper[E any](schema SchemaResource) (Mapper[E], error) {
-	structMapper, err := NewStructMapper[E]()
+	return NewMapperWithOptions[E](schema)
+}
+
+func MustMapperWithOptions[E any](schema SchemaResource, opts ...MapperOption) Mapper[E] {
+	mapper, err := NewMapperWithOptions[E](schema, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return mapper
+}
+
+func NewMapperWithOptions[E any](schema SchemaResource, opts ...MapperOption) (Mapper[E], error) {
+	structMapper, err := NewStructMapperWithOptions[E](opts...)
 	if err != nil {
 		return Mapper[E]{}, err
 	}

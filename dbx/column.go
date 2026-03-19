@@ -2,6 +2,7 @@ package dbx
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/samber/lo"
 )
@@ -78,6 +79,27 @@ func NewColumn[E any, T any](opts ...ColumnOption[E, T]) Column[E, T] {
 		}
 	}
 	return column
+}
+
+func NamedColumn[T any](source TableSource, name string) Column[struct{}, T] {
+	table := source.tableRef()
+	return Column[struct{}, T]{
+		meta: ColumnMeta{
+			Name:   strings.TrimSpace(name),
+			Table:  table.Name(),
+			Alias:  table.Alias(),
+			GoType: reflect.TypeFor[T](),
+		},
+	}
+}
+
+func ResultColumn[T any](name string) Column[struct{}, T] {
+	return Column[struct{}, T]{
+		meta: ColumnMeta{
+			Name:   strings.TrimSpace(name),
+			GoType: reflect.TypeFor[T](),
+		},
+	}
 }
 
 func PrimaryKeyColumn[E any, T any]() ColumnOption[E, T] {

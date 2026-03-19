@@ -191,6 +191,14 @@ func (t Table) tableRef() Table {
 	return t
 }
 
+func NamedTable(name string) Table {
+	trimmed := strings.TrimSpace(name)
+	if trimmed == "" {
+		panic("dbx: named table cannot be empty")
+	}
+	return Table{def: tableDefinition{name: trimmed}}
+}
+
 func bindSchema[S any](name, alias string, schema S) (S, error) {
 	value := reflect.ValueOf(&schema).Elem()
 	if value.Kind() != reflect.Struct {

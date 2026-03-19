@@ -67,11 +67,16 @@ func (m StructMapper[E]) scanPlan(columns []string) (*scanPlan, error) {
 func (m StructMapper[E]) scanCurrentRow(rows *sql.Rows, plan *scanPlan) (E, error) {
 	value := reflect.New(m.meta.entityType).Elem()
 	destinations := make([]any, len(plan.fields))
+	codecSources := make([]any, len(plan.fields))
 	for i, field := range plan.fields {
 		fieldValue, err := ensureFieldValue(value, field)
 		if err != nil {
 			var zero E
 			return zero, err
+		}
+		if field.codec != nil {
+			destinations[i] = &codecSources[i]
+			continue
 		}
 		destinations[i] = fieldValue.Addr().Interface()
 	}
@@ -79,6 +84,20 @@ func (m StructMapper[E]) scanCurrentRow(rows *sql.Rows, plan *scanPlan) (E, erro
 	if err := rows.Scan(destinations...); err != nil {
 		var zero E
 		return zero, err
+	}
+	for i, field := range plan.fields {
+		if field.codec == nil {
+			continue
+		}
+		fieldValue, err := ensureFieldValue(value, field)
+		if err != nil {
+			var zero E
+			return zero, err
+		}
+		if err := field.codec.Decode(codecSources[i], fieldValue); err != nil {
+			var zero E
+			return zero, err
+		}
 	}
 	return value.Interface().(E), nil
 }

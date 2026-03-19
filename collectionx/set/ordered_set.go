@@ -137,8 +137,17 @@ func (s *OrderedSet[T]) Clone() *OrderedSet[T] {
 		return NewOrderedSet[T]()
 	}
 	out := NewOrderedSetWithCapacity[T](s.order.Len())
-	out.order.Add(s.order.Values()...)
-	out.items.SetAll(s.items.All())
-	out.index.SetAll(s.index.All())
+	s.order.Range(func(_ int, item T) bool {
+		out.order.Add(item)
+		return true
+	})
+	s.items.Range(func(item T, _ struct{}) bool {
+		out.items.Set(item, struct{}{})
+		return true
+	})
+	s.index.Range(func(item T, index int) bool {
+		out.index.Set(item, index)
+		return true
+	})
 	return out
 }

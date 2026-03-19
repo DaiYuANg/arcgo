@@ -27,21 +27,26 @@ func TestMultiMap_BasicOps(t *testing.T) {
 	require.False(t, m.ContainsKey("a"))
 }
 
-func TestMultiMap_CopyAndOption(t *testing.T) {
+func TestMultiMap_ViewStaysStableAfterWriteAndCopy(t *testing.T) {
 	t.Parallel()
 
 	m := NewMultiMap[string, int]()
 	m.PutAll("k", 1, 2)
 
-	values := m.Get("k")
-	values[0] = 99
-	require.Equal(t, []int{1, 2}, m.Get("k"))
+	view := m.Get("k")
+	m.Put("k", 3)
+	require.Equal(t, []int{1, 2}, view)
+	require.Equal(t, []int{1, 2, 3}, m.Get("k"))
+
+	copyValues := m.GetCopy("k")
+	copyValues[0] = 99
+	require.Equal(t, []int{1, 2, 3}, m.Get("k"))
 
 	opt := m.GetOption("k")
 	require.True(t, opt.IsPresent())
 	got, ok := opt.Get()
 	require.True(t, ok)
-	require.Equal(t, []int{1, 2}, got)
+	require.Equal(t, []int{1, 2, 3}, got)
 
 	require.True(t, m.GetOption("missing").IsAbsent())
 }

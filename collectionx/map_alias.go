@@ -125,6 +125,7 @@ func NewOrderedMapWithCapacity[K comparable, V any](capacity int) OrderedMap[K, 
 
 type multiMapReadable[K comparable, V any] interface {
 	Get(key K) []V
+	GetCopy(key K) []V
 	GetOption(key K) mo.Option[[]V]
 	ContainsKey(key K) bool
 	sized

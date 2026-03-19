@@ -53,7 +53,8 @@ func (m *ConcurrentMultiMap[K, V]) Set(key K, values ...V) {
 	m.core.Set(key, values...)
 }
 
-// Get returns a copy of values for key.
+// Get returns a read-only slice view for key.
+// Callers must not modify the returned slice.
 func (m *ConcurrentMultiMap[K, V]) Get(key K) []V {
 	if m == nil {
 		return nil
@@ -64,6 +65,19 @@ func (m *ConcurrentMultiMap[K, V]) Get(key K) []V {
 		return nil
 	}
 	return m.core.Get(key)
+}
+
+// GetCopy returns an owned copy of values for key.
+func (m *ConcurrentMultiMap[K, V]) GetCopy(key K) []V {
+	if m == nil {
+		return nil
+	}
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if m.core == nil {
+		return nil
+	}
+	return m.core.GetCopy(key)
 }
 
 // GetOption returns values for key as mo.Option.

@@ -2,18 +2,24 @@ package tree
 
 // Clone returns a deep copy preserving parent-children structure.
 func (t *Tree[K, V]) Clone() *Tree[K, V] {
-	cloned := NewTree[K, V]()
 	if t == nil || t.nodes == nil || t.nodes.IsEmpty() {
-		return cloned
+		return NewTree[K, V]()
 	}
+
+	rootCount := 0
+	if t.roots != nil {
+		rootCount = t.roots.Len()
+	}
+	cloned := newTreeWithCapacity[K, V](t.nodes.Len(), rootCount)
 
 	type pair struct {
 		source *Node[K, V]
 		target *Node[K, V]
 	}
 
-	stack := make([]pair, 0)
-	for _, root := range t.Roots() {
+	stack := make([]pair, 0, rootCount)
+	for i := 0; i < rootCount; i++ {
+		root, _ := t.roots.Get(i)
 		rootClone := newNode(root.ID(), root.Value())
 		cloned.roots.Add(rootClone)
 		cloned.nodes.Set(rootClone.ID(), rootClone)
@@ -24,7 +30,8 @@ func (t *Tree[K, V]) Clone() *Tree[K, V] {
 		current := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		for _, sourceChild := range current.source.Children() {
+		for i := 0; i < current.source.children.Len(); i++ {
+			sourceChild, _ := current.source.children.Get(i)
 			targetChild := newNode(sourceChild.ID(), sourceChild.Value())
 			targetChild.parent = current.target
 			current.target.children.Add(targetChild)
@@ -52,7 +59,8 @@ func cloneSubtreeDetached[K comparable, V any](root *Node[K, V]) *Node[K, V] {
 		current := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		for _, sourceChild := range current.source.Children() {
+		for i := 0; i < current.source.children.Len(); i++ {
+			sourceChild, _ := current.source.children.Get(i)
 			targetChild := newNode(sourceChild.ID(), sourceChild.Value())
 			targetChild.parent = current.target
 			current.target.children.Add(targetChild)

@@ -61,7 +61,16 @@ func (t *ConcurrentTree[K, V]) Children(id K) []*Node[K, V] {
 	if !ok {
 		return nil
 	}
-	return cloneSubtreeDetached(node).Children()
+	if node.children.Len() == 0 {
+		return nil
+	}
+
+	out := make([]*Node[K, V], 0, node.children.Len())
+	for i := 0; i < node.children.Len(); i++ {
+		child, _ := node.children.Get(i)
+		out = append(out, cloneSubtreeDetached(child))
+	}
+	return out
 }
 
 // Roots returns root nodes snapshot.
@@ -74,12 +83,12 @@ func (t *ConcurrentTree[K, V]) Roots() []*Node[K, V] {
 	if t.tree == nil {
 		return nil
 	}
-	roots := t.tree.Roots()
-	if len(roots) == 0 {
+	if t.tree.roots == nil || t.tree.roots.Len() == 0 {
 		return nil
 	}
-	out := make([]*Node[K, V], 0, len(roots))
-	for _, root := range roots {
+	out := make([]*Node[K, V], 0, t.tree.roots.Len())
+	for i := 0; i < t.tree.roots.Len(); i++ {
+		root, _ := t.tree.roots.Get(i)
 		out = append(out, cloneSubtreeDetached(root))
 	}
 	return out
@@ -153,9 +162,13 @@ func (t *ConcurrentTree[K, V]) RangeDFS(fn func(node *Node[K, V]) bool) {
 		t.mu.RUnlock()
 		return
 	}
-	roots := t.tree.Roots()
-	clonedRoots := make([]*Node[K, V], 0, len(roots))
-	for _, root := range roots {
+	rootCount := 0
+	if t.tree.roots != nil {
+		rootCount = t.tree.roots.Len()
+	}
+	clonedRoots := make([]*Node[K, V], 0, rootCount)
+	for i := 0; i < rootCount; i++ {
+		root, _ := t.tree.roots.Get(i)
 		clonedRoots = append(clonedRoots, cloneSubtreeDetached(root))
 	}
 	t.mu.RUnlock()
@@ -169,9 +182,9 @@ func (t *ConcurrentTree[K, V]) RangeDFS(fn func(node *Node[K, V]) bool) {
 				return
 			}
 
-			children := current.Children()
-			for i := len(children) - 1; i >= 0; i-- {
-				stack = append(stack, children[i])
+			for i := current.children.Len() - 1; i >= 0; i-- {
+				child, _ := current.children.Get(i)
+				stack = append(stack, child)
 			}
 		}
 	}
@@ -200,15 +213,15 @@ func descendantsFromRoot[K comparable, V any](root *Node[K, V]) []*Node[K, V] {
 		return nil
 	}
 
-	children := root.Children()
-	if len(children) == 0 {
+	if root.children.Len() == 0 {
 		return nil
 	}
 
-	out := make([]*Node[K, V], 0)
-	stack := make([]*Node[K, V], 0, len(children))
-	for i := len(children) - 1; i >= 0; i-- {
-		stack = append(stack, children[i])
+	out := make([]*Node[K, V], 0, root.children.Len())
+	stack := make([]*Node[K, V], 0, root.children.Len())
+	for i := root.children.Len() - 1; i >= 0; i-- {
+		child, _ := root.children.Get(i)
+		stack = append(stack, child)
 	}
 
 	for len(stack) > 0 {
@@ -216,9 +229,9 @@ func descendantsFromRoot[K comparable, V any](root *Node[K, V]) []*Node[K, V] {
 		stack = stack[:len(stack)-1]
 		out = append(out, current)
 
-		currentChildren := current.Children()
-		for i := len(currentChildren) - 1; i >= 0; i-- {
-			stack = append(stack, currentChildren[i])
+		for i := current.children.Len() - 1; i >= 0; i-- {
+			child, _ := current.children.Get(i)
+			stack = append(stack, child)
 		}
 	}
 

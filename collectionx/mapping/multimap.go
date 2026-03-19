@@ -41,8 +41,10 @@ func (m *MultiMap[K, V]) PutAll(key K, values ...V) {
 	m.ensureInit()
 
 	current, _ := m.items.Get(key)
-	current = append(current, values...)
-	m.items.Set(key, current)
+	next := make([]V, len(current)+len(values))
+	copy(next, current)
+	copy(next[len(current):], values)
+	m.items.Set(key, next)
 	m.valueCount += len(values)
 }
 
@@ -65,13 +67,23 @@ func (m *MultiMap[K, V]) Set(key K, values ...V) {
 	m.valueCount += len(values) - oldCount
 }
 
-// Get returns a copy of values for key.
+// Get returns a read-only slice view for key.
+// Callers must not modify the returned slice.
 func (m *MultiMap[K, V]) Get(key K) []V {
 	if m == nil {
 		return nil
 	}
 	values, ok := m.items.Get(key)
 	if !ok || len(values) == 0 {
+		return nil
+	}
+	return values
+}
+
+// GetCopy returns an owned copy of values for key.
+func (m *MultiMap[K, V]) GetCopy(key K) []V {
+	values := m.Get(key)
+	if len(values) == 0 {
 		return nil
 	}
 	return slices.Clone(values)
@@ -110,28 +122,23 @@ func (m *MultiMap[K, V]) DeleteValueIf(key K, predicate func(value V) bool) int 
 		return 0
 	}
 
-	write := 0
+	next := make([]V, 0, len(values))
 	for _, value := range values {
 		if predicate(value) {
 			continue
 		}
-		values[write] = value
-		write++
+		next = append(next, value)
 	}
 
-	removed := len(values) - write
+	removed := len(values) - len(next)
 	if removed == 0 {
 		return 0
 	}
 
-	if write == 0 {
+	if len(next) == 0 {
 		m.items.Delete(key)
 	} else {
-		var zero V
-		for i := write; i < len(values); i++ {
-			values[i] = zero
-		}
-		m.items.Set(key, values[:write])
+		m.items.Set(key, next)
 	}
 	m.valueCount -= removed
 	return removed

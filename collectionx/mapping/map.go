@@ -1,7 +1,6 @@
 package mapping
 
 import (
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -48,7 +47,9 @@ func (m *Map[K, V]) SetAll(source map[K]V) {
 		return
 	}
 	m.ensureInit()
-	m.items = lo.Assign(m.items, source)
+	for key, value := range source {
+		m.items[key] = value
+	}
 }
 
 // Get returns the value for key.
@@ -117,7 +118,11 @@ func (m *Map[K, V]) Keys() []K {
 	if m == nil || len(m.items) == 0 {
 		return nil
 	}
-	return lo.Keys(m.items)
+	keys := make([]K, 0, len(m.items))
+	for key := range m.items {
+		keys = append(keys, key)
+	}
+	return keys
 }
 
 // Values returns all values.
@@ -125,7 +130,11 @@ func (m *Map[K, V]) Values() []V {
 	if m == nil || len(m.items) == 0 {
 		return nil
 	}
-	return lo.Values(m.items)
+	values := make([]V, 0, len(m.items))
+	for _, value := range m.items {
+		values = append(values, value)
+	}
+	return values
 }
 
 // All returns a copied built-in map.
@@ -133,7 +142,11 @@ func (m *Map[K, V]) All() map[K]V {
 	if m == nil || len(m.items) == 0 {
 		return map[K]V{}
 	}
-	return lo.Assign(map[K]V{}, m.items)
+	out := make(map[K]V, len(m.items))
+	for key, value := range m.items {
+		out[key] = value
+	}
+	return out
 }
 
 // Range iterates all entries until fn returns false.
@@ -150,7 +163,15 @@ func (m *Map[K, V]) Range(fn func(key K, value V) bool) {
 
 // Clone returns a shallow copy.
 func (m *Map[K, V]) Clone() *Map[K, V] {
-	return NewMapFrom(m.All())
+	if m == nil || len(m.items) == 0 {
+		return NewMap[K, V]()
+	}
+
+	out := NewMapWithCapacity[K, V](len(m.items))
+	for key, value := range m.items {
+		out.items[key] = value
+	}
+	return out
 }
 
 func (m *Map[K, V]) ensureInit() {

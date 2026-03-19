@@ -1,7 +1,5 @@
 package tree
 
-import collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
-
 // Get returns node by id.
 func (t *Tree[K, V]) Get(id K) (*Node[K, V], bool) {
 	if t == nil || t.nodes == nil {
@@ -49,11 +47,19 @@ func (t *Tree[K, V]) Ancestors(id K) []*Node[K, V] {
 		return nil
 	}
 
-	ancestors := collectionlist.NewList[*Node[K, V]]()
+	depth := 0
 	for current := node.parent; current != nil; current = current.parent {
-		ancestors.Add(current)
+		depth++
 	}
-	return ancestors.Values()
+	if depth == 0 {
+		return nil
+	}
+
+	ancestors := make([]*Node[K, V], 0, depth)
+	for current := node.parent; current != nil; current = current.parent {
+		ancestors = append(ancestors, current)
+	}
+	return ancestors
 }
 
 // Descendants returns all descendants in DFS pre-order.
@@ -63,38 +69,39 @@ func (t *Tree[K, V]) Descendants(id K) []*Node[K, V] {
 		return nil
 	}
 
-	children := node.Children()
-	if len(children) == 0 {
+	if node.children.Len() == 0 {
 		return nil
 	}
 
-	descendants := collectionlist.NewList[*Node[K, V]]()
-	stack := make([]*Node[K, V], 0, len(children))
-	for i := len(children) - 1; i >= 0; i-- {
-		stack = append(stack, children[i])
+	descendants := make([]*Node[K, V], 0, node.children.Len())
+	stack := make([]*Node[K, V], 0, node.children.Len())
+	for i := node.children.Len() - 1; i >= 0; i-- {
+		child, _ := node.children.Get(i)
+		stack = append(stack, child)
 	}
 
 	for len(stack) > 0 {
 		current := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
-		descendants.Add(current)
+		descendants = append(descendants, current)
 
-		currentChildren := current.Children()
-		for i := len(currentChildren) - 1; i >= 0; i-- {
-			stack = append(stack, currentChildren[i])
+		for i := current.children.Len() - 1; i >= 0; i-- {
+			child, _ := current.children.Get(i)
+			stack = append(stack, child)
 		}
 	}
 
-	return descendants.Values()
+	return descendants
 }
 
 // RangeDFS iterates all nodes in DFS pre-order until fn returns false.
 func (t *Tree[K, V]) RangeDFS(fn func(node *Node[K, V]) bool) {
-	if t == nil || fn == nil {
+	if t == nil || fn == nil || t.roots == nil {
 		return
 	}
 
-	for _, root := range t.Roots() {
+	for i := 0; i < t.roots.Len(); i++ {
+		root, _ := t.roots.Get(i)
 		stack := []*Node[K, V]{root}
 		for len(stack) > 0 {
 			current := stack[len(stack)-1]
@@ -103,9 +110,9 @@ func (t *Tree[K, V]) RangeDFS(fn func(node *Node[K, V]) bool) {
 				return
 			}
 
-			children := current.Children()
-			for i := len(children) - 1; i >= 0; i-- {
-				stack = append(stack, children[i])
+			for i := current.children.Len() - 1; i >= 0; i-- {
+				child, _ := current.children.Get(i)
+				stack = append(stack, child)
 			}
 		}
 	}

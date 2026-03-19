@@ -155,9 +155,9 @@ func (t *Tree[K, V]) removeSubtree(node *Node[K, V]) {
 
 		if !item.visited {
 			stack = append(stack, stackItem{node: item.node, visited: true})
-			children := item.node.Children()
-			for i := len(children) - 1; i >= 0; i-- {
-				stack = append(stack, stackItem{node: children[i]})
+			for i := item.node.children.Len() - 1; i >= 0; i-- {
+				child, _ := item.node.children.Get(i)
+				stack = append(stack, stackItem{node: child})
 			}
 			continue
 		}
@@ -170,8 +170,7 @@ func (t *Tree[K, V]) removeSubtree(node *Node[K, V]) {
 
 func newNode[K comparable, V any](id K, value V) *Node[K, V] {
 	return &Node[K, V]{
-		id:       id,
-		value:    value,
-		children: collectionlist.NewList[*Node[K, V]](),
+		id:    id,
+		value: value,
 	}
 }

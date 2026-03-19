@@ -1,7 +1,6 @@
 package mapping
 
 import (
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -68,7 +67,11 @@ func (t *Table[R, C, V]) SetRow(rowKey R, rowValues map[C]V) {
 		t.size -= oldSize
 		return
 	}
-	t.data.Set(rowKey, lo.Assign(map[C]V{}, rowValues))
+	rowCopy := make(map[C]V, len(rowValues))
+	for columnKey, value := range rowValues {
+		rowCopy[columnKey] = value
+	}
+	t.data.Set(rowKey, rowCopy)
 	t.size += len(rowValues) - oldSize
 }
 
@@ -81,7 +84,11 @@ func (t *Table[R, C, V]) Row(rowKey R) map[C]V {
 	if !ok || len(row) == 0 {
 		return map[C]V{}
 	}
-	return lo.Assign(map[C]V{}, row)
+	out := make(map[C]V, len(row))
+	for columnKey, value := range row {
+		out[columnKey] = value
+	}
+	return out
 }
 
 // Column returns one column as a copied map[row]value.
@@ -214,7 +221,11 @@ func (t *Table[R, C, V]) ColumnKeys() []C {
 		}
 		return true
 	})
-	return lo.Keys(set)
+	out := make([]C, 0, len(set))
+	for columnKey := range set {
+		out = append(out, columnKey)
+	}
+	return out
 }
 
 // All returns a deep-copied built-in map.
@@ -224,7 +235,11 @@ func (t *Table[R, C, V]) All() map[R]map[C]V {
 	}
 	out := make(map[R]map[C]V, t.data.Len())
 	t.data.Range(func(rowKey R, row map[C]V) bool {
-		out[rowKey] = lo.Assign(map[C]V{}, row)
+		rowCopy := make(map[C]V, len(row))
+		for columnKey, value := range row {
+			rowCopy[columnKey] = value
+		}
+		out[rowKey] = rowCopy
 		return true
 	})
 	return out

@@ -79,6 +79,7 @@ fmt.Println(om.Values()) // [9 2]
 mm := mapping.NewMultiMap[string, int]()
 mm.PutAll("tag", 1, 2, 3)
 fmt.Println(mm.Get("tag"))        // [1 2 3]
+owned := mm.GetCopy("tag")        // 如果需要修改结果，请改用 GetCopy
 fmt.Println(mm.ValueCount())       // 3
 removed := mm.DeleteValueIf("tag", func(v int) bool { return v%2 == 0 })
 fmt.Println(removed, mm.Get("tag")) // 1 [1 3]

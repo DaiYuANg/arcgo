@@ -2,7 +2,6 @@ package mapping
 
 import (
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -141,10 +140,13 @@ func (m *OrderedMap[K, V]) Values() []V {
 	if m == nil || m.order.Len() == 0 {
 		return nil
 	}
-	return lo.Map(m.order.Values(), func(key K, _ int) V {
+	values := make([]V, 0, m.order.Len())
+	m.order.Range(func(_ int, key K) bool {
 		value, _ := m.items.Get(key)
-		return value
+		values = append(values, value)
+		return true
 	})
+	return values
 }
 
 // All returns copied unordered built-in map.
@@ -172,9 +174,18 @@ func (m *OrderedMap[K, V]) Clone() *OrderedMap[K, V] {
 		return NewOrderedMap[K, V]()
 	}
 	out := NewOrderedMapWithCapacity[K, V](m.order.Len())
-	out.order.Add(m.order.Values()...)
-	out.items.SetAll(m.items.All())
-	out.index.SetAll(m.index.All())
+	m.order.Range(func(_ int, key K) bool {
+		out.order.Add(key)
+		return true
+	})
+	m.items.Range(func(key K, value V) bool {
+		out.items.Set(key, value)
+		return true
+	})
+	m.index.Range(func(key K, value int) bool {
+		out.index.Set(key, value)
+		return true
+	})
 	return out
 }
 

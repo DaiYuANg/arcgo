@@ -43,13 +43,10 @@ func (s *RangeSet[T]) AddRange(r Range[T]) bool {
 		return true
 	}
 
-	next := make([]Range[T], 0, len(s.ranges)+1)
-	next = append(next, s.ranges[:first]...)
-
 	merged := r
-	index := first
-	for ; index < len(s.ranges); index++ {
-		current := s.ranges[index]
+	end := first
+	for ; end < len(s.ranges); end++ {
+		current := s.ranges[end]
 		if current.Start > merged.End {
 			break
 		}
@@ -61,9 +58,21 @@ func (s *RangeSet[T]) AddRange(r Range[T]) bool {
 		}
 	}
 
-	next = append(next, merged)
-	next = append(next, s.ranges[index:]...)
-	s.ranges = next
+	if end == first {
+		s.ranges = append(s.ranges, Range[T]{})
+		copy(s.ranges[first+1:], s.ranges[first:])
+		s.ranges[first] = merged
+		return true
+	}
+
+	s.ranges[first] = merged
+	consumed := end - first
+	if consumed > 1 {
+		copy(s.ranges[first+1:], s.ranges[end:])
+		newLen := len(s.ranges) - (consumed - 1)
+		clear(s.ranges[newLen:])
+		s.ranges = s.ranges[:newLen]
+	}
 	return true
 }
 

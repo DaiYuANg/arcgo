@@ -52,44 +52,73 @@ func (m *RangeMap[T, V]) Put(start T, end T, value V) bool {
 		return true
 	}
 
-	next := make([]RangeEntry[T, V], 0, len(m.entries)+1)
-	next = append(next, m.entries[:first]...)
+	if m.entries[first].Range.Start >= input.End {
+		m.entries = append(m.entries, RangeEntry[T, V]{})
+		copy(m.entries[first+1:], m.entries[first:])
+		m.entries[first] = inputEntry
+		return true
+	}
 
-	for i := first; i < len(m.entries); i++ {
-		entry := m.entries[i]
+	var leftEntry RangeEntry[T, V]
+	hasLeft := false
+	if m.entries[first].Range.Start < input.Start {
+		leftEntry = RangeEntry[T, V]{
+			Range: Range[T]{Start: m.entries[first].Range.Start, End: input.Start},
+			Value: m.entries[first].Value,
+		}
+		hasLeft = true
+	}
+
+	endIndex := first
+	var rightEntry RangeEntry[T, V]
+	hasRight := false
+	for ; endIndex < len(m.entries); endIndex++ {
+		entry := m.entries[endIndex]
 		if entry.Range.Start >= input.End {
-			next = append(next, inputEntry)
-			next = append(next, m.entries[i:]...)
-			m.entries = next
-			return true
+			break
 		}
-
-		if entry.Range.End <= input.Start {
-			next = append(next, entry)
-			continue
-		}
-
-		if entry.Range.Start < input.Start {
-			next = append(next, RangeEntry[T, V]{
-				Range: Range[T]{Start: entry.Range.Start, End: input.Start},
-				Value: entry.Value,
-			})
-		}
-
-		if input.End < entry.Range.End {
-			next = append(next, inputEntry)
-			next = append(next, RangeEntry[T, V]{
+		if entry.Range.End > input.End {
+			rightEntry = RangeEntry[T, V]{
 				Range: Range[T]{Start: input.End, End: entry.Range.End},
 				Value: entry.Value,
-			})
-			next = append(next, m.entries[i+1:]...)
-			m.entries = next
-			return true
+			}
+			hasRight = true
+			endIndex++
+			break
 		}
 	}
 
-	next = append(next, inputEntry)
-	m.entries = next
+	inserted := 1
+	if hasLeft {
+		inserted++
+	}
+	if hasRight {
+		inserted++
+	}
+	consumed := endIndex - first
+	oldLen := len(m.entries)
+	newLen := oldLen - consumed + inserted
+	if newLen > oldLen {
+		m.entries = append(m.entries, make([]RangeEntry[T, V], newLen-oldLen)...)
+	}
+
+	copy(m.entries[first+inserted:], m.entries[endIndex:oldLen])
+
+	write := first
+	if hasLeft {
+		m.entries[write] = leftEntry
+		write++
+	}
+	m.entries[write] = inputEntry
+	write++
+	if hasRight {
+		m.entries[write] = rightEntry
+	}
+
+	if newLen < oldLen {
+		clear(m.entries[newLen:oldLen])
+	}
+	m.entries = m.entries[:newLen]
 	return true
 }
 

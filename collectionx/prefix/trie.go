@@ -4,14 +4,14 @@ import (
 	"slices"
 
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
 type trieNode[V any] struct {
-	children collectionmapping.Map[rune, *trieNode[V]]
-	hasValue bool
-	value    V
+	children  collectionmapping.Map[rune, *trieNode[V]]
+	childKeys []rune
+	hasValue  bool
+	value     V
 }
 
 // Trie is a prefix tree for string keys.
@@ -51,6 +51,7 @@ func (t *Trie[V]) Put(key string, value V) bool {
 		if !ok {
 			next = &trieNode[V]{}
 			node.children.Set(ch, next)
+			node.insertChildKey(ch)
 		}
 		node = next
 	}
@@ -138,36 +139,50 @@ func (t *Trie[V]) Clear() {
 
 // KeysWithPrefix returns all keys that start with prefix.
 func (t *Trie[V]) KeysWithPrefix(prefix string) []string {
-	pairs := t.pairsWithPrefix(prefix)
-	if len(pairs) == 0 {
+	if t == nil || t.root == nil {
 		return nil
 	}
-	return lo.Map(pairs, func(item keyValue[V], _ int) string {
-		return item.key
-	})
+
+	startNode, ok := t.findNode(prefix)
+	if !ok {
+		return nil
+	}
+
+	var out []string
+	path := []rune(prefix)
+	t.collectKeys(startNode, &path, &out)
+	return out
 }
 
 // ValuesWithPrefix returns all values under prefix.
 func (t *Trie[V]) ValuesWithPrefix(prefix string) []V {
-	pairs := t.pairsWithPrefix(prefix)
-	if len(pairs) == 0 {
+	if t == nil || t.root == nil {
 		return nil
 	}
-	return lo.Map(pairs, func(item keyValue[V], _ int) V {
-		return item.value
-	})
+
+	startNode, ok := t.findNode(prefix)
+	if !ok {
+		return nil
+	}
+
+	var out []V
+	t.collectValues(startNode, &out)
+	return out
 }
 
 // RangePrefix iterates keys with prefix in lexicographic key order until fn returns false.
 func (t *Trie[V]) RangePrefix(prefix string, fn func(key string, value V) bool) {
-	if fn == nil {
+	if t == nil || t.root == nil || fn == nil {
 		return
 	}
-	for _, item := range t.pairsWithPrefix(prefix) {
-		if !fn(item.key, item.value) {
-			return
-		}
+
+	startNode, ok := t.findNode(prefix)
+	if !ok {
+		return
 	}
+
+	path := []rune(prefix)
+	t.rangePrefix(startNode, &path, fn)
 }
 
 func (t *Trie[V]) ensureRoot() {
@@ -214,6 +229,7 @@ func (t *Trie[V]) deleteRec(node *trieNode[V], runes []rune, depth int) bool {
 
 	if !child.hasValue && child.children.Len() == 0 {
 		node.children.Delete(ch)
+		node.deleteChildKey(ch)
 	}
 	return true
 }
@@ -233,14 +249,74 @@ func (t *Trie[V]) collectPairs(node *trieNode[V], path *[]rune, out *[]keyValue[
 		return
 	}
 
-	keys := node.children.Keys()
-	slices.Sort(keys)
-	for _, ch := range keys {
+	for _, ch := range node.childKeys {
 		*path = append(*path, ch)
 		child, _ := node.children.Get(ch)
 		t.collectPairs(child, path, out)
 		*path = (*path)[:len(*path)-1]
 	}
+}
+
+func (t *Trie[V]) collectKeys(node *trieNode[V], path *[]rune, out *[]string) {
+	if node == nil {
+		return
+	}
+	if node.hasValue {
+		*out = append(*out, string(*path))
+	}
+
+	if node.children.Len() == 0 {
+		return
+	}
+
+	for _, ch := range node.childKeys {
+		*path = append(*path, ch)
+		child, _ := node.children.Get(ch)
+		t.collectKeys(child, path, out)
+		*path = (*path)[:len(*path)-1]
+	}
+}
+
+func (t *Trie[V]) collectValues(node *trieNode[V], out *[]V) {
+	if node == nil {
+		return
+	}
+	if node.hasValue {
+		*out = append(*out, node.value)
+	}
+
+	if node.children.Len() == 0 {
+		return
+	}
+
+	for _, ch := range node.childKeys {
+		child, _ := node.children.Get(ch)
+		t.collectValues(child, out)
+	}
+}
+
+func (t *Trie[V]) rangePrefix(node *trieNode[V], path *[]rune, fn func(key string, value V) bool) bool {
+	if node == nil {
+		return true
+	}
+	if node.hasValue && !fn(string(*path), node.value) {
+		return false
+	}
+
+	if node.children.Len() == 0 {
+		return true
+	}
+
+	for _, ch := range node.childKeys {
+		*path = append(*path, ch)
+		child, _ := node.children.Get(ch)
+		if !t.rangePrefix(child, path, fn) {
+			*path = (*path)[:len(*path)-1]
+			return false
+		}
+		*path = (*path)[:len(*path)-1]
+	}
+	return true
 }
 
 func (t *Trie[V]) pairsWithPrefix(prefix string) []keyValue[V] {
@@ -253,6 +329,27 @@ func (t *Trie[V]) pairsWithPrefix(prefix string) []keyValue[V] {
 	}
 
 	out := make([]keyValue[V], 0)
-	t.collectPairs(startNode, new([]rune(prefix)), &out)
+	path := []rune(prefix)
+	t.collectPairs(startNode, &path, &out)
 	return out
+}
+
+func (n *trieNode[V]) insertChildKey(ch rune) {
+	index, found := slices.BinarySearch(n.childKeys, ch)
+	if found {
+		return
+	}
+	n.childKeys = append(n.childKeys, 0)
+	copy(n.childKeys[index+1:], n.childKeys[index:])
+	n.childKeys[index] = ch
+}
+
+func (n *trieNode[V]) deleteChildKey(ch rune) {
+	index, found := slices.BinarySearch(n.childKeys, ch)
+	if !found {
+		return
+	}
+	copy(n.childKeys[index:], n.childKeys[index+1:])
+	n.childKeys[len(n.childKeys)-1] = 0
+	n.childKeys = n.childKeys[:len(n.childKeys)-1]
 }

@@ -118,11 +118,14 @@ func (s *Set[T]) Range(fn func(item T) bool) {
 
 // Clone returns a shallow copy.
 func (s *Set[T]) Clone() *Set[T] {
-	out := &Set[T]{}
 	if s == nil || s.items.Len() == 0 {
-		return out
+		return &Set[T]{}
 	}
-	out.items.SetAll(s.items.All())
+	out := NewSetWithCapacity[T](s.Len())
+	s.items.Range(func(item T, _ struct{}) bool {
+		out.items.Set(item, struct{}{})
+		return true
+	})
 	return out
 }
 
@@ -169,7 +172,10 @@ func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
 	}
 
 	if other == nil || other.items.Len() == 0 {
-		out.items.SetAll(s.items.All())
+		s.items.Range(func(item T, _ struct{}) bool {
+			out.items.Set(item, struct{}{})
+			return true
+		})
 		return out
 	}
 

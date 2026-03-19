@@ -39,15 +39,24 @@ func TestConcurrentMultiMap_OptionAndSnapshot(t *testing.T) {
 	var m ConcurrentMultiMap[string, int]
 	m.PutAll("a", 1, 2, 3)
 
+	view := m.Get("a")
+	m.Put("a", 4)
+	require.Equal(t, []int{1, 2, 3}, view)
+	require.Equal(t, []int{1, 2, 3, 4}, m.Get("a"))
+
+	copyValues := m.GetCopy("a")
+	copyValues[0] = 99
+	require.Equal(t, []int{1, 2, 3, 4}, m.Get("a"))
+
 	opt := m.GetOption("a")
 	require.True(t, opt.IsPresent())
 	values, ok := opt.Get()
 	require.True(t, ok)
-	require.Equal(t, []int{1, 2, 3}, values)
+	require.Equal(t, []int{1, 2, 3, 4}, values)
 
 	snapshot := m.Snapshot()
-	m.Put("a", 4)
-	require.Equal(t, []int{1, 2, 3}, snapshot.Get("a"))
+	m.Put("a", 5)
+	require.Equal(t, []int{1, 2, 3, 4}, snapshot.Get("a"))
 }
 
 func TestNewConcurrentMultiMapWithCapacity(t *testing.T) {

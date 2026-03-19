@@ -50,7 +50,7 @@ type Node[K comparable, V any] struct {
 	id       K
 	value    V
 	parent   *Node[K, V]
-	children *collectionlist.List[*Node[K, V]]
+	children collectionlist.List[*Node[K, V]]
 }
 
 // ID returns node id.
@@ -89,7 +89,7 @@ func (n *Node[K, V]) Parent() *Node[K, V] {
 
 // Children returns child nodes as a snapshot.
 func (n *Node[K, V]) Children() []*Node[K, V] {
-	if n == nil || n.children == nil {
+	if n == nil || n.children.Len() == 0 {
 		return nil
 	}
 	return n.children.Values()
@@ -97,7 +97,7 @@ func (n *Node[K, V]) Children() []*Node[K, V] {
 
 // ChildCount returns child count.
 func (n *Node[K, V]) ChildCount() int {
-	if n == nil || n.children == nil {
+	if n == nil {
 		return 0
 	}
 	return n.children.Len()
@@ -122,8 +122,14 @@ type Tree[K comparable, V any] struct {
 
 // NewTree creates an empty tree.
 func NewTree[K comparable, V any]() *Tree[K, V] {
+	return newTreeWithCapacity[K, V](0, 0)
+}
+
+func newTreeWithCapacity[K comparable, V any](nodeCapacity int, rootCapacity int) *Tree[K, V] {
+	nodes := collectionmapping.NewMapWithCapacity[K, *Node[K, V]](nodeCapacity)
+	roots := collectionlist.NewListWithCapacity[*Node[K, V]](rootCapacity)
 	return &Tree[K, V]{
-		nodes: collectionmapping.NewMap[K, *Node[K, V]](),
-		roots: collectionlist.NewList[*Node[K, V]](),
+		nodes: nodes,
+		roots: roots,
 	}
 }

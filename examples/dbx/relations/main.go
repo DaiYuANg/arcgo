@@ -6,6 +6,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
+	"github.com/samber/mo"
 )
 
 type userRoleRow struct {
@@ -99,5 +100,68 @@ func main() {
 	}
 	if err := manyToManyRows.Err(); err != nil {
 		panic(err)
+	}
+
+	fmt.Println("relation loaders:")
+	userMapper := dbx.MustMapper[shared.User](catalog.Users)
+	roleMapper := dbx.MustMapper[shared.Role](catalog.Roles)
+	usersToLoad, err := dbx.QueryAll(
+		ctx,
+		core,
+		dbx.Select(catalog.Users.AllColumns()...).From(catalog.Users).OrderBy(catalog.Users.ID.Asc()),
+		userMapper,
+	)
+	if err != nil {
+		panic(err)
+	}
+
+	loadedRole := make([]mo.Option[shared.Role], len(usersToLoad))
+	if err := dbx.LoadBelongsTo(
+		ctx,
+		core,
+		usersToLoad,
+		catalog.Users,
+		userMapper,
+		catalog.Users.Role,
+		catalog.Roles,
+		roleMapper,
+		func(index int, _ *shared.User, value mo.Option[shared.Role]) {
+			loadedRole[index] = value
+		},
+	); err != nil {
+		panic(err)
+	}
+
+	loadedRoles := make([][]shared.Role, len(usersToLoad))
+	if err := dbx.LoadManyToMany(
+		ctx,
+		core,
+		usersToLoad,
+		catalog.Users,
+		userMapper,
+		catalog.Users.Roles,
+		catalog.Roles,
+		roleMapper,
+		func(index int, _ *shared.User, value []shared.Role) {
+			loadedRoles[index] = value
+		},
+	); err != nil {
+		panic(err)
+	}
+
+	for index, user := range usersToLoad {
+		roleName := "<none>"
+		if loadedRole[index].IsPresent() {
+			role, _ := loadedRole[index].Get()
+			roleName = role.Name
+		}
+		fmt.Printf("- user=%s belongs-to role=%s many-to-many roles=", user.Username, roleName)
+		for roleIndex, role := range loadedRoles[index] {
+			if roleIndex > 0 {
+				fmt.Print(",")
+			}
+			fmt.Print(role.Name)
+		}
+		fmt.Println()
 	}
 }

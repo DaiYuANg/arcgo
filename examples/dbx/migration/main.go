@@ -2,11 +2,17 @@ package main
 
 import (
 	"context"
+	"database/sql"
+	"embed"
 	"fmt"
 
 	"github.com/DaiYuANg/arcgo/dbx"
+	"github.com/DaiYuANg/arcgo/dbx/migrate"
 	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
 )
+
+//go:embed migrations/*.sql
+var migrationFS embed.FS
 
 func main() {
 	ctx := context.Background()
@@ -47,4 +53,46 @@ func main() {
 	for _, fk := range catalog.Users.ForeignKeys() {
 		fmt.Printf("- name=%s columns=%v target=%s(%v)\n", fk.Name, fk.Columns, fk.TargetTable, fk.TargetColumns)
 	}
+
+	runner := core.Migrator(migrate.RunnerOptions{ValidateHash: true})
+	goReport, err := runner.UpGo(ctx, migrate.NewGoMigration(
+		"1",
+		"create runner events",
+		func(ctx context.Context, tx *sql.Tx) error {
+			_, execErr := tx.ExecContext(ctx, `CREATE TABLE runner_events (id INTEGER PRIMARY KEY, message TEXT NOT NULL)`)
+			return execErr
+		},
+		nil,
+	))
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("go migrations applied=%d\n", len(goReport.Applied))
+
+	source := migrate.FileSource{FS: migrationFS, Dir: "migrations"}
+	sqlReport, err := runner.UpSQL(ctx, source)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("sql migrations applied=%d\n", len(sqlReport.Applied))
+
+	applied, err := runner.Applied(ctx)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("applied history:")
+	for _, record := range applied {
+		checksum := record.Checksum
+		if len(checksum) > 12 {
+			checksum = checksum[:12]
+		}
+		fmt.Printf("- version=%s kind=%s description=%s checksum=%s\n", record.Version, record.Kind, record.Description, checksum)
+	}
+
+	row := core.QueryRowContext(ctx, `SELECT COUNT(*) FROM runner_events`)
+	var total int
+	if err := row.Scan(&total); err != nil {
+		panic(err)
+	}
+	fmt.Printf("runner_events rows=%d\n", total)
 }

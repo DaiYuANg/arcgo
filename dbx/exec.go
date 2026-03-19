@@ -47,7 +47,11 @@ func Exec(ctx context.Context, session Session, query QueryBuilder) (sql.Result,
 	return session.ExecBoundContext(ctx, bound)
 }
 
-func QueryAll[E any](ctx context.Context, session Session, query QueryBuilder, mapper Mapper[E]) ([]E, error) {
+func QueryAll[E any](ctx context.Context, session Session, query QueryBuilder, mapper RowsScanner[E]) ([]E, error) {
+	if mapper == nil {
+		return nil, ErrNilMapper
+	}
+
 	bound, err := Build(session, query)
 	if err != nil {
 		return nil, err

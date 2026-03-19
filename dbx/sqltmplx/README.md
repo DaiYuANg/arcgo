@@ -8,7 +8,7 @@ Primary documentation now lives in Hugo:
 Package layout:
 
 - Core: `github.com/DaiYuANg/arcgo/dbx/sqltmplx`
-- Dialects: `github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/{mysql,postgres,sqlite}`
+- Dialects: `github.com/DaiYuANg/arcgo/dbx/dialect/{mysql,postgres,sqlite}`
 - Validator contract: `github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate`
 - Optional validator backends:
   - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/mysqlparser`

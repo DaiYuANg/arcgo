@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+	"github.com/DaiYuANg/arcgo/dbx/dialect"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/parse"
 	"github.com/expr-lang/expr/vm"
 )
 
-func Render(nodes []parse.Node, params any, d dialect.Dialect) (Result, error) {
+func Render(nodes []parse.Node, params any, d dialect.Contract) (Result, error) {
 	st := newState(params, d)
 	query, err := renderNodes(nodes, st)
 	if err != nil {

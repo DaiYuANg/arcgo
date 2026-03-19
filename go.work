@@ -16,7 +16,6 @@ use (
 	./configx/fx
 	./dbx
 	./dbx/sqltmplx
-	./dbx/sqltmplx/dialect
 	./dbx/sqltmplx/validate
 	./dbx/sqltmplx/validate/mysqlparser
 	./dbx/sqltmplx/validate/postgresparser

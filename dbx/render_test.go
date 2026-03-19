@@ -139,3 +139,223 @@ func TestJoinRelationManyToManyBuildSQLite(t *testing.T) {
 		t.Fatalf("unexpected sqlite many-to-many relation join SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
 }
+
+func TestSelectBuildWithGroupByHavingAndAggregates(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	query := Select(
+		users.Status,
+		CountAll().As("user_count"),
+	).
+		From(users).
+		WithDistinct().
+		GroupBy(users.Status).
+		Having(CountAll().Gt(int64(1))).
+		OrderBy(users.Status.Asc())
+
+	bound, err := query.Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT DISTINCT "users"."status", COUNT(*) AS "user_count" FROM "users" GROUP BY "users"."status" HAVING COUNT(*) > ? ORDER BY "users"."status" ASC`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected aggregate sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args, []any{int64(1)}) {
+		t.Fatalf("unexpected aggregate args: %#v", bound.Args)
+	}
+}
+
+func TestSelectBuildWithSubqueryAndExists(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+	roles := MustSchema("roles", RoleSchema{})
+
+	subquery := Select(roles.ID).
+		From(roles).
+		Where(roles.Name.Eq("admin"))
+
+	existsQuery := Select(roles.ID).
+		From(roles).
+		Where(And(
+			roles.ID.EqColumn(users.RoleID),
+			roles.Name.Eq("admin"),
+		))
+
+	query := Select(users.ID, users.Username).
+		From(users).
+		Where(And(
+			users.RoleID.InQuery(subquery),
+			Exists(existsQuery),
+		))
+
+	bound, err := query.Build(testPostgresDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `SELECT "users"."id", "users"."username" FROM "users" WHERE ("users"."role_id" IN (SELECT "roles"."id" FROM "roles" WHERE "roles"."name" = $1) AND EXISTS (SELECT "roles"."id" FROM "roles" WHERE ("roles"."id" = "users"."role_id" AND "roles"."name" = $2)))`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected subquery sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args, []any{"admin", "admin"}) {
+		t.Fatalf("unexpected subquery args: %#v", bound.Args)
+	}
+}
+
+func TestInsertBuildWithMultipleRows(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	bound, err := InsertInto(users).
+		Values(users.Username.Set("alice"), users.Status.Set(1)).
+		Values(users.Username.Set("bob"), users.Status.Set(2)).
+		Build(testMySQLDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := "INSERT INTO `users` (`username`, `status`) VALUES (?, ?), (?, ?)"
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected batch insert SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args, []any{"alice", 1, "bob", 2}) {
+		t.Fatalf("unexpected batch insert args: %#v", bound.Args)
+	}
+}
+
+func TestInsertBuildFromSelect(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	source := Select(users.Username, users.Status).
+		From(users).
+		Where(users.Status.Eq(1))
+
+	bound, err := InsertInto(users).
+		Columns(users.Username, users.Status).
+		FromSelect(source).
+		Build(testPostgresDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `INSERT INTO "users" ("username", "status") SELECT "users"."username", "users"."status" FROM "users" WHERE "users"."status" = $1`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected insert-select SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args, []any{1}) {
+		t.Fatalf("unexpected insert-select args: %#v", bound.Args)
+	}
+}
+
+func TestInsertBuildWithPostgresUpsert(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	bound, err := InsertInto(users).
+		Values(users.Username.Set("alice"), users.Status.Set(1)).
+		OnConflict(users.Username).
+		DoUpdateSet(users.Status.SetExcluded()).
+		Build(testPostgresDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := `INSERT INTO "users" ("username", "status") VALUES ($1, $2) ON CONFLICT ("username") DO UPDATE SET "status" = EXCLUDED."status"`
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected postgres upsert SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args, []any{"alice", 1}) {
+		t.Fatalf("unexpected postgres upsert args: %#v", bound.Args)
+	}
+}
+
+func TestInsertBuildWithMySQLUpsert(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	bound, err := InsertInto(users).
+		Values(users.Username.Set("alice"), users.Status.Set(1)).
+		OnConflict(users.Username).
+		DoUpdateSet(users.Status.SetExcluded()).
+		Build(testMySQLDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := "INSERT INTO `users` (`username`, `status`) VALUES (?, ?) ON DUPLICATE KEY UPDATE `status` = VALUES(`status`)"
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected mysql upsert SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args, []any{"alice", 1}) {
+		t.Fatalf("unexpected mysql upsert args: %#v", bound.Args)
+	}
+}
+
+func TestInsertBuildWithMySQLDoNothing(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	bound, err := InsertInto(users).
+		Values(users.Username.Set("alice"), users.Status.Set(1)).
+		OnConflict(users.Username).
+		DoNothing().
+		Build(testMySQLDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := "INSERT IGNORE INTO `users` (`username`, `status`) VALUES (?, ?)"
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected mysql do-nothing SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+}
+
+func TestMutationBuildWithReturning(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	insertBound, err := InsertInto(users).
+		Values(users.Username.Set("alice"), users.Status.Set(1)).
+		Returning(users.ID, users.Username).
+		Build(testPostgresDialect{})
+	if err != nil {
+		t.Fatalf("insert Build returned error: %v", err)
+	}
+	expectedInsertSQL := `INSERT INTO "users" ("username", "status") VALUES ($1, $2) RETURNING "users"."id", "users"."username"`
+	if insertBound.SQL != expectedInsertSQL {
+		t.Fatalf("unexpected insert returning SQL:\nwant: %s\n got: %s", expectedInsertSQL, insertBound.SQL)
+	}
+
+	updateBound, err := Update(users).
+		Set(users.Status.Set(2)).
+		Where(users.ID.Eq(int64(10))).
+		Returning(users.ID, users.Status).
+		Build(testSQLiteDialect{})
+	if err != nil {
+		t.Fatalf("update Build returned error: %v", err)
+	}
+	expectedUpdateSQL := `UPDATE "users" SET "status" = ? WHERE "users"."id" = ? RETURNING "users"."id", "users"."status"`
+	if updateBound.SQL != expectedUpdateSQL {
+		t.Fatalf("unexpected update returning SQL:\nwant: %s\n got: %s", expectedUpdateSQL, updateBound.SQL)
+	}
+
+	deleteBound, err := DeleteFrom(users).
+		Where(users.ID.Eq(int64(10))).
+		Returning(users.ID).
+		Build(testPostgresDialect{})
+	if err != nil {
+		t.Fatalf("delete Build returned error: %v", err)
+	}
+	expectedDeleteSQL := `DELETE FROM "users" WHERE "users"."id" = $1 RETURNING "users"."id"`
+	if deleteBound.SQL != expectedDeleteSQL {
+		t.Fatalf("unexpected delete returning SQL:\nwant: %s\n got: %s", expectedDeleteSQL, deleteBound.SQL)
+	}
+}
+
+func TestMutationBuildWithUnsupportedReturning(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	_, err := InsertInto(users).
+		Values(users.Username.Set("alice"), users.Status.Set(1)).
+		Returning(users.ID).
+		Build(testMySQLDialect{})
+	if err == nil {
+		t.Fatal("expected error for mysql returning, got nil")
+	}
+}

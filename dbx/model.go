@@ -9,8 +9,18 @@ import (
 	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
-type Mapper[E any] struct {
+type RowsScanner[E any] interface {
+	ScanRows(rows *sql.Rows) ([]E, error)
+}
+
+type StructMapper[E any] struct {
 	meta *mapperMetadata
+}
+
+type Mapper[E any] struct {
+	StructMapper[E]
+	fields   collectionx.List[MappedField]
+	byColumn collectionx.Map[string, MappedField]
 }
 
 type MappedField struct {
@@ -32,30 +42,89 @@ type mapperMetadata struct {
 	scanPlans  collectionx.ConcurrentMap[string, *scanPlan]
 }
 
-type mapperCacheKey struct {
-	entityType reflect.Type
-	schemaType reflect.Type
+var structMapperCache = collectionx.NewConcurrentMap[reflect.Type, *mapperMetadata]()
+
+func NewStructMapper[E any]() (StructMapper[E], error) {
+	meta, err := getOrBuildStructMapperMetadata[E]()
+	if err != nil {
+		return StructMapper[E]{}, err
+	}
+	return StructMapper[E]{meta: meta}, nil
 }
 
-var mapperCache = collectionx.NewConcurrentMap[mapperCacheKey, *mapperMetadata]()
-
-func MustMapper[E any, S SchemaSource[E]](schema S) Mapper[E] {
-	meta, err := getOrBuildMapperMetadata[E](schema)
+func MustStructMapper[E any]() StructMapper[E] {
+	mapper, err := NewStructMapper[E]()
 	if err != nil {
 		panic(err)
 	}
-	return Mapper[E]{meta: meta}
+	return mapper
+}
+
+func MustMapper[E any](schema SchemaResource) Mapper[E] {
+	mapper, err := NewMapper[E](schema)
+	if err != nil {
+		panic(err)
+	}
+	return mapper
+}
+
+func NewMapper[E any](schema SchemaResource) (Mapper[E], error) {
+	structMapper, err := NewStructMapper[E]()
+	if err != nil {
+		return Mapper[E]{}, err
+	}
+
+	columns := schema.schemaRef().columns
+	fields := collectionx.NewListWithCapacity[MappedField](len(columns))
+	byColumn := collectionx.NewMapWithCapacity[string, MappedField](len(columns))
+	for _, column := range columns {
+		field, ok := structMapper.meta.byColumn.Get(column.Name)
+		if !ok {
+			continue
+		}
+		fields.Add(field)
+		byColumn.Set(column.Name, field)
+	}
+
+	return Mapper[E]{
+		StructMapper: structMapper,
+		fields:       fields,
+		byColumn:     byColumn,
+	}, nil
 }
 
 func (m Mapper[E]) Fields() []MappedField {
-	return m.meta.fields.Values()
+	if m.byColumn.Len() == 0 {
+		return nil
+	}
+	return m.fields.Values()
 }
 
 func (m Mapper[E]) FieldByColumn(column string) (MappedField, bool) {
+	if m.byColumn.Len() == 0 {
+		return MappedField{}, false
+	}
+	return m.byColumn.Get(column)
+}
+
+func (m StructMapper[E]) Fields() []MappedField {
+	if m.meta == nil {
+		return nil
+	}
+	return m.meta.fields.Values()
+}
+
+func (m StructMapper[E]) FieldByColumn(column string) (MappedField, bool) {
+	if m.meta == nil {
+		return MappedField{}, false
+	}
 	return m.meta.byColumn.Get(column)
 }
 
-func (m Mapper[E]) ScanRows(rows *sql.Rows) ([]E, error) {
+func (m StructMapper[E]) ScanRows(rows *sql.Rows) ([]E, error) {
+	if m.meta == nil {
+		return nil, ErrNilMapper
+	}
 	if rows == nil {
 		return nil, fmt.Errorf("dbx: rows is nil")
 	}
@@ -83,7 +152,7 @@ func (m Mapper[E]) ScanRows(rows *sql.Rows) ([]E, error) {
 	return items.Values(), nil
 }
 
-func (m Mapper[E]) InsertAssignments(schema SchemaSource[E], entity *E) ([]Assignment, error) {
+func (m Mapper[E]) InsertAssignments(schema SchemaResource, entity *E) ([]Assignment, error) {
 	return m.entityAssignments(schema, entity, func(column ColumnMeta, field MappedField) bool {
 		if !field.Insertable {
 			return false
@@ -92,7 +161,7 @@ func (m Mapper[E]) InsertAssignments(schema SchemaSource[E], entity *E) ([]Assig
 	})
 }
 
-func (m Mapper[E]) UpdateAssignments(schema SchemaSource[E], entity *E) ([]Assignment, error) {
+func (m Mapper[E]) UpdateAssignments(schema SchemaResource, entity *E) ([]Assignment, error) {
 	return m.entityAssignments(schema, entity, func(column ColumnMeta, field MappedField) bool {
 		if !field.Updatable {
 			return false
@@ -101,7 +170,7 @@ func (m Mapper[E]) UpdateAssignments(schema SchemaSource[E], entity *E) ([]Assig
 	})
 }
 
-func (m Mapper[E]) PrimaryPredicate(schema SchemaSource[E], entity *E) (Predicate, error) {
+func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate, error) {
 	value, err := m.entityValue(entity)
 	if err != nil {
 		return nil, err
@@ -111,7 +180,7 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaSource[E], entity *E) (Predicat
 		if !column.PrimaryKey {
 			continue
 		}
-		field, ok := m.meta.byColumn.Get(column.Name)
+		field, ok := m.byColumn.Get(column.Name)
 		if !ok {
 			return nil, fmt.Errorf("%w: %s", ErrPrimaryKeyUnmapped, column.Name)
 		}
@@ -125,34 +194,27 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaSource[E], entity *E) (Predicat
 	return nil, ErrNoPrimaryKey
 }
 
-func getOrBuildMapperMetadata[E any, S SchemaSource[E]](schema S) (*mapperMetadata, error) {
-	meta := schema.schemaRef()
+func getOrBuildStructMapperMetadata[E any]() (*mapperMetadata, error) {
 	entityType := reflect.TypeFor[E]()
-	key := mapperCacheKey{entityType: entityType, schemaType: meta.table.schemaType}
-	if cached, ok := mapperCache.Get(key); ok {
+	if cached, ok := structMapperCache.Get(entityType); ok {
 		return cached, nil
 	}
 
-	mapper, err := buildMapperMetadata(entityType, meta.columns)
+	mapper, err := buildMapperMetadata(entityType)
 	if err != nil {
 		return nil, err
 	}
-	actual, _ := mapperCache.GetOrStore(key, mapper)
+	actual, _ := structMapperCache.GetOrStore(entityType, mapper)
 	return actual, nil
 }
 
-func buildMapperMetadata(entityType reflect.Type, columns []ColumnMeta) (*mapperMetadata, error) {
+func buildMapperMetadata(entityType reflect.Type) (*mapperMetadata, error) {
 	if entityType.Kind() != reflect.Struct {
 		return nil, ErrUnsupportedEntity
 	}
 
-	columnSet := collectionx.NewSetWithCapacity[string](len(columns))
-	for _, column := range columns {
-		columnSet.Add(column.Name)
-	}
-
 	fields := collectionx.NewListWithCapacity[MappedField](entityType.NumField())
-	byColumn := collectionx.NewMapWithCapacity[string, MappedField](len(columns))
+	byColumn := collectionx.NewMapWithCapacity[string, MappedField](entityType.NumField())
 	for i := 0; i < entityType.NumField(); i++ {
 		field := entityType.Field(i)
 		if !field.IsExported() {
@@ -160,7 +222,7 @@ func buildMapperMetadata(entityType reflect.Type, columns []ColumnMeta) (*mapper
 		}
 
 		columnName, options := resolveEntityColumn(field)
-		if columnName == "" || !columnSet.Contains(columnName) {
+		if columnName == "" {
 			continue
 		}
 
@@ -208,7 +270,7 @@ func resolveEntityColumn(field reflect.StructField) (string, map[string]bool) {
 	return name, options
 }
 
-func (m Mapper[E]) scanPlan(columns []string) (*scanPlan, error) {
+func (m StructMapper[E]) scanPlan(columns []string) (*scanPlan, error) {
 	signature := scanSignature(columns)
 	if cached, ok := m.meta.scanPlans.Get(signature); ok {
 		return cached, nil
@@ -228,7 +290,7 @@ func (m Mapper[E]) scanPlan(columns []string) (*scanPlan, error) {
 	return actual, nil
 }
 
-func (m Mapper[E]) scanCurrentRow(rows *sql.Rows, plan *scanPlan) (E, error) {
+func (m StructMapper[E]) scanCurrentRow(rows *sql.Rows, plan *scanPlan) (E, error) {
 	value := reflect.New(m.meta.entityType).Elem()
 	destinations := make([]any, len(plan.fields))
 	for i, field := range plan.fields {
@@ -242,7 +304,7 @@ func (m Mapper[E]) scanCurrentRow(rows *sql.Rows, plan *scanPlan) (E, error) {
 	return value.Interface().(E), nil
 }
 
-func (m Mapper[E]) entityAssignments(schema SchemaSource[E], entity *E, include func(column ColumnMeta, field MappedField) bool) ([]Assignment, error) {
+func (m Mapper[E]) entityAssignments(schema SchemaResource, entity *E, include func(column ColumnMeta, field MappedField) bool) ([]Assignment, error) {
 	value, err := m.entityValue(entity)
 	if err != nil {
 		return nil, err
@@ -250,7 +312,7 @@ func (m Mapper[E]) entityAssignments(schema SchemaSource[E], entity *E, include 
 
 	assignments := collectionx.NewListWithCapacity[Assignment](len(schema.schemaRef().columns))
 	for _, column := range schema.schemaRef().columns {
-		field, ok := m.meta.byColumn.Get(column.Name)
+		field, ok := m.byColumn.Get(column.Name)
 		if !ok || !include(column, field) {
 			continue
 		}

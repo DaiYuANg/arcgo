@@ -3,7 +3,7 @@ package sqltmplx
 import (
 	"testing"
 
-	mysqlDialect "github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/mysql"
+	mysqlDialect "github.com/DaiYuANg/arcgo/dbx/dialect/mysql"
 )
 
 var benchmarkTemplateText = `

@@ -16,16 +16,20 @@ weight: 10
 ```bash
 cd examples/dbx
 go run ./basic
+go run ./mutation
 go run ./relations
 go run ./migration
+go run ./pure_sql
 ```
 
 也可以直接从仓库根目录执行：
 
 ```bash
 go run ./examples/dbx/basic
+go run ./examples/dbx/mutation
 go run ./examples/dbx/relations
 go run ./examples/dbx/migration
+go run ./examples/dbx/pure_sql
 ```
 
 ## 示例矩阵
@@ -33,27 +37,10 @@ go run ./examples/dbx/migration
 | 示例 | 重点 | 目录 |
 | --- | --- | --- |
 | `basic` | schema-first 建模、mapper 扫描、projection、事务、debug SQL、hooks | [examples/dbx/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic) |
+| `mutation` | 聚合查询、子查询、批量插入、insert-select、upsert、returning | [examples/dbx/mutation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation) |
 | `relations` | alias + relation metadata + `JoinRelation`，覆盖 `BelongsTo` 和 `ManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
 | `migration` | `PlanSchemaChanges`、`AutoMigrate`、`ValidateSchemas`、`ForeignKeys()` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
-
-## 示例：打开 DB 并启用调试日志
-
-```go
-core, closeDB, err := shared.OpenSQLite(
-    "dbx-basic",
-    dbx.WithLogger(shared.NewLogger()),
-    dbx.WithDebug(true),
-    dbx.WithHooks(dbx.HookFuncs{
-        AfterFunc: func(_ context.Context, event *dbx.HookEvent) {
-            fmt.Println(event.Operation)
-        },
-    }),
-)
-if err != nil {
-    panic(err)
-}
-defer func() { _ = closeDB() }()
-```
+| `pure_sql` | `sqltmplx` registry、`dbx.SQLList/SQLScalar`、statement 名称日志、`tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
 
 ## 示例：结合 Mapper 查询
 
@@ -73,27 +60,65 @@ if err != nil {
 }
 ```
 
-## 示例：关系 Join
+## 示例：Query DSL 写入
 
 ```go
-users := dbx.Alias(catalog.Users, "u")
-roles := dbx.Alias(catalog.Roles, "r")
+archiveMapper := dbx.MustMapper[userArchive](archive)
 
-query := dbx.Select(users.ID, users.Username, roles.Name).From(users)
-if _, err := query.JoinRelation(users, users.Role, roles); err != nil {
+items, err := dbx.QueryAll(
+    ctx,
+    core,
+    dbx.InsertInto(archive).
+        Columns(archive.Username, archive.Status).
+        FromSelect(
+            dbx.Select(catalog.Users.Username, catalog.Users.Status).
+                From(catalog.Users).
+                Where(catalog.Users.Status.Eq(1)),
+        ).
+        Returning(archive.ID, archive.Username, archive.Status),
+    archiveMapper,
+)
+if err != nil {
     panic(err)
 }
 ```
 
-## 示例：迁移规划
+## 示例：带 Excluded 值的 Upsert
 
 ```go
-plan, err := core.PlanSchemaChanges(ctx, catalog.Roles, catalog.Users, catalog.UserRoles)
+items, err := dbx.QueryAll(
+    ctx,
+    core,
+    dbx.InsertInto(archive).
+        Values(
+            archive.Username.Set("alice"),
+            archive.Status.Set(9),
+        ).
+        OnConflict(archive.Username).
+        DoUpdateSet(archive.Status.SetExcluded()).
+        Returning(archive.ID, archive.Username, archive.Status),
+    archiveMapper,
+)
 if err != nil {
     panic(err)
 }
+```
 
-for _, action := range plan.Actions {
-    fmt.Println(action.Kind, action.Executable, action.Summary)
+## 示例：结合 sqltmplx 做纯 SQL
+
+```go
+registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+
+items, err := dbx.SQLList(
+    ctx,
+    core.SQL(),
+    registry.MustStatement("sql/user/find_active.sql"),
+    struct {
+        Status int `dbx:"status"`
+    }{Status: 1},
+    dbx.MustStructMapper[shared.UserSummary](),
+)
+if err != nil {
+    panic(err)
 }
 ```

@@ -7,11 +7,15 @@ import (
 	"github.com/samber/lo"
 )
 
-func ProjectionOf[E any](schema SchemaResource, mapper Mapper[E]) ([]SelectItem, error) {
+type fieldMapper interface {
+	Fields() []MappedField
+}
+
+func ProjectionOf(schema SchemaResource, mapper fieldMapper) ([]SelectItem, error) {
 	return projectionOfDefinition(schema.schemaRef(), mapper)
 }
 
-func MustProjectionOf[E any](schema SchemaResource, mapper Mapper[E]) []SelectItem {
+func MustProjectionOf(schema SchemaResource, mapper fieldMapper) []SelectItem {
 	items, err := projectionOfDefinition(schema.schemaRef(), mapper)
 	if err != nil {
 		panic(err)
@@ -19,7 +23,7 @@ func MustProjectionOf[E any](schema SchemaResource, mapper Mapper[E]) []SelectIt
 	return items
 }
 
-func SelectMapped[E any](schema SchemaResource, mapper Mapper[E]) (*SelectQuery, error) {
+func SelectMapped(schema SchemaResource, mapper fieldMapper) (*SelectQuery, error) {
 	items, err := projectionOfDefinition(schema.schemaRef(), mapper)
 	if err != nil {
 		return nil, err
@@ -27,7 +31,7 @@ func SelectMapped[E any](schema SchemaResource, mapper Mapper[E]) (*SelectQuery,
 	return Select(items...).From(schema), nil
 }
 
-func MustSelectMapped[E any](schema SchemaResource, mapper Mapper[E]) *SelectQuery {
+func MustSelectMapped(schema SchemaResource, mapper fieldMapper) *SelectQuery {
 	items, err := projectionOfDefinition(schema.schemaRef(), mapper)
 	if err != nil {
 		panic(err)
@@ -35,22 +39,22 @@ func MustSelectMapped[E any](schema SchemaResource, mapper Mapper[E]) *SelectQue
 	return Select(items...).From(schema)
 }
 
-func projectionOfDefinition[E any](definition schemaDefinition, mapper Mapper[E]) ([]SelectItem, error) {
+func projectionOfDefinition(definition schemaDefinition, mapper fieldMapper) ([]SelectItem, error) {
+	fields := mapper.Fields()
 	columns := lo.Associate(definition.columns, func(column ColumnMeta) (string, ColumnMeta) {
 		return column.Name, column
 	})
 
-	items := collectionx.NewListWithCapacity[SelectItem](mapper.meta.fields.Len())
-	mapper.meta.fields.Range(func(_ int, field MappedField) bool {
+	items := collectionx.NewListWithCapacity[SelectItem](len(fields))
+	for _, field := range fields {
 		column, ok := columns[field.Column]
 		if !ok {
-			return false
+			continue
 		}
 		items.Add(schemaSelectItem{meta: column})
-		return true
-	})
-	if items.Len() != mapper.meta.fields.Len() {
-		for _, field := range mapper.meta.fields.Values() {
+	}
+	if items.Len() != len(fields) {
+		for _, field := range fields {
 			if _, ok := columns[field.Column]; !ok {
 				return nil, fmt.Errorf("%w: %s", ErrUnmappedColumn, field.Column)
 			}

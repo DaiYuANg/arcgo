@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
 type Validator interface {
@@ -35,7 +35,7 @@ type Factory func() SQLParser
 
 var parserRegistry = collectionx.NewConcurrentMap[string, Factory]()
 
-func NewSQLParser(d dialect.Dialect) SQLParser {
+func NewSQLParser(d dialect.Contract) SQLParser {
 	name := strings.ToLower(strings.TrimSpace(d.Name()))
 	if factory, ok := parserRegistry.Get(name); ok {
 		return factory()

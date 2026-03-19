@@ -53,13 +53,22 @@ func (db *DB) Debug() bool {
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return db.queryContext(ctx, "", query, args...)
+}
+
+func (db *DB) queryContext(ctx context.Context, statement string, query string, args ...any) (*sql.Rows, error) {
 	if db == nil {
 		return nil, ErrNilDB
 	}
 	if db.raw == nil {
 		return nil, ErrNilSQLDB
 	}
-	ctx, event, err := db.observe.before(ctx, HookEvent{Operation: OperationQuery, SQL: query, Args: args})
+	ctx, event, err := db.observe.before(ctx, HookEvent{
+		Operation: OperationQuery,
+		Statement: statement,
+		SQL:       query,
+		Args:      args,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -70,13 +79,22 @@ func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql
 }
 
 func (db *DB) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return db.execContext(ctx, "", query, args...)
+}
+
+func (db *DB) execContext(ctx context.Context, statement string, query string, args ...any) (sql.Result, error) {
 	if db == nil {
 		return nil, ErrNilDB
 	}
 	if db.raw == nil {
 		return nil, ErrNilSQLDB
 	}
-	ctx, event, err := db.observe.before(ctx, HookEvent{Operation: OperationExec, SQL: query, Args: args})
+	ctx, event, err := db.observe.before(ctx, HookEvent{
+		Operation: OperationExec,
+		Statement: statement,
+		SQL:       query,
+		Args:      args,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +128,11 @@ func (db *DB) Bound(sql string, args ...any) BoundQuery {
 }
 
 func (db *DB) QueryBoundContext(ctx context.Context, bound BoundQuery) (*sql.Rows, error) {
-	return db.QueryContext(ctx, bound.SQL, bound.Args...)
+	return db.queryContext(ctx, bound.Name, bound.SQL, bound.Args...)
 }
 
 func (db *DB) ExecBoundContext(ctx context.Context, bound BoundQuery) (sql.Result, error) {
-	return db.ExecContext(ctx, bound.SQL, bound.Args...)
+	return db.execContext(ctx, bound.Name, bound.SQL, bound.Args...)
 }
 
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
@@ -147,4 +165,8 @@ func (db *DB) WithTx(tx *sql.Tx) *Tx {
 
 func (db *DB) Migrator(opts migrate.RunnerOptions) *migrate.Runner {
 	return migrate.NewRunner(db.raw, db.dialect, opts)
+}
+
+func (db *DB) SQL() *SQLExecutor {
+	return &SQLExecutor{session: db}
 }

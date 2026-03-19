@@ -3,18 +3,18 @@ package render
 import (
 	"reflect"
 
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+	"github.com/DaiYuANg/arcgo/dbx/dialect"
 	"github.com/samber/lo"
 )
 
 type state struct {
-	dialect dialect.Dialect
+	dialect dialect.Contract
 	params  any
 	args    []any
 	bindN   int
 }
 
-func newState(params any, d dialect.Dialect) *state {
+func newState(params any, d dialect.Contract) *state {
 	return &state{dialect: d, params: params}
 }
 

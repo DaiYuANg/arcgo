@@ -26,13 +26,22 @@ func (tx *Tx) Bound(sql string, args ...any) BoundQuery {
 }
 
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
+	return tx.queryContext(ctx, "", query, args...)
+}
+
+func (tx *Tx) queryContext(ctx context.Context, statement string, query string, args ...any) (*sql.Rows, error) {
 	if tx == nil {
 		return nil, ErrNilDB
 	}
 	if tx.raw == nil {
 		return nil, ErrNilSQLDB
 	}
-	ctx, event, err := tx.observe.before(ctx, HookEvent{Operation: OperationQuery, SQL: query, Args: args})
+	ctx, event, err := tx.observe.before(ctx, HookEvent{
+		Operation: OperationQuery,
+		Statement: statement,
+		SQL:       query,
+		Args:      args,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +52,22 @@ func (tx *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql
 }
 
 func (tx *Tx) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
+	return tx.execContext(ctx, "", query, args...)
+}
+
+func (tx *Tx) execContext(ctx context.Context, statement string, query string, args ...any) (sql.Result, error) {
 	if tx == nil {
 		return nil, ErrNilDB
 	}
 	if tx.raw == nil {
 		return nil, ErrNilSQLDB
 	}
-	ctx, event, err := tx.observe.before(ctx, HookEvent{Operation: OperationExec, SQL: query, Args: args})
+	ctx, event, err := tx.observe.before(ctx, HookEvent{
+		Operation: OperationExec,
+		Statement: statement,
+		SQL:       query,
+		Args:      args,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -79,11 +97,11 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *s
 }
 
 func (tx *Tx) QueryBoundContext(ctx context.Context, bound BoundQuery) (*sql.Rows, error) {
-	return tx.QueryContext(ctx, bound.SQL, bound.Args...)
+	return tx.queryContext(ctx, bound.Name, bound.SQL, bound.Args...)
 }
 
 func (tx *Tx) ExecBoundContext(ctx context.Context, bound BoundQuery) (sql.Result, error) {
-	return tx.ExecContext(ctx, bound.SQL, bound.Args...)
+	return tx.execContext(ctx, bound.Name, bound.SQL, bound.Args...)
 }
 
 func (tx *Tx) Commit() error {
@@ -112,4 +130,8 @@ func (tx *Tx) Rollback() error {
 	event.Err = rollbackErr
 	tx.observe.after(ctx, event)
 	return rollbackErr
+}
+
+func (tx *Tx) SQL() *SQLExecutor {
+	return &SQLExecutor{session: tx}
 }

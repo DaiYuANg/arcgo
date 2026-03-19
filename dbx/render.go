@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
@@ -27,6 +28,10 @@ type orderRenderer interface {
 
 type operandRenderer interface {
 	renderOperand(*renderState) (string, error)
+}
+
+type selectItemRenderer interface {
+	renderSelectItem(*renderState) error
 }
 
 type renderState struct {
@@ -86,6 +91,13 @@ func (q *SelectQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 	}
 
 	state := &renderState{dialect: d, args: make([]any, 0, 8)}
+	if err := renderSelectQuery(state, q); err != nil {
+		return BoundQuery{}, err
+	}
+	return state.BoundQuery(), nil
+}
+
+func renderSelectQuery(state *renderState, q *SelectQuery) error {
 	state.buf.WriteString("SELECT ")
 	if q.Distinct {
 		state.buf.WriteString("DISTINCT ")
@@ -95,7 +107,7 @@ func (q *SelectQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 			state.buf.WriteString(", ")
 		}
 		if err := renderSelectItem(state, item); err != nil {
-			return BoundQuery{}, err
+			return err
 		}
 	}
 
@@ -109,14 +121,33 @@ func (q *SelectQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 		if join.Predicate != nil {
 			state.buf.WriteString(" ON ")
 			if err := renderPredicate(state, join.Predicate); err != nil {
-				return BoundQuery{}, err
+				return err
 			}
 		}
 	}
 	if q.WhereExp != nil {
 		state.buf.WriteString(" WHERE ")
 		if err := renderPredicate(state, q.WhereExp); err != nil {
-			return BoundQuery{}, err
+			return err
+		}
+	}
+	if len(q.Groups) > 0 {
+		state.buf.WriteString(" GROUP BY ")
+		for i, group := range q.Groups {
+			if i > 0 {
+				state.buf.WriteString(", ")
+			}
+			operand, err := renderOperandValue(state, group)
+			if err != nil {
+				return err
+			}
+			state.buf.WriteString(operand)
+		}
+	}
+	if q.HavingExp != nil {
+		state.buf.WriteString(" HAVING ")
+		if err := renderPredicate(state, q.HavingExp); err != nil {
+			return err
 		}
 	}
 	if len(q.Orders) > 0 {
@@ -126,19 +157,19 @@ func (q *SelectQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 				state.buf.WriteString(", ")
 			}
 			if err := renderOrder(state, order); err != nil {
-				return BoundQuery{}, err
+				return err
 			}
 		}
 	}
-	clause, err := d.RenderLimitOffset(q.LimitN, q.OffsetN)
+	clause, err := state.dialect.RenderLimitOffset(q.LimitN, q.OffsetN)
 	if err != nil {
-		return BoundQuery{}, err
+		return err
 	}
 	if clause != "" {
 		state.buf.WriteByte(' ')
 		state.buf.WriteString(clause)
 	}
-	return state.BoundQuery(), nil
+	return nil
 }
 
 func (q *InsertQuery) Build(d dialect.Dialect) (BoundQuery, error) {
@@ -148,39 +179,80 @@ func (q *InsertQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 	if q.Into.Name() == "" {
 		return BoundQuery{}, fmt.Errorf("dbx: insert query requires target table")
 	}
-	if len(q.Assignments) == 0 {
-		return BoundQuery{}, fmt.Errorf("dbx: insert query requires assignments")
+	rows := normalizedInsertRows(q)
+	if len(rows) == 0 && q.Source == nil {
+		return BoundQuery{}, fmt.Errorf("dbx: insert query requires values or source query")
+	}
+	if len(rows) > 0 && q.Source != nil {
+		return BoundQuery{}, fmt.Errorf("dbx: insert query cannot combine values and source query")
+	}
+	if q.Source != nil && len(q.TargetColumns) == 0 {
+		return BoundQuery{}, fmt.Errorf("dbx: insert-select requires target columns")
 	}
 
-	state := &renderState{dialect: d, args: make([]any, 0, len(q.Assignments))}
-	state.buf.WriteString("INSERT INTO ")
-	state.renderTable(q.Into)
-	state.buf.WriteString(" (")
-	for i, assignment := range q.Assignments {
-		renderer, ok := assignment.(insertAssignmentRenderer)
-		if !ok {
-			return BoundQuery{}, fmt.Errorf("dbx: unsupported insert assignment %T", assignment)
-		}
-		if i > 0 {
-			state.buf.WriteString(", ")
-		}
-		state.writeQuotedIdent(renderer.assignmentColumn().Name)
+	state := &renderState{dialect: d, args: make([]any, 0, len(rows)*4)}
+	if d.Name() == "mysql" && q.Upsert != nil && q.Upsert.DoNothing {
+		state.buf.WriteString("INSERT IGNORE INTO ")
+	} else {
+		state.buf.WriteString("INSERT INTO ")
 	}
-	state.buf.WriteString(") VALUES (")
-	for i, assignment := range q.Assignments {
-		renderer, ok := assignment.(insertAssignmentRenderer)
-		if !ok {
-			return BoundQuery{}, fmt.Errorf("dbx: unsupported insert assignment %T", assignment)
-		}
-		if i > 0 {
-			state.buf.WriteString(", ")
-		}
-		if err := renderer.renderAssignmentValue(state); err != nil {
-			return BoundQuery{}, err
-		}
+	if err := renderInsertBody(state, q, rows); err != nil {
+		return BoundQuery{}, err
 	}
-	state.buf.WriteByte(')')
+	if err := renderUpsert(state, q); err != nil {
+		return BoundQuery{}, err
+	}
+	if err := renderReturning(state, q.ReturningItems); err != nil {
+		return BoundQuery{}, err
+	}
 	return state.BoundQuery(), nil
+}
+
+func renderInsertBody(state *renderState, q *InsertQuery, rows [][]Assignment) error {
+	state.renderTable(q.Into)
+	columns, err := resolveInsertColumns(q, rows)
+	if err != nil {
+		return err
+	}
+	if len(columns) > 0 {
+		state.buf.WriteString(" (")
+		for i, column := range columns {
+			if i > 0 {
+				state.buf.WriteString(", ")
+			}
+			state.writeQuotedIdent(column.Name)
+		}
+		state.buf.WriteByte(')')
+	}
+	if q.Source != nil {
+		state.buf.WriteByte(' ')
+		return renderSelectQuery(state, q.Source)
+	}
+	orderedRows, err := orderInsertRows(columns, rows)
+	if err != nil {
+		return err
+	}
+	state.buf.WriteString(" VALUES ")
+	for rowIndex, row := range orderedRows {
+		if rowIndex > 0 {
+			state.buf.WriteString(", ")
+		}
+		state.buf.WriteByte('(')
+		for colIndex, assignment := range row {
+			renderer, ok := assignment.(insertAssignmentRenderer)
+			if !ok {
+				return fmt.Errorf("dbx: unsupported insert assignment %T", assignment)
+			}
+			if colIndex > 0 {
+				state.buf.WriteString(", ")
+			}
+			if err := renderer.renderAssignmentValue(state); err != nil {
+				return err
+			}
+		}
+		state.buf.WriteByte(')')
+	}
+	return nil
 }
 
 func (q *UpdateQuery) Build(d dialect.Dialect) (BoundQuery, error) {
@@ -212,6 +284,9 @@ func (q *UpdateQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 			return BoundQuery{}, err
 		}
 	}
+	if err := renderReturning(state, q.ReturningItems); err != nil {
+		return BoundQuery{}, err
+	}
 	return state.BoundQuery(), nil
 }
 
@@ -232,10 +307,16 @@ func (q *DeleteQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 			return BoundQuery{}, err
 		}
 	}
+	if err := renderReturning(state, q.ReturningItems); err != nil {
+		return BoundQuery{}, err
+	}
 	return state.BoundQuery(), nil
 }
 
 func renderSelectItem(state *renderState, item SelectItem) error {
+	if renderer, ok := item.(selectItemRenderer); ok {
+		return renderer.renderSelectItem(state)
+	}
 	column, ok := item.(columnAccessor)
 	if !ok {
 		return fmt.Errorf("dbx: unsupported select item %T", item)
@@ -268,6 +349,19 @@ func renderOrder(state *renderState, order Order) error {
 	return renderer.renderOrder(state)
 }
 
+func (c Column[E, T]) renderOperand(state *renderState) (string, error) {
+	meta := c.columnRef()
+	var builder strings.Builder
+	table := meta.Table
+	if meta.Alias != "" {
+		table = meta.Alias
+	}
+	builder.WriteString(state.dialect.QuoteIdent(table))
+	builder.WriteByte('.')
+	builder.WriteString(state.dialect.QuoteIdent(meta.Name))
+	return builder.String(), nil
+}
+
 func (o valueOperand[T]) renderOperand(state *renderState) (string, error) {
 	return state.bind(o.Value), nil
 }
@@ -285,8 +379,12 @@ func (o columnOperand[T]) renderOperand(state *renderState) (string, error) {
 	return builder.String(), nil
 }
 
-func (p comparisonPredicate[E, T]) renderPredicate(state *renderState) error {
-	state.renderColumn(p.Left.columnRef())
+func (p comparisonPredicate) renderPredicate(state *renderState) error {
+	left, err := p.Left.renderOperand(state)
+	if err != nil {
+		return err
+	}
+	state.buf.WriteString(left)
 	if p.Op == OpIs || p.Op == OpIsNot {
 		state.buf.WriteByte(' ')
 		state.buf.WriteString(string(p.Op))
@@ -335,6 +433,18 @@ func (p notPredicate) renderPredicate(state *renderState) error {
 	return nil
 }
 
+func (p existsPredicate) renderPredicate(state *renderState) error {
+	if p.Query == nil {
+		return fmt.Errorf("dbx: EXISTS predicate requires subquery")
+	}
+	state.buf.WriteString("EXISTS (")
+	if err := renderSelectQuery(state, p.Query); err != nil {
+		return err
+	}
+	state.buf.WriteByte(')')
+	return nil
+}
+
 func (a columnAssignment[E, T]) assignmentColumn() ColumnMeta {
 	return a.Column.columnRef()
 }
@@ -369,6 +479,109 @@ func (o columnOrder[E, T]) renderOrder(state *renderState) error {
 	return nil
 }
 
+func (o expressionOrder) renderOrder(state *renderState) error {
+	operand, err := o.Expr.renderOperand(state)
+	if err != nil {
+		return err
+	}
+	state.buf.WriteString(operand)
+	if o.Descending {
+		state.buf.WriteString(" DESC")
+		return nil
+	}
+	state.buf.WriteString(" ASC")
+	return nil
+}
+
+func (a Aggregate[T]) renderOperand(state *renderState) (string, error) {
+	var builder strings.Builder
+	builder.WriteString(string(a.Function))
+	builder.WriteByte('(')
+	if a.Distinct {
+		builder.WriteString("DISTINCT ")
+	}
+	if a.star {
+		builder.WriteByte('*')
+	} else {
+		if a.Expr == nil {
+			return "", fmt.Errorf("dbx: aggregate %s requires expression", a.Function)
+		}
+		operand, err := a.Expr.renderOperand(state)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteString(operand)
+	}
+	builder.WriteByte(')')
+	return builder.String(), nil
+}
+
+func (a Aggregate[T]) renderSelectItem(state *renderState) error {
+	operand, err := a.renderOperand(state)
+	if err != nil {
+		return err
+	}
+	state.buf.WriteString(operand)
+	return nil
+}
+
+func (o excludedColumnOperand[T]) renderOperand(state *renderState) (string, error) {
+	switch state.dialect.Name() {
+	case "postgres", "sqlite":
+		return "EXCLUDED." + state.dialect.QuoteIdent(o.Column.Name), nil
+	case "mysql":
+		return "VALUES(" + state.dialect.QuoteIdent(o.Column.Name) + ")", nil
+	default:
+		return "", fmt.Errorf("dbx: excluded assignment is not supported for dialect %s", state.dialect.Name())
+	}
+}
+
+func (a aliasedSelectItem) renderSelectItem(state *renderState) error {
+	if a.Item == nil {
+		return fmt.Errorf("dbx: aliased select item requires value")
+	}
+	if renderer, ok := a.Item.(selectItemRenderer); ok {
+		if err := renderer.renderSelectItem(state); err != nil {
+			return err
+		}
+	} else if renderer, ok := a.Item.(operandRenderer); ok {
+		operand, err := renderer.renderOperand(state)
+		if err != nil {
+			return err
+		}
+		state.buf.WriteString(operand)
+	} else {
+		return fmt.Errorf("dbx: unsupported aliased select item %T", a.Item)
+	}
+	if strings.TrimSpace(a.Alias) != "" {
+		state.buf.WriteString(" AS ")
+		state.writeQuotedIdent(strings.TrimSpace(a.Alias))
+	}
+	return nil
+}
+
+type subqueryOperand struct {
+	Query *SelectQuery
+}
+
+func (subqueryOperand) expressionNode() {}
+
+func (s subqueryOperand) renderOperand(state *renderState) (string, error) {
+	if s.Query == nil {
+		return "", fmt.Errorf("dbx: subquery is nil")
+	}
+	original := state.buf
+	var builder strings.Builder
+	state.buf = builder
+	if err := renderSelectQuery(state, s.Query); err != nil {
+		state.buf = original
+		return "", err
+	}
+	rendered := state.buf.String()
+	state.buf = original
+	return "(" + rendered + ")", nil
+}
+
 func renderOperandValue(state *renderState, value any) (string, error) {
 	if renderer, ok := value.(operandRenderer); ok {
 		return renderer.renderOperand(state)
@@ -393,4 +606,156 @@ func renderAnySliceOperand(state *renderState, values []any) (string, error) {
 	}
 	builder.WriteByte(')')
 	return builder.String(), nil
+}
+
+func normalizedInsertRows(q *InsertQuery) [][]Assignment {
+	if len(q.Rows) > 0 {
+		return q.Rows
+	}
+	if len(q.Assignments) > 0 {
+		return [][]Assignment{q.Assignments}
+	}
+	return nil
+}
+
+func resolveInsertColumns(q *InsertQuery, rows [][]Assignment) ([]ColumnMeta, error) {
+	if len(q.TargetColumns) > 0 {
+		return resolveTargetColumns(q.TargetColumns)
+	}
+	if len(rows) == 0 {
+		return nil, nil
+	}
+	columns := collectionx.NewListWithCapacity[ColumnMeta](len(rows[0]))
+	for _, assignment := range rows[0] {
+		renderer, ok := assignment.(insertAssignmentRenderer)
+		if !ok {
+			return nil, fmt.Errorf("dbx: unsupported insert assignment %T", assignment)
+		}
+		columns.Add(renderer.assignmentColumn())
+	}
+	return columns.Values(), nil
+}
+
+func resolveTargetColumns(expressions []Expression) ([]ColumnMeta, error) {
+	columns := collectionx.NewListWithCapacity[ColumnMeta](len(expressions))
+	for _, expression := range expressions {
+		column, ok := expression.(columnAccessor)
+		if !ok {
+			return nil, fmt.Errorf("dbx: unsupported target column expression %T", expression)
+		}
+		columns.Add(column.columnRef())
+	}
+	return columns.Values(), nil
+}
+
+func orderInsertRows(columns []ColumnMeta, rows [][]Assignment) ([][]Assignment, error) {
+	orderedRows := collectionx.NewListWithCapacity[[]Assignment](len(rows))
+	for _, row := range rows {
+		assignmentsByColumn := collectionx.NewMapWithCapacity[string, Assignment](len(row))
+		for _, assignment := range row {
+			renderer, ok := assignment.(insertAssignmentRenderer)
+			if !ok {
+				return nil, fmt.Errorf("dbx: unsupported insert assignment %T", assignment)
+			}
+			assignmentsByColumn.Set(renderer.assignmentColumn().Name, assignment)
+		}
+		orderedRow := collectionx.NewListWithCapacity[Assignment](len(columns))
+		for _, column := range columns {
+			assignment, ok := assignmentsByColumn.Get(column.Name)
+			if !ok {
+				return nil, fmt.Errorf("dbx: missing value for insert column %s", column.Name)
+			}
+			orderedRow.Add(assignment)
+		}
+		orderedRows.Add(orderedRow.Values())
+	}
+	return orderedRows.Values(), nil
+}
+
+func renderUpsert(state *renderState, q *InsertQuery) error {
+	if q.Upsert == nil {
+		return nil
+	}
+	switch state.dialect.Name() {
+	case "postgres", "sqlite":
+		state.buf.WriteString(" ON CONFLICT")
+		if len(q.Upsert.Targets) > 0 {
+			state.buf.WriteString(" (")
+			for i, target := range q.Upsert.Targets {
+				if i > 0 {
+					state.buf.WriteString(", ")
+				}
+				if column, ok := target.(columnAccessor); ok {
+					state.writeQuotedIdent(column.columnRef().Name)
+					continue
+				}
+				operand, err := renderOperandValue(state, target)
+				if err != nil {
+					return err
+				}
+				state.buf.WriteString(operand)
+			}
+			state.buf.WriteByte(')')
+		}
+		if q.Upsert.DoNothing {
+			state.buf.WriteString(" DO NOTHING")
+			return nil
+		}
+		if len(q.Upsert.Assignments) == 0 {
+			return fmt.Errorf("dbx: upsert update requires assignments")
+		}
+		if len(q.Upsert.Targets) == 0 {
+			return fmt.Errorf("dbx: upsert update requires conflict targets")
+		}
+		state.buf.WriteString(" DO UPDATE SET ")
+		for i, assignment := range q.Upsert.Assignments {
+			if i > 0 {
+				state.buf.WriteString(", ")
+			}
+			if err := renderAssignment(state, assignment); err != nil {
+				return err
+			}
+		}
+		return nil
+	case "mysql":
+		if q.Upsert.DoNothing {
+			return nil
+		}
+		if len(q.Upsert.Assignments) == 0 {
+			return fmt.Errorf("dbx: upsert update requires assignments")
+		}
+		state.buf.WriteString(" ON DUPLICATE KEY UPDATE ")
+		for i, assignment := range q.Upsert.Assignments {
+			if i > 0 {
+				state.buf.WriteString(", ")
+			}
+			if err := renderAssignment(state, assignment); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("dbx: upsert is not supported for dialect %s", state.dialect.Name())
+	}
+}
+
+func renderReturning(state *renderState, items []SelectItem) error {
+	if len(items) == 0 {
+		return nil
+	}
+	switch state.dialect.Name() {
+	case "postgres", "sqlite":
+		state.buf.WriteString(" RETURNING ")
+		for i, item := range items {
+			if i > 0 {
+				state.buf.WriteString(", ")
+			}
+			if err := renderSelectItem(state, item); err != nil {
+				return err
+			}
+		}
+		return nil
+	default:
+		return fmt.Errorf("dbx: RETURNING is not supported for dialect %s", state.dialect.Name())
+	}
 }

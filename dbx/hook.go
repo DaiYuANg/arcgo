@@ -23,6 +23,7 @@ const (
 
 type HookEvent struct {
 	Operation       Operation
+	Statement       string
 	SQL             string
 	Args            []any
 	Table           string
@@ -122,6 +123,9 @@ func (o runtimeObserver) log(event HookEvent) {
 	)
 	if event.Table != "" {
 		attrs.Add("table", event.Table)
+	}
+	if event.Statement != "" {
+		attrs.Add("statement", event.Statement)
 	}
 	if event.SQL != "" {
 		attrs.Add("sql", event.SQL)

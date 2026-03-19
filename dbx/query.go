@@ -9,35 +9,54 @@ type Join struct {
 }
 
 type SelectQuery struct {
-	Items    []SelectItem
-	FromItem Table
-	Joins    []Join
-	WhereExp Predicate
-	Orders   []Order
-	LimitN   *int
-	OffsetN  *int
-	Distinct bool
+	Items     []SelectItem
+	FromItem  Table
+	Joins     []Join
+	WhereExp  Predicate
+	Groups    []Expression
+	HavingExp Predicate
+	Orders    []Order
+	LimitN    *int
+	OffsetN   *int
+	Distinct  bool
 }
 
 type InsertQuery struct {
-	Into        Table
-	Assignments []Assignment
+	Into           Table
+	TargetColumns  []Expression
+	Assignments    []Assignment
+	Rows           [][]Assignment
+	Source         *SelectQuery
+	Upsert         *UpsertClause
+	ReturningItems []SelectItem
 }
 
 type UpdateQuery struct {
-	Table       Table
-	Assignments []Assignment
-	WhereExp    Predicate
+	Table          Table
+	Assignments    []Assignment
+	WhereExp       Predicate
+	ReturningItems []SelectItem
 }
 
 type DeleteQuery struct {
-	From     Table
-	WhereExp Predicate
+	From           Table
+	WhereExp       Predicate
+	ReturningItems []SelectItem
 }
 
 type JoinBuilder struct {
 	query *SelectQuery
 	index int
+}
+
+type ConflictBuilder struct {
+	query *InsertQuery
+}
+
+type UpsertClause struct {
+	Targets     []Expression
+	DoNothing   bool
+	Assignments []Assignment
 }
 
 func Select(items ...SelectItem) *SelectQuery {
@@ -49,6 +68,11 @@ func (q *SelectQuery) WithDistinct() *SelectQuery {
 	return q
 }
 
+func (q *SelectQuery) DistinctOn() *SelectQuery {
+	q.Distinct = true
+	return q
+}
+
 func (q *SelectQuery) From(source TableSource) *SelectQuery {
 	q.FromItem = source.tableRef()
 	return q
@@ -56,6 +80,16 @@ func (q *SelectQuery) From(source TableSource) *SelectQuery {
 
 func (q *SelectQuery) Where(predicate Predicate) *SelectQuery {
 	q.WhereExp = predicate
+	return q
+}
+
+func (q *SelectQuery) GroupBy(expressions ...Expression) *SelectQuery {
+	q.Groups = append(q.Groups, compactExpressions(expressions)...)
+	return q
+}
+
+func (q *SelectQuery) Having(predicate Predicate) *SelectQuery {
+	q.HavingExp = predicate
 	return q
 }
 
@@ -98,9 +132,51 @@ func InsertInto(source TableSource) *InsertQuery {
 	return &InsertQuery{Into: source.tableRef()}
 }
 
-func (q *InsertQuery) Values(assignments ...Assignment) *InsertQuery {
-	q.Assignments = append(q.Assignments, compactAssignments(assignments)...)
+func (q *InsertQuery) Columns(columns ...Expression) *InsertQuery {
+	q.TargetColumns = append(q.TargetColumns, compactExpressions(columns)...)
 	return q
+}
+
+func (q *InsertQuery) Values(assignments ...Assignment) *InsertQuery {
+	row := compactAssignments(assignments)
+	q.Rows = append(q.Rows, row)
+	if len(q.Rows) == 1 {
+		q.Assignments = row
+	} else {
+		q.Assignments = nil
+	}
+	return q
+}
+
+func (q *InsertQuery) FromSelect(query *SelectQuery) *InsertQuery {
+	q.Source = query
+	return q
+}
+
+func (q *InsertQuery) Returning(items ...SelectItem) *InsertQuery {
+	q.ReturningItems = append(q.ReturningItems, compactSelectItems(items)...)
+	return q
+}
+
+func (q *InsertQuery) OnConflict(targets ...Expression) *ConflictBuilder {
+	q.Upsert = &UpsertClause{Targets: compactExpressions(targets)}
+	return &ConflictBuilder{query: q}
+}
+
+func (b *ConflictBuilder) DoNothing() *InsertQuery {
+	b.query.Upsert = &UpsertClause{
+		Targets:   b.query.Upsert.Targets,
+		DoNothing: true,
+	}
+	return b.query
+}
+
+func (b *ConflictBuilder) DoUpdateSet(assignments ...Assignment) *InsertQuery {
+	b.query.Upsert = &UpsertClause{
+		Targets:     b.query.Upsert.Targets,
+		Assignments: compactAssignments(assignments),
+	}
+	return b.query
 }
 
 func Update(source TableSource) *UpdateQuery {
@@ -117,12 +193,22 @@ func (q *UpdateQuery) Where(predicate Predicate) *UpdateQuery {
 	return q
 }
 
+func (q *UpdateQuery) Returning(items ...SelectItem) *UpdateQuery {
+	q.ReturningItems = append(q.ReturningItems, compactSelectItems(items)...)
+	return q
+}
+
 func DeleteFrom(source TableSource) *DeleteQuery {
 	return &DeleteQuery{From: source.tableRef()}
 }
 
 func (q *DeleteQuery) Where(predicate Predicate) *DeleteQuery {
 	q.WhereExp = predicate
+	return q
+}
+
+func (q *DeleteQuery) Returning(items ...SelectItem) *DeleteQuery {
+	q.ReturningItems = append(q.ReturningItems, compactSelectItems(items)...)
 	return q
 }
 

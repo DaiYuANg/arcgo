@@ -8,11 +8,12 @@ weight: 7
 ## dbx
 
 `dbx` 是一个构建在 `database/sql` 之上的类型安全、泛型优先 ORM 核心。
-它把 schema 作为唯一数据库元数据来源，把 entity 保持为数据承载结构，同时提供三条并行能力：
+它把 schema 作为唯一数据库元数据来源，把 entity 保持为数据承载结构，同时提供四条并行能力：
 
 - 结构化查询 DSL
+- 基于 `sqltmplx` 和 `BoundQuery` 的纯 SQL 执行
 - schema 校验与保守式自动迁移
-- bound SQL 的直接执行能力，包括 `sqltmplx` 的输出
+- 运行时日志、hook 与事务封装
 
 ## 设计方向
 
@@ -21,8 +22,10 @@ weight: 7
 
 - `Schema[E]` 作为唯一数据库元数据源
 - 带显式泛型信息的 `Column[E, T]` 和关系引用
-- `Mapper[E]` 负责实体映射与缓存化扫描
+- `Mapper[E]` 负责 schema-aware 实体映射
+- `StructMapper[E]` 负责纯 SQL 和 DTO 扫描
 - `DB` / `Tx` 封装在 `*sql.DB` / `*sql.Tx` 之上
+- `DB.SQL()` / `Tx.SQL()` 作为纯 SQL 执行入口
 - 基于 `slog` 的 debug 日志和 hook
 - 保守的 schema diff 与 migration planning
 
@@ -44,9 +47,11 @@ weight: 7
 - `Schema[E]`：表级元数据根节点
 - `Column[E, T]`：强类型列引用与 predicate/assignment 入口
 - `BelongsTo/HasOne/HasMany/ManyToMany`：强类型关系引用
-- `Mapper[E]`：实体字段映射与 scan plan cache
-- `BoundQuery`：渲染后的 SQL 与参数
+- `Mapper[E]`：schema-aware 映射与 scan plan cache
+- `StructMapper[E]`：面向纯 SQL 和 DTO 的结构扫描器
+- `BoundQuery`：渲染后的 SQL、参数以及可选 statement name
 - `DB` / `Tx`：带日志与 hook 的运行时执行封装
+- `SQLExecutor`：由 `DB.SQL()` / `Tx.SQL()` 返回的纯 SQL facade
 
 ## Schema First
 
@@ -113,7 +118,7 @@ fmt.Println(bound.Args)
 
 ## Mapper 与 Projection
 
-用 `Mapper[E]` 做结果扫描和字段级投影。
+用 `Mapper[E]` 做 schema-aware 的结果扫描和字段级投影。
 
 ```go
 mapper := dbx.MustMapper[User](Users)
@@ -135,6 +140,84 @@ summaries, err := dbx.QueryAll(
     dbx.MustSelectMapped(Users, summaryMapper),
     summaryMapper,
 )
+```
+
+如果只是纯 SQL 或 DTO 查询，优先使用 `StructMapper[E]`，不要为了扫描去依赖 schema-aware `Mapper[E]`。
+
+## 纯 SQL 入口
+
+`sqltmplx` 继续负责模板编译、渲染和校验。
+`dbx` 负责执行、事务、hook 和日志。
+
+```go
+//go:embed sql/**/*.sql
+var sqlFS embed.FS
+
+registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+
+items, err := dbx.SQLList(
+    ctx,
+    core.SQL(),
+    registry.MustStatement("sql/user/find_active.sql"),
+    struct {
+        Status int `dbx:"status"`
+    }{Status: 1},
+    dbx.MustStructMapper[UserSummary](),
+)
+if err != nil {
+    panic(err)
+}
+
+count, err := dbx.SQLScalar[int64](
+    ctx,
+    core.SQL(),
+    registry.MustStatement("sql/user/count_by_status.sql"),
+    struct {
+        Status int `dbx:"status"`
+    }{Status: 1},
+)
+if err != nil {
+    panic(err)
+}
+```
+
+当前纯 SQL 辅助入口包括：
+
+- `db.SQL().Exec(...)` / `tx.SQL().Exec(...)`
+- `dbx.SQLList(...)`
+- `dbx.SQLGet(...)`
+- `dbx.SQLFind(...)`
+- `dbx.SQLScalar(...)`
+- `dbx.SQLScalarOption(...)`
+
+其中 `SQLFind` 和 `SQLScalarOption` 返回 `mo.Option[T]`。
+
+## 纯 SQL 事务示例
+
+```go
+tx, err := core.BeginTx(ctx, nil)
+if err != nil {
+    panic(err)
+}
+
+if _, err := tx.SQL().Exec(
+    ctx,
+    registry.MustStatement("sql/user/update_status.sql"),
+    struct {
+        Status   int    `dbx:"status"`
+        Username string `dbx:"username"`
+    }{
+        Status:   2,
+        Username: "bob",
+    },
+); err != nil {
+    _ = tx.Rollback()
+    panic(err)
+}
+
+if err := tx.Commit(); err != nil {
+    panic(err)
+}
 ```
 
 ## 关系与 Join Helper
@@ -163,6 +246,7 @@ if _, err := query.JoinRelation(users, users.Roles, roles); err != nil {
 ## 运行时日志与 Hook
 
 `DB` 和 `Tx` 内建了运行时 hook 和 `slog` debug SQL 日志。
+纯 SQL statement 的名称也会进入 hook event 和 debug 日志。
 
 ```go
 logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -175,6 +259,7 @@ core := dbx.NewWithOptions(
     dbx.WithHooks(dbx.HookFuncs{
         AfterFunc: func(_ context.Context, event *dbx.HookEvent) {
             fmt.Println("operation:", event.Operation)
+            fmt.Println("statement:", event.Statement)
         },
     }),
 )
@@ -216,6 +301,7 @@ fmt.Println(report.Valid())
 - schema-first 建模
 - typed query build 与 execution
 - typed mapping 与 projection
+- 通过 `sqltmplx` statement 做纯 SQL 执行
 - relation-aware join helper
 - runtime logging 与 hook
 - schema diff / plan / validate / auto-migrate
@@ -224,7 +310,6 @@ fmt.Println(report.Valid())
 
 - 超出保守 auto-migrate 的更强 DDL planning
 - 更高层的 repository / active-record 易用性封装
-- 文档里更完整的 `sqltmplx` 执行集成示例
 
 ## 示例
 
@@ -233,6 +318,7 @@ fmt.Println(report.Valid())
   - [examples/dbx/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic)
   - [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations)
   - [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration)
+  - [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql)
 
 ## 测试
 
@@ -241,4 +327,5 @@ go test ./dbx/...
 go run ./examples/dbx/basic
 go run ./examples/dbx/relations
 go run ./examples/dbx/migration
+go run ./examples/dbx/pure_sql
 ```

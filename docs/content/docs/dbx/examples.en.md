@@ -16,16 +16,20 @@ Run from the `examples/dbx` module:
 ```bash
 cd examples/dbx
 go run ./basic
+go run ./mutation
 go run ./relations
 go run ./migration
+go run ./pure_sql
 ```
 
 You can also run directly from the repository root:
 
 ```bash
 go run ./examples/dbx/basic
+go run ./examples/dbx/mutation
 go run ./examples/dbx/relations
 go run ./examples/dbx/migration
+go run ./examples/dbx/pure_sql
 ```
 
 ## Example Matrix
@@ -33,27 +37,10 @@ go run ./examples/dbx/migration
 | Example | Focus | Directory |
 | --- | --- | --- |
 | `basic` | schema-first modeling, mapper scan, projection, tx, debug SQL, hooks | [examples/dbx/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic) |
+| `mutation` | aggregate queries, subqueries, batch insert, insert-select, upsert, returning | [examples/dbx/mutation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation) |
 | `relations` | alias + relation metadata + `JoinRelation` for `BelongsTo` and `ManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
 | `migration` | `PlanSchemaChanges`, `AutoMigrate`, `ValidateSchemas`, `ForeignKeys()` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
-
-## Example: Open DB with Debug Logging
-
-```go
-core, closeDB, err := shared.OpenSQLite(
-    "dbx-basic",
-    dbx.WithLogger(shared.NewLogger()),
-    dbx.WithDebug(true),
-    dbx.WithHooks(dbx.HookFuncs{
-        AfterFunc: func(_ context.Context, event *dbx.HookEvent) {
-            fmt.Println(event.Operation)
-        },
-    }),
-)
-if err != nil {
-    panic(err)
-}
-defer func() { _ = closeDB() }()
-```
+| `pure_sql` | `sqltmplx` registry, `dbx.SQLList/SQLScalar`, statement-name logging, `tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
 
 ## Example: Query with Mapper
 
@@ -73,27 +60,65 @@ if err != nil {
 }
 ```
 
-## Example: Relation Join
+## Example: Query DSL Mutations
 
 ```go
-users := dbx.Alias(catalog.Users, "u")
-roles := dbx.Alias(catalog.Roles, "r")
+archiveMapper := dbx.MustMapper[userArchive](archive)
 
-query := dbx.Select(users.ID, users.Username, roles.Name).From(users)
-if _, err := query.JoinRelation(users, users.Role, roles); err != nil {
+items, err := dbx.QueryAll(
+    ctx,
+    core,
+    dbx.InsertInto(archive).
+        Columns(archive.Username, archive.Status).
+        FromSelect(
+            dbx.Select(catalog.Users.Username, catalog.Users.Status).
+                From(catalog.Users).
+                Where(catalog.Users.Status.Eq(1)),
+        ).
+        Returning(archive.ID, archive.Username, archive.Status),
+    archiveMapper,
+)
+if err != nil {
     panic(err)
 }
 ```
 
-## Example: Migration Planning
+## Example: Upsert with Excluded Values
 
 ```go
-plan, err := core.PlanSchemaChanges(ctx, catalog.Roles, catalog.Users, catalog.UserRoles)
+items, err := dbx.QueryAll(
+    ctx,
+    core,
+    dbx.InsertInto(archive).
+        Values(
+            archive.Username.Set("alice"),
+            archive.Status.Set(9),
+        ).
+        OnConflict(archive.Username).
+        DoUpdateSet(archive.Status.SetExcluded()).
+        Returning(archive.ID, archive.Username, archive.Status),
+    archiveMapper,
+)
 if err != nil {
     panic(err)
 }
+```
 
-for _, action := range plan.Actions {
-    fmt.Println(action.Kind, action.Executable, action.Summary)
+## Example: Pure SQL With sqltmplx
+
+```go
+registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+
+items, err := dbx.SQLList(
+    ctx,
+    core.SQL(),
+    registry.MustStatement("sql/user/find_active.sql"),
+    struct {
+        Status int `dbx:"status"`
+    }{Status: 1},
+    dbx.MustStructMapper[shared.UserSummary](),
+)
+if err != nil {
+    panic(err)
 }
 ```

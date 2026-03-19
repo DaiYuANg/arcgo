@@ -9,11 +9,12 @@ weight: 7
 
 `dbx` is a type-safe, generic-first ORM core built on top of `database/sql`.
 It treats schema as the single source of database metadata, keeps entities as data carriers,
-and provides three parallel capabilities:
+and provides four parallel capabilities:
 
 - structured query DSL
+- pure SQL execution on top of `sqltmplx` and `BoundQuery`
 - schema validation and conservative auto-migrate
-- direct execution of bound SQL, including `sqltmplx` output
+- runtime logging, hooks, and transaction wrappers
 
 ## Design Direction
 
@@ -22,8 +23,10 @@ The current design focuses on:
 
 - `Schema[E]` as the only database metadata source
 - `Column[E, T]` and relation refs with explicit generic types
-- `Mapper[E]` for entity mapping and cached row scanning
+- `Mapper[E]` for schema-aware entity mapping
+- `StructMapper[E]` for pure SQL and DTO-only scanning
 - `DB` / `Tx` wrappers on top of `*sql.DB` / `*sql.Tx`
+- `DB.SQL()` / `Tx.SQL()` as the pure SQL execution entry
 - `slog`-based debug logging and hook support
 - conservative schema diff and migration planning
 
@@ -45,9 +48,11 @@ The current design focuses on:
 - `Schema[E]`: table-level metadata root
 - `Column[E, T]`: typed column reference and predicate/assignment entry
 - `BelongsTo/HasOne/HasMany/ManyToMany`: typed relation refs
-- `Mapper[E]`: entity field mapping + scan plan cache
-- `BoundQuery`: rendered SQL plus bind arguments
+- `Mapper[E]`: schema-aware mapping plus scan plan cache
+- `StructMapper[E]`: struct-only scan mapper for pure SQL and DTOs
+- `BoundQuery`: rendered SQL plus bind arguments and optional statement name
 - `DB` / `Tx`: runtime execution wrappers with logging and hooks
+- `SQLExecutor`: pure SQL facade returned by `DB.SQL()` / `Tx.SQL()`
 
 ## Schema First
 
@@ -114,7 +119,7 @@ fmt.Println(bound.Args)
 
 ## Mapper and Projection
 
-Use `Mapper[E]` for result scanning and field-based projection.
+Use `Mapper[E]` for schema-aware result scanning and field-based projection.
 
 ```go
 mapper := dbx.MustMapper[User](Users)
@@ -136,6 +141,84 @@ summaries, err := dbx.QueryAll(
     dbx.MustSelectMapped(Users, summaryMapper),
     summaryMapper,
 )
+```
+
+For pure SQL or DTO-only reads, use `StructMapper[E]` instead of schema-aware `Mapper[E]`.
+
+## Pure SQL Entry
+
+`sqltmplx` stays responsible for template compile/render/validate.
+`dbx` owns execution, transaction handling, hooks, and logging.
+
+```go
+//go:embed sql/**/*.sql
+var sqlFS embed.FS
+
+registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+
+items, err := dbx.SQLList(
+    ctx,
+    core.SQL(),
+    registry.MustStatement("sql/user/find_active.sql"),
+    struct {
+        Status int `dbx:"status"`
+    }{Status: 1},
+    dbx.MustStructMapper[UserSummary](),
+)
+if err != nil {
+    panic(err)
+}
+
+count, err := dbx.SQLScalar[int64](
+    ctx,
+    core.SQL(),
+    registry.MustStatement("sql/user/count_by_status.sql"),
+    struct {
+        Status int `dbx:"status"`
+    }{Status: 1},
+)
+if err != nil {
+    panic(err)
+}
+```
+
+The pure SQL helpers currently are:
+
+- `db.SQL().Exec(...)` / `tx.SQL().Exec(...)`
+- `dbx.SQLList(...)`
+- `dbx.SQLGet(...)`
+- `dbx.SQLFind(...)`
+- `dbx.SQLScalar(...)`
+- `dbx.SQLScalarOption(...)`
+
+`SQLFind` and `SQLScalarOption` return `mo.Option[T]`.
+
+## Pure SQL With Transaction
+
+```go
+tx, err := core.BeginTx(ctx, nil)
+if err != nil {
+    panic(err)
+}
+
+if _, err := tx.SQL().Exec(
+    ctx,
+    registry.MustStatement("sql/user/update_status.sql"),
+    struct {
+        Status   int    `dbx:"status"`
+        Username string `dbx:"username"`
+    }{
+        Status:   2,
+        Username: "bob",
+    },
+); err != nil {
+    _ = tx.Rollback()
+    panic(err)
+}
+
+if err := tx.Commit(); err != nil {
+    panic(err)
+}
 ```
 
 ## Relations and Join Helpers
@@ -164,6 +247,7 @@ if _, err := query.JoinRelation(users, users.Roles, roles); err != nil {
 ## Runtime Logging and Hooks
 
 `DB` and `Tx` provide runtime observation hooks and `slog` debug logging.
+Pure SQL statements also carry their statement names into hook events and debug logs.
 
 ```go
 logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}))
@@ -176,6 +260,7 @@ core := dbx.NewWithOptions(
     dbx.WithHooks(dbx.HookFuncs{
         AfterFunc: func(_ context.Context, event *dbx.HookEvent) {
             fmt.Println("operation:", event.Operation)
+            fmt.Println("statement:", event.Statement)
         },
     }),
 )
@@ -217,6 +302,7 @@ What `dbx` already covers well:
 - schema-first modeling
 - typed query build and execution
 - typed mapping and projection
+- pure SQL execution via `sqltmplx` statements
 - relation-aware join helpers
 - runtime logging and hooks
 - schema diff / plan / validate / auto-migrate
@@ -225,7 +311,6 @@ What remains intentionally iterative:
 
 - richer DDL planning beyond conservative auto-migrate
 - higher-level repository / active-record ergonomics
-- tighter `sqltmplx` execution integration examples in docs
 
 ## Examples
 
@@ -234,6 +319,7 @@ What remains intentionally iterative:
   - [examples/dbx/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic)
   - [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations)
   - [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration)
+  - [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql)
 
 ## Testing
 
@@ -242,4 +328,5 @@ go test ./dbx/...
 go run ./examples/dbx/basic
 go run ./examples/dbx/relations
 go run ./examples/dbx/migration
+go run ./examples/dbx/pure_sql
 ```

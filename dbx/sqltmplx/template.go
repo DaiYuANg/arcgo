@@ -1,7 +1,8 @@
 package sqltmplx
 
 import (
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect"
+	"github.com/DaiYuANg/arcgo/dbx"
+	"github.com/DaiYuANg/arcgo/dbx/dialect"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/parse"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/render"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/scan"
@@ -9,12 +10,13 @@ import (
 )
 
 type Template struct {
+	name      string
 	nodes     []parse.Node
-	dialect   dialect.Dialect
+	dialect   dialect.Contract
 	validator validate.Validator
 }
 
-func compileTemplate(tpl string, d dialect.Dialect, cfg config) (*Template, error) {
+func compileTemplate(name string, tpl string, d dialect.Contract, cfg config) (*Template, error) {
 	tokens, err := scan.Scan(tpl)
 	if err != nil {
 		return nil, err
@@ -23,7 +25,14 @@ func compileTemplate(tpl string, d dialect.Dialect, cfg config) (*Template, erro
 	if err != nil {
 		return nil, err
 	}
-	return &Template{nodes: nodes, dialect: d, validator: cfg.validator}, nil
+	return &Template{name: name, nodes: nodes, dialect: d, validator: cfg.validator}, nil
+}
+
+func (t *Template) StatementName() string {
+	if t == nil {
+		return ""
+	}
+	return t.name
 }
 
 func (t *Template) Render(params any) (BoundSQL, error) {
@@ -37,4 +46,20 @@ func (t *Template) Render(params any) (BoundSQL, error) {
 		}
 	}
 	return BoundSQL{Query: bound.Query, Args: bound.Args}, nil
+}
+
+func (t *Template) Bind(params any) (dbx.BoundQuery, error) {
+	if t == nil {
+		return dbx.BoundQuery{}, dbx.ErrNilStatement
+	}
+
+	bound, err := t.Render(params)
+	if err != nil {
+		return dbx.BoundQuery{}, err
+	}
+	return dbx.BoundQuery{
+		Name: t.name,
+		SQL:  bound.Query,
+		Args: append([]any(nil), bound.Args...),
+	}, nil
 }

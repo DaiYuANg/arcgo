@@ -3,7 +3,7 @@ package render
 import (
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/dialect/postgres"
+	"github.com/DaiYuANg/arcgo/dbx/dialect/postgres"
 )
 
 type benchmarkNestedFilter struct {

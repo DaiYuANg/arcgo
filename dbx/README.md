@@ -1,19 +1,30 @@
 # dbx
 
-`dbx` is the home for ArcGo database primitives.
+`dbx` is ArcGo's schema-first, generic-first ORM core on top of `database/sql`.
 
-Planned layers:
+Current status:
+- typed `Schema[E]`, `Column[E, T]`, and relation refs
+- typed query DSL including aggregates, subqueries, CTE, `UNION ALL`, `CASE WHEN`, batch insert, `INSERT ... SELECT`, upsert, and `RETURNING`
+- `Mapper[E]` / `StructMapper[E]` with field codecs and pure SQL reads
+- pure SQL execution through `dbx.SQL*` and `dbx/sqltmplx`
+- relation loading, schema planning, validation, SQL preview, auto-migrate, and migration runner
+- runtime hooks, `slog` debug SQL logging, and benchmark coverage
 
-- `dbx`: type-safe schema / model / query building core on top of `database/sql`
-- `dbx/dialect`: shared SQL dialect abstraction
-- `dbx/repository`: repository-style facade
-- `dbx/activerecord`: active-record-style facade
-- `dbx/migrate`: Go API and Flyway-style versioned migration metadata
-- `dbx/sqltmplx`: SQL-first templated SQL capability
+Internal engines currently used by `dbx`:
+- `scan`
+- `Atlas`
+- `goose`
+- `hot`
 
-Current focus:
+Primary docs:
+- `docs/content/docs/dbx/_index.md`
+- `docs/content/docs/dbx/examples.md`
 
-- schema-first table modeling
-- entity/model metadata
-- query AST and fluent builders
-- migration source modeling
+Runnable examples:
+- `examples/dbx/basic`
+- `examples/dbx/codec`
+- `examples/dbx/mutation`
+- `examples/dbx/query_advanced`
+- `examples/dbx/relations`
+- `examples/dbx/migration`
+- `examples/dbx/pure_sql`

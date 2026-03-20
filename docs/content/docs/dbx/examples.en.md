@@ -16,7 +16,9 @@ Run from the `examples/dbx` module:
 ```bash
 cd examples/dbx
 go run ./basic
+go run ./codec
 go run ./mutation
+go run ./query_advanced
 go run ./relations
 go run ./migration
 go run ./pure_sql
@@ -26,7 +28,9 @@ You can also run directly from the repository root:
 
 ```bash
 go run ./examples/dbx/basic
+go run ./examples/dbx/codec
 go run ./examples/dbx/mutation
+go run ./examples/dbx/query_advanced
 go run ./examples/dbx/relations
 go run ./examples/dbx/migration
 go run ./examples/dbx/pure_sql
@@ -37,22 +41,24 @@ go run ./examples/dbx/pure_sql
 | Example | Focus | Directory |
 | --- | --- | --- |
 | `basic` | schema-first modeling, mapper scan, projection, tx, debug SQL, hooks | [examples/dbx/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic) |
+| `codec` | built-in codecs, scoped custom codecs, struct mapper reads, mapper write assignments | [examples/dbx/codec](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/codec) |
 | `mutation` | aggregate queries, subqueries, batch insert, insert-select, upsert, returning | [examples/dbx/mutation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation) |
-| `relations` | alias + relation metadata + `JoinRelation` for `BelongsTo` and `ManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
-| `migration` | `PlanSchemaChanges`, `AutoMigrate`, `ValidateSchemas`, `ForeignKeys()` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
-| `pure_sql` | `sqltmplx` registry, `dbx.SQLList/SQLScalar`, statement-name logging, `tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
+| `query_advanced` | `WITH`, `UNION ALL`, `CASE WHEN`, named tables, result columns | [examples/dbx/query_advanced](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/query_advanced) |
+| `relations` | alias + relation metadata + `JoinRelation`, plus `LoadBelongsTo` and `LoadManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
+| `migration` | `PlanSchemaChanges`, `SQLPreview`, `AutoMigrate`, `ValidateSchemas`, `core.Migrator(...).UpGo/UpSQL` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
+| `pure_sql` | `sqltmplx` registry, `dbx.SQLList/SQLGet/SQLFind/SQLScalar`, statement-name logging, `tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
 
-## Example: Query with Mapper
+## Example: Codec and StructMapper
 
 ```go
-mapper := dbx.MustMapper[shared.User](catalog.Users)
+mapper := dbx.MustStructMapperWithOptions[shared.Account](
+    dbx.WithMapperCodecs(csvCodec),
+)
+
 items, err := dbx.QueryAll(
     ctx,
     core,
-    dbx.Select(catalog.Users.AllColumns()...).
-        From(catalog.Users).
-        Where(catalog.Users.Status.Eq(1)).
-        OrderBy(catalog.Users.ID.Asc()),
+    dbx.Select(catalog.Accounts.AllColumns()...).From(catalog.Accounts),
     mapper,
 )
 if err != nil {
@@ -60,45 +66,60 @@ if err != nil {
 }
 ```
 
-## Example: Query DSL Mutations
+## Example: Advanced Query DSL
 
 ```go
-archiveMapper := dbx.MustMapper[userArchive](archive)
+statusLabel := dbx.CaseWhen[string](catalog.Users.Status.Eq(1), "active").
+    Else("inactive").
+    As("status_label")
 
-items, err := dbx.QueryAll(
+activeUsers := dbx.NamedTable("active_users")
+activeID := dbx.NamedColumn[int64](activeUsers, "id")
+activeName := dbx.NamedColumn[string](activeUsers, "username")
+
+query := dbx.Select(activeID, activeName, statusLabel).
+    With("active_users",
+        dbx.Select(catalog.Users.ID, catalog.Users.Username).
+            From(catalog.Users).
+            Where(catalog.Users.Status.Eq(1)),
+    ).
+    From(activeUsers)
+```
+
+## Example: Relation Loading
+
+```go
+if err := dbx.LoadBelongsTo(
     ctx,
     core,
-    dbx.InsertInto(archive).
-        Columns(archive.Username, archive.Status).
-        FromSelect(
-            dbx.Select(catalog.Users.Username, catalog.Users.Status).
-                From(catalog.Users).
-                Where(catalog.Users.Status.Eq(1)),
-        ).
-        Returning(archive.ID, archive.Username, archive.Status),
-    archiveMapper,
-)
-if err != nil {
+    users,
+    catalog.Users,
+    userMapper,
+    catalog.Users.Role,
+    catalog.Roles,
+    roleMapper,
+    func(index int, user *shared.User, role mo.Option[shared.Role]) {
+        // attach role
+    },
+); err != nil {
     panic(err)
 }
 ```
 
-## Example: Upsert with Excluded Values
+## Example: Schema Plan Preview and Runner
 
 ```go
-items, err := dbx.QueryAll(
-    ctx,
-    core,
-    dbx.InsertInto(archive).
-        Values(
-            archive.Username.Set("alice"),
-            archive.Status.Set(9),
-        ).
-        OnConflict(archive.Username).
-        DoUpdateSet(archive.Status.SetExcluded()).
-        Returning(archive.ID, archive.Username, archive.Status),
-    archiveMapper,
-)
+plan, err := core.PlanSchemaChanges(ctx, catalog.Roles, catalog.Users, catalog.UserRoles)
+if err != nil {
+    panic(err)
+}
+
+for _, sqlText := range plan.SQLPreview() {
+    fmt.Println(sqlText)
+}
+
+runner := core.Migrator(migrate.RunnerOptions{ValidateHash: true})
+_, err = runner.UpSQL(ctx, source)
 if err != nil {
     panic(err)
 }

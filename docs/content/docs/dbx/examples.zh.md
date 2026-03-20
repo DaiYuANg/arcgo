@@ -16,7 +16,9 @@ weight: 10
 ```bash
 cd examples/dbx
 go run ./basic
+go run ./codec
 go run ./mutation
+go run ./query_advanced
 go run ./relations
 go run ./migration
 go run ./pure_sql
@@ -26,7 +28,9 @@ go run ./pure_sql
 
 ```bash
 go run ./examples/dbx/basic
+go run ./examples/dbx/codec
 go run ./examples/dbx/mutation
+go run ./examples/dbx/query_advanced
 go run ./examples/dbx/relations
 go run ./examples/dbx/migration
 go run ./examples/dbx/pure_sql
@@ -37,22 +41,24 @@ go run ./examples/dbx/pure_sql
 | 示例 | 重点 | 目录 |
 | --- | --- | --- |
 | `basic` | schema-first 建模、mapper 扫描、projection、事务、debug SQL、hooks | [examples/dbx/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic) |
+| `codec` | 内建 codec、scoped custom codec、struct mapper 读取、mapper 写入 assignment | [examples/dbx/codec](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/codec) |
 | `mutation` | 聚合查询、子查询、批量插入、insert-select、upsert、returning | [examples/dbx/mutation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation) |
-| `relations` | alias + relation metadata + `JoinRelation`，覆盖 `BelongsTo` 和 `ManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
-| `migration` | `PlanSchemaChanges`、`AutoMigrate`、`ValidateSchemas`、`ForeignKeys()` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
-| `pure_sql` | `sqltmplx` registry、`dbx.SQLList/SQLScalar`、statement 名称日志、`tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
+| `query_advanced` | `WITH`、`UNION ALL`、`CASE WHEN`、named table、result column | [examples/dbx/query_advanced](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/query_advanced) |
+| `relations` | alias + relation metadata + `JoinRelation`，以及 `LoadBelongsTo`、`LoadManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
+| `migration` | `PlanSchemaChanges`、`SQLPreview`、`AutoMigrate`、`ValidateSchemas`、`core.Migrator(...).UpGo/UpSQL` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
+| `pure_sql` | `sqltmplx` registry、`dbx.SQLList/SQLGet/SQLFind/SQLScalar`、statement 名称日志、`tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
 
-## 示例：结合 Mapper 查询
+## 示例：Codec 与 StructMapper
 
 ```go
-mapper := dbx.MustMapper[shared.User](catalog.Users)
+mapper := dbx.MustStructMapperWithOptions[shared.Account](
+    dbx.WithMapperCodecs(csvCodec),
+)
+
 items, err := dbx.QueryAll(
     ctx,
     core,
-    dbx.Select(catalog.Users.AllColumns()...).
-        From(catalog.Users).
-        Where(catalog.Users.Status.Eq(1)).
-        OrderBy(catalog.Users.ID.Asc()),
+    dbx.Select(catalog.Accounts.AllColumns()...).From(catalog.Accounts),
     mapper,
 )
 if err != nil {
@@ -60,45 +66,60 @@ if err != nil {
 }
 ```
 
-## 示例：Query DSL 写入
+## 示例：高级 Query DSL
 
 ```go
-archiveMapper := dbx.MustMapper[userArchive](archive)
+statusLabel := dbx.CaseWhen[string](catalog.Users.Status.Eq(1), "active").
+    Else("inactive").
+    As("status_label")
 
-items, err := dbx.QueryAll(
+activeUsers := dbx.NamedTable("active_users")
+activeID := dbx.NamedColumn[int64](activeUsers, "id")
+activeName := dbx.NamedColumn[string](activeUsers, "username")
+
+query := dbx.Select(activeID, activeName, statusLabel).
+    With("active_users",
+        dbx.Select(catalog.Users.ID, catalog.Users.Username).
+            From(catalog.Users).
+            Where(catalog.Users.Status.Eq(1)),
+    ).
+    From(activeUsers)
+```
+
+## 示例：关系加载
+
+```go
+if err := dbx.LoadBelongsTo(
     ctx,
     core,
-    dbx.InsertInto(archive).
-        Columns(archive.Username, archive.Status).
-        FromSelect(
-            dbx.Select(catalog.Users.Username, catalog.Users.Status).
-                From(catalog.Users).
-                Where(catalog.Users.Status.Eq(1)),
-        ).
-        Returning(archive.ID, archive.Username, archive.Status),
-    archiveMapper,
-)
-if err != nil {
+    users,
+    catalog.Users,
+    userMapper,
+    catalog.Users.Role,
+    catalog.Roles,
+    roleMapper,
+    func(index int, user *shared.User, role mo.Option[shared.Role]) {
+        // 在这里挂回角色
+    },
+); err != nil {
     panic(err)
 }
 ```
 
-## 示例：带 Excluded 值的 Upsert
+## 示例：Schema Plan 预览与 Runner
 
 ```go
-items, err := dbx.QueryAll(
-    ctx,
-    core,
-    dbx.InsertInto(archive).
-        Values(
-            archive.Username.Set("alice"),
-            archive.Status.Set(9),
-        ).
-        OnConflict(archive.Username).
-        DoUpdateSet(archive.Status.SetExcluded()).
-        Returning(archive.ID, archive.Username, archive.Status),
-    archiveMapper,
-)
+plan, err := core.PlanSchemaChanges(ctx, catalog.Roles, catalog.Users, catalog.UserRoles)
+if err != nil {
+    panic(err)
+}
+
+for _, sqlText := range plan.SQLPreview() {
+    fmt.Println(sqlText)
+}
+
+runner := core.Migrator(migrate.RunnerOptions{ValidateHash: true})
+_, err = runner.UpSQL(ctx, source)
 if err != nil {
     panic(err)
 }

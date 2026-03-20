@@ -287,3 +287,64 @@ func BenchmarkConcurrentListAddParallel(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkRopeListAddAt(b *testing.B) {
+	r := NewRopeList[int]()
+	for i := 0; i < benchListKeySpace; i++ {
+		r.Add(i)
+	}
+	mid := benchListKeySpace / 2
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = r.InsertAt(mid, i)
+		_, _ = r.RemoveAt(mid)
+	}
+}
+
+func BenchmarkRopeListGet(b *testing.B) {
+	r := NewRopeList[int]()
+	for i := 0; i < benchListKeySpace; i++ {
+		r.Add(i)
+	}
+	mask := benchListKeySpace - 1
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = r.Get(i & mask)
+	}
+}
+
+func BenchmarkListAddAtLarge(b *testing.B) {
+	const largeSize = 50_000
+	l := NewListWithCapacity[int](largeSize)
+	for i := 0; i < largeSize; i++ {
+		l.Add(i)
+	}
+	mid := largeSize / 2
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = l.AddAt(mid, i)
+		_, _ = l.RemoveAt(mid)
+	}
+}
+
+func BenchmarkRopeListAddAtLarge(b *testing.B) {
+	const largeSize = 50_000
+	r := NewRopeList[int]()
+	for i := 0; i < largeSize; i++ {
+		r.Add(i)
+	}
+	mid := largeSize / 2
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = r.InsertAt(mid, i)
+		_, _ = r.RemoveAt(mid)
+	}
+}

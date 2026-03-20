@@ -59,6 +59,24 @@ func NewConcurrentMapWithCapacity[K comparable, V any](capacity int) ConcurrentM
 	return mapping.NewConcurrentMapWithCapacity[K, V](capacity)
 }
 
+// ShardedConcurrentMap is a ConcurrentMap with per-shard locks for lower contention.
+// Use NewShardedConcurrentMap with a hash function for key distribution.
+type ShardedConcurrentMap[K comparable, V any] interface {
+	mapReadable[K, V]
+	mapWritable[K, V]
+	GetOrStore(key K, value V) (actual V, loaded bool)
+	LoadAndDelete(key K) (V, bool)
+	LoadAndDeleteOption(key K) mo.Option[V]
+	jsonStringer
+}
+
+// NewShardedConcurrentMap creates a sharded concurrent map.
+// shardCount should be a power of 2 (e.g. 32); hash distributes keys.
+// Use mapping.HashInt, mapping.HashString, etc. for common key types.
+func NewShardedConcurrentMap[K comparable, V any](shardCount int, hash func(K) uint64) ShardedConcurrentMap[K, V] {
+	return mapping.NewShardedConcurrentMap[K, V](shardCount, hash)
+}
+
 type biMapReadable[K comparable, V comparable] interface {
 	GetByKey(key K) (V, bool)
 	GetByValue(value V) (K, bool)

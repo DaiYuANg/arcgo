@@ -375,3 +375,36 @@ func BenchmarkOrderedMapKeys(b *testing.B) {
 		_ = m.Keys()
 	}
 }
+
+func BenchmarkShardedConcurrentMapGetParallel(b *testing.B) {
+	m := NewShardedConcurrentMap[int, int](32, HashInt)
+	for i := 0; i < benchMapKeySpace; i++ {
+		m.Set(i, i)
+	}
+	mask := benchMapKeySpace - 1
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			_, _ = m.Get(i & mask)
+			i++
+		}
+	})
+}
+
+func BenchmarkShardedConcurrentMapSetParallel(b *testing.B) {
+	m := NewShardedConcurrentMap[int, int](32, HashInt)
+	mask := benchMapKeySpace - 1
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		i := 0
+		for pb.Next() {
+			m.Set(i&mask, i)
+			i++
+		}
+	})
+}

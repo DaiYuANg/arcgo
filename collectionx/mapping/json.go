@@ -32,6 +32,21 @@ func (m *ConcurrentMap[K, V]) String() string {
 	return common.StringFromToJSON(m.ToJSON, "{}")
 }
 
+// ToJSON serializes sharded concurrent map entries to JSON.
+func (m *ShardedConcurrentMap[K, V]) ToJSON() ([]byte, error) {
+	return common.MarshalJSONValue(m.All())
+}
+
+// MarshalJSON implements json.Marshaler.
+func (m *ShardedConcurrentMap[K, V]) MarshalJSON() ([]byte, error) {
+	return common.ForwardToJSON(m.ToJSON)
+}
+
+// String implements fmt.Stringer.
+func (m *ShardedConcurrentMap[K, V]) String() string {
+	return common.StringFromToJSON(m.ToJSON, "{}")
+}
+
 // ToJSON serializes bidirectional map entries to JSON.
 func (m *BiMap[K, V]) ToJSON() ([]byte, error) {
 	return common.MarshalJSONValue(m.All())

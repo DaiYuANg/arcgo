@@ -92,6 +92,21 @@ func (r *ConcurrentRingBuffer[T]) String() string {
 	return common.StringFromToJSON(r.ToJSON, "[]")
 }
 
+// ToJSON serializes rope list values to JSON.
+func (r *RopeList[T]) ToJSON() ([]byte, error) {
+	return common.MarshalJSONValue(r.Values())
+}
+
+// MarshalJSON implements json.Marshaler.
+func (r *RopeList[T]) MarshalJSON() ([]byte, error) {
+	return common.ForwardToJSON(r.ToJSON)
+}
+
+// String implements fmt.Stringer.
+func (r *RopeList[T]) String() string {
+	return common.StringFromToJSON(r.ToJSON, "[]")
+}
+
 // ToJSON serializes priority queue values to JSON in sorted priority order.
 func (pq *PriorityQueue[T]) ToJSON() ([]byte, error) {
 	return common.MarshalJSONValue(pq.ValuesSorted())

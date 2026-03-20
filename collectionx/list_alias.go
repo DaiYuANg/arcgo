@@ -43,6 +43,16 @@ func NewListWithCapacity[T any](capacity int, items ...T) List[T] {
 	return list.NewListWithCapacity(capacity, items...)
 }
 
+// RopeList is a list optimized for frequent AddAt/RemoveAt at arbitrary positions
+// with O(log n) amortized cost. Use when middle insertions dominate.
+func NewRopeList[T any](items ...T) *list.RopeList[T] {
+	return list.NewRopeList(items...)
+}
+
+func NewRopeListWithCapacity[T any](capacity int, items ...T) *list.RopeList[T] {
+	return list.NewRopeListWithCapacity(capacity, items...)
+}
+
 type ConcurrentList[T any] interface {
 	listReadable[T]
 	listWritable[T]

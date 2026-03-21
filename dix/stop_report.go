@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	do "github.com/samber/do/v2"
+	"github.com/samber/lo"
 )
 
 type StopReport struct {
@@ -16,31 +17,25 @@ func (r *StopReport) HasErrors() bool {
 	return r != nil && r.Err() != nil
 }
 
-func (r *StopReport) Err() error {
+func (r *StopReport) collectErrors() []error {
 	if r == nil {
 		return nil
 	}
-
-	errs := make([]error, 0, 2)
-	if r.HookError != nil {
-		errs = append(errs, r.HookError)
-	}
+	errs := lo.Compact([]error{r.HookError})
 	if r.ShutdownReport != nil && len(r.ShutdownReport.Errors) > 0 {
 		errs = append(errs, r.ShutdownReport)
 	}
-	return errors.Join(errs...)
+	return errs
+}
+
+func (r *StopReport) Err() error {
+	return errors.Join(r.collectErrors()...)
 }
 
 func (r *StopReport) Error() string {
-	if err := r.Err(); err != nil {
-		parts := make([]string, 0, 2)
-		if r.HookError != nil {
-			parts = append(parts, r.HookError.Error())
-		}
-		if r.ShutdownReport != nil && len(r.ShutdownReport.Errors) > 0 {
-			parts = append(parts, r.ShutdownReport.Error())
-		}
-		return strings.Join(parts, "\n")
+	errs := r.collectErrors()
+	if len(errs) == 0 {
+		return ""
 	}
-	return ""
+	return strings.Join(lo.Map(errs, func(e error, _ int) string { return e.Error() }), "\n")
 }

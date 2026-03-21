@@ -2,14 +2,12 @@ package dbx
 
 import (
 	"context"
-	"database/sql/driver"
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 )
 
 type codecPreferences struct {
@@ -118,6 +116,27 @@ type textCodecSchema struct {
 
 var registerCSVCodecOnce sync.Once
 
+const mapperCodecExtraDDL = `
+CREATE TABLE IF NOT EXISTS "codec_accounts" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"preferences" TEXT NOT NULL,
+	"tags" TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "scoped_codec_records" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"tags" TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "time_codec_records" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"created_at" INTEGER NOT NULL
+);
+CREATE TABLE IF NOT EXISTS "text_codec_records" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"status" TEXT NOT NULL,
+	"balance" TEXT NOT NULL
+);
+`
+
 func registerCSVCodec(t *testing.T) {
 	t.Helper()
 	registerCSVCodecOnce.Do(func() {
@@ -143,20 +162,9 @@ func registerCSVCodec(t *testing.T) {
 func TestStructMapperScansCodecFields(t *testing.T) {
 	registerCSVCodec(t)
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "codec_accounts"."id", "codec_accounts"."preferences", "codec_accounts"."tags" FROM "codec_accounts"`,
-				Columns: []string{"id", "preferences", "tags"},
-				Rows: [][]driver.Value{
-					{int64(1), `{"theme":"dark","flags":["alpha","beta"]}`, "go,dbx,orm"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, mapperCodecExtraDDL,
+		`INSERT INTO "codec_accounts" ("id","preferences","tags") VALUES (1,'{"theme":"dark","flags":["alpha","beta"]}','go,dbx,orm')`,
+	)
 	defer cleanup()
 
 	accounts := MustSchema("codec_accounts", codecSchema{})
@@ -183,19 +191,7 @@ func TestStructMapperScansCodecFields(t *testing.T) {
 func TestMapperAssignmentsUseCodecEncoding(t *testing.T) {
 	registerCSVCodec(t)
 
-	expectedJSON := []byte(`{"theme":"dark","flags":["admin","beta"]}`)
-	sqlDB, recorder, cleanup, err := testsql.Open(testsql.Plan{
-		Execs: []testsql.ExecPlan{
-			{
-				SQL:          `INSERT INTO "codec_accounts" ("preferences", "tags") VALUES (?, ?)`,
-				Args:         []driver.Value{expectedJSON, "alpha,beta"},
-				RowsAffected: 1,
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, mapperCodecExtraDDL)
 	defer cleanup()
 
 	accounts := MustSchema("codec_accounts", codecSchema{})
@@ -216,11 +212,12 @@ func TestMapperAssignmentsUseCodecEncoding(t *testing.T) {
 		t.Fatalf("unexpected assignment count: %d", len(assignments))
 	}
 
-	if _, err := Exec(context.Background(), New(sqlDB, testSQLiteDialect{}), InsertInto(accounts).Values(assignments...)); err != nil {
+	rec := &hookRecorder{}
+	if _, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(accounts).Values(assignments...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
-	if len(recorder.Execs) != 1 {
-		t.Fatalf("unexpected exec count: %d", len(recorder.Execs))
+	if rec.execCount != 1 {
+		t.Fatalf("unexpected exec count: %d", rec.execCount)
 	}
 }
 
@@ -237,20 +234,9 @@ func TestNewStructMapperReturnsErrorForUnknownCodec(t *testing.T) {
 }
 
 func TestStructMapperWithOptionsUsesScopedCodecRegistry(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "scoped_codec_records"."id", "scoped_codec_records"."tags" FROM "scoped_codec_records"`,
-				Columns: []string{"id", "tags"},
-				Rows: [][]driver.Value{
-					{int64(1), "one,two"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, mapperCodecExtraDDL,
+		`INSERT INTO "scoped_codec_records" ("id","tags") VALUES (1,'one,two')`,
+	)
 	defer cleanup()
 
 	schema := MustSchema("scoped_codec_records", scopedCodecSchema{})
@@ -297,27 +283,9 @@ func TestStructMapperWithOptionsUsesScopedCodecRegistry(t *testing.T) {
 func TestBuiltInUnixMilliTimeCodecScanAndEncode(t *testing.T) {
 	createdAt := time.UnixMilli(1711111111222).UTC()
 
-	sqlDB, recorder, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "time_codec_records"."id", "time_codec_records"."created_at" FROM "time_codec_records"`,
-				Columns: []string{"id", "created_at"},
-				Rows: [][]driver.Value{
-					{int64(1), createdAt.UnixMilli()},
-				},
-			},
-		},
-		Execs: []testsql.ExecPlan{
-			{
-				SQL:          `INSERT INTO "time_codec_records" ("created_at") VALUES (?)`,
-				Args:         []driver.Value{createdAt.UnixMilli()},
-				RowsAffected: 1,
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, mapperCodecExtraDDL,
+		fmt.Sprintf(`INSERT INTO "time_codec_records" ("id","created_at") VALUES (1,%d)`, createdAt.UnixMilli()),
+	)
 	defer cleanup()
 
 	schema := MustSchema("time_codec_records", timeCodecSchema{})
@@ -340,36 +308,19 @@ func TestBuiltInUnixMilliTimeCodecScanAndEncode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
-	if _, err := Exec(context.Background(), New(sqlDB, testSQLiteDialect{}), InsertInto(schema).Values(assignments...)); err != nil {
+	rec := &hookRecorder{}
+	if _, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(schema).Values(assignments...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
-	if len(recorder.Execs) != 1 {
-		t.Fatalf("unexpected exec count: %d", len(recorder.Execs))
+	if rec.execCount != 1 {
+		t.Fatalf("unexpected exec count: %d", rec.execCount)
 	}
 }
 
 func TestBuiltInTextCodecScanAndEncode(t *testing.T) {
-	sqlDB, recorder, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "text_codec_records"."id", "text_codec_records"."status", "text_codec_records"."balance" FROM "text_codec_records"`,
-				Columns: []string{"id", "status", "balance"},
-				Rows: [][]driver.Value{
-					{int64(1), "active", "123.45"},
-				},
-			},
-		},
-		Execs: []testsql.ExecPlan{
-			{
-				SQL:          `INSERT INTO "text_codec_records" ("status", "balance") VALUES (?, ?)`,
-				Args:         []driver.Value{"active", "123.45"},
-				RowsAffected: 1,
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, mapperCodecExtraDDL,
+		`INSERT INTO "text_codec_records" ("id","status","balance") VALUES (1,'active','123.45')`,
+	)
 	defer cleanup()
 
 	schema := MustSchema("text_codec_records", textCodecSchema{})
@@ -398,11 +349,12 @@ func TestBuiltInTextCodecScanAndEncode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
-	if _, err := Exec(context.Background(), New(sqlDB, testSQLiteDialect{}), InsertInto(schema).Values(assignments...)); err != nil {
+	rec := &hookRecorder{}
+	if _, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(schema).Values(assignments...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
-	if len(recorder.Execs) != 1 {
-		t.Fatalf("unexpected exec count: %d", len(recorder.Execs))
+	if rec.execCount != 1 {
+		t.Fatalf("unexpected exec count: %d", rec.execCount)
 	}
 }
 

@@ -2,12 +2,9 @@ package dbx
 
 import (
 	"context"
-	"database/sql/driver"
 	"errors"
 	"strings"
 	"testing"
-
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 )
 
 func BenchmarkNewStructMapperCached(b *testing.B) {
@@ -62,20 +59,10 @@ func BenchmarkQueryAllStructMapper(b *testing.B) {
 	accounts := MustSchema("accounts", accountSchema{})
 	mapper := MustStructMapper[accountRecord]()
 	query := Select(accounts.AllColumns()...).From(accounts)
-	sqlText, err := query.Build(testSQLiteDialect{})
-	if err != nil {
-		b.Fatalf("build returned error: %v", err)
-	}
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, sqlText.SQL, nil, []string{"id", "nickname", "bio", "label"}, [][]driver.Value{
-			{int64(1), "ally", "hello", "admin"},
-			{int64(2), nil, nil, "reader"},
-		}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(b, mapperScanAccountsDDL,
+		`INSERT INTO "accounts" ("id","nickname","bio","label") VALUES (1,'ally','hello','admin'),(2,NULL,NULL,'reader')`,
+	)
 	defer cleanup()
 
 	core := New(sqlDB, testSQLiteDialect{})
@@ -92,20 +79,10 @@ func BenchmarkQueryCursorStructMapper(b *testing.B) {
 	accounts := MustSchema("accounts", accountSchema{})
 	mapper := MustStructMapper[accountRecord]()
 	query := Select(accounts.AllColumns()...).From(accounts)
-	sqlText, err := query.Build(testSQLiteDialect{})
-	if err != nil {
-		b.Fatalf("build returned error: %v", err)
-	}
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, sqlText.SQL, nil, []string{"id", "nickname", "bio", "label"}, [][]driver.Value{
-			{int64(1), "ally", "hello", "admin"},
-			{int64(2), nil, nil, "reader"},
-		}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(b, mapperScanAccountsDDL,
+		`INSERT INTO "accounts" ("id","nickname","bio","label") VALUES (1,'ally','hello','admin'),(2,NULL,NULL,'reader')`,
+	)
 	defer cleanup()
 
 	core := New(sqlDB, testSQLiteDialect{})
@@ -137,14 +114,10 @@ func BenchmarkSQLScalar(b *testing.B) {
 		return BoundQuery{SQL: `SELECT count(*) FROM "users"`}, nil
 	})
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, `SELECT count(*) FROM "users"`, nil, []string{"count"}, [][]driver.Value{
-			{int64(2)},
-		}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(b,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('a','a@x.com',1,1),('b','b@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	db := New(sqlDB, testSQLiteDialect{})
@@ -162,19 +135,10 @@ func BenchmarkQueryAllStructMapperJSONCodec(b *testing.B) {
 	codecAccounts := MustSchema("codec_accounts", codecSchema{})
 	mapper := MustStructMapper[codecRecord]()
 	query := Select(codecAccounts.AllColumns()...).From(codecAccounts)
-	sqlText, err := query.Build(testSQLiteDialect{})
-	if err != nil {
-		b.Fatalf("build returned error: %v", err)
-	}
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, sqlText.SQL, nil, []string{"id", "preferences", "tags"}, [][]driver.Value{
-			{int64(1), `{"theme":"dark","flags":["alpha","beta"]}`, "go,dbx,orm"},
-		}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(b, mapperCodecExtraDDL,
+		`INSERT INTO "codec_accounts" ("id","preferences","tags") VALUES (1,'{"theme":"dark","flags":["alpha","beta"]}','go,dbx,orm')`,
+	)
 	defer cleanup()
 
 	core := New(sqlDB, testSQLiteDialect{})
@@ -223,25 +187,4 @@ func registerCSVCodecBenchmark() {
 			},
 		))
 	})
-}
-
-func repeatedQueryPlans(count int, sql string, args []driver.Value, columns []string, rows [][]driver.Value) []testsql.QueryPlan {
-	plans := make([]testsql.QueryPlan, count)
-	for i := 0; i < count; i++ {
-		plans[i] = testsql.QueryPlan{
-			SQL:     sql,
-			Args:    append([]driver.Value(nil), args...),
-			Columns: append([]string(nil), columns...),
-			Rows:    cloneDriverRows(rows),
-		}
-	}
-	return plans
-}
-
-func cloneDriverRows(rows [][]driver.Value) [][]driver.Value {
-	items := make([][]driver.Value, len(rows))
-	for i, row := range rows {
-		items[i] = append([]driver.Value(nil), row...)
-	}
-	return items
 }

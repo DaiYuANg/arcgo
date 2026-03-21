@@ -2,10 +2,8 @@ package dbx
 
 import (
 	"context"
-	"database/sql/driver"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 	"github.com/samber/mo"
 )
 
@@ -14,12 +12,9 @@ func BenchmarkLoadBelongsTo(b *testing.B) {
 	roles := MustSchema("roles", relationRoleSchema{})
 	items := []relationUser{{ID: 1, Name: "alice", RoleID: 2}, {ID: 2, Name: "bob", RoleID: 4}}
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, `SELECT "roles"."id", "roles"."name" FROM "roles" WHERE "roles"."id" IN (?, ?)`, []driver.Value{int64(2), int64(4)}, []string{"id", "name"}, [][]driver.Value{{int64(2), "admin"}}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(b, relationTestSchemaDDL,
+		`INSERT INTO "roles" ("id","name") VALUES (2,'admin')`,
+	)
 	defer cleanup()
 
 	core := New(sqlDB, testSQLiteDialect{})
@@ -43,12 +38,11 @@ func BenchmarkLoadHasMany(b *testing.B) {
 	posts := MustSchema("posts", relationPostSchema{})
 	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, `SELECT "posts"."id", "posts"."user_id", "posts"."title" FROM "posts" WHERE "posts"."user_id" IN (?, ?)`, []driver.Value{int64(1), int64(2)}, []string{"id", "user_id", "title"}, [][]driver.Value{{int64(100), int64(1), "first"}, {int64(101), int64(1), "second"}, {int64(200), int64(2), "third"}}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(b, relationTestSchemaDDL,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("id","name","role_id") VALUES (1,'alice',1),(2,'bob',1)`,
+		`INSERT INTO "posts" ("id","user_id","title") VALUES (100,1,'first'),(101,1,'second'),(200,2,'third')`,
+	)
 	defer cleanup()
 
 	core := New(sqlDB, testSQLiteDialect{})
@@ -72,28 +66,12 @@ func BenchmarkLoadManyToMany(b *testing.B) {
 	tags := MustSchema("tags", relationTagSchema{})
 	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
 
-	plans := make([]testsql.QueryPlan, 0, b.N*2)
-	for i := 0; i < b.N; i++ {
-		plans = append(plans,
-			testsql.QueryPlan{
-				SQL:     `SELECT "user_tags"."user_id", "user_tags"."tag_id" FROM "user_tags" WHERE "user_tags"."user_id" IN (?, ?)`,
-				Args:    []driver.Value{int64(1), int64(2)},
-				Columns: []string{"user_id", "tag_id"},
-				Rows:    cloneDriverRows([][]driver.Value{{int64(1), int64(10)}, {int64(1), int64(11)}, {int64(2), int64(11)}}),
-			},
-			testsql.QueryPlan{
-				SQL:     `SELECT "tags"."id", "tags"."name" FROM "tags" WHERE "tags"."id" IN (?, ?)`,
-				Args:    []driver.Value{int64(10), int64(11)},
-				Columns: []string{"id", "name"},
-				Rows:    cloneDriverRows([][]driver.Value{{int64(10), "red"}, {int64(11), "blue"}}),
-			},
-		)
-	}
-
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{Queries: plans})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(b, relationTestSchemaDDL,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("id","name","role_id") VALUES (1,'alice',1),(2,'bob',1)`,
+		`INSERT INTO "tags" ("id","name") VALUES (10,'red'),(11,'blue')`,
+		`INSERT INTO "user_tags" ("user_id","tag_id") VALUES (1,10),(1,11),(2,11)`,
+	)
 	defer cleanup()
 
 	core := New(sqlDB, testSQLiteDialect{})

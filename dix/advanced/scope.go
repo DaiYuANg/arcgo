@@ -3,6 +3,7 @@ package advanced
 import (
 	"github.com/DaiYuANg/arcgo/dix"
 	do "github.com/samber/do/v2"
+	"github.com/samber/lo"
 )
 
 type ScopePackage func(do.Injector)
@@ -12,28 +13,22 @@ func Scope(rt *dix.Runtime, name string, packages ...ScopePackage) *do.Scope {
 		return nil
 	}
 
-	switch len(packages) {
+	valid := lo.Filter(packages, func(pkg ScopePackage, _ int) bool { return pkg != nil })
+	switch len(valid) {
 	case 0:
 		return rt.Raw().Scope(name)
 	case 1:
-		if packages[0] == nil {
-			return rt.Raw().Scope(name)
-		}
-		current := packages[0]
+		current := valid[0]
 		return rt.Raw().Scope(name, func(injector do.Injector) {
 			current(injector)
 		})
 	default:
-		wrapped := make([]func(do.Injector), 0, len(packages))
-		for _, pkg := range packages {
-			if pkg == nil {
-				continue
-			}
+		wrapped := lo.Map(valid, func(pkg ScopePackage, _ int) func(do.Injector) {
 			current := pkg
-			wrapped = append(wrapped, func(injector do.Injector) {
+			return func(injector do.Injector) {
 				current(injector)
-			})
-		}
+			}
+		})
 		return rt.Raw().Scope(name, wrapped...)
 	}
 }

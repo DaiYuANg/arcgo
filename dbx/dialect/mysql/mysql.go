@@ -41,18 +41,18 @@ func (Dialect) QueryFeatures() dialect.QueryFeatures {
 func (d Dialect) BuildCreateTable(spec dbx.TableSpec) (dbx.BoundQuery, error) {
 	parts := collectionx.NewListWithCapacity[string](len(spec.Columns) + len(spec.ForeignKeys) + len(spec.Checks) + 1)
 	inlinePrimaryKey := singlePrimaryKeyColumn(spec.PrimaryKey)
-	for _, column := range spec.Columns {
-		parts.Add(d.columnDDL(column, inlinePrimaryKey == column.Name, false))
-	}
+	parts.Add(lo.Map(spec.Columns, func(column dbx.ColumnMeta, _ int) string {
+		return d.columnDDL(column, inlinePrimaryKey == column.Name, false)
+	})...)
 	if spec.PrimaryKey != nil && len(spec.PrimaryKey.Columns) > 1 {
 		parts.Add(d.primaryKeyDDL(*spec.PrimaryKey))
 	}
-	for _, foreignKey := range spec.ForeignKeys {
-		parts.Add(d.foreignKeyDDL(foreignKey))
-	}
-	for _, check := range spec.Checks {
-		parts.Add(d.checkDDL(check))
-	}
+	parts.Add(lo.Map(spec.ForeignKeys, func(fk dbx.ForeignKeyMeta, _ int) string {
+		return d.foreignKeyDDL(fk)
+	})...)
+	parts.Add(lo.Map(spec.Checks, func(check dbx.CheckMeta, _ int) string {
+		return d.checkDDL(check)
+	})...)
 	return dbx.BoundQuery{SQL: "CREATE TABLE IF NOT EXISTS " + d.QuoteIdent(spec.Name) + " (" + strings.Join(parts.Values(), ", ") + ")"}, nil
 }
 

@@ -3,30 +3,15 @@ package dbx
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"errors"
 	"testing"
-
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 )
 
 func TestSQLListScansStructMapperAndPropagatesStatementName(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "id", "username" FROM "users" WHERE "status" = ?`,
-				Args:    []driver.Value{int64(1)},
-				Columns: []string{"id", "username"},
-				Rows: [][]driver.Value{
-					{int64(1), "alice"},
-					{int64(2), "bob"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1),('bob','b@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	var event HookEvent
@@ -71,20 +56,10 @@ func TestSQLGetAndFind(t *testing.T) {
 	})
 
 	t.Run("get returns single row", func(t *testing.T) {
-		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-			Queries: []testsql.QueryPlan{
-				{
-					SQL:     `SELECT "id", "username" FROM "users"`,
-					Columns: []string{"id", "username"},
-					Rows: [][]driver.Value{
-						{int64(1), "alice"},
-					},
-				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("testsql.Open returned error: %v", err)
-		}
+		sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+			`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+			`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1)`,
+		)
 		defer cleanup()
 
 		item, err := SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
@@ -97,39 +72,17 @@ func TestSQLGetAndFind(t *testing.T) {
 	})
 
 	t.Run("get returns sql.ErrNoRows", func(t *testing.T) {
-		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-			Queries: []testsql.QueryPlan{
-				{
-					SQL:     `SELECT "id", "username" FROM "users"`,
-					Columns: []string{"id", "username"},
-					Rows:    [][]driver.Value{},
-				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("testsql.Open returned error: %v", err)
-		}
+		sqlDB, cleanup := OpenTestSQLiteWithSchema(t)
 		defer cleanup()
 
-		_, err = SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
+		_, err := SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
 		if !errors.Is(err, sql.ErrNoRows) {
 			t.Fatalf("expected sql.ErrNoRows, got %v", err)
 		}
 	})
 
 	t.Run("find returns none", func(t *testing.T) {
-		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-			Queries: []testsql.QueryPlan{
-				{
-					SQL:     `SELECT "id", "username" FROM "users"`,
-					Columns: []string{"id", "username"},
-					Rows:    [][]driver.Value{},
-				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("testsql.Open returned error: %v", err)
-		}
+		sqlDB, cleanup := OpenTestSQLiteWithSchema(t)
 		defer cleanup()
 
 		result, err := SQLFind(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
@@ -142,20 +95,10 @@ func TestSQLGetAndFind(t *testing.T) {
 	})
 
 	t.Run("find returns row", func(t *testing.T) {
-		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-			Queries: []testsql.QueryPlan{
-				{
-					SQL:     `SELECT "id", "username" FROM "users"`,
-					Columns: []string{"id", "username"},
-					Rows: [][]driver.Value{
-						{int64(1), "alice"},
-					},
-				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("testsql.Open returned error: %v", err)
-		}
+		sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+			`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+			`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1)`,
+		)
 		defer cleanup()
 
 		result, err := SQLFind(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
@@ -175,24 +118,13 @@ func TestSQLGetAndFind(t *testing.T) {
 	})
 
 	t.Run("get returns too many rows", func(t *testing.T) {
-		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-			Queries: []testsql.QueryPlan{
-				{
-					SQL:     `SELECT "id", "username" FROM "users"`,
-					Columns: []string{"id", "username"},
-					Rows: [][]driver.Value{
-						{int64(1), "alice"},
-						{int64(2), "bob"},
-					},
-				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("testsql.Open returned error: %v", err)
-		}
+		sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+			`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+			`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1),('bob','b@x.com',1,1)`,
+		)
 		defer cleanup()
 
-		_, err = SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
+		_, err := SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
 		if !errors.Is(err, ErrTooManyRows) {
 			t.Fatalf("expected ErrTooManyRows, got %v", err)
 		}
@@ -205,20 +137,10 @@ func TestSQLScalarAndScalarOption(t *testing.T) {
 	})
 
 	t.Run("scalar returns single value", func(t *testing.T) {
-		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-			Queries: []testsql.QueryPlan{
-				{
-					SQL:     `SELECT count(*) FROM "users"`,
-					Columns: []string{"count"},
-					Rows: [][]driver.Value{
-						{int64(2)},
-					},
-				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("testsql.Open returned error: %v", err)
-		}
+		sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+			`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+			`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('a','a@x.com',1,1),('b','b@x.com',1,1)`,
+		)
 		defer cleanup()
 
 		value, err := SQLScalar[int64](context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil)
@@ -231,21 +153,14 @@ func TestSQLScalarAndScalarOption(t *testing.T) {
 	})
 
 	t.Run("scalar option returns none", func(t *testing.T) {
-		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-			Queries: []testsql.QueryPlan{
-				{
-					SQL:     `SELECT count(*) FROM "users"`,
-					Columns: []string{"count"},
-					Rows:    [][]driver.Value{},
-				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("testsql.Open returned error: %v", err)
-		}
+		sqlDB, cleanup := OpenTestSQLiteWithSchema(t)
 		defer cleanup()
 
-		value, err := SQLScalarOption[int64](context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil)
+		// Use a query that returns 0 rows when table is empty (count(*) always returns 1 row)
+		emptyStmt := NewSQLStatement("user.max_id", func(_ any) (BoundQuery, error) {
+			return BoundQuery{SQL: `SELECT "id" FROM "users" LIMIT 1`}, nil
+		})
+		value, err := SQLScalarOption[int64](context.Background(), New(sqlDB, testSQLiteDialect{}), emptyStmt, nil)
 		if err != nil {
 			t.Fatalf("SQLScalarOption returned error: %v", err)
 		}
@@ -255,24 +170,16 @@ func TestSQLScalarAndScalarOption(t *testing.T) {
 	})
 
 	t.Run("scalar returns too many rows", func(t *testing.T) {
-		sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-			Queries: []testsql.QueryPlan{
-				{
-					SQL:     `SELECT count(*) FROM "users"`,
-					Columns: []string{"count"},
-					Rows: [][]driver.Value{
-						{int64(2)},
-						{int64(3)},
-					},
-				},
-			},
-		})
-		if err != nil {
-			t.Fatalf("testsql.Open returned error: %v", err)
-		}
+		sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+			`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+			`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('a','a@x.com',1,1),('b','b@x.com',1,1)`,
+		)
 		defer cleanup()
 
-		_, err = SQLScalar[int64](context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil)
+		multiRowStmt := NewSQLStatement("user.ids", func(_ any) (BoundQuery, error) {
+			return BoundQuery{SQL: `SELECT "id" FROM "users"`}, nil
+		})
+		_, err := SQLScalar[int64](context.Background(), New(sqlDB, testSQLiteDialect{}), multiRowStmt, nil)
 		if !errors.Is(err, ErrTooManyRows) {
 			t.Fatalf("expected ErrTooManyRows, got %v", err)
 		}
@@ -284,29 +191,10 @@ func TestSQLCursorAndEach(t *testing.T) {
 		return BoundQuery{SQL: `SELECT "id", "username" FROM "users"`}, nil
 	})
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "id", "username" FROM "users"`,
-				Columns: []string{"id", "username"},
-				Rows: [][]driver.Value{
-					{int64(1), "alice"},
-					{int64(2), "bob"},
-				},
-			},
-			{
-				SQL:     `SELECT "id", "username" FROM "users"`,
-				Columns: []string{"id", "username"},
-				Rows: [][]driver.Value{
-					{int64(1), "alice"},
-					{int64(2), "bob"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1),('bob','b@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	db := New(sqlDB, testSQLiteDialect{})

@@ -224,24 +224,24 @@ func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...Sc
 		spec := buildTableSpec(schema.schemaRef())
 		if diff.MissingTable {
 			actions.Add(buildCreateTableAction(schemaDialect, spec))
-			for _, index := range spec.Indexes {
-				actions.Add(buildCreateIndexAction(schemaDialect, index))
-			}
+			actions.Add(lo.Map(spec.Indexes, func(index IndexMeta, _ int) MigrationAction {
+				return buildCreateIndexAction(schemaDialect, index)
+			})...)
 			continue
 		}
 
-		for _, column := range diff.MissingColumns {
-			actions.Add(buildAddColumnAction(schemaDialect, diff.Table, column))
-		}
-		for _, index := range diff.MissingIndexes {
-			actions.Add(buildCreateIndexAction(schemaDialect, index))
-		}
-		for _, foreignKey := range diff.MissingForeignKeys {
-			actions.Add(buildAddForeignKeyAction(schemaDialect, diff.Table, foreignKey))
-		}
-		for _, check := range diff.MissingChecks {
-			actions.Add(buildAddCheckAction(schemaDialect, diff.Table, check))
-		}
+		actions.Add(lo.Map(diff.MissingColumns, func(c ColumnMeta, _ int) MigrationAction {
+			return buildAddColumnAction(schemaDialect, diff.Table, c)
+		})...)
+		actions.Add(lo.Map(diff.MissingIndexes, func(index IndexMeta, _ int) MigrationAction {
+			return buildCreateIndexAction(schemaDialect, index)
+		})...)
+		actions.Add(lo.Map(diff.MissingForeignKeys, func(fk ForeignKeyMeta, _ int) MigrationAction {
+			return buildAddForeignKeyAction(schemaDialect, diff.Table, fk)
+		})...)
+		actions.Add(lo.Map(diff.MissingChecks, func(check CheckMeta, _ int) MigrationAction {
+			return buildAddCheckAction(schemaDialect, diff.Table, check)
+		})...)
 		if diff.PrimaryKeyDiff != nil {
 			actions.Add(MigrationAction{
 				Kind:    MigrationActionManual,
@@ -249,13 +249,13 @@ func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...Sc
 				Summary: "manual primary key migration required",
 			})
 		}
-		for _, columnDiff := range diff.ColumnDiffs {
-			actions.Add(MigrationAction{
+		actions.Add(lo.Map(diff.ColumnDiffs, func(cd ColumnDiff, _ int) MigrationAction {
+			return MigrationAction{
 				Kind:    MigrationActionManual,
 				Table:   diff.Table,
-				Summary: "manual column migration required for " + columnDiff.Column.Name + ": " + strings.Join(columnDiff.Issues, "; "),
-			})
-		}
+				Summary: "manual column migration required for " + cd.Column.Name + ": " + strings.Join(cd.Issues, "; "),
+			}
+		})...)
 	}
 
 	return MigrationPlan{

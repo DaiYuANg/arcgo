@@ -2,10 +2,7 @@ package dbx
 
 import (
 	"context"
-	"database/sql/driver"
 	"testing"
-
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 )
 
 func BenchmarkSQLList(b *testing.B) {
@@ -13,12 +10,10 @@ func BenchmarkSQLList(b *testing.B) {
 		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "status" = ?`, Args: []any{int64(1)}}, nil
 	})
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, `SELECT "id", "username" FROM "users" WHERE "status" = ?`, []driver.Value{int64(1)}, []string{"id", "username"}, [][]driver.Value{{int64(1), "alice"}, {int64(2), "bob"}}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(b,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1),('bob','b@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	db := New(sqlDB, testSQLiteDialect{})
@@ -37,12 +32,10 @@ func BenchmarkSQLGet(b *testing.B) {
 		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "id" = ?`, Args: []any{int64(1)}}, nil
 	})
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, `SELECT "id", "username" FROM "users" WHERE "id" = ?`, []driver.Value{int64(1)}, []string{"id", "username"}, [][]driver.Value{{int64(1), "alice"}}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(b,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("id","username","email_address","status","role_id") VALUES (1,'alice','a@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	db := New(sqlDB, testSQLiteDialect{})
@@ -61,12 +54,10 @@ func BenchmarkSQLFind(b *testing.B) {
 		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "id" = ?`, Args: []any{int64(1)}}, nil
 	})
 
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: repeatedQueryPlans(b.N, `SELECT "id", "username" FROM "users" WHERE "id" = ?`, []driver.Value{int64(1)}, []string{"id", "username"}, [][]driver.Value{{int64(1), "alice"}}),
-	})
-	if err != nil {
-		b.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(b,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("id","username","email_address","status","role_id") VALUES (1,'alice','a@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	db := New(sqlDB, testSQLiteDialect{})

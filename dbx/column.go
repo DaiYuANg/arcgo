@@ -73,11 +73,9 @@ type ColumnOption[E any, T any] func(Column[E, T]) Column[E, T]
 
 func NewColumn[E any, T any](opts ...ColumnOption[E, T]) Column[E, T] {
 	column := Column[E, T]{}
-	for _, opt := range opts {
-		if opt != nil {
-			column = opt(column)
-		}
-	}
+	lo.ForEach(lo.Filter(opts, func(opt ColumnOption[E, T], _ int) bool { return opt != nil }), func(opt ColumnOption[E, T], _ int) {
+		column = opt(column)
+	})
 	return column
 }
 

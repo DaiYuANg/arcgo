@@ -2,10 +2,8 @@ package dbx
 
 import (
 	"context"
-	"database/sql/driver"
+	"sync"
 	"testing"
-
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 )
 
 type UserSummary struct {
@@ -13,34 +11,37 @@ type UserSummary struct {
 	Username string `dbx:"username"`
 }
 
-func TestQueryAllBuildsAndScansWithMapper(t *testing.T) {
-	sqlDB, recorder, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:  `SELECT "users"."id", "users"."username", "users"."email_address", "users"."status", "users"."role_id" FROM "users" WHERE "users"."status" = ?`,
-				Args: []driver.Value{int64(1)},
-				Columns: []string{
-					"id",
-					"username",
-					"email_address",
-					"status",
-					"role_id",
-				},
-				Rows: [][]driver.Value{
-					{int64(1), "alice", "alice@example.com", int64(1), int64(2)},
-					{int64(2), "bob", "bob@example.com", int64(1), int64(3)},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
+type hookRecorder struct {
+	mu         sync.Mutex
+	queryCount int
+	execCount  int
+}
+
+func (r *hookRecorder) after(_ context.Context, event *HookEvent) {
+	if event == nil {
+		return
 	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	switch event.Operation {
+	case OperationQuery:
+		r.queryCount++
+	case OperationExec:
+		r.execCount++
+	}
+}
+
+func TestQueryAllBuildsAndScansWithMapper(t *testing.T) {
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (2,'r2'),(3,'r3')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','alice@example.com',1,2),('bob','bob@example.com',1,3)`,
+	)
 	defer cleanup()
 
 	users := MustSchema("users", UserSchema{})
 	mapper := MustMapper[User](users)
-	core := New(sqlDB, testSQLiteDialect{})
+	rec := &hookRecorder{}
+	core := NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after}))
 
 	items, err := QueryAll(context.Background(), core, Select(users.AllColumns()...).From(users).Where(users.Status.Eq(1)), mapper)
 	if err != nil {
@@ -52,8 +53,8 @@ func TestQueryAllBuildsAndScansWithMapper(t *testing.T) {
 	if items[0].Username != "alice" || items[1].RoleID != 3 {
 		t.Fatalf("unexpected scanned entities: %+v", items)
 	}
-	if len(recorder.Queries) != 1 {
-		t.Fatalf("unexpected recorded query count: %d", len(recorder.Queries))
+	if rec.queryCount != 1 {
+		t.Fatalf("unexpected recorded query count: %d", rec.queryCount)
 	}
 }
 
@@ -76,21 +77,10 @@ func TestSelectMappedBuildsProjectionForDTO(t *testing.T) {
 }
 
 func TestQueryAllScansDTOProjection(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "users"."id", "users"."username" FROM "users"`,
-				Columns: []string{"id", "username"},
-				Rows: [][]driver.Value{
-					{int64(1), "alice"},
-					{int64(2), "bob"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1),('bob','b@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	users := MustSchema("users", UserSchema{})
@@ -110,29 +100,10 @@ func TestQueryAllScansDTOProjection(t *testing.T) {
 }
 
 func TestQueryCursorAndEach(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "users"."id", "users"."username" FROM "users"`,
-				Columns: []string{"id", "username"},
-				Rows: [][]driver.Value{
-					{int64(1), "alice"},
-					{int64(2), "bob"},
-				},
-			},
-			{
-				SQL:     `SELECT "users"."id", "users"."username" FROM "users"`,
-				Columns: []string{"id", "username"},
-				Rows: [][]driver.Value{
-					{int64(1), "alice"},
-					{int64(2), "bob"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1),('bob','b@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	users := MustSchema("users", UserSchema{})
@@ -225,25 +196,12 @@ func TestMapperBuildsAssignmentsAndPrimaryPredicate(t *testing.T) {
 }
 
 func TestExecBuildsAndRunsBoundQuery(t *testing.T) {
-	sqlDB, recorder, cleanup, err := testsql.Open(testsql.Plan{
-		Execs: []testsql.ExecPlan{
-			{
-				SQL:          `INSERT INTO "users" ("username", "email_address", "status", "role_id") VALUES (?, ?, ?, ?)`,
-				Args:         []driver.Value{"alice", "alice@example.com", int64(1), int64(9)},
-				RowsAffected: 1,
-				LastInsertID: 100,
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t, `INSERT INTO "roles" ("id","name") VALUES (9,'admin')`)
 	defer cleanup()
 
 	users := MustSchema("users", UserSchema{})
 	mapper := MustMapper[User](users)
 	entity := &User{
-		ID:       42,
 		Username: "alice",
 		Email:    "alice@example.com",
 		Status:   1,
@@ -255,7 +213,8 @@ func TestExecBuildsAndRunsBoundQuery(t *testing.T) {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
 
-	result, err := Exec(context.Background(), New(sqlDB, testSQLiteDialect{}), InsertInto(users).Values(assignments...))
+	rec := &hookRecorder{}
+	result, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(users).Values(assignments...))
 	if err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
@@ -266,34 +225,28 @@ func TestExecBuildsAndRunsBoundQuery(t *testing.T) {
 	if rowsAffected != 1 {
 		t.Fatalf("unexpected rows affected: %d", rowsAffected)
 	}
-	if len(recorder.Execs) != 1 {
-		t.Fatalf("unexpected recorded exec count: %d", len(recorder.Execs))
+	if rec.execCount != 1 {
+		t.Fatalf("unexpected recorded exec count: %d", rec.execCount)
 	}
 }
 
 func TestBeginTxExecsWithinTransaction(t *testing.T) {
-	sqlDB, recorder, cleanup, err := testsql.Open(testsql.Plan{
-		Execs: []testsql.ExecPlan{
-			{
-				SQL:          `UPDATE "users" SET "status" = ? WHERE "users"."id" = ?`,
-				Args:         []driver.Value{int64(2), int64(42)},
-				RowsAffected: 1,
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('u','e@x.com',1,1)`,
+
+	)
 	defer cleanup()
 
 	users := MustSchema("users", UserSchema{})
-	core := New(sqlDB, testSQLiteDialect{})
+	rec := &hookRecorder{}
+	core := NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after}))
 	tx, err := core.BeginTx(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("BeginTx returned error: %v", err)
 	}
 
-	result, err := Exec(context.Background(), tx, Update(users).Set(users.Status.Set(2)).Where(users.ID.Eq(42)))
+	result, err := Exec(context.Background(), tx, Update(users).Set(users.Status.Set(2)).Where(users.ID.Eq(1)))
 	if err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
@@ -308,7 +261,7 @@ func TestBeginTxExecsWithinTransaction(t *testing.T) {
 	if rowsAffected != 1 {
 		t.Fatalf("unexpected rows affected: %d", rowsAffected)
 	}
-	if len(recorder.Execs) != 1 {
-		t.Fatalf("unexpected recorded exec count: %d", len(recorder.Execs))
+	if rec.execCount != 1 {
+		t.Fatalf("unexpected recorded exec count: %d", rec.execCount)
 	}
 }

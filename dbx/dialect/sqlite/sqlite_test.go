@@ -2,12 +2,12 @@ package sqlite
 
 import (
 	"context"
-	"database/sql/driver"
+	"database/sql"
 	"reflect"
 	"testing"
 
 	"github.com/DaiYuANg/arcgo/dbx"
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
+	_ "modernc.org/sqlite"
 )
 
 func TestBuildCreateTable(t *testing.T) {
@@ -28,23 +28,27 @@ func TestBuildCreateTable(t *testing.T) {
 }
 
 func TestInspectTable(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{SQL: "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", Args: []driver.Value{"users"}, Columns: []string{"name"}, Rows: [][]driver.Value{{"users"}}},
-			{SQL: `PRAGMA table_info("users")`, Columns: []string{"cid", "name", "type", "notnull", "dflt_value", "pk"}, Rows: [][]driver.Value{{int64(0), "id", "INTEGER", int64(1), nil, int64(1)}, {int64(1), "username", "TEXT", int64(1), nil, int64(0)}, {int64(2), "email_address", "TEXT", int64(1), nil, int64(0)}, {int64(3), "role_id", "INTEGER", int64(1), nil, int64(0)}, {int64(4), "status", "INTEGER", int64(1), nil, int64(0)}}},
-			{SQL: `PRAGMA index_list("users")`, Columns: []string{"seq", "name", "unique", "origin", "partial"}, Rows: [][]driver.Value{{int64(0), "idx_users_username", int64(0), "c", int64(0)}, {int64(1), "ux_users_email_address", int64(1), "c", int64(0)}}},
-			{SQL: `PRAGMA index_info("idx_users_username")`, Columns: []string{"seqno", "cid", "name"}, Rows: [][]driver.Value{{int64(0), int64(1), "username"}}},
-			{SQL: `PRAGMA index_info("ux_users_email_address")`, Columns: []string{"seqno", "cid", "name"}, Rows: [][]driver.Value{{int64(0), int64(2), "email_address"}}},
-			{SQL: `PRAGMA foreign_key_list("users")`, Columns: []string{"id", "seq", "table", "from", "to", "on_update", "on_delete", "match"}, Rows: [][]driver.Value{{int64(0), int64(0), "roles", "role_id", "id", "NO ACTION", "CASCADE", "NONE"}}},
-			{SQL: "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", Args: []driver.Value{"users"}, Columns: []string{"sql"}, Rows: [][]driver.Value{{`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, email_address TEXT NOT NULL, role_id INTEGER NOT NULL, status INTEGER NOT NULL, CONSTRAINT ck_users_status CHECK (status >= 0))`}}},
-		},
-	})
+	db, err := sql.Open("sqlite", ":memory:")
 	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
+		t.Fatalf("sql.Open: %v", err)
 	}
-	defer cleanup()
+	defer func() { _ = db.Close() }()
+	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
+		t.Fatalf("PRAGMA foreign_keys: %v", err)
+	}
+	ddl := []string{
+		`CREATE TABLE roles (id INTEGER PRIMARY KEY)`,
+		`CREATE TABLE users (id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL, email_address TEXT NOT NULL, role_id INTEGER NOT NULL, status INTEGER NOT NULL, CONSTRAINT fk_users_role_id FOREIGN KEY (role_id) REFERENCES roles (id) ON DELETE CASCADE, CONSTRAINT ck_users_status CHECK (status >= 0))`,
+		`CREATE INDEX idx_users_username ON users(username)`,
+		`CREATE UNIQUE INDEX ux_users_email_address ON users(email_address)`,
+	}
+	for _, stmt := range ddl {
+		if _, err := db.Exec(stmt); err != nil {
+			t.Fatalf("exec ddl %q: %v", stmt, err)
+		}
+	}
 
-	state, err := Dialect{}.InspectTable(context.Background(), sqlDB, "users")
+	state, err := Dialect{}.InspectTable(context.Background(), db, "users")
 	if err != nil {
 		t.Fatalf("InspectTable returned error: %v", err)
 	}

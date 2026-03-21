@@ -65,10 +65,7 @@ func ApplyOptions(opts ...Option) OpenOption {
 // Returns error if any required option is missing or invalid. Call db.Close() when done.
 func Open(opts ...OpenOption) (*DB, error) {
 	config := defaultOpenConfig()
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
+	for _, opt := range lo.Filter(opts, func(opt OpenOption, _ int) bool { return opt != nil }) {
 		if err := opt(&config); err != nil {
 			return nil, err
 		}

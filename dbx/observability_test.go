@@ -2,13 +2,10 @@ package dbx
 
 import (
 	"context"
-	"database/sql/driver"
 	"log/slog"
 	"sync"
 	"testing"
 	"time"
-
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 )
 
 type memoryHandler struct {
@@ -45,18 +42,7 @@ func (h *memoryHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
 func (h *memoryHandler) WithGroup(string) slog.Handler      { return h }
 
 func TestDBDebugLoggingAndHooks(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Execs: []testsql.ExecPlan{
-			{
-				SQL:          `INSERT INTO "users" ("username", "email_address", "status", "role_id") VALUES (?, ?, ?, ?)`,
-				Args:         []driver.Value{"alice", "alice@example.com", int64(1), int64(9)},
-				RowsAffected: 1,
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t, `INSERT INTO "roles" ("id","name") VALUES (9,'admin')`)
 	defer cleanup()
 
 	handler := &memoryHandler{records: make([]memoryRecord, 0, 4)}
@@ -169,18 +155,7 @@ func TestSchemaOperationsEmitObserverEvents(t *testing.T) {
 }
 
 func TestHookEventMetadataAndDuration(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Execs: []testsql.ExecPlan{
-			{
-				SQL:          `INSERT INTO "users" ("username", "email_address", "status", "role_id") VALUES (?, ?, ?, ?)`,
-				Args:         []driver.Value{"bob", "bob@example.com", int64(1), int64(1)},
-				RowsAffected: 1,
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t, `INSERT INTO "roles" ("id","name") VALUES (1,'user')`)
 	defer cleanup()
 
 	handler := &memoryHandler{records: make([]memoryRecord, 0, 4)}

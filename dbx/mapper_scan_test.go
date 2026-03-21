@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 )
 
 type accountLabel string
@@ -59,22 +57,19 @@ type accountSchema struct {
 	Label    Column[accountRecord, accountLabel]   `dbx:"label"`
 }
 
+const mapperScanAccountsDDL = `
+CREATE TABLE IF NOT EXISTS "accounts" (
+	"id" INTEGER PRIMARY KEY AUTOINCREMENT,
+	"nickname" TEXT,
+	"bio" TEXT,
+	"label" TEXT NOT NULL
+);
+`
+
 func TestStructMapperScansEmbeddedPointerNullableAndScanner(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "accounts"."id", "accounts"."nickname", "accounts"."bio", "accounts"."label" FROM "accounts"`,
-				Columns: []string{"id", "nickname", "bio", "label"},
-				Rows: [][]driver.Value{
-					{int64(1), "ally", "hello", "admin"},
-					{int64(2), nil, nil, "reader"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, mapperScanAccountsDDL,
+		`INSERT INTO "accounts" ("id","nickname","bio","label") VALUES (1,'ally','hello','admin'),(2,NULL,NULL,'reader')`,
+	)
 	defer cleanup()
 
 	accounts := MustSchema("accounts", accountSchema{})
@@ -111,18 +106,7 @@ func TestStructMapperScansEmbeddedPointerNullableAndScanner(t *testing.T) {
 }
 
 func TestMapperInsertAssignmentsWithNilEmbeddedPointerAndValuer(t *testing.T) {
-	sqlDB, recorder, cleanup, err := testsql.Open(testsql.Plan{
-		Execs: []testsql.ExecPlan{
-			{
-				SQL:          `INSERT INTO "accounts" ("nickname", "bio", "label") VALUES (?, ?, ?)`,
-				Args:         []driver.Value{nil, nil, "admin"},
-				RowsAffected: 1,
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, mapperScanAccountsDDL)
 	defer cleanup()
 
 	accounts := MustSchema("accounts", accountSchema{})
@@ -139,11 +123,12 @@ func TestMapperInsertAssignmentsWithNilEmbeddedPointerAndValuer(t *testing.T) {
 		t.Fatalf("unexpected assignment count: %d", len(assignments))
 	}
 
-	if _, err := Exec(context.Background(), New(sqlDB, testSQLiteDialect{}), InsertInto(accounts).Values(assignments...)); err != nil {
+	rec := &hookRecorder{}
+	if _, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(accounts).Values(assignments...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
-	if len(recorder.Execs) != 1 {
-		t.Fatalf("unexpected exec count: %d", len(recorder.Execs))
+	if rec.execCount != 1 {
+		t.Fatalf("unexpected exec count: %d", rec.execCount)
 	}
 }
 
@@ -167,20 +152,10 @@ func TestStructMapperSupportsNamedInlineFields(t *testing.T) {
 }
 
 func TestStructMapperScanPlanMatchesQualifiedAndCaseInsensitiveColumns(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "users"."id", COUNT(*) AS "user_count" FROM "users"`,
-				Columns: []string{`"users"."id"`, `"USER_COUNT"`},
-				Rows: [][]driver.Value{
-					{int64(1), int64(2)},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('a','a@x.com',1,1),('b','b@x.com',1,1)`,
+	)
 	defer cleanup()
 
 	type aggregateRow struct {
@@ -207,29 +182,9 @@ func TestStructMapperScanPlanMatchesQualifiedAndCaseInsensitiveColumns(t *testin
 }
 
 func TestQueryCursorScansEmbeddedPointerNullableAndScanner(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "accounts"."id", "accounts"."nickname", "accounts"."bio", "accounts"."label" FROM "accounts"`,
-				Columns: []string{"id", "nickname", "bio", "label"},
-				Rows: [][]driver.Value{
-					{int64(1), "ally", "hello", "admin"},
-					{int64(2), nil, nil, "reader"},
-				},
-			},
-			{
-				SQL:     `SELECT "accounts"."id", "accounts"."nickname", "accounts"."bio", "accounts"."label" FROM "accounts"`,
-				Columns: []string{"id", "nickname", "bio", "label"},
-				Rows: [][]driver.Value{
-					{int64(1), "ally", "hello", "admin"},
-					{int64(2), nil, nil, "reader"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, mapperScanAccountsDDL,
+		`INSERT INTO "accounts" ("id","nickname","bio","label") VALUES (1,'ally','hello','admin'),(2,NULL,NULL,'reader')`,
+	)
 	defer cleanup()
 
 	accounts := MustSchema("accounts", accountSchema{})

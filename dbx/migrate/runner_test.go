@@ -2,14 +2,15 @@ package migrate
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
-	"database/sql/driver"
+	"encoding/hex"
 	"path/filepath"
 	"strings"
 	"testing"
 	"testing/fstest"
+	"time"
 
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 	_ "modernc.org/sqlite"
 )
 
@@ -52,19 +53,33 @@ func TestRunnerUpGoCreatesHistoryAndAppliesMigration(t *testing.T) {
 	}
 }
 
+// Matches migrate.checksumString / checksumSQLMigration (repeatable migrations, trimmed up SQL like readSQLFile).
+func repeatableSQLChecksumForTest(version, description, upSQL, downSQL string) string {
+	sum := sha256.Sum256([]byte(strings.Join([]string{
+		"repeatable",
+		version,
+		description,
+		upSQL,
+		downSQL,
+	}, "\n--dbx-migrate--\n")))
+	return hex.EncodeToString(sum[:])
+}
+
 func TestRunnerPendingSQLTracksRepeatableChecksum(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Execs: []testsql.ExecPlan{{SQL: `CREATE TABLE IF NOT EXISTS "schema_history" ("version" VARCHAR(255) NOT NULL, "description" VARCHAR(255) NOT NULL, "kind" VARCHAR(32) NOT NULL, "checksum" VARCHAR(128) NOT NULL, "success" BOOLEAN NOT NULL, "applied_at" VARCHAR(64) NOT NULL, PRIMARY KEY ("version", "kind", "description"))`}},
-		Queries: []testsql.QueryPlan{{
-			SQL:     `SELECT "version", "description", "kind", "applied_at", "checksum", "success" FROM "schema_history" ORDER BY "applied_at", "version", "description"`,
-			Columns: []string{"version", "description", "kind", "applied_at", "checksum", "success"},
-			Rows:    [][]driver.Value{{"", "refresh cache", "repeatable", "2026-03-19T22:00:00Z", checksumString(strings.Join([]string{"repeatable", "", "refresh cache", "SELECT 2;\n", ""}, "\n--dbx-migrate--\n")), true}},
-		}},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
+	ctx := context.Background()
+	db := openSQLiteRunnerDB(t)
+	runner := NewRunner(db, testDialect{}, RunnerOptions{ValidateHash: true})
+	if err := runner.EnsureHistory(ctx); err != nil {
+		t.Fatalf("EnsureHistory returned error: %v", err)
 	}
-	defer cleanup()
+	oldUp := strings.TrimSpace("SELECT 2;\n")
+	chk := repeatableSQLChecksumForTest("", "refresh cache", oldUp, "")
+	appliedAt := time.Date(2026, 3, 19, 22, 0, 0, 0, time.UTC).Format("2006-01-02T15:04:05.999999999Z07:00")
+	if _, err := db.ExecContext(ctx, `INSERT INTO "schema_history" ("version", "description", "kind", "checksum", "success", "applied_at") VALUES (?, ?, ?, ?, ?, ?)`,
+		"", "refresh cache", "repeatable", chk, true, appliedAt,
+	); err != nil {
+		t.Fatalf("insert schema_history: %v", err)
+	}
 
 	source := FileSource{
 		FS: fstest.MapFS{
@@ -72,8 +87,7 @@ func TestRunnerPendingSQLTracksRepeatableChecksum(t *testing.T) {
 		},
 		Dir: "sql",
 	}
-	runner := NewRunner(sqlDB, testDialect{}, RunnerOptions{ValidateHash: true})
-	pending, err := runner.PendingSQL(context.Background(), source)
+	pending, err := runner.PendingSQL(ctx, source)
 	if err != nil {
 		t.Fatalf("PendingSQL returned error: %v", err)
 	}

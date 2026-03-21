@@ -13,6 +13,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
+	"github.com/samber/lo"
 )
 
 type Kind string
@@ -167,11 +168,7 @@ func (s FileSource) List() ([]SQLMigration, error) {
 	}
 
 	items := collectionx.NewMapWithCapacity[string, *SQLMigration](len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-
+	for _, entry := range lo.Filter(entries, func(e fs.DirEntry, _ int) bool { return !e.IsDir() }) {
 		// Validate path before parsing to reject path traversal in any filename
 		fullPath, err := safeJoinPath(s.Dir, entry.Name())
 		if err != nil {

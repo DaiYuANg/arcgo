@@ -2,12 +2,19 @@ package dbx
 
 import (
 	"context"
-	"database/sql/driver"
 	"testing"
 
-	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 	"github.com/samber/mo"
 )
+
+const relationTestSchemaDDL = `
+CREATE TABLE IF NOT EXISTS "roles" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "name" TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS "users" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "name" TEXT NOT NULL, "role_id" INTEGER NOT NULL REFERENCES "roles"("id"));
+CREATE TABLE IF NOT EXISTS "profiles" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "user_id" INTEGER NOT NULL REFERENCES "users"("id"), "bio" TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS "posts" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "user_id" INTEGER NOT NULL REFERENCES "users"("id"), "title" TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS "tags" ("id" INTEGER PRIMARY KEY AUTOINCREMENT, "name" TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS "user_tags" ("user_id" INTEGER NOT NULL REFERENCES "users"("id"), "tag_id" INTEGER NOT NULL REFERENCES "tags"("id"), PRIMARY KEY ("user_id", "tag_id"));
+`
 
 type relationRole struct {
 	ID   int64  `dbx:"id"`
@@ -75,21 +82,9 @@ type relationUserSchema struct {
 }
 
 func TestLoadBelongsToBatchesAndAttaches(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "roles"."id", "roles"."name" FROM "roles" WHERE "roles"."id" IN (?, ?)`,
-				Args:    []driver.Value{int64(2), int64(4)},
-				Columns: []string{"id", "name"},
-				Rows: [][]driver.Value{
-					{int64(2), "admin"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, relationTestSchemaDDL,
+		`INSERT INTO "roles" ("id","name") VALUES (2,'admin')`,
+	)
 	defer cleanup()
 
 	users := MustSchema("users", relationUserSchema{})
@@ -100,7 +95,7 @@ func TestLoadBelongsToBatchesAndAttaches(t *testing.T) {
 	}
 	loaded := make([]mo.Option[relationRole], len(items))
 
-	err = LoadBelongsTo(
+	err := LoadBelongsTo(
 		context.Background(),
 		New(sqlDB, testSQLiteDialect{}),
 		items,
@@ -129,21 +124,11 @@ func TestLoadBelongsToBatchesAndAttaches(t *testing.T) {
 }
 
 func TestLoadHasOneBatchesAndAttaches(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "profiles"."id", "profiles"."user_id", "profiles"."bio" FROM "profiles" WHERE "profiles"."user_id" IN (?, ?)`,
-				Args:    []driver.Value{int64(1), int64(2)},
-				Columns: []string{"id", "user_id", "bio"},
-				Rows: [][]driver.Value{
-					{int64(10), int64(1), "hello"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, relationTestSchemaDDL,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("id","name","role_id") VALUES (1,'alice',1),(2,'bob',1)`,
+		`INSERT INTO "profiles" ("id","user_id","bio") VALUES (10,1,'hello')`,
+	)
 	defer cleanup()
 
 	users := MustSchema("users", relationUserSchema{})
@@ -151,7 +136,7 @@ func TestLoadHasOneBatchesAndAttaches(t *testing.T) {
 	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
 	loaded := make([]mo.Option[relationProfile], len(items))
 
-	err = LoadHasOne(
+	err := LoadHasOne(
 		context.Background(),
 		New(sqlDB, testSQLiteDialect{}),
 		items,
@@ -176,23 +161,11 @@ func TestLoadHasOneBatchesAndAttaches(t *testing.T) {
 }
 
 func TestLoadHasManyBatchesAndAttaches(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "posts"."id", "posts"."user_id", "posts"."title" FROM "posts" WHERE "posts"."user_id" IN (?, ?)`,
-				Args:    []driver.Value{int64(1), int64(2)},
-				Columns: []string{"id", "user_id", "title"},
-				Rows: [][]driver.Value{
-					{int64(100), int64(1), "first"},
-					{int64(101), int64(1), "second"},
-					{int64(200), int64(2), "third"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, relationTestSchemaDDL,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("id","name","role_id") VALUES (1,'alice',1),(2,'bob',1)`,
+		`INSERT INTO "posts" ("id","user_id","title") VALUES (100,1,'first'),(101,1,'second'),(200,2,'third')`,
+	)
 	defer cleanup()
 
 	users := MustSchema("users", relationUserSchema{})
@@ -200,7 +173,7 @@ func TestLoadHasManyBatchesAndAttaches(t *testing.T) {
 	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
 	loaded := make([][]relationPost, len(items))
 
-	err = LoadHasMany(
+	err := LoadHasMany(
 		context.Background(),
 		New(sqlDB, testSQLiteDialect{}),
 		items,
@@ -225,32 +198,12 @@ func TestLoadHasManyBatchesAndAttaches(t *testing.T) {
 }
 
 func TestLoadManyToManyBatchesAndAttaches(t *testing.T) {
-	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
-		Queries: []testsql.QueryPlan{
-			{
-				SQL:     `SELECT "user_tags"."user_id", "user_tags"."tag_id" FROM "user_tags" WHERE "user_tags"."user_id" IN (?, ?)`,
-				Args:    []driver.Value{int64(1), int64(2)},
-				Columns: []string{"user_id", "tag_id"},
-				Rows: [][]driver.Value{
-					{int64(1), int64(10)},
-					{int64(1), int64(11)},
-					{int64(2), int64(11)},
-				},
-			},
-			{
-				SQL:     `SELECT "tags"."id", "tags"."name" FROM "tags" WHERE "tags"."id" IN (?, ?)`,
-				Args:    []driver.Value{int64(10), int64(11)},
-				Columns: []string{"id", "name"},
-				Rows: [][]driver.Value{
-					{int64(10), "red"},
-					{int64(11), "blue"},
-				},
-			},
-		},
-	})
-	if err != nil {
-		t.Fatalf("testsql.Open returned error: %v", err)
-	}
+	sqlDB, cleanup := OpenTestSQLite(t, relationTestSchemaDDL,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
+		`INSERT INTO "users" ("id","name","role_id") VALUES (1,'alice',1),(2,'bob',1)`,
+		`INSERT INTO "tags" ("id","name") VALUES (10,'red'),(11,'blue')`,
+		`INSERT INTO "user_tags" ("user_id","tag_id") VALUES (1,10),(1,11),(2,11)`,
+	)
 	defer cleanup()
 
 	users := MustSchema("users", relationUserSchema{})
@@ -258,7 +211,7 @@ func TestLoadManyToManyBatchesAndAttaches(t *testing.T) {
 	items := []relationUser{{ID: 1, Name: "alice"}, {ID: 2, Name: "bob"}}
 	loaded := make([][]relationTag, len(items))
 
-	err = LoadManyToMany(
+	err := LoadManyToMany(
 		context.Background(),
 		New(sqlDB, testSQLiteDialect{}),
 		items,

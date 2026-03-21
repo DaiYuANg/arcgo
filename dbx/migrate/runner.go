@@ -10,6 +10,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/pressly/goose/v3"
+	"github.com/samber/lo"
 )
 
 type RunReport struct {
@@ -37,7 +38,7 @@ func (r *Runner) Applied(ctx context.Context) ([]AppliedRecord, error) {
 	}
 	defer rows.Close()
 
-	items := make([]AppliedRecord, 0, 8)
+	items := collectionx.NewListWithCapacity[AppliedRecord](8)
 	for rows.Next() {
 		var (
 			record      AppliedRecord
@@ -55,12 +56,12 @@ func (r *Runner) Applied(ctx context.Context) ([]AppliedRecord, error) {
 		record.Kind = Kind(kind)
 		record.AppliedAt = parsedTime
 		record.Success = successFlag
-		items = append(items, record)
+		items.Add(record)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
-	return items, nil
+	return items.Values(), nil
 }
 
 func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) ([]Migration, error) {
@@ -309,10 +310,7 @@ func loadSQLMigrations(source FileSource) ([]loadedSQLMigration, error) {
 		return nil, err
 	}
 	loaded := make([]loadedSQLMigration, 0, len(items))
-	for _, migration := range items {
-		if migration.UpPath == "" {
-			continue
-		}
+	for _, migration := range lo.Filter(items, func(m SQLMigration, _ int) bool { return m.UpPath != "" }) {
 		upSQL, err := readSQLFile(source.FS, migration.UpPath)
 		if err != nil {
 			return nil, err

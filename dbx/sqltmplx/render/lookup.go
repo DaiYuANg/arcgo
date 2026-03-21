@@ -51,18 +51,17 @@ func lookupOne(params any, name string) mo.Option[any] {
 }
 
 func fieldAliases(f reflect.StructField) []string {
-	var out []string
-	for _, tagKey := range []string{"sqltmpl", "db", "json"} {
+	return lo.Uniq(lo.FlatMap([]string{"sqltmpl", "db", "json"}, func(tagKey string, _ int) []string {
 		raw := strings.TrimSpace(f.Tag.Get(tagKey))
 		if raw == "" || raw == "-" {
-			continue
+			return nil
 		}
 		alias := strings.TrimSpace(strings.Split(raw, ",")[0])
-		if alias != "" && alias != "-" {
-			out = append(out, alias)
+		if alias == "" || alias == "-" {
+			return nil
 		}
-	}
-	return lo.Uniq(out)
+		return []string{alias}
+	}))
 }
 
 func isEmpty(v any) bool {

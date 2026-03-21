@@ -1,7 +1,6 @@
 package dbx
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
@@ -37,7 +36,7 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate
 		}
 		field, ok := m.byColumn.Get(column.Name)
 		if !ok {
-			return nil, fmt.Errorf("%w: %s", ErrPrimaryKeyUnmapped, column.Name)
+			return nil, &PrimaryKeyUnmappedError{Column: column.Name}
 		}
 		fieldValue, err := fieldValueForRead(value, field)
 		if err != nil {

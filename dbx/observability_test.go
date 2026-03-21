@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/DaiYuANg/arcgo/dbx/internal/testsql"
 )
@@ -164,5 +165,82 @@ func TestSchemaOperationsEmitObserverEvents(t *testing.T) {
 	}
 	if len(handler.records) < 2 {
 		t.Fatalf("expected schema operation logs, got %d", len(handler.records))
+	}
+}
+
+func TestHookEventMetadataAndDuration(t *testing.T) {
+	sqlDB, _, cleanup, err := testsql.Open(testsql.Plan{
+		Execs: []testsql.ExecPlan{
+			{
+				SQL:          `INSERT INTO "users" ("username", "email_address", "status", "role_id") VALUES (?, ?, ?, ?)`,
+				Args:         []driver.Value{"bob", "bob@example.com", int64(1), int64(1)},
+				RowsAffected: 1,
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("testsql.Open returned error: %v", err)
+	}
+	defer cleanup()
+
+	handler := &memoryHandler{records: make([]memoryRecord, 0, 4)}
+	logger := slog.New(handler)
+	var afterEvent *HookEvent
+
+	users := MustSchema("users", UserSchema{})
+	mapper := MustMapper[User](users)
+	entity := &User{Username: "bob", Email: "bob@example.com", Status: 1, RoleID: 1}
+	assignments, err := mapper.InsertAssignments(users, entity)
+	if err != nil {
+		t.Fatalf("InsertAssignments returned error: %v", err)
+	}
+
+	db := NewWithOptions(
+		sqlDB,
+		testSQLiteDialect{},
+		WithLogger(logger),
+		WithDebug(true),
+		WithHooks(HookFuncs{
+			BeforeFunc: func(ctx context.Context, event *HookEvent) (context.Context, error) {
+				event.SetMetadata("trace_id", "abc-123")
+				event.SetMetadata("request_id", "req-456")
+				return ctx, nil
+			},
+			AfterFunc: func(_ context.Context, event *HookEvent) {
+				afterEvent = event
+			},
+		}),
+	)
+
+	ctx := context.WithValue(context.Background(), "trace_id", "abc-123")
+	if _, err := Exec(ctx, db, InsertInto(users).Values(assignments...)); err != nil {
+		t.Fatalf("Exec returned error: %v", err)
+	}
+
+	if afterEvent == nil {
+		t.Fatal("AfterFunc was not called")
+	}
+	if afterEvent.Metadata["trace_id"] != "abc-123" {
+		t.Fatalf("unexpected trace_id: %v", afterEvent.Metadata["trace_id"])
+	}
+	if afterEvent.Metadata["request_id"] != "req-456" {
+		t.Fatalf("unexpected request_id: %v", afterEvent.Metadata["request_id"])
+	}
+	if !afterEvent.StartedAt.Before(time.Now()) || afterEvent.StartedAt.IsZero() {
+		t.Fatalf("expected StartedAt to be set: %v", afterEvent.StartedAt)
+	}
+	if afterEvent.Duration <= 0 {
+		t.Fatalf("expected Duration > 0: %v", afterEvent.Duration)
+	}
+
+	if len(handler.records) == 0 {
+		t.Fatal("expected debug log record")
+	}
+	record := handler.records[0]
+	if record.attrs["trace_id"] != "abc-123" {
+		t.Fatalf("expected trace_id in log attrs: %#v", record.attrs)
+	}
+	if record.attrs["request_id"] != "req-456" {
+		t.Fatalf("expected request_id in log attrs: %#v", record.attrs)
 	}
 }

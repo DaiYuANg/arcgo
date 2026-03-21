@@ -190,6 +190,21 @@ func TestMigrationFilenameParsing(t *testing.T) {
 	}
 }
 
+func TestOptionsPresets(t *testing.T) {
+	db := NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, TestOptions()...)
+	if !db.Debug() {
+		t.Error("TestOptions should enable debug")
+	}
+	db = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, ProductionOptions()...)
+	if db.Debug() {
+		t.Error("ProductionOptions should disable debug")
+	}
+	db = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, DefaultOptions()...)
+	if db.Debug() {
+		t.Error("DefaultOptions should have debug false")
+	}
+}
+
 func TestDBWrapper(t *testing.T) {
 	core := New((*sql.DB)(nil), testSQLiteDialect{})
 	bound := core.Bound("select 1 where id = ?", 1)

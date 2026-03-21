@@ -8,14 +8,22 @@ import (
 	"github.com/samber/lo"
 )
 
+// RowsScanner is the schema-less contract for mapping query result rows to entities.
+// Used by SQLList, SQLGet, QueryAll, QueryCursor, etc. Both StructMapper and Mapper implement it.
 type RowsScanner[E any] interface {
 	ScanRows(rows *sql.Rows) ([]E, error)
 }
 
+// StructMapper provides schema-less pure DTO mapping. It infers fields from struct tags (e.g. dbx)
+// and maps result columns by name. Use for arbitrary SQL when no Schema is available.
+// Dependency: StructMapper does not depend on Schema.
 type StructMapper[E any] struct {
 	meta *mapperMetadata
 }
 
+// Mapper extends StructMapper with a schema-derived field subset. It filters StructMapper's fields
+// to only those present in the schema columns. Required for CRUD, relation load, and other
+// schema-aware operations. Dependency: Mapper depends on Schema (created via NewMapper(schema)).
 type Mapper[E any] struct {
 	StructMapper[E]
 	fields   collectionx.List[MappedField]
@@ -34,6 +42,7 @@ type MappedField struct {
 	codec      Codec
 }
 
+// NewStructMapper creates a schema-less mapper for pure DTO mapping (e.g. SQLList, SQLGet with arbitrary SQL).
 func NewStructMapper[E any]() (StructMapper[E], error) {
 	return NewStructMapperWithOptions[E]()
 }
@@ -74,6 +83,7 @@ func MustMapper[E any](schema SchemaResource) Mapper[E] {
 	return mapper
 }
 
+// NewMapper creates a schema-bound mapper. Use when you have a Schema (CRUD, relation load, repository).
 func NewMapper[E any](schema SchemaResource) (Mapper[E], error) {
 	return NewMapperWithOptions[E](schema)
 }

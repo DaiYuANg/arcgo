@@ -50,7 +50,7 @@ func collectSourceRelationKeys[E any](entities []E, mapper Mapper[E], schema sch
 func entityRelationKey[E any](mapper Mapper[E], entity *E, column string) (relationLookupValue, error) {
 	field, ok := mapper.FieldByColumn(column)
 	if !ok {
-		return relationLookupValue{}, fmt.Errorf("%w: %s", ErrUnmappedColumn, column)
+		return relationLookupValue{}, &UnmappedColumnError{Column: column}
 	}
 
 	value, err := mapper.entityValue(entity)

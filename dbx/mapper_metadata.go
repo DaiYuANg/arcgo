@@ -132,7 +132,7 @@ func resolveMappedFieldCodec(codecs *codecRegistry, name string) (Codec, error) 
 	}
 	codec, ok := codecs.get(name)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s", ErrUnknownCodec, name)
+		return nil, &UnknownCodecError{Name: name}
 	}
 	return codec, nil
 }

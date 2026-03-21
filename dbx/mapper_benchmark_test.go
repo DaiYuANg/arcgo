@@ -147,11 +147,11 @@ func BenchmarkSQLScalar(b *testing.B) {
 	}
 	defer cleanup()
 
-	executor := New(sqlDB, testSQLiteDialect{}).SQL()
+	db := New(sqlDB, testSQLiteDialect{})
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := SQLScalar[int64](context.Background(), executor, statement, nil); err != nil {
+		if _, err := SQLScalar[int64](context.Background(), db, statement, nil); err != nil {
 			b.Fatalf("SQLScalar returned error: %v", err)
 		}
 	}

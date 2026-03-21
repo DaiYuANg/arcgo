@@ -38,7 +38,7 @@ func main() {
 
 	activeUsers, err := dbx.SQLList[shared.UserSummary](
 		ctx,
-		core.SQL(),
+		core,
 		registry.MustStatement("sql/user/find_active.sql"),
 		struct {
 			Status int `dbx:"status"`
@@ -56,7 +56,7 @@ func main() {
 
 	total, err := dbx.SQLScalar[int64](
 		ctx,
-		core.SQL(),
+		core,
 		registry.MustStatement("sql/user/count_by_status.sql"),
 		struct {
 			Status int `dbx:"status"`
@@ -91,7 +91,7 @@ func main() {
 
 	updated, err := dbx.SQLGet[shared.User](
 		ctx,
-		core.SQL(),
+		core,
 		registry.MustStatement("sql/user/find_by_username.sql"),
 		struct {
 			Username string `dbx:"username"`

@@ -75,12 +75,22 @@ func QueryCursor[E any](ctx context.Context, session Session, query QueryBuilder
 	if mapper == nil {
 		return nil, ErrNilMapper
 	}
-
 	bound, err := Build(session, query)
 	if err != nil {
 		return nil, err
 	}
+	return QueryCursorBound(ctx, session, bound, mapper)
+}
 
+// QueryCursorBound executes a pre-built BoundQuery and returns a cursor. Use with Build
+// for reuse when executing the same query multiple times.
+func QueryCursorBound[E any](ctx context.Context, session Session, bound BoundQuery, mapper RowsScanner[E]) (Cursor[E], error) {
+	if mapper == nil {
+		return nil, ErrNilMapper
+	}
+	if session == nil {
+		return nil, ErrNilDB
+	}
 	rows, err := session.QueryBoundContext(ctx, bound)
 	if err != nil {
 		return nil, err
@@ -129,12 +139,16 @@ func QueryEach[E any](ctx context.Context, session Session, query QueryBuilder, 
 	}
 }
 
-func SQLCursor[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper RowsScanner[E]) (Cursor[E], error) {
+func SQLCursor[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (Cursor[E], error) {
 	if mapper == nil {
 		return nil, ErrNilMapper
 	}
 
-	rows, err := queryStatementRows(ctx, executor, statement, params)
+	exec, err := sessionExecutor(session)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := queryStatementRows(ctx, exec, statement, params)
 	if err != nil {
 		return nil, err
 	}
@@ -156,9 +170,36 @@ func SQLCursor[E any](ctx context.Context, executor *SQLExecutor, statement SQLS
 	return newSliceCursor(items), nil
 }
 
-func SQLEach[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper RowsScanner[E]) func(func(E, error) bool) {
+// QueryEachBound is the BoundQuery variant of QueryEach. Use with Build for reuse.
+func QueryEachBound[E any](ctx context.Context, session Session, bound BoundQuery, mapper RowsScanner[E]) func(func(E, error) bool) {
 	return func(yield func(E, error) bool) {
-		cursor, err := SQLCursor(ctx, executor, statement, params, mapper)
+		cursor, err := QueryCursorBound(ctx, session, bound, mapper)
+		if err != nil {
+			var zero E
+			yield(zero, err)
+			return
+		}
+		defer cursor.Close()
+
+		for cursor.Next() {
+			item, err := cursor.Get()
+			if !yield(item, err) {
+				return
+			}
+			if err != nil {
+				return
+			}
+		}
+		if err := cursor.Err(); err != nil {
+			var zero E
+			yield(zero, err)
+		}
+	}
+}
+
+func SQLEach[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) func(func(E, error) bool) {
+	return func(yield func(E, error) bool) {
+		cursor, err := SQLCursor(ctx, session, statement, params, mapper)
 		if err != nil {
 			var zero E
 			yield(zero, err)

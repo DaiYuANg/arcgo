@@ -132,7 +132,7 @@ registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
 
 items, err := dbx.SQLList(
     ctx,
-    core.SQL(),
+    core,
     registry.MustStatement("sql/user/find_active.sql"),
     struct {
         Status int `dbx:"status"`

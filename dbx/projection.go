@@ -1,8 +1,6 @@
 package dbx
 
 import (
-	"fmt"
-
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
@@ -56,7 +54,7 @@ func projectionOfDefinition(definition schemaDefinition, mapper fieldMapper) ([]
 	if items.Len() != len(fields) {
 		for _, field := range fields {
 			if _, ok := columns[field.Column]; !ok {
-				return nil, fmt.Errorf("%w: %s", ErrUnmappedColumn, field.Column)
+				return nil, &UnmappedColumnError{Column: field.Column}
 			}
 		}
 	}

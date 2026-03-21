@@ -50,7 +50,7 @@ func TestSQLListScansStructMapperAndPropagatesStatementName(t *testing.T) {
 		}, nil
 	})
 
-	items, err := SQLList(context.Background(), core.SQL(), statement, params{Status: 1}, MustStructMapper[UserSummary]())
+	items, err := SQLList(context.Background(), core, statement, params{Status: 1}, MustStructMapper[UserSummary]())
 	if err != nil {
 		t.Fatalf("SQLList returned error: %v", err)
 	}
@@ -87,7 +87,7 @@ func TestSQLGetAndFind(t *testing.T) {
 		}
 		defer cleanup()
 
-		item, err := SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil, MustStructMapper[UserSummary]())
+		item, err := SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
 		if err != nil {
 			t.Fatalf("SQLGet returned error: %v", err)
 		}
@@ -111,7 +111,7 @@ func TestSQLGetAndFind(t *testing.T) {
 		}
 		defer cleanup()
 
-		_, err = SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil, MustStructMapper[UserSummary]())
+		_, err = SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
 		if !errors.Is(err, sql.ErrNoRows) {
 			t.Fatalf("expected sql.ErrNoRows, got %v", err)
 		}
@@ -132,7 +132,7 @@ func TestSQLGetAndFind(t *testing.T) {
 		}
 		defer cleanup()
 
-		result, err := SQLFind(context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil, MustStructMapper[UserSummary]())
+		result, err := SQLFind(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
 		if err != nil {
 			t.Fatalf("SQLFind returned error: %v", err)
 		}
@@ -158,7 +158,7 @@ func TestSQLGetAndFind(t *testing.T) {
 		}
 		defer cleanup()
 
-		result, err := SQLFind(context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil, MustStructMapper[UserSummary]())
+		result, err := SQLFind(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
 		if err != nil {
 			t.Fatalf("SQLFind returned error: %v", err)
 		}
@@ -192,7 +192,7 @@ func TestSQLGetAndFind(t *testing.T) {
 		}
 		defer cleanup()
 
-		_, err = SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil, MustStructMapper[UserSummary]())
+		_, err = SQLGet(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
 		if !errors.Is(err, ErrTooManyRows) {
 			t.Fatalf("expected ErrTooManyRows, got %v", err)
 		}
@@ -221,7 +221,7 @@ func TestSQLScalarAndScalarOption(t *testing.T) {
 		}
 		defer cleanup()
 
-		value, err := SQLScalar[int64](context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil)
+		value, err := SQLScalar[int64](context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil)
 		if err != nil {
 			t.Fatalf("SQLScalar returned error: %v", err)
 		}
@@ -245,7 +245,7 @@ func TestSQLScalarAndScalarOption(t *testing.T) {
 		}
 		defer cleanup()
 
-		value, err := SQLScalarOption[int64](context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil)
+		value, err := SQLScalarOption[int64](context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil)
 		if err != nil {
 			t.Fatalf("SQLScalarOption returned error: %v", err)
 		}
@@ -272,7 +272,7 @@ func TestSQLScalarAndScalarOption(t *testing.T) {
 		}
 		defer cleanup()
 
-		_, err = SQLScalar[int64](context.Background(), New(sqlDB, testSQLiteDialect{}).SQL(), statement, nil)
+		_, err = SQLScalar[int64](context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil)
 		if !errors.Is(err, ErrTooManyRows) {
 			t.Fatalf("expected ErrTooManyRows, got %v", err)
 		}
@@ -309,10 +309,10 @@ func TestSQLCursorAndEach(t *testing.T) {
 	}
 	defer cleanup()
 
-	executor := New(sqlDB, testSQLiteDialect{}).SQL()
+	db := New(sqlDB, testSQLiteDialect{})
 	mapper := MustStructMapper[UserSummary]()
 
-	cursor, err := SQLCursor(context.Background(), executor, statement, nil, mapper)
+	cursor, err := SQLCursor(context.Background(), db, statement, nil, mapper)
 	if err != nil {
 		t.Fatalf("SQLCursor returned error: %v", err)
 	}
@@ -334,7 +334,7 @@ func TestSQLCursorAndEach(t *testing.T) {
 	}
 
 	var fromEach []UserSummary
-	SQLEach(context.Background(), executor, statement, nil, mapper)(func(item UserSummary, err error) bool {
+	SQLEach(context.Background(), db, statement, nil, mapper)(func(item UserSummary, err error) bool {
 		if err != nil {
 			t.Fatalf("SQLEach yielded error: %v", err)
 		}

@@ -170,3 +170,12 @@ func (db *DB) Migrator(opts migrate.RunnerOptions) *migrate.Runner {
 func (db *DB) SQL() *SQLExecutor {
 	return &SQLExecutor{session: db}
 }
+
+// Close closes the underlying database connection. Call when the DB is no longer needed.
+// Safe to call if raw is nil. After Close, the DB should not be used for execution.
+func (db *DB) Close() error {
+	if db == nil || db.raw == nil {
+		return nil
+	}
+	return db.raw.Close()
+}

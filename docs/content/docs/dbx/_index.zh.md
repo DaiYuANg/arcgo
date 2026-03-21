@@ -25,7 +25,7 @@ weight: 7
 - `Schema[E]` 作为唯一数据库元数据源
 - `Column[E, T]` 与强类型 relation ref
 - 支持聚合、子查询、CTE、`UNION ALL`、`CASE WHEN`、批量插入、`INSERT ... SELECT`、upsert、`RETURNING` 的 Query DSL
-- `Mapper[E]` 用于 schema-aware 读写，`StructMapper[E]` 用于 DTO / 纯 SQL 扫描
+- `StructMapper[E]`（无 schema 纯 DTO 映射）与 `Mapper[E]`（依赖 Schema，用于 CRUD/关系加载）；`RowsScanner` 作为读取契约
 - 字段 codec 系统，内建 `json`、`text`、`unix_time`、`unix_milli_time`、`unix_nano_time`、`rfc3339_time`、`rfc3339nano_time`
 - 通过 `dbx.WithMapperCodecs(...)` 注入 scoped custom codec
 - `DB.SQL()` / `Tx.SQL()` 作为纯 SQL 执行入口
@@ -48,7 +48,7 @@ weight: 7
 ## 包结构
 
 - ORM 核心 API：`github.com/DaiYuANg/arcgo/dbx`
-- 共享方言契约：`github.com/DaiYuANg/arcgo/dbx/dialect`
+- 共享方言契约：`github.com/DaiYuANg/arcgo/dbx/dialect`（详见 [Dialect](./dialect)）
 - 内置 query + schema 方言：
   - `github.com/DaiYuANg/arcgo/dbx/dialect/sqlite`
   - `github.com/DaiYuANg/arcgo/dbx/dialect/postgres`
@@ -102,7 +102,16 @@ var Users = dbx.MustSchema("users", UserSchema{})
 
 ## Query DSL
 
-`dbx` 会先把强类型查询渲染成 `BoundQuery`，再通过 `DB` 或 `Tx` 执行。
+`dbx` 会先把强类型查询渲染成 `BoundQuery`，再通过 `DB` 或 `Tx` 执行。若要「构建一次，多次执行」，可先调用 `Build` 一次，再在循环中使用 `ExecBound`、`QueryAllBound`、`QueryCursorBound` 或 `QueryEachBound`：
+
+```go
+query := dbx.Select(Users.ID, Users.Username).From(Users).Where(Users.Status.Eq(1))
+bound, _ := dbx.Build(session, query)
+for range batches {
+    items, _ := dbx.QueryAllBound(ctx, session, bound, mapper)
+    // ...
+}
+```
 
 ```go
 statusLabel := dbx.CaseWhen[string](Users.Status.Eq(1), "active").
@@ -130,7 +139,9 @@ query := dbx.Select(activeID, activeName, statusLabel).
 
 ## Mapper、StructMapper 与 Codec
 
-`Mapper[E]` 适合 schema-aware 的读写。`StructMapper[E]` 适合 DTO 和纯 SQL 读取。
+- **StructMapper[E]** — 无 schema 的纯 DTO 映射。用于任意 SQL（SQLList、SQLGet、QueryAll）且无 Schema 时，按 struct tag 列名映射结果列到 struct 字段。
+- **Mapper[E]** — 依赖 Schema；在 StructMapper 基础上按 schema 列过滤字段。用于 CRUD、关系加载、repository 等需要 Schema 的场景。
+- **RowsScanner[E]** — 读取契约；两者均实现。依赖方向：StructMapper 独立；Mapper 依赖 Schema。
 
 ```go
 type Preferences struct {
@@ -192,7 +203,7 @@ registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
 
 items, err := dbx.SQLList(
     ctx,
-    core.SQL(),
+    core,
     registry.MustStatement("sql/user/find_active.sql"),
     struct {
         Status int `dbx:"status"`
@@ -244,9 +255,13 @@ if err != nil {
 - 在方言支持时补充外键和 check
 - 一旦发现需要手工处理的变更就停止并报告
 
+## Options 与预设
+
+Options 使用函数式 Option 模式，可组合（后者覆盖前者）。预设：`DefaultOptions()`（显式默认）、`ProductionOptions()`（debug 关闭）、`TestOptions()`（debug 开启，用于 SQL 日志）。单个选项：`WithLogger`、`WithHooks`、`WithDebug`。详见 [Options](./options)。
+
 ## 运行时日志与 Hook
 
-`DB` 和 `Tx` 内建了运行时 hook 与 `slog` debug SQL 日志。纯 SQL statement 名称也会进入 hook event 和 debug 日志。
+`DB` 和 `Tx` 内建了运行时 hook 与 `slog` debug SQL 日志。纯 SQL statement 名称也会进入 hook event 和 debug 日志。慢查询检测、Duration、Metadata（trace_id、request_id）等详见 [Observability 可观测性](./observability)。
 
 ```go
 core := dbx.NewWithOptions(

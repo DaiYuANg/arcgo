@@ -112,7 +112,7 @@ func (m StructMapper[E]) scanPlan(columns []string) (*scanPlan, error) {
 	for _, column := range columns {
 		field, ok := m.resolveFieldByResultColumn(column)
 		if !ok {
-			return nil, fmt.Errorf("%w: %s", ErrUnmappedColumn, column)
+			return nil, &UnmappedColumnError{Column: column}
 		}
 		fields.Add(field)
 	}

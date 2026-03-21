@@ -76,3 +76,4 @@ Temporary Items
 .pnpm-store
 .cache
 *.db
+*.prof

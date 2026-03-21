@@ -21,12 +21,12 @@ func BenchmarkSQLList(b *testing.B) {
 	}
 	defer cleanup()
 
-	executor := New(sqlDB, testSQLiteDialect{}).SQL()
+	db := New(sqlDB, testSQLiteDialect{})
 	mapper := MustStructMapper[UserSummary]()
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := SQLList(context.Background(), executor, statement, nil, mapper); err != nil {
+		if _, err := SQLList(context.Background(), db, statement, nil, mapper); err != nil {
 			b.Fatalf("SQLList returned error: %v", err)
 		}
 	}
@@ -45,12 +45,12 @@ func BenchmarkSQLGet(b *testing.B) {
 	}
 	defer cleanup()
 
-	executor := New(sqlDB, testSQLiteDialect{}).SQL()
+	db := New(sqlDB, testSQLiteDialect{})
 	mapper := MustStructMapper[UserSummary]()
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		if _, err := SQLGet(context.Background(), executor, statement, nil, mapper); err != nil {
+		if _, err := SQLGet(context.Background(), db, statement, nil, mapper); err != nil {
 			b.Fatalf("SQLGet returned error: %v", err)
 		}
 	}
@@ -69,12 +69,12 @@ func BenchmarkSQLFind(b *testing.B) {
 	}
 	defer cleanup()
 
-	executor := New(sqlDB, testSQLiteDialect{}).SQL()
+	db := New(sqlDB, testSQLiteDialect{})
 	mapper := MustStructMapper[UserSummary]()
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		result, err := SQLFind(context.Background(), executor, statement, nil, mapper)
+		result, err := SQLFind(context.Background(), db, statement, nil, mapper)
 		if err != nil {
 			b.Fatalf("SQLFind returned error: %v", err)
 		}

@@ -21,17 +21,32 @@ const (
 	OperationValidate    Operation = "validate_schema"
 )
 
+// HookEvent carries operation details through Before/After hooks.
+// Use it for logging, metrics, tracing, and slow-query detection.
 type HookEvent struct {
 	Operation       Operation
 	Statement       string
 	SQL             string
 	Args            []any
 	Table           string
-	StartedAt       time.Time
+	StartedAt       time.Time // Set in Before, use with Duration for slow-query detection.
 	Duration        time.Duration
 	RowsAffected    int64
 	HasRowsAffected bool
 	Err             error
+
+	// Metadata holds arbitrary key-value pairs (e.g. trace_id, request_id) for observability.
+	// Hooks can set it in Before and read it in After; values are included in logs when present.
+	// Use SetMetadata to avoid nil map panics.
+	Metadata map[string]any
+}
+
+// SetMetadata sets a key-value pair in Metadata, initializing the map if needed.
+func (e *HookEvent) SetMetadata(key string, value any) {
+	if e.Metadata == nil {
+		e.Metadata = make(map[string]any)
+	}
+	e.Metadata[key] = value
 }
 
 type Hook interface {
@@ -135,6 +150,9 @@ func (o runtimeObserver) log(event HookEvent) {
 	}
 	if event.HasRowsAffected {
 		attrs.Add("rows_affected", event.RowsAffected)
+	}
+	for k, v := range event.Metadata {
+		attrs.Add(k, v)
 	}
 	if event.Err != nil {
 		attrs.Add("error", event.Err)

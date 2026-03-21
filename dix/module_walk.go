@@ -52,9 +52,11 @@ func flattenModules(modules []Module, profile Profile) (*collectionlist.List[*mo
 }
 
 func flattenModuleList(modules *collectionlist.List[Module], profile Profile) (*collectionlist.List[*moduleSpec], error) {
-	capacity := 0
-	if modules != nil {
-		capacity = modules.Len()
+	capacity := 8
+	if modules != nil && modules.Len() > 0 {
+		if c := modules.Len() * 2; c > capacity {
+			capacity = c
+		}
 	}
 	result := collectionlist.NewListWithCapacity[*moduleSpec](capacity)
 
@@ -80,8 +82,8 @@ func walkModuleList(modules *collectionlist.List[Module], profile Profile, visit
 		return nil
 	}
 
-	visited := collectionset.NewSet[string]()
-	visiting := collectionset.NewSet[string]()
+	visited := collectionset.NewSetWithCapacity[string](16)
+	visiting := collectionset.NewSetWithCapacity[string](8)
 	stopped := false
 	path := collectionlist.NewListWithCapacity[string](8)
 

@@ -15,6 +15,24 @@ Package layout:
   - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/postgresparser`
   - `github.com/DaiYuANg/arcgo/dbx/sqltmplx/validate/sqliteparser`
 
+## Statement reuse
+
+**Reuse statements via `MustStatement` or `Statement` to avoid repeated parsing.** The Registry caches compiled templates by name. Obtain the statement once (e.g. at init or first use), then pass it to `dbx.SQLList`, `dbx.SQLGet`, `session.SQL().Exec`, etc. in hot paths:
+
+```go
+// Good: build once, execute many
+stmt := registry.MustStatement("sql/user/find_active.sql")
+for range batches {
+    items, _ := dbx.SQLList(ctx, session, stmt, params, mapper)
+    // ...
+}
+
+// Avoid: parsing on every call
+for range batches {
+    items, _ := dbx.SQLList(ctx, session, registry.MustStatement("sql/user/find_active.sql"), params, mapper)
+}
+```
+
 Quick example:
 
 ```go

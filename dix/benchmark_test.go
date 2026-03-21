@@ -410,6 +410,30 @@ func BenchmarkAdvancedInspectRuntimeLight(b *testing.B) {
 	}
 }
 
+func BenchmarkServiceNameOf(b *testing.B) {
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_ = dix.TypedService[*benchService]().Name
+	}
+}
+
+func BenchmarkResolveAsDirectDo(b *testing.B) {
+	rt := buildBenchmarkRuntime(b)
+	raw := rt.Container().Raw()
+	name := dix.TypedService[*benchService]().Name
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		service, err := do.InvokeNamed[*benchService](raw, name)
+		if err != nil {
+			b.Fatal(err)
+		}
+		benchServiceSink = service
+	}
+}
+
 func BenchmarkAdvancedScopeResolve(b *testing.B) {
 	rt := buildAdvancedBenchmarkRuntime(b)
 	names := make([]string, b.N)

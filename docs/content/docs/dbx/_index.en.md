@@ -25,7 +25,7 @@ The current `dbx` implementation includes:
 - `Schema[E]` as the single source of database metadata
 - `Column[E, T]` and typed relation refs
 - query DSL support for aggregates, subqueries, CTE, `UNION ALL`, `CASE WHEN`, batch insert, `INSERT ... SELECT`, upsert, and `RETURNING`
-- `Mapper[E]` for schema-aware mapping and `StructMapper[E]` for DTO / pure SQL scans
+- `StructMapper[E]` (schema-less pure DTO mapping) and `Mapper[E]` (schema-bound, for CRUD/relation load); `RowsScanner` as read contract
 - field codecs with built-in `json`, `text`, `unix_time`, `unix_milli_time`, `unix_nano_time`, `rfc3339_time`, and `rfc3339nano_time`
 - scoped custom codecs via `dbx.WithMapperCodecs(...)`
 - `DB.SQL()` / `Tx.SQL()` as the pure SQL execution entry
@@ -48,7 +48,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 ## Package Layout
 
 - Core ORM API: `github.com/DaiYuANg/arcgo/dbx`
-- Shared dialect contracts: `github.com/DaiYuANg/arcgo/dbx/dialect`
+- Shared dialect contracts: `github.com/DaiYuANg/arcgo/dbx/dialect` (see [Dialect](./dialect))
 - Built-in query + schema dialects:
   - `github.com/DaiYuANg/arcgo/dbx/dialect/sqlite`
   - `github.com/DaiYuANg/arcgo/dbx/dialect/postgres`
@@ -102,7 +102,16 @@ var Users = dbx.MustSchema("users", UserSchema{})
 
 ## Query DSL
 
-`dbx` renders typed queries into `BoundQuery`, then executes them through `DB` or `Tx`.
+`dbx` renders typed queries into `BoundQuery`, then executes them through `DB` or `Tx`. For "build once, execute many" reuse, call `Build` once and use `ExecBound`, `QueryAllBound`, `QueryCursorBound`, or `QueryEachBound` in a loop:
+
+```go
+query := dbx.Select(Users.ID, Users.Username).From(Users).Where(Users.Status.Eq(1))
+bound, _ := dbx.Build(session, query)
+for range batches {
+    items, _ := dbx.QueryAllBound(ctx, session, bound, mapper)
+    // ...
+}
+```
 
 ```go
 statusLabel := dbx.CaseWhen[string](Users.Status.Eq(1), "active").
@@ -130,7 +139,9 @@ query := dbx.Select(activeID, activeName, statusLabel).
 
 ## Mapper, StructMapper, and Codecs
 
-Use `Mapper[E]` for schema-aware reads and writes. Use `StructMapper[E]` for DTO scans and pure SQL reads.
+- **StructMapper[E]** — schema-less pure DTO mapping. Use for arbitrary SQL (SQLList, SQLGet, QueryAll) when no Schema is available. Maps result columns to struct fields by name from struct tags.
+- **Mapper[E]** — schema-bound; extends StructMapper with a schema-derived field subset. Use for CRUD, relation load, repository when you have a Schema.
+- **RowsScanner[E]** — read contract; both implement it. Dependency: StructMapper is independent; Mapper depends on Schema.
 
 ```go
 type Preferences struct {
@@ -192,7 +203,7 @@ registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
 
 items, err := dbx.SQLList(
     ctx,
-    core.SQL(),
+    core,
     registry.MustStatement("sql/user/find_active.sql"),
     struct {
         Status int `dbx:"status"`
@@ -244,9 +255,13 @@ Current behavior:
 - add missing foreign keys and checks when the dialect supports it
 - stop and report when a manual migration is required
 
+## Options and Presets
+
+Options use the functional Option pattern and are composable (later overrides earlier). Presets: `DefaultOptions()`, `ProductionOptions()` (debug off), `TestOptions()` (debug on for SQL logging). Individual options: `WithLogger`, `WithHooks`, `WithDebug`. See [Options](./options).
+
 ## Runtime Logging and Hooks
 
-`DB` and `Tx` provide runtime observation hooks and `slog` debug logging. Pure SQL statements also carry their statement names into hook events and debug logs.
+`DB` and `Tx` provide runtime observation hooks and `slog` debug logging. Pure SQL statements also carry their statement names into hook events and debug logs. For slow-query detection, Duration, Metadata (trace_id, request_id), see [Observability](./observability).
 
 ```go
 core := dbx.NewWithOptions(

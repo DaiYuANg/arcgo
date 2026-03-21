@@ -68,12 +68,27 @@ func (x *SQLExecutor) sessionOrErr() (Session, error) {
 	return x.session, nil
 }
 
-func SQLList[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper RowsScanner[E]) ([]E, error) {
+func sessionExecutor(session Session) (*SQLExecutor, error) {
+	if session == nil {
+		return nil, ErrNilDB
+	}
+	exec := session.SQL()
+	if exec == nil {
+		return nil, ErrNilDB
+	}
+	return exec, nil
+}
+
+func SQLList[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) ([]E, error) {
 	if mapper == nil {
 		return nil, ErrNilMapper
 	}
 
-	rows, err := queryStatementRows(ctx, executor, statement, params)
+	exec, err := sessionExecutor(session)
+	if err != nil {
+		return nil, err
+	}
+	rows, err := queryStatementRows(ctx, exec, statement, params)
 	if err != nil {
 		return nil, err
 	}
@@ -82,14 +97,19 @@ func SQLList[E any](ctx context.Context, executor *SQLExecutor, statement SQLSta
 	return mapper.ScanRows(rows)
 }
 
-func SQLGet[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper RowsScanner[E]) (E, error) {
+func SQLGet[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (E, error) {
 	if mapper == nil {
 		var zero E
 		return zero, ErrNilMapper
 	}
 
+	exec, err := sessionExecutor(session)
+	if err != nil {
+		var zero E
+		return zero, err
+	}
 	if one, ok := mapper.(oneRowScanner[E]); ok {
-		value, found, err := scanStatementOne(ctx, executor, statement, params, one)
+		value, found, err := scanStatementOne(ctx, exec, statement, params, one)
 		if err != nil {
 			var zero E
 			return zero, err
@@ -101,7 +121,7 @@ func SQLGet[E any](ctx context.Context, executor *SQLExecutor, statement SQLStat
 		return value, nil
 	}
 
-	items, err := SQLList(ctx, executor, statement, params, mapper)
+	items, err := SQLList(ctx, session, statement, params, mapper)
 	if err != nil {
 		var zero E
 		return zero, err
@@ -119,20 +139,24 @@ func SQLGet[E any](ctx context.Context, executor *SQLExecutor, statement SQLStat
 	}
 }
 
-func SQLFind[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper RowsScanner[E]) (mo.Option[E], error) {
+func SQLFind[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (mo.Option[E], error) {
 	if mapper == nil {
 		return mo.None[E](), ErrNilMapper
 	}
 
+	exec, err := sessionExecutor(session)
+	if err != nil {
+		return mo.None[E](), err
+	}
 	if one, ok := mapper.(oneRowScanner[E]); ok {
-		value, found, err := scanStatementOne(ctx, executor, statement, params, one)
+		value, found, err := scanStatementOne(ctx, exec, statement, params, one)
 		if err != nil {
 			return mo.None[E](), err
 		}
 		return mo.TupleToOption(value, found), nil
 	}
 
-	items, err := SQLList(ctx, executor, statement, params, mapper)
+	items, err := SQLList(ctx, session, statement, params, mapper)
 	if err != nil {
 		return mo.None[E](), err
 	}
@@ -147,8 +171,8 @@ func SQLFind[E any](ctx context.Context, executor *SQLExecutor, statement SQLSta
 	}
 }
 
-func SQLScalar[T any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any) (T, error) {
-	value, found, err := sqlScalar[T](ctx, executor, statement, params)
+func SQLScalar[T any](ctx context.Context, session Session, statement SQLStatementSource, params any) (T, error) {
+	value, found, err := sqlScalar[T](ctx, session, statement, params)
 	if err != nil {
 		var zero T
 		return zero, err
@@ -160,8 +184,8 @@ func SQLScalar[T any](ctx context.Context, executor *SQLExecutor, statement SQLS
 	return value, nil
 }
 
-func SQLScalarOption[T any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any) (mo.Option[T], error) {
-	value, found, err := sqlScalar[T](ctx, executor, statement, params)
+func SQLScalarOption[T any](ctx context.Context, session Session, statement SQLStatementSource, params any) (mo.Option[T], error) {
+	value, found, err := sqlScalar[T](ctx, session, statement, params)
 	if err != nil {
 		return mo.None[T](), err
 	}
@@ -171,8 +195,13 @@ func SQLScalarOption[T any](ctx context.Context, executor *SQLExecutor, statemen
 	return mo.Some(value), nil
 }
 
-func sqlScalar[T any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any) (T, bool, error) {
-	rows, err := queryStatementRows(ctx, executor, statement, params)
+func sqlScalar[T any](ctx context.Context, session Session, statement SQLStatementSource, params any) (T, bool, error) {
+	exec, err := sessionExecutor(session)
+	if err != nil {
+		var zero T
+		return zero, false, err
+	}
+	rows, err := queryStatementRows(ctx, exec, statement, params)
 	if err != nil {
 		var zero T
 		return zero, false, err
@@ -201,8 +230,8 @@ func sqlScalar[T any](ctx context.Context, executor *SQLExecutor, statement SQLS
 	return value, true, nil
 }
 
-func scanStatementOne[E any](ctx context.Context, executor *SQLExecutor, statement SQLStatementSource, params any, mapper oneRowScanner[E]) (E, bool, error) {
-	rows, err := queryStatementRows(ctx, executor, statement, params)
+func scanStatementOne[E any](ctx context.Context, exec *SQLExecutor, statement SQLStatementSource, params any, mapper oneRowScanner[E]) (E, bool, error) {
+	rows, err := queryStatementRows(ctx, exec, statement, params)
 	if err != nil {
 		var zero E
 		return zero, false, err

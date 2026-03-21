@@ -9,6 +9,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
+	"github.com/DaiYuANg/arcgo/dbx/dialect"
 	"github.com/samber/lo"
 )
 
@@ -31,6 +32,10 @@ func (Dialect) RenderLimitOffset(limit, offset *int) (string, error) {
 		return fmt.Sprintf("LIMIT %d", *limit), nil
 	}
 	return fmt.Sprintf("OFFSET %d", *offset), nil
+}
+
+func (Dialect) QueryFeatures() dialect.QueryFeatures {
+	return dialect.DefaultQueryFeatures("postgres")
 }
 
 func (d Dialect) BuildCreateTable(spec dbx.TableSpec) (dbx.BoundQuery, error) {

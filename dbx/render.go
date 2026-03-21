@@ -271,7 +271,8 @@ func (q *InsertQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 	}
 
 	state := &renderState{dialect: d, args: make([]any, 0, len(rows)*4)}
-	if d.Name() == "mysql" && q.Upsert != nil && q.Upsert.DoNothing {
+	features := dialectFeatures(d)
+	if features.InsertIgnoreForUpsertNothing && q.Upsert != nil && q.Upsert.DoNothing {
 		state.buf.WriteString("INSERT IGNORE INTO ")
 	} else {
 		state.buf.WriteString("INSERT INTO ")
@@ -651,11 +652,13 @@ func (c CaseExpression[T]) renderSelectItem(state *renderState) error {
 }
 
 func (o excludedColumnOperand[T]) renderOperand(state *renderState) (string, error) {
-	switch state.dialect.Name() {
-	case "postgres", "sqlite":
-		return "EXCLUDED." + state.dialect.QuoteIdent(o.Column.Name), nil
-	case "mysql":
-		return "VALUES(" + state.dialect.QuoteIdent(o.Column.Name) + ")", nil
+	f := dialectFeatures(state.dialect)
+	quoted := state.dialect.QuoteIdent(o.Column.Name)
+	switch f.ExcludedRefStyle {
+	case "excluded":
+		return "EXCLUDED." + quoted, nil
+	case "values":
+		return "VALUES(" + quoted + ")", nil
 	default:
 		return "", fmt.Errorf("dbx: excluded assignment is not supported for dialect %s", state.dialect.Name())
 	}
@@ -814,8 +817,9 @@ func renderUpsert(state *renderState, q *InsertQuery) error {
 	if q.Upsert == nil {
 		return nil
 	}
-	switch state.dialect.Name() {
-	case "postgres", "sqlite":
+	f := dialectFeatures(state.dialect)
+	switch f.UpsertVariant {
+	case "on_conflict":
 		state.buf.WriteString(" ON CONFLICT")
 		if len(q.Upsert.Targets) > 0 {
 			state.buf.WriteString(" (")
@@ -855,7 +859,7 @@ func renderUpsert(state *renderState, q *InsertQuery) error {
 			}
 		}
 		return nil
-	case "mysql":
+	case "on_duplicate_key":
 		if q.Upsert.DoNothing {
 			return nil
 		}
@@ -877,23 +881,28 @@ func renderUpsert(state *renderState, q *InsertQuery) error {
 	}
 }
 
+func dialectFeatures(d dialect.Dialect) dialect.QueryFeatures {
+	if p, ok := d.(dialect.QueryFeaturesProvider); ok {
+		return p.QueryFeatures()
+	}
+	return dialect.DefaultQueryFeatures(d.Name())
+}
+
 func renderReturning(state *renderState, items []SelectItem) error {
 	if len(items) == 0 {
 		return nil
 	}
-	switch state.dialect.Name() {
-	case "postgres", "sqlite":
-		state.buf.WriteString(" RETURNING ")
-		for i, item := range items {
-			if i > 0 {
-				state.buf.WriteString(", ")
-			}
-			if err := renderSelectItem(state, item); err != nil {
-				return err
-			}
-		}
-		return nil
-	default:
+	if !dialectFeatures(state.dialect).SupportsReturning {
 		return fmt.Errorf("dbx: RETURNING is not supported for dialect %s", state.dialect.Name())
 	}
+	state.buf.WriteString(" RETURNING ")
+	for i, item := range items {
+		if i > 0 {
+			state.buf.WriteString(", ")
+		}
+		if err := renderSelectItem(state, item); err != nil {
+			return err
+		}
+	}
+	return nil
 }

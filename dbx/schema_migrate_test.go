@@ -183,6 +183,10 @@ func (s *fakeSession) ExecBoundContext(_ context.Context, bound BoundQuery) (sql
 	return fakeResult{}, nil
 }
 
+func (s *fakeSession) SQL() *SQLExecutor {
+	return &SQLExecutor{session: s}
+}
+
 func (fakeResult) LastInsertId() (int64, error) { return 0, nil }
 func (fakeResult) RowsAffected() (int64, error) { return 1, nil }
 

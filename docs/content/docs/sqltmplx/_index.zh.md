@@ -115,6 +115,25 @@ import (
 sqltmplx.WithValidator(mysqlparser.New())
 ```
 
+## Registry 语句复用
+
+**通过 `MustStatement` 或 `Statement` 复用语句，避免重复解析。** Registry 按名称缓存已编译模板。在初始化或首次使用时获取 statement，再在热路径中传给 `dbx.SQLList`、`dbx.SQLGet`、`session.SQL().Exec` 等：
+
+```go
+// 推荐：构建一次，多次执行
+registry := sqltmplx.NewRegistry(sqlFS, core.Dialect())
+stmt := registry.MustStatement("sql/user/find_active.sql")
+for range batches {
+    items, _ := dbx.SQLList(ctx, session, stmt, params, mapper)
+    // ...
+}
+
+// 避免：每次调用都解析
+for range batches {
+    items, _ := dbx.SQLList(ctx, session, registry.MustStatement("sql/user/find_active.sql"), params, mapper)
+}
+```
+
 ## 编译一次，多次渲染
 
 ```go

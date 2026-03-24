@@ -14,12 +14,25 @@ type Ref[E any, T any] interface {
 
 type ReferentialAction string
 
+type IDStrategy string
+
+type IDMarker interface {
+	idStrategy() IDStrategy
+	uuidVersion() string
+}
+
 const (
 	ReferentialNoAction   ReferentialAction = "NO ACTION"
 	ReferentialRestrict   ReferentialAction = "RESTRICT"
 	ReferentialCascade    ReferentialAction = "CASCADE"
 	ReferentialSetNull    ReferentialAction = "SET NULL"
 	ReferentialSetDefault ReferentialAction = "SET DEFAULT"
+
+	IDStrategyUnset     IDStrategy = ""
+	IDStrategyDBAuto    IDStrategy = "db_auto"
+	IDStrategySnowflake IDStrategy = "snowflake"
+	IDStrategyUUID      IDStrategy = "uuid"
+	DefaultUUIDVersion             = "v7"
 )
 
 type ForeignKeyRef struct {
@@ -43,6 +56,8 @@ type ColumnMeta struct {
 	Indexed       bool
 	DefaultValue  string
 	References    *ForeignKeyRef
+	IDStrategy    IDStrategy
+	UUIDVersion   string
 }
 
 type columnBinder interface {
@@ -71,12 +86,42 @@ type Column[E any, T any] struct {
 
 type ColumnOption[E any, T any] func(Column[E, T]) Column[E, T]
 
+type IDAuto struct{}
+type IDSnowflake struct{}
+type IDUUID struct{}
+type IDUUIDv7 struct{}
+type IDUUIDv4 struct{}
+
+func (IDAuto) idStrategy() IDStrategy      { return IDStrategyDBAuto }
+func (IDAuto) uuidVersion() string         { return "" }
+func (IDSnowflake) idStrategy() IDStrategy { return IDStrategySnowflake }
+func (IDSnowflake) uuidVersion() string    { return "" }
+func (IDUUID) idStrategy() IDStrategy      { return IDStrategyUUID }
+func (IDUUID) uuidVersion() string         { return "" }
+func (IDUUIDv7) idStrategy() IDStrategy    { return IDStrategyUUID }
+func (IDUUIDv7) uuidVersion() string       { return "v7" }
+func (IDUUIDv4) idStrategy() IDStrategy    { return IDStrategyUUID }
+func (IDUUIDv4) uuidVersion() string       { return "v4" }
+
 func NewColumn[E any, T any](opts ...ColumnOption[E, T]) Column[E, T] {
 	column := Column[E, T]{}
 	lo.ForEach(lo.Filter(opts, func(opt ColumnOption[E, T], _ int) bool { return opt != nil }), func(opt ColumnOption[E, T], _ int) {
 		column = opt(column)
 	})
 	return column
+}
+
+func NewIDColumn[E any, T any, M IDMarker](opts ...ColumnOption[E, T]) Column[E, T] {
+	marker := *new(M)
+	base := []ColumnOption[E, T]{
+		PrimaryKeyColumn[E, T](),
+		WithIDStrategyColumn[E, T](marker.idStrategy()),
+	}
+	if version := marker.uuidVersion(); version != "" {
+		base = append(base, WithUUIDVersionColumn[E, T](version))
+	}
+	base = append(base, opts...)
+	return NewColumn[E, T](base...)
 }
 
 func NamedColumn[T any](source TableSource, name string) Column[struct{}, T] {
@@ -149,6 +194,48 @@ func WithReference[E any, T any](ref ForeignKeyRef) ColumnOption[E, T] {
 	}
 }
 
+func WithIDStrategyColumn[E any, T any](strategy IDStrategy) ColumnOption[E, T] {
+	return func(column Column[E, T]) Column[E, T] {
+		column.meta.IDStrategy = strategy
+		return column
+	}
+}
+
+func WithUUIDVersionColumn[E any, T any](version string) ColumnOption[E, T] {
+	return func(column Column[E, T]) Column[E, T] {
+		column.meta.UUIDVersion = strings.TrimSpace(version)
+		return column
+	}
+}
+
+func DBAutoIDColumn[E any, T any]() ColumnOption[E, T] {
+	return WithIDStrategyColumn[E, T](IDStrategyDBAuto)
+}
+
+func SnowflakeIDColumn[E any, T any]() ColumnOption[E, T] {
+	return WithIDStrategyColumn[E, T](IDStrategySnowflake)
+}
+
+func UUIDIDColumn[E any, T any]() ColumnOption[E, T] {
+	return WithIDStrategyColumn[E, T](IDStrategyUUID)
+}
+
+func UUIDv7IDColumn[E any, T any]() ColumnOption[E, T] {
+	return func(column Column[E, T]) Column[E, T] {
+		column.meta.IDStrategy = IDStrategyUUID
+		column.meta.UUIDVersion = "v7"
+		return column
+	}
+}
+
+func UUIDv4IDColumn[E any, T any]() ColumnOption[E, T] {
+	return func(column Column[E, T]) Column[E, T] {
+		column.meta.IDStrategy = IDStrategyUUID
+		column.meta.UUIDVersion = "v4"
+		return column
+	}
+}
+
 func (c Column[E, T]) bindColumn(binding columnBinding) any {
 	meta := c.meta
 	meta.Name = binding.meta.Name
@@ -162,7 +249,11 @@ func (c Column[E, T]) bindColumn(binding columnBinding) any {
 		meta.SQLType = binding.meta.SQLType
 	}
 	meta.PrimaryKey = meta.PrimaryKey || binding.meta.PrimaryKey
-	meta.AutoIncrement = meta.AutoIncrement || binding.meta.AutoIncrement
+	if meta.IDStrategy == IDStrategyUnset {
+		meta.AutoIncrement = meta.AutoIncrement || binding.meta.AutoIncrement
+	} else {
+		meta.AutoIncrement = meta.IDStrategy == IDStrategyDBAuto
+	}
 	meta.Nullable = meta.Nullable || binding.meta.Nullable
 	meta.Unique = meta.Unique || binding.meta.Unique
 	meta.Indexed = meta.Indexed || binding.meta.Indexed
@@ -171,6 +262,15 @@ func (c Column[E, T]) bindColumn(binding columnBinding) any {
 	}
 	if meta.References == nil && binding.meta.References != nil {
 		meta.References = new(*binding.meta.References)
+	}
+	if meta.IDStrategy == IDStrategyUnset {
+		meta.IDStrategy = binding.meta.IDStrategy
+	}
+	if meta.UUIDVersion == "" {
+		meta.UUIDVersion = binding.meta.UUIDVersion
+	}
+	if meta.IDStrategy == IDStrategyUUID && meta.UUIDVersion == "" {
+		meta.UUIDVersion = DefaultUUIDVersion
 	}
 	c.meta = meta
 	return c

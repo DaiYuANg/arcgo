@@ -11,6 +11,28 @@ type UserSummary struct {
 	Username string `dbx:"username"`
 }
 
+type SnowflakeUser struct {
+	ID       int64  `dbx:"id"`
+	Username string `dbx:"username"`
+}
+
+type SnowflakeUserSchema struct {
+	Schema[SnowflakeUser]
+	ID       Column[SnowflakeUser, int64]  `dbx:"id,pk"`
+	Username Column[SnowflakeUser, string] `dbx:"username"`
+}
+
+type UUIDUser struct {
+	ID       string `dbx:"id"`
+	Username string `dbx:"username"`
+}
+
+type UUIDUserSchema struct {
+	Schema[UUIDUser]
+	ID       Column[UUIDUser, string] `dbx:"id,pk"`
+	Username Column[UUIDUser, string] `dbx:"username"`
+}
+
 type hookRecorder struct {
 	mu         sync.Mutex
 	queryCount int
@@ -234,7 +256,6 @@ func TestBeginTxExecsWithinTransaction(t *testing.T) {
 	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
 		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
 		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('u','e@x.com',1,1)`,
-
 	)
 	defer cleanup()
 
@@ -263,5 +284,43 @@ func TestBeginTxExecsWithinTransaction(t *testing.T) {
 	}
 	if rec.execCount != 1 {
 		t.Fatalf("unexpected recorded exec count: %d", rec.execCount)
+	}
+}
+
+func TestInsertAssignmentsGenerateSnowflakeID(t *testing.T) {
+	users := MustSchema("users", SnowflakeUserSchema{
+		ID: NewIDColumn[SnowflakeUser, int64, IDSnowflake](),
+	})
+	mapper := MustMapper[SnowflakeUser](users)
+	entity := &SnowflakeUser{Username: "alice"}
+
+	assignments, err := mapper.InsertAssignments(users, entity)
+	if err != nil {
+		t.Fatalf("InsertAssignments returned error: %v", err)
+	}
+	if entity.ID == 0 {
+		t.Fatal("expected generated snowflake id")
+	}
+	if len(assignments) != 2 {
+		t.Fatalf("expected id + username assignments, got %d", len(assignments))
+	}
+}
+
+func TestInsertAssignmentsGenerateUUIDv7ID(t *testing.T) {
+	users := MustSchema("users", UUIDUserSchema{
+		ID: NewIDColumn[UUIDUser, string, IDUUIDv7](),
+	})
+	mapper := MustMapper[UUIDUser](users)
+	entity := &UUIDUser{Username: "alice"}
+
+	assignments, err := mapper.InsertAssignments(users, entity)
+	if err != nil {
+		t.Fatalf("InsertAssignments returned error: %v", err)
+	}
+	if entity.ID == "" {
+		t.Fatal("expected generated uuid id")
+	}
+	if len(assignments) != 2 {
+		t.Fatalf("expected id + username assignments, got %d", len(assignments))
 	}
 }

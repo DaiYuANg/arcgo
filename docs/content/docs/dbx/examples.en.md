@@ -22,6 +22,7 @@ go run ./query_advanced
 go run ./relations
 go run ./migration
 go run ./pure_sql
+go run ./id_generation
 ```
 
 You can also run directly from the repository root:
@@ -34,6 +35,7 @@ go run ./examples/dbx/query_advanced
 go run ./examples/dbx/relations
 go run ./examples/dbx/migration
 go run ./examples/dbx/pure_sql
+go run ./examples/dbx/id_generation
 ```
 
 ## Example Matrix
@@ -47,6 +49,7 @@ go run ./examples/dbx/pure_sql
 | `relations` | alias + relation metadata + `JoinRelation`, plus `LoadBelongsTo` and `LoadManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
 | `migration` | `PlanSchemaChanges`, `SQLPreview`, `AutoMigrate`, `ValidateSchemas`, `migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpSQL` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
 | `pure_sql` | `sqltmplx` registry, `dbx.SQLList/SQLGet/SQLFind/SQLScalar`, statement-name logging, `tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
+| `id_generation` | typed ID strategy markers: `IDAuto`, `IDSnowflake`, `IDUUIDv7`, and `NewIDColumn` | [examples/dbx/id_generation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/id_generation) |
 
 ## Example: Codec and StructMapper
 

@@ -67,3 +67,23 @@ dbx.NewWithOptions(raw, dialect,
 ## Context
 
 `Before` and `After` receive `context.Context`. Hooks can read trace/request IDs from context (e.g. via middleware) and copy them into `event.Metadata` for logging or metrics.
+
+## Runtime Node Logs
+
+When `WithDebug(true)` is enabled, dbx also emits stage-level runtime logs with message `dbx runtime node` and attribute `node=<name>`.
+
+Common node groups:
+
+- `build.*` — query build pipeline (`build.start`, `build.done`, `build.error`)
+- `exec*` / `query_*` — bound query execution and scan stages
+- `schema.*` — schema plan/validate/auto-migrate stages
+- `relation.load.*` — relation loading stages (`single`, `multi`, `many_to_many`)
+- `sql.*` — SQL statement helpers (`sql.bind.*`, `sql.list.*`, `sql.scalar.*`, etc.)
+
+Recommended aggregation keys:
+
+- `node`
+- `statement`
+- `operation`
+- `table`
+- `error`

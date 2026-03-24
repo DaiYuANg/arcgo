@@ -234,9 +234,17 @@ func bindSchema[S any](name, alias string, schema S) (S, error) {
 		}
 
 		if candidate, ok := fieldValue.Interface().(columnBinder); ok {
-			meta := resolveColumnMeta(defTable, fieldType, fieldValue.Interface())
-			fieldValue.Set(reflect.ValueOf(candidate.bindColumn(columnBinding{meta: meta})))
-			columns.Add(meta)
+			meta, metaErr := resolveColumnMeta(defTable, fieldType, fieldValue.Interface())
+			if metaErr != nil {
+				return schema, metaErr
+			}
+			bound := candidate.bindColumn(columnBinding{meta: meta})
+			fieldValue.Set(reflect.ValueOf(bound))
+			if accessor, ok := bound.(columnAccessor); ok {
+				columns.Add(accessor.columnRef())
+			} else {
+				columns.Add(meta)
+			}
 			continue
 		}
 
@@ -278,7 +286,7 @@ func bindSchema[S any](name, alias string, schema S) (S, error) {
 	return schema, nil
 }
 
-func resolveColumnMeta(def tableDefinition, field reflect.StructField, value any) ColumnMeta {
+func resolveColumnMeta(def tableDefinition, field reflect.StructField, value any) (ColumnMeta, error) {
 	name, options := resolveTagNameAndOptions(field)
 	meta := ColumnMeta{
 		Name:          name,
@@ -307,7 +315,7 @@ func resolveColumnMeta(def tableDefinition, field reflect.StructField, value any
 		}
 	}
 
-	return meta
+	return normalizeIDPolicy(meta)
 }
 
 func resolveColumnGoType(value any) reflect.Type {
@@ -447,6 +455,58 @@ func parseReferentialAction(input string) ReferentialAction {
 	default:
 		return ""
 	}
+}
+
+func normalizeIDPolicy(meta ColumnMeta) (ColumnMeta, error) {
+	if !meta.PrimaryKey {
+		return meta, nil
+	}
+
+	columnType := meta.GoType
+	for columnType != nil && columnType.Kind() == reflect.Pointer {
+		columnType = columnType.Elem()
+	}
+
+	if meta.IDStrategy == IDStrategyUnset {
+		switch {
+		case columnType != nil && columnType.Kind() == reflect.Int64:
+			meta.IDStrategy = IDStrategyDBAuto
+		case columnType != nil && columnType.Kind() == reflect.String:
+			meta.IDStrategy = IDStrategyUUID
+			if meta.UUIDVersion == "" {
+				meta.UUIDVersion = DefaultUUIDVersion
+			}
+		}
+	}
+
+	switch meta.IDStrategy {
+	case IDStrategyUnset:
+		return meta, nil
+	case IDStrategyDBAuto:
+		meta.AutoIncrement = true
+		meta.UUIDVersion = ""
+	case IDStrategySnowflake:
+		if columnType == nil || columnType.Kind() != reflect.Int64 {
+			return meta, fmt.Errorf("dbx: snowflake id strategy only supports int64 primary keys, column %s", meta.Name)
+		}
+		meta.AutoIncrement = false
+		meta.UUIDVersion = ""
+	case IDStrategyUUID:
+		if columnType == nil || columnType.Kind() != reflect.String {
+			return meta, fmt.Errorf("dbx: uuid id strategy only supports string primary keys, column %s", meta.Name)
+		}
+		meta.AutoIncrement = false
+		if meta.UUIDVersion == "" {
+			meta.UUIDVersion = DefaultUUIDVersion
+		}
+		if meta.UUIDVersion != "v7" && meta.UUIDVersion != "v4" {
+			return meta, fmt.Errorf("dbx: unsupported uuid version %q for column %s", meta.UUIDVersion, meta.Name)
+		}
+	default:
+		return meta, fmt.Errorf("dbx: unsupported id strategy %q for column %s", meta.IDStrategy, meta.Name)
+	}
+
+	return meta, nil
 }
 
 func toSnakeCase(input string) string {

@@ -19,15 +19,37 @@ type User struct {
 	Ignored  string `dbx:"ignored"`
 }
 
+type UUIDAccount struct {
+	ID   string `dbx:"id"`
+	Name string `dbx:"name"`
+}
+
+type UUIDAccountSchema struct {
+	Schema[UUIDAccount]
+	ID   Column[UUIDAccount, string] `dbx:"id,pk"`
+	Name Column[UUIDAccount, string] `dbx:"name"`
+}
+
+type StrongTypedIDUser struct {
+	ID   int64  `dbx:"id"`
+	Name string `dbx:"name"`
+}
+
+type StrongTypedIDUserSchema struct {
+	Schema[StrongTypedIDUser]
+	ID   Column[StrongTypedIDUser, int64]  `dbx:"id,pk"`
+	Name Column[StrongTypedIDUser, string] `dbx:"name"`
+}
+
 type RoleSchema struct {
 	Schema[Role]
-	ID   Column[Role, int64]  `dbx:"id,pk,auto"`
+	ID   Column[Role, int64]  `dbx:"id,pk"`
 	Name Column[Role, string] `dbx:"name,unique"`
 }
 
 type UserSchema struct {
 	Schema[User]
-	ID       Column[User, int64] `dbx:"id,pk,auto"`
+	ID       Column[User, int64] `dbx:"id,pk"`
 	Username Column[User, string]
 	Email    Column[User, string] `dbx:"email_address,index"`
 	Status   Column[User, int]
@@ -52,6 +74,9 @@ func TestMustSchemaBindsColumnsAndRelations(t *testing.T) {
 	}
 	if !users.ID.IsPrimaryKey() || !users.ID.Meta().AutoIncrement {
 		t.Fatalf("expected id metadata to mark pk/auto: %+v", users.ID.Meta())
+	}
+	if users.ID.Meta().IDStrategy != IDStrategyDBAuto {
+		t.Fatalf("expected default int64 id strategy db_auto, got: %q", users.ID.Meta().IDStrategy)
 	}
 	ref, ok := users.RoleID.Reference()
 	if !ok {
@@ -97,6 +122,33 @@ func TestAliasRebindsSchemaColumns(t *testing.T) {
 	}
 	if aliased.Email.Ref() != "u.email_address" {
 		t.Fatalf("unexpected aliased email ref: %q", aliased.Email.Ref())
+	}
+}
+
+func TestDefaultUUIDIDStrategyForStringPrimaryKey(t *testing.T) {
+	accounts := MustSchema("accounts", UUIDAccountSchema{})
+	meta := accounts.ID.Meta()
+	if meta.IDStrategy != IDStrategyUUID {
+		t.Fatalf("expected uuid id strategy, got %q", meta.IDStrategy)
+	}
+	if meta.UUIDVersion != DefaultUUIDVersion {
+		t.Fatalf("expected default uuid version %q, got %q", DefaultUUIDVersion, meta.UUIDVersion)
+	}
+	if meta.AutoIncrement {
+		t.Fatalf("expected uuid id to disable auto increment: %+v", meta)
+	}
+}
+
+func TestColumnOptionOverridesIDStrategy(t *testing.T) {
+	schema := MustSchema("users", StrongTypedIDUserSchema{
+		ID: NewIDColumn[StrongTypedIDUser, int64, IDSnowflake](),
+	})
+	meta := schema.ID.Meta()
+	if meta.IDStrategy != IDStrategySnowflake {
+		t.Fatalf("expected snowflake id strategy from column option, got %q", meta.IDStrategy)
+	}
+	if meta.AutoIncrement {
+		t.Fatalf("snowflake strategy should disable auto increment: %+v", meta)
 	}
 }
 

@@ -82,13 +82,13 @@ type User struct {
 
 type RoleSchema struct {
     dbx.Schema[Role]
-    ID   dbx.Column[Role, int64]  `dbx:"id,pk,auto"`
+    ID   dbx.Column[Role, int64]  `dbx:"id,pk"`
     Name dbx.Column[Role, string] `dbx:"name,unique"`
 }
 
 type UserSchema struct {
     dbx.Schema[User]
-    ID       dbx.Column[User, int64]   `dbx:"id,pk,auto"`
+    ID       dbx.Column[User, int64]   `dbx:"id,pk"`
     Username dbx.Column[User, string]  `dbx:"username"`
     Email    dbx.Column[User, string]  `dbx:"email_address,unique"`
     Status   dbx.Column[User, int]     `dbx:"status,default=1"`
@@ -98,6 +98,25 @@ type UserSchema struct {
 
 var Roles = dbx.MustSchema("roles", RoleSchema{})
 var Users = dbx.MustSchema("users", UserSchema{})
+```
+
+如果你要显式指定 ID 生成策略，推荐使用 marker type 的强类型 API：
+
+```go
+type Event struct {
+    ID   int64  `dbx:"id"`
+    Name string `dbx:"name"`
+}
+
+type EventSchema struct {
+    dbx.Schema[Event]
+    ID   dbx.Column[Event, int64]  `dbx:"id,pk"`
+    Name dbx.Column[Event, string] `dbx:"name"`
+}
+
+var Events = dbx.MustSchema("events", EventSchema{
+    ID: dbx.NewIDColumn[Event, int64, dbx.IDSnowflake](),
+})
 ```
 
 ## Query DSL
@@ -257,7 +276,8 @@ if err != nil {
 
 ## Options 与预设
 
-Options 使用函数式 Option 模式，可组合（后者覆盖前者）。预设：`DefaultOptions()`（显式默认）、`ProductionOptions()`（debug 关闭）、`TestOptions()`（debug 开启，用于 SQL 日志）。单个选项：`WithLogger`、`WithHooks`、`WithDebug`。详见 [Options](./options)。
+Options 使用函数式 Option 模式，可组合（后者覆盖前者）。预设：`DefaultOptions()`（显式默认）、`ProductionOptions()`（debug 关闭）、`TestOptions()`（debug 开启，用于 SQL 日志）。单个选项：`WithLogger`、`WithHooks`、`WithDebug`。详见 [Options](./options)。  
+主键 ID 的强类型策略配置，详见 [ID Generation](./id-generation)。
 
 ## 运行时日志与 Hook
 

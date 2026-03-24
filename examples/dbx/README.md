@@ -10,6 +10,7 @@ Examples:
 - `go run ./examples/dbx/relations`
 - `go run ./examples/dbx/migration`
 - `go run ./examples/dbx/pure_sql`
+- `go run ./examples/dbx/id_generation`
 
 Coverage:
 - schema as the single database metadata source
@@ -21,5 +22,6 @@ Coverage:
 - projection queries
 - relation join helpers and relation loading
 - pure SQL execution via `sqltmplx` registry + `dbx.SQL*`
+- typed ID generation strategies via marker types (`NewIDColumn`)
 - conservative auto-migrate / validate / migration runner
 - `slog` debug SQL logging and hooks

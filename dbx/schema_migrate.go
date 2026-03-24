@@ -201,10 +201,22 @@ func (p MigrationPlan) HasManualActions() bool {
 }
 
 func PlanSchemaChanges(ctx context.Context, session Session, schemas ...SchemaResource) (MigrationPlan, error) {
+	logRuntimeNode(session, "schema.plan.start", "schemas", len(schemas))
 	if plan, ok, err := planSchemaChangesWithAtlas(ctx, session, schemas...); ok || err != nil {
+		if err != nil {
+			logRuntimeNode(session, "schema.plan.error", "backend", "atlas", "error", err)
+		} else {
+			logRuntimeNode(session, "schema.plan.done", "backend", "atlas", "actions", len(plan.Actions), "manual_actions", plan.HasManualActions())
+		}
 		return plan, err
 	}
-	return planSchemaChangesLegacy(ctx, session, schemas...)
+	plan, err := planSchemaChangesLegacy(ctx, session, schemas...)
+	if err != nil {
+		logRuntimeNode(session, "schema.plan.error", "backend", "legacy", "error", err)
+		return MigrationPlan{}, err
+	}
+	logRuntimeNode(session, "schema.plan.done", "backend", "legacy", "actions", len(plan.Actions), "manual_actions", plan.HasManualActions())
+	return plan, nil
 }
 
 func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...SchemaResource) (MigrationPlan, error) {
@@ -268,19 +280,25 @@ func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...Sc
 }
 
 func ValidateSchemas(ctx context.Context, session Session, schemas ...SchemaResource) (ValidationReport, error) {
+	logRuntimeNode(session, "schema.validate.start", "schemas", len(schemas))
 	plan, err := PlanSchemaChanges(ctx, session, schemas...)
 	if err != nil {
+		logRuntimeNode(session, "schema.validate.error", "error", err)
 		return ValidationReport{}, err
 	}
+	logRuntimeNode(session, "schema.validate.done", "valid", plan.Report.Valid(), "tables", len(plan.Report.Tables))
 	return plan.Report, nil
 }
 
 func AutoMigrate(ctx context.Context, session Session, schemas ...SchemaResource) (ValidationReport, error) {
+	logRuntimeNode(session, "schema.auto_migrate.start", "schemas", len(schemas))
 	plan, err := PlanSchemaChanges(ctx, session, schemas...)
 	if err != nil {
+		logRuntimeNode(session, "schema.auto_migrate.error", "stage", "plan", "error", err)
 		return ValidationReport{}, err
 	}
 	if plan.HasManualActions() {
+		logRuntimeNode(session, "schema.auto_migrate.manual_required", "actions", len(plan.Actions))
 		return plan.Report, SchemaDriftError{Report: plan.Report}
 	}
 
@@ -288,18 +306,23 @@ func AutoMigrate(ctx context.Context, session Session, schemas ...SchemaResource
 		if !action.Executable {
 			continue
 		}
+		logRuntimeNode(session, "schema.auto_migrate.exec_action", "kind", action.Kind, "table", action.Table, "summary", action.Summary)
 		if _, execErr := session.ExecBoundContext(ctx, action.Statement); execErr != nil {
+			logRuntimeNode(session, "schema.auto_migrate.error", "stage", "exec", "kind", action.Kind, "table", action.Table, "error", execErr)
 			return ValidationReport{}, execErr
 		}
 	}
 
 	report, err := ValidateSchemas(ctx, session, schemas...)
 	if err != nil {
+		logRuntimeNode(session, "schema.auto_migrate.error", "stage", "validate", "error", err)
 		return ValidationReport{}, err
 	}
 	if !report.Valid() {
+		logRuntimeNode(session, "schema.auto_migrate.invalid_after_apply", "tables", len(report.Tables))
 		return report, SchemaDriftError{Report: report}
 	}
+	logRuntimeNode(session, "schema.auto_migrate.done", "actions", len(plan.Actions))
 	return report, nil
 }
 

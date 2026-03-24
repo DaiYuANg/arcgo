@@ -56,6 +56,87 @@ func BenchmarkMapperInsertAssignments(b *testing.B) {
 	}
 }
 
+type benchmarkDBAutoIDRecord struct {
+	ID    int64  `dbx:"id"`
+	Label string `dbx:"label"`
+}
+
+type benchmarkSnowflakeIDRecord struct {
+	ID    int64  `dbx:"id"`
+	Label string `dbx:"label"`
+}
+
+type benchmarkUUIDIDRecord struct {
+	ID    string `dbx:"id"`
+	Label string `dbx:"label"`
+}
+
+type benchmarkDBAutoIDSchema struct {
+	Schema[benchmarkDBAutoIDRecord]
+	ID    Column[benchmarkDBAutoIDRecord, int64]  `dbx:"id,pk"`
+	Label Column[benchmarkDBAutoIDRecord, string] `dbx:"label"`
+}
+
+type benchmarkSnowflakeIDSchema struct {
+	Schema[benchmarkSnowflakeIDRecord]
+	ID    Column[benchmarkSnowflakeIDRecord, int64]  `dbx:"id,pk"`
+	Label Column[benchmarkSnowflakeIDRecord, string] `dbx:"label"`
+}
+
+type benchmarkUUIDIDSchema struct {
+	Schema[benchmarkUUIDIDRecord]
+	ID    Column[benchmarkUUIDIDRecord, string] `dbx:"id,pk"`
+	Label Column[benchmarkUUIDIDRecord, string] `dbx:"label"`
+}
+
+func BenchmarkMapperInsertAssignmentsIDStrategy(b *testing.B) {
+	dbAutoSchema := MustSchema("benchmark_db_auto_records", benchmarkDBAutoIDSchema{})
+	dbAutoMapper := MustMapper[benchmarkDBAutoIDRecord](dbAutoSchema)
+	dbAutoEntity := &benchmarkDBAutoIDRecord{Label: "admin"}
+
+	snowflakeSchema := MustSchema("benchmark_snowflake_records", benchmarkSnowflakeIDSchema{
+		ID: NewIDColumn[benchmarkSnowflakeIDRecord, int64, IDSnowflake](),
+	})
+	snowflakeMapper := MustMapper[benchmarkSnowflakeIDRecord](snowflakeSchema)
+	snowflakeEntity := &benchmarkSnowflakeIDRecord{Label: "admin"}
+
+	uuidSchema := MustSchema("benchmark_uuid_records", benchmarkUUIDIDSchema{
+		ID: NewIDColumn[benchmarkUUIDIDRecord, string, IDUUIDv7](),
+	})
+	uuidMapper := MustMapper[benchmarkUUIDIDRecord](uuidSchema)
+	uuidEntity := &benchmarkUUIDIDRecord{Label: "admin"}
+
+	b.Run("DBAuto", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			dbAutoEntity.ID = 0
+			if _, err := dbAutoMapper.InsertAssignments(dbAutoSchema, dbAutoEntity); err != nil {
+				b.Fatalf("InsertAssignments returned error: %v", err)
+			}
+		}
+	})
+
+	b.Run("Snowflake", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			snowflakeEntity.ID = 0
+			if _, err := snowflakeMapper.InsertAssignments(snowflakeSchema, snowflakeEntity); err != nil {
+				b.Fatalf("InsertAssignments returned error: %v", err)
+			}
+		}
+	})
+
+	b.Run("UUIDv7", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			uuidEntity.ID = ""
+			if _, err := uuidMapper.InsertAssignments(uuidSchema, uuidEntity); err != nil {
+				b.Fatalf("InsertAssignments returned error: %v", err)
+			}
+		}
+	})
+}
+
 func BenchmarkQueryAllStructMapper(b *testing.B) {
 	accounts := MustSchema("accounts", accountSchema{})
 	mapper := MustStructMapper[accountRecord]()

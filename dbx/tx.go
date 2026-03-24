@@ -3,15 +3,16 @@ package dbx
 import (
 	"context"
 	"database/sql"
+	"log/slog"
 	"slices"
 
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
 type Tx struct {
-	raw     *sql.Tx
-	dialect dialect.Dialect
-	observe runtimeObserver
+	raw      *sql.Tx
+	dialect  dialect.Dialect
+	observe  runtimeObserver
 	relation *relationRuntime
 }
 
@@ -136,6 +137,14 @@ func (tx *Tx) Rollback() error {
 
 func (tx *Tx) SQL() *SQLExecutor {
 	return &SQLExecutor{session: tx}
+}
+
+func (tx *Tx) Logger() *slog.Logger {
+	return tx.observe.logger
+}
+
+func (tx *Tx) Debug() bool {
+	return tx.observe.debug
 }
 
 // RelationRuntime returns the relation load runtime for this Tx.

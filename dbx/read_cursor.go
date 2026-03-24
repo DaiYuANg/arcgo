@@ -93,23 +93,30 @@ func QueryCursorBound[E any](ctx context.Context, session Session, bound BoundQu
 	}
 	rows, err := session.QueryBoundContext(ctx, bound)
 	if err != nil {
+		logRuntimeNode(session, "query_cursor_bound.query_error", "statement", bound.Name, "error", err)
 		return nil, err
 	}
 
 	if cursorMapper, ok := mapper.(rowCursorScanner[E]); ok {
+		logRuntimeNode(session, "query_cursor_bound.scan_cursor")
 		cursor, err := cursorMapper.scanCursor(ctx, rows)
 		if err != nil {
 			_ = rows.Close()
+			logRuntimeNode(session, "query_cursor_bound.scan_cursor_error", "error", err)
 			return nil, err
 		}
+		logRuntimeNode(session, "query_cursor_bound.scan_cursor_done")
 		return cursor, nil
 	}
 
 	defer rows.Close()
+	logRuntimeNode(session, "query_cursor_bound.scan_slice")
 	items, err := mapper.ScanRows(rows)
 	if err != nil {
+		logRuntimeNode(session, "query_cursor_bound.scan_slice_error", "error", err)
 		return nil, err
 	}
+	logRuntimeNode(session, "query_cursor_bound.scan_slice_done", "items", len(items))
 	return newSliceCursor(items), nil
 }
 

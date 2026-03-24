@@ -39,9 +39,17 @@ func Build(session Session, query QueryBuilder) (BoundQuery, error) {
 		return BoundQuery{}, ErrNilDialect
 	}
 	if query == nil {
+		logRuntimeNode(session, "build.skip_nil_query")
 		return BoundQuery{}, nil
 	}
-	return query.Build(session.Dialect())
+	logRuntimeNode(session, "build.start")
+	bound, err := query.Build(session.Dialect())
+	if err != nil {
+		logRuntimeNode(session, "build.error", "error", err)
+		return BoundQuery{}, err
+	}
+	logRuntimeNode(session, "build.done", "sql_empty", bound.SQL == "", "args_count", len(bound.Args))
+	return bound, nil
 }
 
 func Exec(ctx context.Context, session Session, query QueryBuilder) (sql.Result, error) {
@@ -49,6 +57,7 @@ func Exec(ctx context.Context, session Session, query QueryBuilder) (sql.Result,
 	if err != nil {
 		return nil, err
 	}
+	logRuntimeNode(session, "exec.bound_ready", "statement", bound.Name, "args_count", len(bound.Args))
 	return ExecBound(ctx, session, bound)
 }
 
@@ -58,6 +67,7 @@ func ExecBound(ctx context.Context, session Session, bound BoundQuery) (sql.Resu
 	if session == nil {
 		return nil, ErrNilDB
 	}
+	logRuntimeNode(session, "exec_bound.start", "statement", bound.Name, "args_count", len(bound.Args))
 	return session.ExecBoundContext(ctx, bound)
 }
 
@@ -85,13 +95,28 @@ func QueryAllBound[E any](ctx context.Context, session Session, bound BoundQuery
 	}
 	rows, err := session.QueryBoundContext(ctx, bound)
 	if err != nil {
+		logRuntimeNode(session, "query_all_bound.query_error", "statement", bound.Name, "error", err)
 		return nil, err
 	}
 	defer rows.Close()
 	if bound.CapacityHint > 0 {
 		if withCap, ok := any(mapper).(CapacityHintScanner[E]); ok {
-			return withCap.ScanRowsWithCapacity(rows, bound.CapacityHint)
+			logRuntimeNode(session, "query_all_bound.scan_with_capacity", "capacity_hint", bound.CapacityHint)
+			items, scanErr := withCap.ScanRowsWithCapacity(rows, bound.CapacityHint)
+			if scanErr != nil {
+				logRuntimeNode(session, "query_all_bound.scan_error", "error", scanErr)
+				return nil, scanErr
+			}
+			logRuntimeNode(session, "query_all_bound.scan_done", "items", len(items))
+			return items, nil
 		}
 	}
-	return mapper.ScanRows(rows)
+	logRuntimeNode(session, "query_all_bound.scan")
+	items, scanErr := mapper.ScanRows(rows)
+	if scanErr != nil {
+		logRuntimeNode(session, "query_all_bound.scan_error", "error", scanErr)
+		return nil, scanErr
+	}
+	logRuntimeNode(session, "query_all_bound.scan_done", "items", len(items))
+	return items, nil
 }

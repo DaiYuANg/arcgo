@@ -1,22 +1,36 @@
 package dbx
 
 import (
+	"context"
+	"fmt"
 	"reflect"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
+var globalIDGenerator IDGenerator = newDefaultIDGenerator()
+
 func (m Mapper[E]) InsertAssignments(schema SchemaResource, entity *E) ([]Assignment, error) {
-	return m.entityAssignments(schema, entity, func(column ColumnMeta, field MappedField) bool {
+	return m.InsertAssignmentsWithID(context.Background(), schema, entity, globalIDGenerator)
+}
+
+func (m Mapper[E]) InsertAssignmentsWithID(ctx context.Context, schema SchemaResource, entity *E, generator IDGenerator) ([]Assignment, error) {
+	if generator == nil {
+		generator = globalIDGenerator
+	}
+	return m.entityAssignments(ctx, schema, entity, generator, func(column ColumnMeta, field MappedField) bool {
 		if !field.Insertable {
 			return false
 		}
-		return !column.PrimaryKey || !column.AutoIncrement
+		if !column.PrimaryKey {
+			return true
+		}
+		return column.IDStrategy != IDStrategyDBAuto && !column.AutoIncrement
 	})
 }
 
 func (m Mapper[E]) UpdateAssignments(schema SchemaResource, entity *E) ([]Assignment, error) {
-	return m.entityAssignments(schema, entity, func(column ColumnMeta, field MappedField) bool {
+	return m.entityAssignments(context.Background(), schema, entity, nil, func(column ColumnMeta, field MappedField) bool {
 		if !field.Updatable {
 			return false
 		}
@@ -56,7 +70,7 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate
 	return nil, ErrNoPrimaryKey
 }
 
-func (m Mapper[E]) entityAssignments(schema SchemaResource, entity *E, include func(column ColumnMeta, field MappedField) bool) ([]Assignment, error) {
+func (m Mapper[E]) entityAssignments(ctx context.Context, schema SchemaResource, entity *E, generator IDGenerator, include func(column ColumnMeta, field MappedField) bool) ([]Assignment, error) {
 	value, err := m.entityValue(entity)
 	if err != nil {
 		return nil, err
@@ -67,6 +81,23 @@ func (m Mapper[E]) entityAssignments(schema SchemaResource, entity *E, include f
 		field, ok := m.byColumn.Get(column.Name)
 		if !ok || !include(column, field) {
 			continue
+		}
+		if column.PrimaryKey && shouldGenerateID(column) {
+			fieldValue, generated, genErr := m.ensureGeneratedID(ctx, value, field, column, generator)
+			if genErr != nil {
+				return nil, genErr
+			}
+			if generated {
+				boundValue, boundErr := boundFieldValue(field, fieldValue)
+				if boundErr != nil {
+					return nil, boundErr
+				}
+				assignments.Add(metadataAssignment{
+					meta:  column,
+					value: boundValue,
+				})
+				continue
+			}
 		}
 		fieldValue, err := fieldValueForRead(value, field)
 		if err != nil {
@@ -83,6 +114,49 @@ func (m Mapper[E]) entityAssignments(schema SchemaResource, entity *E, include f
 	}
 
 	return assignments.Values(), nil
+}
+
+func shouldGenerateID(column ColumnMeta) bool {
+	return column.IDStrategy == IDStrategySnowflake || column.IDStrategy == IDStrategyUUID
+}
+
+func (m Mapper[E]) ensureGeneratedID(ctx context.Context, root reflect.Value, field MappedField, column ColumnMeta, generator IDGenerator) (reflect.Value, bool, error) {
+	fieldValue, err := fieldValueForRead(root, field)
+	if err != nil {
+		return reflect.Value{}, false, err
+	}
+	if fieldValue.IsValid() && !fieldValue.IsZero() {
+		return fieldValue, false, nil
+	}
+	if generator == nil {
+		return reflect.Value{}, false, fmt.Errorf("dbx: id generator is nil for column %s", column.Name)
+	}
+	generated, err := generator.GenerateID(ctx, column)
+	if err != nil {
+		return reflect.Value{}, false, err
+	}
+
+	targetField, err := ensureFieldValue(root, field)
+	if err != nil {
+		return reflect.Value{}, false, err
+	}
+	if !targetField.CanSet() {
+		return reflect.Value{}, false, fmt.Errorf("dbx: cannot set generated id for column %s", column.Name)
+	}
+
+	generatedValue := reflect.ValueOf(generated)
+	if !generatedValue.IsValid() {
+		return reflect.Value{}, false, fmt.Errorf("dbx: generated id is invalid for column %s", column.Name)
+	}
+	if generatedValue.Type().AssignableTo(targetField.Type()) {
+		targetField.Set(generatedValue)
+		return targetField, true, nil
+	}
+	if generatedValue.Type().ConvertibleTo(targetField.Type()) {
+		targetField.Set(generatedValue.Convert(targetField.Type()))
+		return targetField, true, nil
+	}
+	return reflect.Value{}, false, fmt.Errorf("dbx: generated id type %s cannot be assigned to %s for column %s", generatedValue.Type(), targetField.Type(), column.Name)
 }
 
 func (m Mapper[E]) entityValue(entity *E) (reflect.Value, error) {

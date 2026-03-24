@@ -41,6 +41,15 @@ func (h *memoryHandler) Handle(_ context.Context, record slog.Record) error {
 func (h *memoryHandler) WithAttrs([]slog.Attr) slog.Handler { return h }
 func (h *memoryHandler) WithGroup(string) slog.Handler      { return h }
 
+func findRecordByAttr(records []memoryRecord, key string, expected any) (memoryRecord, bool) {
+	for _, record := range records {
+		if value, ok := record.attrs[key]; ok && value == expected {
+			return record, true
+		}
+	}
+	return memoryRecord{}, false
+}
+
 func TestDBDebugLoggingAndHooks(t *testing.T) {
 	sqlDB, cleanup := OpenTestSQLiteWithSchema(t, `INSERT INTO "roles" ("id","name") VALUES (9,'admin')`)
 	defer cleanup()
@@ -90,7 +99,10 @@ func TestDBDebugLoggingAndHooks(t *testing.T) {
 	if len(handler.records) == 0 {
 		t.Fatal("expected debug log record")
 	}
-	record := handler.records[0]
+	record, ok := findRecordByAttr(handler.records, "operation", OperationExec)
+	if !ok {
+		t.Fatalf("expected operation log record, got %#v", handler.records)
+	}
 	if record.level != slog.LevelDebug {
 		t.Fatalf("unexpected log level: %v", record.level)
 	}
@@ -216,7 +228,10 @@ func TestHookEventMetadataAndDuration(t *testing.T) {
 	if len(handler.records) == 0 {
 		t.Fatal("expected debug log record")
 	}
-	record := handler.records[0]
+	record, ok := findRecordByAttr(handler.records, "operation", OperationExec)
+	if !ok {
+		t.Fatalf("expected operation log record, got %#v", handler.records)
+	}
 	if record.attrs["trace_id"] != "abc-123" {
 		t.Fatalf("expected trace_id in log attrs: %#v", record.attrs)
 	}

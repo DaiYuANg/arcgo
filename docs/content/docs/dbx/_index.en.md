@@ -82,13 +82,13 @@ type User struct {
 
 type RoleSchema struct {
     dbx.Schema[Role]
-    ID   dbx.Column[Role, int64]  `dbx:"id,pk,auto"`
+    ID   dbx.Column[Role, int64]  `dbx:"id,pk"`
     Name dbx.Column[Role, string] `dbx:"name,unique"`
 }
 
 type UserSchema struct {
     dbx.Schema[User]
-    ID       dbx.Column[User, int64]   `dbx:"id,pk,auto"`
+    ID       dbx.Column[User, int64]   `dbx:"id,pk"`
     Username dbx.Column[User, string]  `dbx:"username"`
     Email    dbx.Column[User, string]  `dbx:"email_address,unique"`
     Status   dbx.Column[User, int]     `dbx:"status,default=1"`
@@ -98,6 +98,25 @@ type UserSchema struct {
 
 var Roles = dbx.MustSchema("roles", RoleSchema{})
 var Users = dbx.MustSchema("users", UserSchema{})
+```
+
+For explicit typed ID strategy configuration, use marker types:
+
+```go
+type Event struct {
+    ID   int64  `dbx:"id"`
+    Name string `dbx:"name"`
+}
+
+type EventSchema struct {
+    dbx.Schema[Event]
+    ID   dbx.Column[Event, int64]  `dbx:"id,pk"`
+    Name dbx.Column[Event, string] `dbx:"name"`
+}
+
+var Events = dbx.MustSchema("events", EventSchema{
+    ID: dbx.NewIDColumn[Event, int64, dbx.IDSnowflake](),
+})
 ```
 
 ## Query DSL
@@ -257,7 +276,8 @@ Current behavior:
 
 ## Options and Presets
 
-Options use the functional Option pattern and are composable (later overrides earlier). Presets: `DefaultOptions()`, `ProductionOptions()` (debug off), `TestOptions()` (debug on for SQL logging). Individual options: `WithLogger`, `WithHooks`, `WithDebug`. See [Options](./options).
+Options use the functional Option pattern and are composable (later overrides earlier). Presets: `DefaultOptions()`, `ProductionOptions()` (debug off), `TestOptions()` (debug on for SQL logging). Individual options: `WithLogger`, `WithHooks`, `WithDebug`. See [Options](./options).  
+For typed primary-key strategy configuration, see [ID Generation](./id-generation).
 
 ## Runtime Logging and Hooks
 

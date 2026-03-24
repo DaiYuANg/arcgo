@@ -67,3 +67,23 @@ dbx.NewWithOptions(raw, dialect,
 ## Context
 
 `Before` 和 `After` 会收到 `context.Context`。Hooks 可从 context 中读取 trace/request ID（例如来自中间件），并复制到 `event.Metadata` 供日志或指标使用。
+
+## Runtime Node 日志
+
+开启 `WithDebug(true)` 后，dbx 还会输出阶段级日志，日志消息为 `dbx runtime node`，并携带 `node=<name>`。
+
+常见节点分组：
+
+- `build.*`：查询构建链路（`build.start`、`build.done`、`build.error`）
+- `exec*` / `query_*`：BoundQuery 执行与扫描阶段
+- `schema.*`：schema plan / validate / auto-migrate 阶段
+- `relation.load.*`：关系加载阶段（`single`、`multi`、`many_to_many`）
+- `sql.*`：SQL statement helper（`sql.bind.*`、`sql.list.*`、`sql.scalar.*` 等）
+
+建议聚合字段：
+
+- `node`
+- `statement`
+- `operation`
+- `table`
+- `error`

@@ -25,6 +25,7 @@ func (x *SQLExecutor) Bind(statement SQLStatementSource, params any) (BoundQuery
 
 	bound, err := statement.Bind(params)
 	if err != nil {
+		logRuntimeNode(x.session, "sql.bind.error", "statement", statement.StatementName(), "error", err)
 		return BoundQuery{}, err
 	}
 	if bound.Name == "" {
@@ -33,6 +34,7 @@ func (x *SQLExecutor) Bind(statement SQLStatementSource, params any) (BoundQuery
 	if len(bound.Args) > 0 {
 		bound.Args = slices.Clone(bound.Args)
 	}
+	logRuntimeNode(x.session, "sql.bind.done", "statement", bound.Name, "args_count", len(bound.Args))
 	return bound, nil
 }
 
@@ -46,6 +48,7 @@ func (x *SQLExecutor) Exec(ctx context.Context, statement SQLStatementSource, pa
 	if err != nil {
 		return nil, err
 	}
+	logRuntimeNode(session, "sql.exec.start", "statement", bound.Name, "args_count", len(bound.Args))
 	return session.ExecBoundContext(ctx, bound)
 }
 
@@ -59,6 +62,7 @@ func (x *SQLExecutor) Query(ctx context.Context, statement SQLStatementSource, p
 	if err != nil {
 		return nil, err
 	}
+	logRuntimeNode(session, "sql.query.start", "statement", bound.Name, "args_count", len(bound.Args))
 	return session.QueryBoundContext(ctx, bound)
 }
 
@@ -91,11 +95,18 @@ func SQLList[E any](ctx context.Context, session Session, statement SQLStatement
 	}
 	rows, err := queryStatementRows(ctx, exec, statement, params)
 	if err != nil {
+		logRuntimeNode(session, "sql.list.error", "stage", "query_rows", "error", err)
 		return nil, err
 	}
 	defer rows.Close()
 
-	return mapper.ScanRows(rows)
+	items, scanErr := mapper.ScanRows(rows)
+	if scanErr != nil {
+		logRuntimeNode(session, "sql.list.error", "stage", "scan_rows", "error", scanErr)
+		return nil, scanErr
+	}
+	logRuntimeNode(session, "sql.list.done", "items", len(items))
+	return items, nil
 }
 
 func SQLGet[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (E, error) {
@@ -112,13 +123,16 @@ func SQLGet[E any](ctx context.Context, session Session, statement SQLStatementS
 	if one, ok := mapper.(oneRowScanner[E]); ok {
 		value, found, err := scanStatementOne(ctx, exec, statement, params, one)
 		if err != nil {
+			logRuntimeNode(session, "sql.get.error", "stage", "scan_one", "error", err)
 			var zero E
 			return zero, err
 		}
 		if !found {
+			logRuntimeNode(session, "sql.get.not_found")
 			var zero E
 			return zero, sql.ErrNoRows
 		}
+		logRuntimeNode(session, "sql.get.done")
 		return value, nil
 	}
 
@@ -130,11 +144,14 @@ func SQLGet[E any](ctx context.Context, session Session, statement SQLStatementS
 
 	switch len(items) {
 	case 0:
+		logRuntimeNode(session, "sql.get.not_found")
 		var zero E
 		return zero, sql.ErrNoRows
 	case 1:
+		logRuntimeNode(session, "sql.get.done")
 		return items[0], nil
 	default:
+		logRuntimeNode(session, "sql.get.error", "stage", "too_many_rows")
 		var zero E
 		return zero, ErrTooManyRows
 	}
@@ -152,8 +169,10 @@ func SQLFind[E any](ctx context.Context, session Session, statement SQLStatement
 	if one, ok := mapper.(oneRowScanner[E]); ok {
 		value, found, err := scanStatementOne(ctx, exec, statement, params, one)
 		if err != nil {
+			logRuntimeNode(session, "sql.find.error", "stage", "scan_one", "error", err)
 			return mo.None[E](), err
 		}
+		logRuntimeNode(session, "sql.find.done", "found", found)
 		return mo.TupleToOption(value, found), nil
 	}
 
@@ -164,10 +183,13 @@ func SQLFind[E any](ctx context.Context, session Session, statement SQLStatement
 
 	switch len(items) {
 	case 0:
+		logRuntimeNode(session, "sql.find.done", "found", false)
 		return mo.None[E](), nil
 	case 1:
+		logRuntimeNode(session, "sql.find.done", "found", true)
 		return mo.Some(items[0]), nil
 	default:
+		logRuntimeNode(session, "sql.find.error", "stage", "too_many_rows")
 		return mo.None[E](), ErrTooManyRows
 	}
 }
@@ -175,24 +197,30 @@ func SQLFind[E any](ctx context.Context, session Session, statement SQLStatement
 func SQLScalar[T any](ctx context.Context, session Session, statement SQLStatementSource, params any) (T, error) {
 	value, found, err := sqlScalar[T](ctx, session, statement, params)
 	if err != nil {
+		logRuntimeNode(session, "sql.scalar.error", "error", err)
 		var zero T
 		return zero, err
 	}
 	if !found {
+		logRuntimeNode(session, "sql.scalar.not_found")
 		var zero T
 		return zero, sql.ErrNoRows
 	}
+	logRuntimeNode(session, "sql.scalar.done")
 	return value, nil
 }
 
 func SQLScalarOption[T any](ctx context.Context, session Session, statement SQLStatementSource, params any) (mo.Option[T], error) {
 	value, found, err := sqlScalar[T](ctx, session, statement, params)
 	if err != nil {
+		logRuntimeNode(session, "sql.scalar_option.error", "error", err)
 		return mo.None[T](), err
 	}
 	if !found {
+		logRuntimeNode(session, "sql.scalar_option.done", "found", false)
 		return mo.None[T](), nil
 	}
+	logRuntimeNode(session, "sql.scalar_option.done", "found", true)
 	return mo.Some(value), nil
 }
 

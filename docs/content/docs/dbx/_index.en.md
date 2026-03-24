@@ -48,6 +48,8 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 ## Package Layout
 
 - Core ORM API: `github.com/DaiYuANg/arcgo/dbx`
+- Generic repository: `github.com/DaiYuANg/arcgo/dbx/repository` (see [Repository Mode](./repository))
+- Active record facade: `github.com/DaiYuANg/arcgo/dbx/activerecord` (see [Active Record Mode](./active-record))
 - Shared dialect contracts: `github.com/DaiYuANg/arcgo/dbx/dialect` (see [Dialect](./dialect))
 - Built-in query + schema dialects:
   - `github.com/DaiYuANg/arcgo/dbx/dialect/sqlite`
@@ -73,6 +75,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 - Production rollout checklist: [Production Checklist](./production-checklist)
 - API quick lookup: [API Quick Reference](./api-reference)
 - Generic repository abstraction: [Repository Mode](./repository)
+- Active record facade: [Active Record Mode](./active-record)
 - Dialect abstraction: [Dialect](./dialect)
 - dbx + pure SQL templates: [sqltmplx Integration](./sqltmplx)
 - Runnable examples: [Examples](./examples)

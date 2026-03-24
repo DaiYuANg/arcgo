@@ -372,6 +372,49 @@ func TestBaseSpecAPIs(t *testing.T) {
 	}
 }
 
+func TestBaseOptionAPIs(t *testing.T) {
+	ctx := context.Background()
+	raw, err := sql.Open("sqlite3", "file:repository_option_api_test?mode=memory&cache=shared")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer raw.Close()
+	core := dbx.MustNewWithOptions(raw, sqlitedialect.New())
+	users := dbx.MustSchema("users", UserSchema{})
+	if _, err := core.AutoMigrate(ctx, users); err != nil {
+		t.Fatalf("auto migrate: %v", err)
+	}
+	repo := New[User](core, users)
+	if err := repo.Create(ctx, &User{Name: "alice"}); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	noneByID, err := repo.GetByIDOption(ctx, int64(99999))
+	if err != nil {
+		t.Fatalf("get by id option: %v", err)
+	}
+	if noneByID.IsPresent() {
+		t.Fatal("expected absent option for missing id")
+	}
+
+	someBySpec, err := repo.FirstSpecOption(ctx, Where(users.Name.Eq("alice")))
+	if err != nil {
+		t.Fatalf("first spec option: %v", err)
+	}
+	item, ok := someBySpec.Get()
+	if !ok || item.Name != "alice" {
+		t.Fatalf("expected alice from option, got ok=%v item=%+v", ok, item)
+	}
+
+	noneBySpec, err := repo.FirstSpecOption(ctx, Where(users.Name.Eq("nobody")))
+	if err != nil {
+		t.Fatalf("first spec none option: %v", err)
+	}
+	if noneBySpec.IsPresent() {
+		t.Fatal("expected absent option for missing record")
+	}
+}
+
 func TestBaseUpdateByVersion(t *testing.T) {
 	ctx := context.Background()
 	raw, err := sql.Open("sqlite3", "file:repository_version_conflict_test?mode=memory&cache=shared")

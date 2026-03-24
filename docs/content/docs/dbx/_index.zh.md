@@ -48,6 +48,8 @@ weight: 7
 ## 包结构
 
 - ORM 核心 API：`github.com/DaiYuANg/arcgo/dbx`
+- 泛型仓储：`github.com/DaiYuANg/arcgo/dbx/repository`（详见 [Repository Mode](./repository)）
+- Active Record 门面：`github.com/DaiYuANg/arcgo/dbx/activerecord`（详见 [Active Record Mode](./active-record)）
 - 共享方言契约：`github.com/DaiYuANg/arcgo/dbx/dialect`（详见 [Dialect](./dialect)）
 - 内置 query + schema 方言：
   - `github.com/DaiYuANg/arcgo/dbx/dialect/sqlite`
@@ -73,6 +75,7 @@ weight: 7
 - 生产落地清单：[Production Checklist](./production-checklist)
 - API 速查：[API Quick Reference](./api-reference)
 - 泛型仓储抽象：[Repository Mode](./repository)
+- Active Record 门面：[Active Record Mode](./active-record)
 - 方言抽象：[Dialect](./dialect)
 - dbx + 纯 SQL 模板：[sqltmplx Integration](./sqltmplx)
 - 可运行示例：[Examples](./examples)

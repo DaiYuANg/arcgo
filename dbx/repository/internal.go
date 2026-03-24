@@ -2,9 +2,11 @@ package repository
 
 import (
 	"database/sql"
+	"slices"
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/dbx"
+	"github.com/samber/lo"
 )
 
 type countRow struct {
@@ -13,10 +15,9 @@ type countRow struct {
 
 func (r *Base[E, S]) defaultSelect() *dbx.SelectQuery {
 	fields := r.mapper.Fields()
-	items := make([]dbx.SelectItem, 0, len(fields))
-	for _, field := range fields {
-		items = append(items, dbx.NamedColumn[any](r.schema, field.Column))
-	}
+	items := lo.Map(fields, func(field dbx.MappedField, _ int) dbx.SelectItem {
+		return dbx.NamedColumn[any](r.schema, field.Column)
+	})
 	return dbx.Select(items...).From(r.schema)
 }
 
@@ -66,10 +67,11 @@ func keyPredicate[S dbx.TableSource](schema S, key Key) dbx.Predicate {
 	if len(key) == 0 {
 		return nil
 	}
-	predicates := make([]dbx.Predicate, 0, len(key))
-	for column, value := range key {
-		predicates = append(predicates, dbx.NamedColumn[any](schema, column).Eq(value))
-	}
+	columns := lo.Keys(key)
+	slices.Sort(columns)
+	predicates := lo.Map(columns, func(column string, _ int) dbx.Predicate {
+		return dbx.NamedColumn[any](schema, column).Eq(key[column])
+	})
 	return dbx.And(predicates...)
 }
 

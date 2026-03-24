@@ -64,6 +64,42 @@ func main() {
 - Upsert: `Upsert(ctx, entity, conflictColumns...)`
 - Transactions: `InTx`
 - Specs: `Where`, `OrderBy`, `Limit`, `Offset`
+- Optional single-row reads: `GetByIDOption`, `GetByKeyOption`, `FirstOption`, `FirstSpecOption` (see below)
+
+## Optional reads (`mo.Option`)
+
+For “maybe one row” queries, you can use parallel methods that return `github.com/samber/mo.Option` instead of treating “not found” as `repository.ErrNotFound`:
+
+- `GetByIDOption`, `GetByKeyOption`, `FirstOption`, `FirstSpecOption`
+
+Semantics:
+
+- When the underlying `GetByID` / `GetByKey` / `First` would return `repository.ErrNotFound`, the `Option` variant returns `mo.None[E]()` and **no error** (`error == nil`).
+- Any other failure (invalid key, DB error, etc.) still returns a non-nil `error` and `mo.None[E]()`.
+- Empty composite `Key{}` still surfaces as `repository.ValidationError` from `GetByKey` / `GetByKeyOption` (not folded into `Option`).
+
+When to use which:
+
+- Prefer `GetByID` / `First` + `errors.Is(err, repository.ErrNotFound)` when not-found is exceptional or you want uniform `if err != nil` handling.
+- Prefer `*Option` when absence is a normal outcome and you want `(mo.Option[E], error)` to separate “missing row” from “real errors”, consistent with `dbx.SQLFind` / `dbx.SQLScalarOption`.
+
+```go
+// Assumes User, UserSchema, Users, repo, and ctx from the "Complete Example" above.
+
+byID, err := repo.GetByIDOption(ctx, int64(42))
+if err != nil {
+	return err
+}
+if user, ok := byID.Get(); ok {
+	_ = user.Name
+}
+
+byName, err := repo.FirstSpecOption(ctx, repository.Where(Users.Name.Eq("alice")))
+if err != nil {
+	return err
+}
+_, _ = byName.Get()
+```
 
 ## Error Model
 

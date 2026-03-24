@@ -1,0 +1,3359 @@
+# ArcGo
+
+> 
+
+
+## ArcGo 文档
+
+### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+### kvx
+
+### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+### roadmap
+
+## Versioneds
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/fx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/echo/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/fiber/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/gin/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/http/std/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/authx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/clientx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/collectionx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/fx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/configx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/migrate/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/mysqlparser/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/postgresparser/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/dix/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/docs/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/fx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/eventx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/authx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dbx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/dix/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/eventx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/httpx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/kvx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/logx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/observabilityx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/examples/sqltmplx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/echo/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/fiber/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/gin/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/adapter/std/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/fx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/websocket/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.2/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/valkey/v0.0.2/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/v0.0.2/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/fx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/logx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/observabilityx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/fx/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+### ArcGo 文档
+
+#### ArcGo 文档
+
+##### authx
+- [authx v0.3.0（重构版）](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/authx/release-v0.3.0/): 概览 authx v0.3.0 是一次面向“统一抽象 + 多场景扩展”的重构版本。
+核心变化：
+认证与鉴权 API 明确拆分为 Check 与 Can Engine 不绑定具体认证方式 …
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/authx/roadmap/): authx Roadmap（2026-03） 定位 authx 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。
+authx-core: 认证/授权领域模型、策略装载、错误与事件语义 …
+- [iteration-plan](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/authx/iteration-plan/): authx 迭代计划（v0.4） 本计划用于把 roadmap 落成连续可执行的工程步骤。
+Step 1（已完成） 目标：落地 authx-http 最小闭环 交付： Authenticate 中间件 …
+
+##### collectionx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/collectionx/roadmap/): collectionx Roadmap（2026-03） 定位 collectionx 是 Go 的泛型数据结构工具箱，不是数据库或索引引擎替代品。
+提供常见与扩展集合的强类型、可预测 API。 提供 …
+
+##### configx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/configx/roadmap/): configx Roadmap（2026-03） 定位 configx 是分层配置加载与校验组件，不是完整配置中心。
+保持配置源合并行为可预测。 保持校验策略显式、可解释。 当前状态 已具备 …
+
+##### eventx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/eventx/roadmap/): eventx Roadmap（2026-03） 定位 eventx 是进程内强类型事件总线，不是分布式 MQ 替代品。
+保持 API 简洁且类型安全。 保持异步语义显式、可控。 当前状态 已具备同步/ …
+
+##### httpx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/httpx/roadmap/): httpx Roadmap（2026-03） 定位 httpx 是围绕 Huma 的轻量服务组织层。
+把类型化路由、group 和 OpenAPI 组织能力放在 httpx 把原生 …
+
+##### dix
+- [dix 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/dix/examples/): dix 示例 这一页汇总 examples/dix 里的可运行程序，并说明每个示例主要覆盖的 API 场景。
+本地运行 从 examples/dix 模块执行：
+cd examples/dix go …
+
+##### kvx
+
+##### logx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/logx/roadmap/): logx Roadmap（2026-03） 定位 logx 是 ArcGo 模块与服务的结构化日志基础设施，不是完整可观测性平台。
+提供跨模块一致的日志使用体验。 保持与 slog 及上层组件组合时的 …
+
+##### dbx
+- [dbx Options](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/dbx/options/): Options Options 使用函数式 Option 模式，可组合（后者覆盖前者）。
+Open（dbx 管理连接） 使用 Open 时，dbx 负责管理连接，无需传入 *sql.DB。
+db, …
+- [dbx 可观测性与 Hooks](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/dbx/observability/): 可观测性与 Hooks Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。
+HookEvent HookEvent 携带操作详情：
+字段 说明 Operation …
+- [dbx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/dbx/examples/): dbx 示例 这一页汇总了 examples/dbx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/dbx 模块目录下执行：
+cd examples/dbx …
+- [dbx Dialect](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/dbx/dialect/): dialect dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。
+Capability layers 能力层 层级 接口 是否必须 使用方 Contract Name(), …
+
+##### observabilityx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/observabilityx/roadmap/): observabilityx Roadmap（2026-03） 定位 observabilityx 是 ArcGo 模块的可选可观测性门面，不是强制的遥测框架。
+将业务/API 与具体遥测后端解耦。 …
+
+##### clientx
+- [roadmap](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/clientx/roadmap/): clientx Roadmap（2026-03） 定位 clientx 是协议导向客户端层，不是重型 RPC 框架。
+保持协议专属 API 显式（http 请求响应、tcp 流、udp 报文）。 统一 …
+
+##### sqltmplx
+- [sqltmplx 示例](https://DaiYuANg.github.io/arcgo/zh/versioned/pkg/randomport/v0.0.1/docs/sqltmplx/examples/): sqltmplx 示例 这一页汇总了 examples/sqltmplx 下的可运行程序，并说明它们分别覆盖哪些 API 场景。
+本地运行 在 examples/sqltmplx 模块目录下执行： …
+
+##### roadmap
+
+
+---
+Generated on 2026-03-24 09:21:28 UTC
+Site: https://DaiYuANg.github.io/arcgo/

@@ -1,0 +1,187 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – ArcGo 文档</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/</link><description>Recent content in ArcGo 文档 on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><lastBuildDate>Sun, 08 Mar 2026 00:00:00 +0800</lastBuildDate><atom:link href="https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/index.xml" rel="self" type="application/rss+xml"/><item><title>ArcGo 文档</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/</link><pubDate>Sun, 08 Mar 2026 00:00:00 +0800</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/httpx/middleware/v0.0.1/docs/</guid><description>
+&lt;h1&gt;ArcGo&lt;/h1&gt;&lt;p&gt;&lt;strong&gt;ArcGo&lt;/strong&gt; 是一个模块化的 Go 后端基础设施工具集。它由独立的包组成，因此你可以只采用你需要的部分。&lt;/p&gt;
+&lt;h2&gt;快速开始&lt;span class="hx:absolute hx:-mt-20" id="快速开始"&gt;&lt;/span&gt;
+&lt;a href="#%e5%bf%ab%e9%80%9f%e5%bc%80%e5%a7%8b" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go get github.com/DaiYuANg/arcgo/&lt;span style="color:#f92672"&gt;{&lt;/span&gt;package&lt;span style="color:#f92672"&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;包概览&lt;span class="hx:absolute hx:-mt-20" id="包概览"&gt;&lt;/span&gt;
+&lt;a href="#%e5%8c%85%e6%a6%82%e8%a7%88" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;包&lt;/th&gt;
+&lt;th&gt;作用&lt;/th&gt;
+&lt;th&gt;描述&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./authx"&gt;authx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;认证与授权&lt;/td&gt;
+&lt;td&gt;多场景可扩展的认证与鉴权抽象层&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./clientx"&gt;clientx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;协议客户端&lt;/td&gt;
+&lt;td&gt;协议导向客户端（&lt;code&gt;http/tcp/udp&lt;/code&gt;）+ 共享工程约束&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./collectionx"&gt;collectionx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;数据结构&lt;/td&gt;
+&lt;td&gt;泛型集合与并发安全结构&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./configx"&gt;configx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;配置管理&lt;/td&gt;
+&lt;td&gt;分层配置加载与校验&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./dix"&gt;dix&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;应用框架&lt;/td&gt;
+&lt;td&gt;基于 &lt;code&gt;do&lt;/code&gt; 的强类型模块化应用框架&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./eventx"&gt;eventx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;事件总线&lt;/td&gt;
+&lt;td&gt;进程内强类型事件总线&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./httpx"&gt;httpx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;HTTP 路由&lt;/td&gt;
+&lt;td&gt;多框架统一强类型 HTTP 路由&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./kvx"&gt;kvx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Redis / Valkey 访问&lt;/td&gt;
+&lt;td&gt;强类型 Redis / Valkey 对象访问与 repository 层&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./logx"&gt;logx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;日志记录&lt;/td&gt;
+&lt;td&gt;结构化日志与 slog 互通&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./observabilityx"&gt;observabilityx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;可观测性&lt;/td&gt;
+&lt;td&gt;可选可观测性抽象（OTel/Prometheus）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./dbx"&gt;dbx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;ORM 与迁移&lt;/td&gt;
+&lt;td&gt;基于 &lt;code&gt;database/sql&lt;/code&gt; 的 schema-first / generic-first ORM 核心（包含 &lt;code&gt;dbx/sqltmplx&lt;/code&gt;）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;路线图&lt;span class="hx:absolute hx:-mt-20" id="路线图"&gt;&lt;/span&gt;
+&lt;a href="#%e8%b7%af%e7%ba%bf%e5%9b%be" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;统一路线图（含全部模块）: &lt;a href="./roadmap"&gt;ArcGo roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;模块细化路线图：&lt;/li&gt;
+&lt;li&gt;&lt;a href="./authx/roadmap"&gt;authx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./clientx/roadmap"&gt;clientx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./collectionx/roadmap"&gt;collectionx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./configx/roadmap"&gt;configx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./eventx/roadmap"&gt;eventx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./httpx/roadmap"&gt;httpx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./logx/roadmap"&gt;logx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./observabilityx/roadmap"&gt;observabilityx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;如何选择&lt;span class="hx:absolute hx:-mt-20" id="如何选择"&gt;&lt;/span&gt;
+&lt;a href="#%e5%a6%82%e4%bd%95%e9%80%89%e6%8b%a9" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;需要容器/数据辅助：从 &lt;code&gt;collectionx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要可扩展的认证/鉴权抽象：从 &lt;code&gt;authx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要协议导向客户端（&lt;code&gt;http/tcp/udp&lt;/code&gt;）并共享工程约束：从 &lt;code&gt;clientx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要从 &lt;code&gt;.env&lt;/code&gt; + 文件 + 环境变量加载配置：从 &lt;code&gt;configx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要模块化应用组装、typed DI、生命周期和启动校验：从 &lt;code&gt;dix&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要进程内带类型负载的 pub/sub：从 &lt;code&gt;eventx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要跨框架的统一类型化 HTTP 处理器：从 &lt;code&gt;httpx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要强类型 Redis / Valkey 仓储与访问辅助：从 &lt;code&gt;kvx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要 SQL 优先的动态查询模板和可选 parser 校验：从 &lt;code&gt;dbx&lt;/code&gt; 开始（包含 &lt;code&gt;dbx/sqltmplx&lt;/code&gt;）&lt;/li&gt;
+&lt;li&gt;需要结构化日志和轮转：从 &lt;code&gt;logx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;li&gt;需要可选的遥测抽象（OTel/Prometheus）：从 &lt;code&gt;observabilityx&lt;/code&gt; 开始&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;典型组合&lt;span class="hx:absolute hx:-mt-20" id="典型组合"&gt;&lt;/span&gt;
+&lt;a href="#%e5%85%b8%e5%9e%8b%e7%bb%84%e5%90%88" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API 服务基线&lt;/strong&gt;: &lt;code&gt;httpx + configx + logx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;模块化应用基线&lt;/strong&gt;: &lt;code&gt;dix + configx + logx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;单体应用内事件驱动&lt;/strong&gt;: &lt;code&gt;eventx + logx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Redis / Valkey 支撑服务&lt;/strong&gt;: &lt;code&gt;kvx + httpx + configx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;数据密集型工具/内部库&lt;/strong&gt;: &lt;code&gt;collectionx + configx&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;常用命令&lt;span class="hx:absolute hx:-mt-20" id="常用命令"&gt;&lt;/span&gt;
+&lt;a href="#%e5%b8%b8%e7%94%a8%e5%91%bd%e4%bb%a4" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# 格式化代码&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task fmt
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# 代码检查&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task lint
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# 运行测试&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task test
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# 全面检查&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task check&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Git 提交前 Hook&lt;span class="hx:absolute hx:-mt-20" id="git-提交前-hook"&gt;&lt;/span&gt;
+&lt;a href="#git-%e6%8f%90%e4%ba%a4%e5%89%8d-hook" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;仓库使用 &lt;code&gt;lefthook&lt;/code&gt;（通过 &lt;code&gt;go tool&lt;/code&gt; 管理）。&lt;/p&gt;
+&lt;p&gt;每个 clone 只需执行一次安装：&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task git:hooks:install&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;手动执行 hook：&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task git:hooks:run&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;code&gt;pre-commit&lt;/code&gt; hook 会执行：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;go tool task fmt&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go tool task lint&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;说明&lt;span class="hx:absolute hx:-mt-20" id="说明"&gt;&lt;/span&gt;
+&lt;a href="#%e8%af%b4%e6%98%8e" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;代码注释统一为英文&lt;/li&gt;
+&lt;li&gt;中文文档统一使用 &lt;code&gt;_index.md&lt;/code&gt; 文件&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;链接&lt;span class="hx:absolute hx:-mt-20" id="链接"&gt;&lt;/span&gt;
+&lt;a href="#%e9%93%be%e6%8e%a5" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://github.com/DaiYuANg/arcgo"target="_blank" rel="noopener"&gt;GitHub 仓库&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://pkg.go.dev/github.com/DaiYuANg/arcgo"target="_blank" rel="noopener"&gt;Go 模块&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</description></item></channel></rss>

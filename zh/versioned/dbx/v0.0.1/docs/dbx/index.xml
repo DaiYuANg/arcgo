@@ -1,0 +1,505 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – dbx</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/</link><description>Recent content in dbx on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><atom:link href="https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/index.xml" rel="self" type="application/rss+xml"/><item><title>dbx Options</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/options/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/options/</guid><description>
+&lt;h2&gt;Options&lt;span class="hx:absolute hx:-mt-20" id="options"&gt;&lt;/span&gt;
+&lt;a href="#options" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Options 使用函数式 Option 模式，可组合（后者覆盖前者）。&lt;/p&gt;
+&lt;h2&gt;Open（dbx 管理连接）&lt;span class="hx:absolute hx:-mt-20" id="opendbx-管理连接"&gt;&lt;/span&gt;
+&lt;a href="#opendbx-%e7%ae%a1%e7%90%86%e8%bf%9e%e6%8e%a5" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;使用 &lt;code&gt;Open&lt;/code&gt; 时，dbx 负责管理连接，无需传入 &lt;code&gt;*sql.DB&lt;/code&gt;。&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;db&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Open&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDriver&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;sqlite&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDSN&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;file:app.db&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDialect&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlite&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;{}),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ApplyOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;)),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;defer&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;db&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Close&lt;/span&gt;()&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;必须提供：&lt;code&gt;WithDriver&lt;/code&gt;、&lt;code&gt;WithDSN&lt;/code&gt;、&lt;code&gt;WithDialect&lt;/code&gt;。任一缺失时 &lt;code&gt;Open&lt;/code&gt; 返回 &lt;code&gt;ErrMissingDriver&lt;/code&gt;、&lt;code&gt;ErrMissingDSN&lt;/code&gt; 或 &lt;code&gt;ErrMissingDialect&lt;/code&gt;。通过 &lt;code&gt;ApplyOptions&lt;/code&gt; 传入 &lt;code&gt;Option&lt;/code&gt;（WithLogger、WithHooks、WithDebug）。&lt;/p&gt;
+&lt;h2&gt;Presets 预设&lt;span class="hx:absolute hx:-mt-20" id="presets-预设"&gt;&lt;/span&gt;
+&lt;a href="#presets-%e9%a2%84%e8%ae%be" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Preset&lt;/th&gt;
+&lt;th&gt;适用场景&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;DefaultOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;显式默认（返回 &lt;code&gt;nil&lt;/code&gt;），等同于不传 options。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;ProductionOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;生产：debug 关闭。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;TestOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;测试：debug 开启，便于查看 SQL 日志。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Usage 使用&lt;span class="hx:absolute hx:-mt-20" id="usage-使用"&gt;&lt;/span&gt;
+&lt;a href="#usage-%e4%bd%bf%e7%94%a8" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 默认&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;New&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 预设 + 覆盖&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;, append(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;TestOptions&lt;/span&gt;(), &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;myLogger&lt;/span&gt;))&lt;span style="color:#f92672"&gt;...&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 自定义组合&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;logger&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;AfterFunc&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;myAfterHook&lt;/span&gt;}),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Options 表&lt;span class="hx:absolute hx:-mt-20" id="options-表"&gt;&lt;/span&gt;
+&lt;a href="#options-%e8%a1%a8" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Option&lt;/th&gt;
+&lt;th&gt;默认&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithLogger(logger)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;slog.Default()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;操作事件日志。debug=false 时仅记录错误。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithHooks(hooks...)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;[]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;每个操作前后执行的 hooks，可叠加。详见 &lt;a href="./observability"&gt;Observability 可观测性&lt;/a&gt;（慢查询、Metadata trace_id/request_id 等）。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithDebug(enabled)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;false&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;为 true 时，所有操作以 Debug 级别记录。开发/测试中用于查看 SQL。&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Composition 组合&lt;span class="hx:absolute hx:-mt-20" id="composition-组合"&gt;&lt;/span&gt;
+&lt;a href="#composition-%e7%bb%84%e5%90%88" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Options 按顺序应用，后者覆盖前者。Hooks 为追加，不替换：&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// logger 来自 myLogger，debug 开启，hooks = [h1, h2]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;d&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;h1&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;myLogger&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;h2&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>dbx 可观测性与 Hooks</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/observability/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/observability/</guid><description>
+&lt;h2&gt;可观测性与 Hooks&lt;span class="hx:absolute hx:-mt-20" id="可观测性与-hooks"&gt;&lt;/span&gt;
+&lt;a href="#%e5%8f%af%e8%a7%82%e6%b5%8b%e6%80%a7%e4%b8%8e-hooks" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Hooks 在每个 DB 操作前后执行。可用于日志、指标、链路追踪和慢查询检测。&lt;/p&gt;
+&lt;h2&gt;HookEvent&lt;span class="hx:absolute hx:-mt-20" id="hookevent"&gt;&lt;/span&gt;
+&lt;a href="#hookevent" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;HookEvent&lt;/code&gt; 携带操作详情：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;字段&lt;/th&gt;
+&lt;th&gt;说明&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Operation&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;query, exec, query_row, begin_tx, commit_tx, rollback_tx, auto_migrate, validate_schema&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Statement&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;高层 statement 名称（若有）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;SQL&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;实际 SQL 字符串&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Args&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;绑定参数&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Table&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;目标表（若已知）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;StartedAt&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;操作开始时间&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Duration&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;耗时（在 After 中设置）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;RowsAffected&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;exec 操作影响行数&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Err&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;错误（若有）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Metadata&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;任意 key-value，用于 trace_id、request_id 等&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Duration 与 StartedAt&lt;span class="hx:absolute hx:-mt-20" id="duration-与-startedat"&gt;&lt;/span&gt;
+&lt;a href="#duration-%e4%b8%8e-startedat" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;使用 &lt;code&gt;StartedAt&lt;/code&gt; 和 &lt;code&gt;Duration&lt;/code&gt; 做慢查询检测和耗时统计：&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;AfterFunc&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookEvent&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Duration&lt;/span&gt; &amp;gt; &lt;span style="color:#ae81ff"&gt;100&lt;/span&gt;&lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;time&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Millisecond&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;slog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Warn&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;slow query&amp;#34;&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;sql&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQL&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;duration&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Duration&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Metadata 传递 Trace 与 Request ID&lt;span class="hx:absolute hx:-mt-20" id="metadata-传递-trace-与-request-id"&gt;&lt;/span&gt;
+&lt;a href="#metadata-%e4%bc%a0%e9%80%92-trace-%e4%b8%8e-request-id" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;在 Before 中设置 &lt;code&gt;Metadata&lt;/code&gt; 可传递 trace_id、request_id 或其他上下文。值会出现在 dbx 日志中：&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;BeforeFunc&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookEvent&lt;/span&gt;) (&lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Value&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;trace_id&amp;#34;&lt;/span&gt;); &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SetMetadata&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;trace_id&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Value&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;request_id&amp;#34;&lt;/span&gt;); &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SetMetadata&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;request_id&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;code&gt;SetMetadata&lt;/code&gt; 会在需要时初始化 map，避免 nil map panic。&lt;/p&gt;
+&lt;h2&gt;Context&lt;span class="hx:absolute hx:-mt-20" id="context"&gt;&lt;/span&gt;
+&lt;a href="#context" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;Before&lt;/code&gt; 和 &lt;code&gt;After&lt;/code&gt; 会收到 &lt;code&gt;context.Context&lt;/code&gt;。Hooks 可从 context 中读取 trace/request ID（例如来自中间件），并复制到 &lt;code&gt;event.Metadata&lt;/code&gt; 供日志或指标使用。&lt;/p&gt;</description></item><item><title>dbx 示例</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/examples/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/examples/</guid><description>
+&lt;h2&gt;dbx 示例&lt;span class="hx:absolute hx:-mt-20" id="dbx-示例"&gt;&lt;/span&gt;
+&lt;a href="#dbx-%e7%a4%ba%e4%be%8b" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;这一页汇总了 &lt;code&gt;examples/dbx&lt;/code&gt; 下的可运行程序，并说明它们分别覆盖哪些 API 场景。&lt;/p&gt;
+&lt;h2&gt;本地运行&lt;span class="hx:absolute hx:-mt-20" id="本地运行"&gt;&lt;/span&gt;
+&lt;a href="#%e6%9c%ac%e5%9c%b0%e8%bf%90%e8%a1%8c" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;在 &lt;code&gt;examples/dbx&lt;/code&gt; 模块目录下执行：&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;cd examples/dbx
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./codec
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./mutation
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./query_advanced
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./relations
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./migration
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./pure_sql&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;也可以直接从仓库根目录执行：&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/codec
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/mutation
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/query_advanced
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/relations
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/migration
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/pure_sql&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;示例矩阵&lt;span class="hx:absolute hx:-mt-20" id="示例矩阵"&gt;&lt;/span&gt;
+&lt;a href="#%e7%a4%ba%e4%be%8b%e7%9f%a9%e9%98%b5" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;示例&lt;/th&gt;
+&lt;th&gt;重点&lt;/th&gt;
+&lt;th&gt;目录&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;basic&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;schema-first 建模、mapper 扫描、projection、事务、debug SQL、hooks&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic"target="_blank" rel="noopener"&gt;examples/dbx/basic&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codec&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;内建 codec、scoped custom codec、struct mapper 读取、mapper 写入 assignment&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/codec"target="_blank" rel="noopener"&gt;examples/dbx/codec&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;mutation&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;聚合查询、子查询、批量插入、insert-select、upsert、returning&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation"target="_blank" rel="noopener"&gt;examples/dbx/mutation&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;query_advanced&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;WITH&lt;/code&gt;、&lt;code&gt;UNION ALL&lt;/code&gt;、&lt;code&gt;CASE WHEN&lt;/code&gt;、named table、result column&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/query_advanced"target="_blank" rel="noopener"&gt;examples/dbx/query_advanced&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;relations&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;alias + relation metadata + &lt;code&gt;JoinRelation&lt;/code&gt;，以及 &lt;code&gt;LoadBelongsTo&lt;/code&gt;、&lt;code&gt;LoadManyToMany&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations"target="_blank" rel="noopener"&gt;examples/dbx/relations&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;migration&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;PlanSchemaChanges&lt;/code&gt;、&lt;code&gt;SQLPreview&lt;/code&gt;、&lt;code&gt;AutoMigrate&lt;/code&gt;、&lt;code&gt;ValidateSchemas&lt;/code&gt;、&lt;code&gt;migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpSQL&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration"target="_blank" rel="noopener"&gt;examples/dbx/migration&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;pure_sql&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;sqltmplx&lt;/code&gt; registry、&lt;code&gt;dbx.SQLList/SQLGet/SQLFind/SQLScalar&lt;/code&gt;、statement 名称日志、&lt;code&gt;tx.SQL().Exec(...)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql"target="_blank" rel="noopener"&gt;examples/dbx/pure_sql&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;示例：Codec 与 StructMapper&lt;span class="hx:absolute hx:-mt-20" id="示例codec-与-structmapper"&gt;&lt;/span&gt;
+&lt;a href="#%e7%a4%ba%e4%be%8bcodec-%e4%b8%8e-structmapper" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;mapper&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStructMapperWithOptions&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Account&lt;/span&gt;](
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithMapperCodecs&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;csvCodec&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;items&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;QueryAll&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Accounts&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AllColumns&lt;/span&gt;()&lt;span style="color:#f92672"&gt;...&lt;/span&gt;).&lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Accounts&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;mapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;示例：高级 Query DSL&lt;span class="hx:absolute hx:-mt-20" id="示例高级-query-dsl"&gt;&lt;/span&gt;
+&lt;a href="#%e7%a4%ba%e4%be%8b%e9%ab%98%e7%ba%a7-query-dsl" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;statusLabel&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;CaseWhen&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Eq&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;), &lt;span style="color:#e6db74"&gt;&amp;#34;active&amp;#34;&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Else&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;inactive&amp;#34;&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;As&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;status_label&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedTable&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;active_users&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeID&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedColumn&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;int64&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;id&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeName&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedColumn&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;username&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;query&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;activeID&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;activeName&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;statusLabel&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;With&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;active_users&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ID&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Where&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Eq&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;)),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;示例：关系加载&lt;span class="hx:absolute hx:-mt-20" id="示例关系加载"&gt;&lt;/span&gt;
+&lt;a href="#%e7%a4%ba%e4%be%8b%e5%85%b3%e7%b3%bb%e5%8a%a0%e8%bd%bd" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;LoadBelongsTo&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;users&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;userMapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Role&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Roles&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;roleMapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;index&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;int&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;user&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;User&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;role&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;mo&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Option&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Role&lt;/span&gt;]) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// 在这里挂回角色&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;); &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;示例：Schema Plan 预览与 Runner&lt;span class="hx:absolute hx:-mt-20" id="示例schema-plan-预览与-runner"&gt;&lt;/span&gt;
+&lt;a href="#%e7%a4%ba%e4%be%8bschema-plan-%e9%a2%84%e8%a7%88%e4%b8%8e-runner" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;plan&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;PlanSchemaChanges&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Roles&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UserRoles&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;for&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;sqlText&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;range&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;plan&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQLPreview&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlText&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;runner&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Migrator&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;migrate&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;RunnerOptions&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;ValidateHash&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;_&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; = &lt;span style="color:#a6e22e"&gt;runner&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UpSQL&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;source&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;示例：结合 sqltmplx 做纯 SQL&lt;span class="hx:absolute hx:-mt-20" id="示例结合-sqltmplx-做纯-sql"&gt;&lt;/span&gt;
+&lt;a href="#%e7%a4%ba%e4%be%8b%e7%bb%93%e5%90%88-sqltmplx-%e5%81%9a%e7%ba%af-sql" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;registry&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;sqltmplx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewRegistry&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlFS&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;items&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQLList&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;registry&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStatement&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;sql/user/find_active.sql&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;struct&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;int&lt;/span&gt; &lt;span style="color:#e6db74"&gt;`dbx:&amp;#34;status&amp;#34;`&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }{&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;},
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStructMapper&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UserSummary&lt;/span&gt;](),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>dbx Dialect</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/dialect/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/v0.0.1/docs/dbx/dialect/</guid><description>
+&lt;h2&gt;dialect&lt;span class="hx:absolute hx:-mt-20" id="dialect"&gt;&lt;/span&gt;
+&lt;a href="#dialect" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;dbx 与 sqltmplx 的方言抽象。能力分层，按需实现即可。&lt;/p&gt;
+&lt;h2&gt;Capability layers 能力层&lt;span class="hx:absolute hx:-mt-20" id="capability-layers-能力层"&gt;&lt;/span&gt;
+&lt;a href="#capability-layers-%e8%83%bd%e5%8a%9b%e5%b1%82" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;层级&lt;/th&gt;
+&lt;th&gt;接口&lt;/th&gt;
+&lt;th&gt;是否必须&lt;/th&gt;
+&lt;th&gt;使用方&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Contract&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;Name()&lt;/code&gt;, &lt;code&gt;BindVar(n)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;是&lt;/td&gt;
+&lt;td&gt;sqltmplx render、dbx render、validate&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Dialect&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Contract + &lt;code&gt;QuoteIdent&lt;/code&gt;, &lt;code&gt;RenderLimitOffset&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;query DSL 必须&lt;/td&gt;
+&lt;td&gt;dbx query 构建&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;QueryFeaturesProvider&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;QueryFeatures()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;可选&lt;/td&gt;
+&lt;td&gt;dbx render（upsert、RETURNING、excluded ref）。已知方言可回退到 &lt;code&gt;DefaultQueryFeatures(name)&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SchemaDialect&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Dialect + DDL/inspect（在 dbx）&lt;/td&gt;
+&lt;td&gt;可选&lt;/td&gt;
+&lt;td&gt;schema migrate、AutoMigrate&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Adding a new dialect 新增方言&lt;span class="hx:absolute hx:-mt-20" id="adding-a-new-dialect-新增方言"&gt;&lt;/span&gt;
+&lt;a href="#adding-a-new-dialect-%e6%96%b0%e5%a2%9e%e6%96%b9%e8%a8%80" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;实现 &lt;code&gt;dialect.Dialect&lt;/code&gt;（Contract + QuoteIdent + RenderLimitOffset）。&lt;/li&gt;
+&lt;li&gt;实现 &lt;code&gt;dialect.QueryFeaturesProvider&lt;/code&gt; 声明 upsert/returning 支持（或使用 &lt;code&gt;DefaultQueryFeatures&lt;/code&gt; 若方言匹配已知类型）。&lt;/li&gt;
+&lt;li&gt;若需 schema migration：实现 &lt;code&gt;dbx.SchemaDialect&lt;/code&gt;（BuildCreateTable、InspectTable 等），或使用 Atlas 支持时依赖 Atlas。&lt;/li&gt;
+&lt;li&gt;若需 sqltmplx 校验：通过 &lt;code&gt;validate.Register(dialectName, factory)&lt;/code&gt; 注册 parser。&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;无需在 render.go、schema_migrate_atlas.go 或 sqltmplx 中增加方言分支——能力通过接口声明即可。&lt;/p&gt;</description></item></channel></rss>

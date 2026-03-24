@@ -1,0 +1,48 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – httpx</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/httpx/</link><description>Recent content in httpx on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><atom:link href="https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/httpx/index.xml" rel="self" type="application/rss+xml"/><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/httpx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/kvx/adapter/redis/v0.0.1/docs/httpx/roadmap/</guid><description>
+&lt;h2&gt;httpx Roadmap（2026-03）&lt;span class="hx:absolute hx:-mt-20" id="httpx-roadmap2026-03"&gt;&lt;/span&gt;
+&lt;a href="#httpx-roadmap2026-03" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;定位&lt;span class="hx:absolute hx:-mt-20" id="定位"&gt;&lt;/span&gt;
+&lt;a href="#%e5%ae%9a%e4%bd%8d" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;httpx&lt;/code&gt; 是围绕 Huma 的轻量服务组织层。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;把类型化路由、group 和 OpenAPI 组织能力放在 &lt;code&gt;httpx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;把原生 router/app 的所有权放回 adapter&lt;/li&gt;
+&lt;li&gt;不再重新包装各框架的 request/response 模型&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;当前状态&lt;span class="hx:absolute hx:-mt-20" id="当前状态"&gt;&lt;/span&gt;
+&lt;a href="#%e5%bd%93%e5%89%8d%e7%8a%b6%e6%80%81" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;ServerRuntime&lt;/code&gt; 现在以 &lt;code&gt;huma.API&lt;/code&gt; 为中心，而不是 &lt;code&gt;http.Handler&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;std&lt;/code&gt; / &lt;code&gt;gin&lt;/code&gt; / &lt;code&gt;echo&lt;/code&gt; / &lt;code&gt;fiber&lt;/code&gt; adapter 已经收缩成官方 Huma integration 的薄包装&lt;/li&gt;
+&lt;li&gt;docs 和 OpenAPI 路由暴露通过 &lt;code&gt;adapter.HumaOptions&lt;/code&gt; 由 adapter 持有&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Listen(addr)&lt;/code&gt;、&lt;code&gt;ListenPort(port)&lt;/code&gt;、&lt;code&gt;ListenAndServeContext(ctx, addr)&lt;/code&gt; 和 &lt;code&gt;Shutdown()&lt;/code&gt; 成为统一运行时能力&lt;/li&gt;
+&lt;li&gt;示例、测试和文档都已经切到薄 adapter 模型&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;执行记录（2026-03-19）&lt;span class="hx:absolute hx:-mt-20" id="执行记录2026-03-19"&gt;&lt;/span&gt;
+&lt;a href="#%e6%89%a7%e8%a1%8c%e8%ae%b0%e5%bd%952026-03-19" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;移除了 &lt;code&gt;ServerRuntime&lt;/code&gt; 上的 &lt;code&gt;http.Handler&lt;/code&gt; 契约&lt;/li&gt;
+&lt;li&gt;移除了 adapter-native &lt;code&gt;Handle&lt;/code&gt; / &lt;code&gt;Group&lt;/code&gt; / &lt;code&gt;ServeHTTP&lt;/code&gt; 桥接能力&lt;/li&gt;
+&lt;li&gt;移除了 Fiber 为伪装 &lt;code&gt;net/http&lt;/code&gt; 兼容而做的 request copy 路径&lt;/li&gt;
+&lt;li&gt;移除了 &lt;code&gt;WithDocs&lt;/code&gt;、&lt;code&gt;WithOpenAPIDocs&lt;/code&gt;、&lt;code&gt;ConfigureDocs&lt;/code&gt;、&lt;code&gt;server.Adapter()&lt;/code&gt; 和 &lt;code&gt;UseAdapter(...)&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;移除了 adapter 构造期 logger/timeout 选项层，宿主配置回归各自框架&lt;/li&gt;
+&lt;li&gt;按新模型重写了测试、示例和文档&lt;/li&gt;
+&lt;li&gt;回归验证通过：
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;go test ./httpx/...&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./examples/httpx/... ./examples/observabilityx/... ./examples/eventx/... ./configx/examples/...&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/std&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/gin&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/echo&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;下一步&lt;span class="hx:absolute hx:-mt-20" id="下一步"&gt;&lt;/span&gt;
+&lt;a href="#%e4%b8%8b%e4%b8%80%e6%ad%a5" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;增加 auth、monitoring、多宿主这类组织方式示例&lt;/li&gt;
+&lt;li&gt;为类型化路由热点路径补 benchmark 和回归守护&lt;/li&gt;
+&lt;li&gt;继续补 &lt;code&gt;httpx/fx&lt;/code&gt; 的生命周期覆盖&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;非目标&lt;span class="hx:absolute hx:-mt-20" id="非目标"&gt;&lt;/span&gt;
+&lt;a href="#%e9%9d%9e%e7%9b%ae%e6%a0%87" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;不再做高于原生 router/app 的重型框架抽象&lt;/li&gt;
+&lt;li&gt;不再发明假的跨框架 middleware API&lt;/li&gt;
+&lt;li&gt;不再引入统一的 request/response bridge&lt;/li&gt;
+&lt;/ul&gt;</description></item></channel></rss>

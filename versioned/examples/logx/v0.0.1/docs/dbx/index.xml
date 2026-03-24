@@ -1,0 +1,505 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – dbx</title><link>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/</link><description>Recent content in dbx on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>en</language><atom:link href="https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/index.xml" rel="self" type="application/rss+xml"/><item><title>dbx Options</title><link>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/options/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/options/</guid><description>
+&lt;h2&gt;Options&lt;span class="hx:absolute hx:-mt-20" id="options"&gt;&lt;/span&gt;
+&lt;a href="#options" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Options use the functional Option pattern. They are composable; later options override earlier ones.&lt;/p&gt;
+&lt;h2&gt;Open (connection managed by dbx)&lt;span class="hx:absolute hx:-mt-20" id="open-connection-managed-by-dbx"&gt;&lt;/span&gt;
+&lt;a href="#open-connection-managed-by-dbx" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Use &lt;code&gt;Open&lt;/code&gt; when you want dbx to own the connection. No need to pass &lt;code&gt;*sql.DB&lt;/code&gt;; dbx opens and manages it internally.&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;db&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Open&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDriver&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;sqlite&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDSN&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;file:app.db&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDialect&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlite&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;{}),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ApplyOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;)),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;defer&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;db&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Close&lt;/span&gt;()&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Required: &lt;code&gt;WithDriver&lt;/code&gt;, &lt;code&gt;WithDSN&lt;/code&gt;, &lt;code&gt;WithDialect&lt;/code&gt;. If any is missing, &lt;code&gt;Open&lt;/code&gt; returns &lt;code&gt;ErrMissingDriver&lt;/code&gt;, &lt;code&gt;ErrMissingDSN&lt;/code&gt;, or &lt;code&gt;ErrMissingDialect&lt;/code&gt;. Use &lt;code&gt;ApplyOptions&lt;/code&gt; to pass &lt;code&gt;Option&lt;/code&gt; (WithLogger, WithHooks, WithDebug).&lt;/p&gt;
+&lt;h2&gt;Presets&lt;span class="hx:absolute hx:-mt-20" id="presets"&gt;&lt;/span&gt;
+&lt;a href="#presets" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Preset&lt;/th&gt;
+&lt;th&gt;Use case&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;DefaultOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Explicit defaults (returns &lt;code&gt;nil&lt;/code&gt;). Same as passing no options.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;ProductionOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Production: debug off. Same as defaults; use when you want explicitness.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;TestOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Tests: debug on so SQL is logged.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Usage&lt;span class="hx:absolute hx:-mt-20" id="usage"&gt;&lt;/span&gt;
+&lt;a href="#usage" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Defaults&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;New&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Preset + override&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;, append(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;TestOptions&lt;/span&gt;(), &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;myLogger&lt;/span&gt;))&lt;span style="color:#f92672"&gt;...&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Custom combination&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;logger&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;AfterFunc&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;myAfterHook&lt;/span&gt;}),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Options table&lt;span class="hx:absolute hx:-mt-20" id="options-table"&gt;&lt;/span&gt;
+&lt;a href="#options-table" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Option&lt;/th&gt;
+&lt;th&gt;Default&lt;/th&gt;
+&lt;th&gt;Description&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithLogger(logger)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;slog.Default()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Logger for operation events. When debug=false, only errors are logged.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithHooks(hooks...)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;[]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Hooks run before/after each operation. Additive; call multiple times or pass multiple hooks to combine. See &lt;a href="./observability"&gt;Observability&lt;/a&gt; for slow-query detection, Metadata (trace_id, request_id), and more.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithDebug(enabled)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;false&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;When true, all operations are logged at Debug level. Use in dev/tests to inspect SQL.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Composition&lt;span class="hx:absolute hx:-mt-20" id="composition"&gt;&lt;/span&gt;
+&lt;a href="#composition" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Options are applied in order. Later options override earlier for the same field. Hooks are appended, not replaced:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Logger from myLogger, debug on, hooks = [h1, h2]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;d&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;h1&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;myLogger&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;h2&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>dbx Observability and Hooks</title><link>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/observability/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/observability/</guid><description>
+&lt;h2&gt;Observability and Hooks&lt;span class="hx:absolute hx:-mt-20" id="observability-and-hooks"&gt;&lt;/span&gt;
+&lt;a href="#observability-and-hooks" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Hooks run before and after each DB operation. Use them for logging, metrics, tracing, and slow-query detection.&lt;/p&gt;
+&lt;h2&gt;HookEvent&lt;span class="hx:absolute hx:-mt-20" id="hookevent"&gt;&lt;/span&gt;
+&lt;a href="#hookevent" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;HookEvent&lt;/code&gt; carries operation details:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Field&lt;/th&gt;
+&lt;th&gt;Description&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Operation&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;query, exec, query_row, begin_tx, commit_tx, rollback_tx, auto_migrate, validate_schema&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Statement&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;High-level statement name (if any)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;SQL&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Actual SQL string&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Args&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Bound arguments&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Table&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Target table (if known)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;StartedAt&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Timestamp when the operation started&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Duration&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Elapsed time (set in After)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;RowsAffected&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;For exec operations&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Err&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Error (if any)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Metadata&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Arbitrary key-value pairs for trace_id, request_id, etc.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Duration and StartedAt&lt;span class="hx:absolute hx:-mt-20" id="duration-and-startedat"&gt;&lt;/span&gt;
+&lt;a href="#duration-and-startedat" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Use &lt;code&gt;StartedAt&lt;/code&gt; and &lt;code&gt;Duration&lt;/code&gt; for slow-query detection and latency metrics:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;AfterFunc&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookEvent&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Duration&lt;/span&gt; &amp;gt; &lt;span style="color:#ae81ff"&gt;100&lt;/span&gt;&lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;time&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Millisecond&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;slog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Warn&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;slow query&amp;#34;&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;sql&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQL&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;duration&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Duration&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Metadata for Trace and Request ID&lt;span class="hx:absolute hx:-mt-20" id="metadata-for-trace-and-request-id"&gt;&lt;/span&gt;
+&lt;a href="#metadata-for-trace-and-request-id" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Set &lt;code&gt;Metadata&lt;/code&gt; in Before to pass trace_id, request_id, or other context. Values are included in dbx logs when present:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;BeforeFunc&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookEvent&lt;/span&gt;) (&lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Value&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;trace_id&amp;#34;&lt;/span&gt;); &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SetMetadata&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;trace_id&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Value&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;request_id&amp;#34;&lt;/span&gt;); &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SetMetadata&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;request_id&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;code&gt;SetMetadata&lt;/code&gt; initializes the map if needed; use it to avoid nil map panics.&lt;/p&gt;
+&lt;h2&gt;Context&lt;span class="hx:absolute hx:-mt-20" id="context"&gt;&lt;/span&gt;
+&lt;a href="#context" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;Before&lt;/code&gt; and &lt;code&gt;After&lt;/code&gt; receive &lt;code&gt;context.Context&lt;/code&gt;. Hooks can read trace/request IDs from context (e.g. via middleware) and copy them into &lt;code&gt;event.Metadata&lt;/code&gt; for logging or metrics.&lt;/p&gt;</description></item><item><title>dbx examples</title><link>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/examples/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/examples/</guid><description>
+&lt;h2&gt;dbx Examples&lt;span class="hx:absolute hx:-mt-20" id="dbx-examples"&gt;&lt;/span&gt;
+&lt;a href="#dbx-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;This page collects the runnable &lt;code&gt;examples/dbx&lt;/code&gt; programs and maps them to the API surface they demonstrate.&lt;/p&gt;
+&lt;h2&gt;Run Locally&lt;span class="hx:absolute hx:-mt-20" id="run-locally"&gt;&lt;/span&gt;
+&lt;a href="#run-locally" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Run from the &lt;code&gt;examples/dbx&lt;/code&gt; module:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;cd examples/dbx
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./codec
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./mutation
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./query_advanced
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./relations
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./migration
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./pure_sql&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;You can also run directly from the repository root:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/codec
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/mutation
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/query_advanced
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/relations
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/migration
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/pure_sql&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example Matrix&lt;span class="hx:absolute hx:-mt-20" id="example-matrix"&gt;&lt;/span&gt;
+&lt;a href="#example-matrix" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Example&lt;/th&gt;
+&lt;th&gt;Focus&lt;/th&gt;
+&lt;th&gt;Directory&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;basic&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;schema-first modeling, mapper scan, projection, tx, debug SQL, hooks&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic"target="_blank" rel="noopener"&gt;examples/dbx/basic&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codec&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;built-in codecs, scoped custom codecs, struct mapper reads, mapper write assignments&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/codec"target="_blank" rel="noopener"&gt;examples/dbx/codec&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;mutation&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;aggregate queries, subqueries, batch insert, insert-select, upsert, returning&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation"target="_blank" rel="noopener"&gt;examples/dbx/mutation&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;query_advanced&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;WITH&lt;/code&gt;, &lt;code&gt;UNION ALL&lt;/code&gt;, &lt;code&gt;CASE WHEN&lt;/code&gt;, named tables, result columns&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/query_advanced"target="_blank" rel="noopener"&gt;examples/dbx/query_advanced&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;relations&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;alias + relation metadata + &lt;code&gt;JoinRelation&lt;/code&gt;, plus &lt;code&gt;LoadBelongsTo&lt;/code&gt; and &lt;code&gt;LoadManyToMany&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations"target="_blank" rel="noopener"&gt;examples/dbx/relations&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;migration&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;PlanSchemaChanges&lt;/code&gt;, &lt;code&gt;SQLPreview&lt;/code&gt;, &lt;code&gt;AutoMigrate&lt;/code&gt;, &lt;code&gt;ValidateSchemas&lt;/code&gt;, &lt;code&gt;migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpSQL&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration"target="_blank" rel="noopener"&gt;examples/dbx/migration&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;pure_sql&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;sqltmplx&lt;/code&gt; registry, &lt;code&gt;dbx.SQLList/SQLGet/SQLFind/SQLScalar&lt;/code&gt;, statement-name logging, &lt;code&gt;tx.SQL().Exec(...)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql"target="_blank" rel="noopener"&gt;examples/dbx/pure_sql&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Example: Codec and StructMapper&lt;span class="hx:absolute hx:-mt-20" id="example-codec-and-structmapper"&gt;&lt;/span&gt;
+&lt;a href="#example-codec-and-structmapper" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;mapper&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStructMapperWithOptions&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Account&lt;/span&gt;](
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithMapperCodecs&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;csvCodec&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;items&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;QueryAll&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Accounts&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AllColumns&lt;/span&gt;()&lt;span style="color:#f92672"&gt;...&lt;/span&gt;).&lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Accounts&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;mapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Advanced Query DSL&lt;span class="hx:absolute hx:-mt-20" id="example-advanced-query-dsl"&gt;&lt;/span&gt;
+&lt;a href="#example-advanced-query-dsl" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;statusLabel&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;CaseWhen&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Eq&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;), &lt;span style="color:#e6db74"&gt;&amp;#34;active&amp;#34;&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Else&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;inactive&amp;#34;&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;As&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;status_label&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedTable&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;active_users&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeID&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedColumn&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;int64&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;id&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeName&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedColumn&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;username&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;query&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;activeID&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;activeName&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;statusLabel&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;With&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;active_users&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ID&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Where&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Eq&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;)),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Relation Loading&lt;span class="hx:absolute hx:-mt-20" id="example-relation-loading"&gt;&lt;/span&gt;
+&lt;a href="#example-relation-loading" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;LoadBelongsTo&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;users&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;userMapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Role&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Roles&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;roleMapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;index&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;int&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;user&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;User&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;role&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;mo&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Option&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Role&lt;/span&gt;]) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// attach role&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;); &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Schema Plan Preview and Runner&lt;span class="hx:absolute hx:-mt-20" id="example-schema-plan-preview-and-runner"&gt;&lt;/span&gt;
+&lt;a href="#example-schema-plan-preview-and-runner" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;plan&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;PlanSchemaChanges&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Roles&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UserRoles&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;for&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;sqlText&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;range&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;plan&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQLPreview&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlText&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;runner&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Migrator&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;migrate&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;RunnerOptions&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;ValidateHash&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;_&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; = &lt;span style="color:#a6e22e"&gt;runner&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UpSQL&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;source&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Pure SQL With sqltmplx&lt;span class="hx:absolute hx:-mt-20" id="example-pure-sql-with-sqltmplx"&gt;&lt;/span&gt;
+&lt;a href="#example-pure-sql-with-sqltmplx" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;registry&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;sqltmplx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewRegistry&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlFS&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;items&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQLList&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;registry&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStatement&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;sql/user/find_active.sql&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;struct&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;int&lt;/span&gt; &lt;span style="color:#e6db74"&gt;`dbx:&amp;#34;status&amp;#34;`&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }{&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;},
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStructMapper&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UserSummary&lt;/span&gt;](),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>dbx Dialect</title><link>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/dialect/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/examples/logx/v0.0.1/docs/dbx/dialect/</guid><description>
+&lt;h2&gt;dialect&lt;span class="hx:absolute hx:-mt-20" id="dialect"&gt;&lt;/span&gt;
+&lt;a href="#dialect" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Dialect abstraction for dbx and sqltmplx. Capabilities are layered; implement only what you need.&lt;/p&gt;
+&lt;h2&gt;Capability layers&lt;span class="hx:absolute hx:-mt-20" id="capability-layers"&gt;&lt;/span&gt;
+&lt;a href="#capability-layers" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Layer&lt;/th&gt;
+&lt;th&gt;Interface&lt;/th&gt;
+&lt;th&gt;Required&lt;/th&gt;
+&lt;th&gt;Used by&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Contract&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;Name()&lt;/code&gt;, &lt;code&gt;BindVar(n)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Yes&lt;/td&gt;
+&lt;td&gt;sqltmplx render, dbx render, validate&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Dialect&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Contract + &lt;code&gt;QuoteIdent&lt;/code&gt;, &lt;code&gt;RenderLimitOffset&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Yes for query DSL&lt;/td&gt;
+&lt;td&gt;dbx query build&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;QueryFeaturesProvider&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;QueryFeatures()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Optional&lt;/td&gt;
+&lt;td&gt;dbx render (upsert, RETURNING, excluded ref). Fallback: &lt;code&gt;DefaultQueryFeatures(name)&lt;/code&gt; for known dialects&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SchemaDialect&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Dialect + DDL/inspect (in dbx)&lt;/td&gt;
+&lt;td&gt;Optional&lt;/td&gt;
+&lt;td&gt;schema migrate, AutoMigrate&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Adding a new dialect&lt;span class="hx:absolute hx:-mt-20" id="adding-a-new-dialect"&gt;&lt;/span&gt;
+&lt;a href="#adding-a-new-dialect" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;Implement &lt;code&gt;dialect.Dialect&lt;/code&gt; (Contract + QuoteIdent + RenderLimitOffset).&lt;/li&gt;
+&lt;li&gt;Implement &lt;code&gt;dialect.QueryFeaturesProvider&lt;/code&gt; to declare upsert/returning support (or rely on &lt;code&gt;DefaultQueryFeatures&lt;/code&gt; if your dialect matches a known one).&lt;/li&gt;
+&lt;li&gt;For schema migration: implement &lt;code&gt;dbx.SchemaDialect&lt;/code&gt; (BuildCreateTable, InspectTable, etc.) or rely on Atlas when supported.&lt;/li&gt;
+&lt;li&gt;For sqltmplx validation: register a parser via &lt;code&gt;validate.Register(dialectName, factory)&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;No need to add dialect branches in render.go, schema_migrate_atlas.go, or sqltmplx—capabilities are declared via interfaces.&lt;/p&gt;</description></item></channel></rss>

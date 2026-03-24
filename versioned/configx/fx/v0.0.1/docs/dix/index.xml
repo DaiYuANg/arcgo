@@ -1,0 +1,180 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – dix</title><link>https://DaiYuANg.github.io/arcgo/versioned/configx/fx/v0.0.1/docs/dix/</link><description>Recent content in dix on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>en</language><atom:link href="https://DaiYuANg.github.io/arcgo/versioned/configx/fx/v0.0.1/docs/dix/index.xml" rel="self" type="application/rss+xml"/><item><title>dix examples</title><link>https://DaiYuANg.github.io/arcgo/versioned/configx/fx/v0.0.1/docs/dix/examples/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/configx/fx/v0.0.1/docs/dix/examples/</guid><description>
+&lt;h2&gt;dix Examples&lt;span class="hx:absolute hx:-mt-20" id="dix-examples"&gt;&lt;/span&gt;
+&lt;a href="#dix-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;This page collects the runnable &lt;code&gt;examples/dix&lt;/code&gt; programs and maps them to the API surface they demonstrate.&lt;/p&gt;
+&lt;h2&gt;Run Locally&lt;span class="hx:absolute hx:-mt-20" id="run-locally"&gt;&lt;/span&gt;
+&lt;a href="#run-locally" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Run from the &lt;code&gt;examples/dix&lt;/code&gt; module:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;cd examples/dix
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./runtime_scope
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./inspect&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Core Examples&lt;span class="hx:absolute hx:-mt-20" id="core-examples"&gt;&lt;/span&gt;
+&lt;a href="#core-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Example&lt;/th&gt;
+&lt;th&gt;Focus&lt;/th&gt;
+&lt;th&gt;Directory&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;basic&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;immutable app spec, build/start/stop, health checks, &lt;code&gt;logx&lt;/code&gt; integration&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/basic"target="_blank" rel="noopener"&gt;examples/dix/basic&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;aggregate_params&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;provider graph composition with multiple typed dependencies&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/aggregate_params"target="_blank" rel="noopener"&gt;examples/dix/aggregate_params&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;build_runtime&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;explicit &lt;code&gt;Build()&lt;/code&gt; to &lt;code&gt;Runtime&lt;/code&gt; flow&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/build_runtime"target="_blank" rel="noopener"&gt;examples/dix/build_runtime&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;build_failure&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;validation/build failure behavior&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/build_failure"target="_blank" rel="noopener"&gt;examples/dix/build_failure&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Advanced Examples&lt;span class="hx:absolute hx:-mt-20" id="advanced-examples"&gt;&lt;/span&gt;
+&lt;a href="#advanced-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Example&lt;/th&gt;
+&lt;th&gt;Focus&lt;/th&gt;
+&lt;th&gt;Directory&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;advanced_do_bridge&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;explicit &lt;code&gt;do&lt;/code&gt; bridge setup&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/advanced_do_bridge"target="_blank" rel="noopener"&gt;examples/dix/advanced_do_bridge&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;named_alias&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;named services and typed alias binding&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/named_alias"target="_blank" rel="noopener"&gt;examples/dix/named_alias&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;runtime_scope&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;request-like runtime scope and scoped providers&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/runtime_scope"target="_blank" rel="noopener"&gt;examples/dix/runtime_scope&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;transient&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;transient provider semantics&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/transient"target="_blank" rel="noopener"&gt;examples/dix/transient&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;override&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;structured overrides&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/override"target="_blank" rel="noopener"&gt;examples/dix/override&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;inspect&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;runtime inspection and diagnostics&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/inspect"target="_blank" rel="noopener"&gt;examples/dix/inspect&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Example: Basic App Composition&lt;span class="hx:absolute hx:-mt-20" id="example-basic-app-composition"&gt;&lt;/span&gt;
+&lt;a href="#example-basic-app-composition" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;app&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;New&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;basic&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;logger&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithModule&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewModule&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;config&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithModuleProviders&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Provider0&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;() &lt;span style="color:#a6e22e"&gt;Config&lt;/span&gt; { &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;Config&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Port&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;8080&lt;/span&gt;} }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;app&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Validate&lt;/span&gt;(); &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;app&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Build&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;defer&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; = &lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;StopWithReport&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Background&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Start&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Background&lt;/span&gt;()); &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Runtime Scope&lt;span class="hx:absolute hx:-mt-20" id="example-runtime-scope"&gt;&lt;/span&gt;
+&lt;a href="#example-runtime-scope" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;requestScope&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Scope&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;request-42&amp;#34;&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;injector&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;do&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Injector&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ProvideScopedValue&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;injector&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;RequestContext&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;RequestID&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;req-42&amp;#34;&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ProvideScoped2&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;injector&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;cfg&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;AppConfig&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;req&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;RequestContext&lt;/span&gt;) &lt;span style="color:#a6e22e"&gt;ScopedService&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ScopedService&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Config&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;cfg&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;Request&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;req&lt;/span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; })
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;svc&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ResolveScopedAs&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;ScopedService&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;requestScope&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;svc&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Request&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;RequestID&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Fine-Grained Inspection&lt;span class="hx:absolute hx:-mt-20" id="example-fine-grained-inspection"&gt;&lt;/span&gt;
+&lt;a href="#example-fine-grained-inspection" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;provided&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ListProvidedServices&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;deps&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ExplainNamedDependencies&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;tenant.default&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;provided services:&amp;#34;&lt;/span&gt;, len(&lt;span style="color:#a6e22e"&gt;provided&lt;/span&gt;))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;tenant graph known:&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;deps&lt;/span&gt;[&lt;span style="color:#e6db74"&gt;&amp;#34;tenant.default&amp;#34;&lt;/span&gt;] &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;&amp;#34;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Use the fine-grained inspection helpers when you only need one diagnostic view.
+&lt;code&gt;InspectRuntime(...)&lt;/code&gt; remains convenient, but it is the heavier aggregation path.&lt;/p&gt;</description></item></channel></rss>

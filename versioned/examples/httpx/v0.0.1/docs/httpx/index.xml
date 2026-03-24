@@ -1,0 +1,48 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – httpx</title><link>https://DaiYuANg.github.io/arcgo/versioned/examples/httpx/v0.0.1/docs/httpx/</link><description>Recent content in httpx on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>en</language><atom:link href="https://DaiYuANg.github.io/arcgo/versioned/examples/httpx/v0.0.1/docs/httpx/index.xml" rel="self" type="application/rss+xml"/><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/versioned/examples/httpx/v0.0.1/docs/httpx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/examples/httpx/v0.0.1/docs/httpx/roadmap/</guid><description>
+&lt;h2&gt;httpx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="httpx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#httpx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;httpx&lt;/code&gt; is a thin service-organization layer around Huma.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Keep typed route, group, and OpenAPI ergonomics in &lt;code&gt;httpx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Keep native router/app ownership in adapters&lt;/li&gt;
+&lt;li&gt;Avoid re-wrapping framework request/response models&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;ServerRuntime&lt;/code&gt; is centered on &lt;code&gt;huma.API&lt;/code&gt;, not &lt;code&gt;http.Handler&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;std&lt;/code&gt; / &lt;code&gt;gin&lt;/code&gt; / &lt;code&gt;echo&lt;/code&gt; / &lt;code&gt;fiber&lt;/code&gt; adapters are thin wrappers over the official Huma integrations&lt;/li&gt;
+&lt;li&gt;Docs and OpenAPI route exposure are adapter-owned through &lt;code&gt;adapter.HumaOptions&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Listen(addr)&lt;/code&gt;, &lt;code&gt;ListenPort(port)&lt;/code&gt;, &lt;code&gt;ListenAndServeContext(ctx, addr)&lt;/code&gt;, and &lt;code&gt;Shutdown()&lt;/code&gt; are the unified runtime helpers&lt;/li&gt;
+&lt;li&gt;Examples, tests, and docs now follow the thin-adapter model&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Execution Record (2026-03-19)&lt;span class="hx:absolute hx:-mt-20" id="execution-record-2026-03-19"&gt;&lt;/span&gt;
+&lt;a href="#execution-record-2026-03-19" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Removed the &lt;code&gt;http.Handler&lt;/code&gt; contract from &lt;code&gt;ServerRuntime&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Removed adapter-native &lt;code&gt;Handle&lt;/code&gt; / &lt;code&gt;Group&lt;/code&gt; / &lt;code&gt;ServeHTTP&lt;/code&gt; bridge behavior&lt;/li&gt;
+&lt;li&gt;Removed the Fiber request-copy bridge path used to fake &lt;code&gt;net/http&lt;/code&gt; compatibility&lt;/li&gt;
+&lt;li&gt;Removed &lt;code&gt;WithDocs&lt;/code&gt;, &lt;code&gt;WithOpenAPIDocs&lt;/code&gt;, &lt;code&gt;ConfigureDocs&lt;/code&gt;, &lt;code&gt;server.Adapter()&lt;/code&gt;, and &lt;code&gt;UseAdapter(...)&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Removed adapter build-time logger/timeout option layers; native host configuration stays with the framework&lt;/li&gt;
+&lt;li&gt;Rewrote tests, examples, and docs around direct router/app access&lt;/li&gt;
+&lt;li&gt;Regression checks passed:
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;go test ./httpx/...&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./examples/httpx/... ./examples/observabilityx/... ./examples/eventx/... ./configx/examples/...&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/std&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/gin&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/echo&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Next&lt;span class="hx:absolute hx:-mt-20" id="next"&gt;&lt;/span&gt;
+&lt;a href="#next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Add more organization examples around auth, monitoring, and multi-host setups&lt;/li&gt;
+&lt;li&gt;Add benchmark and regression guardrails for typed-route hot paths&lt;/li&gt;
+&lt;li&gt;Improve &lt;code&gt;httpx/fx&lt;/code&gt; lifecycle coverage&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No heavy framework abstraction above native routers/apps&lt;/li&gt;
+&lt;li&gt;No fake cross-framework middleware API&lt;/li&gt;
+&lt;li&gt;No reintroduction of a universal request/response bridge&lt;/li&gt;
+&lt;/ul&gt;</description></item></channel></rss>

@@ -1,0 +1,1401 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – ArcGo Documentation</title><link>https://DaiYuANg.github.io/arcgo/docs/</link><description>Recent content in ArcGo Documentation on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 08 Mar 2026 00:00:00 +0800</lastBuildDate><atom:link href="https://DaiYuANg.github.io/arcgo/docs/index.xml" rel="self" type="application/rss+xml"/><item><title>authx v0.3.0 (Refactor)</title><link>https://DaiYuANg.github.io/arcgo/docs/authx/release-v0.3.0/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/authx/release-v0.3.0/</guid><description>
+&lt;h2&gt;Overview&lt;span class="hx:absolute hx:-mt-20" id="overview"&gt;&lt;/span&gt;
+&lt;a href="#overview" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;authx v0.3.0&lt;/code&gt; is a major refactor focused on unified abstractions and multi-scenario extensibility.&lt;/p&gt;
+&lt;p&gt;Key updates:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Authentication and authorization are split into &lt;code&gt;Check&lt;/code&gt; and &lt;code&gt;Can&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Engine&lt;/code&gt; is no longer coupled to a specific auth mechanism&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ProviderManager&lt;/code&gt; can register providers for multiple credential types&lt;/li&gt;
+&lt;li&gt;New &lt;code&gt;authx/http&lt;/code&gt; package with &lt;code&gt;std&lt;/code&gt;/&lt;code&gt;gin&lt;/code&gt;/&lt;code&gt;echo&lt;/code&gt;/&lt;code&gt;fiber&lt;/code&gt; integrations&lt;/li&gt;
+&lt;li&gt;New &lt;code&gt;RequireFast&lt;/code&gt; and &lt;code&gt;TypedGuard&lt;/code&gt; for hot-path and typed ergonomics&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;New Core Model&lt;span class="hx:absolute hx:-mt-20" id="new-core-model"&gt;&lt;/span&gt;
+&lt;a href="#new-core-model" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The new core is composed of:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;AuthenticationProvider[C]&lt;/code&gt;: handles one credential type &lt;code&gt;C&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;AuthenticationManager&lt;/code&gt;: selects and executes matched provider&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Authorizer&lt;/code&gt;: performs authorization decisions independently&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;code&gt;Engine&lt;/code&gt; orchestrates:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;Check(ctx, credential)&lt;/code&gt; -&amp;gt; &lt;code&gt;AuthenticationResult&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Can(ctx, AuthorizationModel)&lt;/code&gt; -&amp;gt; &lt;code&gt;Decision&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;Typical Usage&lt;span class="hx:absolute hx:-mt-20" id="typical-usage"&gt;&lt;/span&gt;
+&lt;a href="#typical-usage" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewEngine&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthenticationManager&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewProviderManager&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewAuthenticationProviderFunc&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;in&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;UsernamePassword&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ) (&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthenticationResult&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthenticationResult&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;ID&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;in&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;},
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthorizer&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizerFunc&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;model&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizationModel&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ) (&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Decision&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Decision&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Allowed&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;}, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; })),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;result&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Check&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;UsernamePassword&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;alice&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;Password&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;secret&amp;#34;&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;decision&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Can&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizationModel&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;result&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Action&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;query&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Resource&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;order&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;})&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;New HTTP Integrations&lt;span class="hx:absolute hx:-mt-20" id="new-http-integrations"&gt;&lt;/span&gt;
+&lt;a href="#new-http-integrations" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;authx/http&lt;/code&gt; now provides a unified Guard layer:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;authx/http/std&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/gin&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/echo&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Unified extension points:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;WithCredentialResolverFunc&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;WithAuthorizationResolverFunc&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Middleware usage:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;guard&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewGuard&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithCredentialResolverFunc&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;resolveCredential&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthorizationResolverFunc&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;resolveAuthorization&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;router&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Use&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;authstd&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Require&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;guard&lt;/span&gt;))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// or: router.Use(authstd.RequireFast(guard))&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Performance and Maintainability&lt;span class="hx:absolute hx:-mt-20" id="performance-and-maintainability"&gt;&lt;/span&gt;
+&lt;a href="#performance-and-maintainability" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Added core benchmarks (including parallel scenarios)&lt;/li&gt;
+&lt;li&gt;Added middleware benchmarks for &lt;code&gt;std/gin/echo/fiber&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Reduced request-path temporary object creation&lt;/li&gt;
+&lt;li&gt;Added &lt;code&gt;RequireFast&lt;/code&gt; path to further reduce allocations&lt;/li&gt;
+&lt;li&gt;Split large files in &lt;code&gt;authx&lt;/code&gt; for better maintainability&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Examples&lt;span class="hx:absolute hx:-mt-20" id="examples"&gt;&lt;/span&gt;
+&lt;a href="#examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Shared example: &lt;code&gt;authx/http/examples/shared&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;JWT example: &lt;code&gt;authx/http/examples/jwt&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Framework examples: &lt;code&gt;authx/http/examples/std|gin|echo|fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Benchmark Commands&lt;span class="hx:absolute hx:-mt-20" id="benchmark-commands"&gt;&lt;/span&gt;
+&lt;a href="#benchmark-commands" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx -run ^$ -bench BenchmarkEngine -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/std -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/gin -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/echo -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/fiber -run ^$ -bench BenchmarkRequire -benchmem&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>dbx Options</title><link>https://DaiYuANg.github.io/arcgo/docs/dbx/options/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/dbx/options/</guid><description>
+&lt;h2&gt;Options&lt;span class="hx:absolute hx:-mt-20" id="options"&gt;&lt;/span&gt;
+&lt;a href="#options" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Options use the functional Option pattern. They are composable; later options override earlier ones.&lt;/p&gt;
+&lt;h2&gt;Open (connection managed by dbx)&lt;span class="hx:absolute hx:-mt-20" id="open-connection-managed-by-dbx"&gt;&lt;/span&gt;
+&lt;a href="#open-connection-managed-by-dbx" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Use &lt;code&gt;Open&lt;/code&gt; when you want dbx to own the connection. No need to pass &lt;code&gt;*sql.DB&lt;/code&gt;; dbx opens and manages it internally.&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;db&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Open&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDriver&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;sqlite&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDSN&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;file:app.db&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDialect&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlite&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;{}),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ApplyOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;)),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;defer&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;db&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Close&lt;/span&gt;()&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Required: &lt;code&gt;WithDriver&lt;/code&gt;, &lt;code&gt;WithDSN&lt;/code&gt;, &lt;code&gt;WithDialect&lt;/code&gt;. If any is missing, &lt;code&gt;Open&lt;/code&gt; returns &lt;code&gt;ErrMissingDriver&lt;/code&gt;, &lt;code&gt;ErrMissingDSN&lt;/code&gt;, or &lt;code&gt;ErrMissingDialect&lt;/code&gt;. Use &lt;code&gt;ApplyOptions&lt;/code&gt; to pass &lt;code&gt;Option&lt;/code&gt; (WithLogger, WithHooks, WithDebug).&lt;/p&gt;
+&lt;h2&gt;Presets&lt;span class="hx:absolute hx:-mt-20" id="presets"&gt;&lt;/span&gt;
+&lt;a href="#presets" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Preset&lt;/th&gt;
+&lt;th&gt;Use case&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;DefaultOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Explicit defaults (returns &lt;code&gt;nil&lt;/code&gt;). Same as passing no options.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;ProductionOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Production: debug off. Same as defaults; use when you want explicitness.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;TestOptions()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Tests: debug on so SQL is logged.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Usage&lt;span class="hx:absolute hx:-mt-20" id="usage"&gt;&lt;/span&gt;
+&lt;a href="#usage" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Defaults&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;New&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Preset + override&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;, append(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;TestOptions&lt;/span&gt;(), &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;myLogger&lt;/span&gt;))&lt;span style="color:#f92672"&gt;...&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Custom combination&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;core&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;logger&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;AfterFunc&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;myAfterHook&lt;/span&gt;}),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Options table&lt;span class="hx:absolute hx:-mt-20" id="options-table"&gt;&lt;/span&gt;
+&lt;a href="#options-table" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Option&lt;/th&gt;
+&lt;th&gt;Default&lt;/th&gt;
+&lt;th&gt;Description&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithLogger(logger)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;slog.Default()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Logger for operation events. When debug=false, only errors are logged.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithHooks(hooks...)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;[]&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Hooks run before/after each operation. Additive; call multiple times or pass multiple hooks to combine. See &lt;a href="./observability"&gt;Observability&lt;/a&gt; for slow-query detection, Metadata (trace_id, request_id), and more.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;WithDebug(enabled)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;false&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;When true, all operations are logged at Debug level. Use in dev/tests to inspect SQL.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Composition&lt;span class="hx:absolute hx:-mt-20" id="composition"&gt;&lt;/span&gt;
+&lt;a href="#composition" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Options are applied in order. Later options override earlier for the same field. Hooks are appended, not replaced:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// Logger from myLogger, debug on, hooks = [h1, h2]&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;d&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;h1&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;myLogger&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithDebug&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;h2&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>dbx Observability and Hooks</title><link>https://DaiYuANg.github.io/arcgo/docs/dbx/observability/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/dbx/observability/</guid><description>
+&lt;h2&gt;Observability and Hooks&lt;span class="hx:absolute hx:-mt-20" id="observability-and-hooks"&gt;&lt;/span&gt;
+&lt;a href="#observability-and-hooks" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Hooks run before and after each DB operation. Use them for logging, metrics, tracing, and slow-query detection.&lt;/p&gt;
+&lt;h2&gt;HookEvent&lt;span class="hx:absolute hx:-mt-20" id="hookevent"&gt;&lt;/span&gt;
+&lt;a href="#hookevent" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;HookEvent&lt;/code&gt; carries operation details:&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Field&lt;/th&gt;
+&lt;th&gt;Description&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Operation&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;query, exec, query_row, begin_tx, commit_tx, rollback_tx, auto_migrate, validate_schema&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Statement&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;High-level statement name (if any)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;SQL&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Actual SQL string&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Args&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Bound arguments&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Table&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Target table (if known)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;StartedAt&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Timestamp when the operation started&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Duration&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Elapsed time (set in After)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;RowsAffected&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;For exec operations&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Err&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Error (if any)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;Metadata&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Arbitrary key-value pairs for trace_id, request_id, etc.&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Duration and StartedAt&lt;span class="hx:absolute hx:-mt-20" id="duration-and-startedat"&gt;&lt;/span&gt;
+&lt;a href="#duration-and-startedat" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Use &lt;code&gt;StartedAt&lt;/code&gt; and &lt;code&gt;Duration&lt;/code&gt; for slow-query detection and latency metrics:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;AfterFunc&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookEvent&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Duration&lt;/span&gt; &amp;gt; &lt;span style="color:#ae81ff"&gt;100&lt;/span&gt;&lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;time&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Millisecond&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;slog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Warn&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;slow query&amp;#34;&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;sql&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQL&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;duration&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Duration&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Metadata for Trace and Request ID&lt;span class="hx:absolute hx:-mt-20" id="metadata-for-trace-and-request-id"&gt;&lt;/span&gt;
+&lt;a href="#metadata-for-trace-and-request-id" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Set &lt;code&gt;Metadata&lt;/code&gt; in Before to pass trace_id, request_id, or other context. Values are included in dbx logs when present:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewWithOptions&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;raw&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;dialect&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithHooks&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookFuncs&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;BeforeFunc&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;HookEvent&lt;/span&gt;) (&lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Value&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;trace_id&amp;#34;&lt;/span&gt;); &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SetMetadata&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;trace_id&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;tid&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Value&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;request_id&amp;#34;&lt;/span&gt;); &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;event&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SetMetadata&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;request_id&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;rid&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;&lt;code&gt;SetMetadata&lt;/code&gt; initializes the map if needed; use it to avoid nil map panics.&lt;/p&gt;
+&lt;h2&gt;Context&lt;span class="hx:absolute hx:-mt-20" id="context"&gt;&lt;/span&gt;
+&lt;a href="#context" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;Before&lt;/code&gt; and &lt;code&gt;After&lt;/code&gt; receive &lt;code&gt;context.Context&lt;/code&gt;. Hooks can read trace/request IDs from context (e.g. via middleware) and copy them into &lt;code&gt;event.Metadata&lt;/code&gt; for logging or metrics.&lt;/p&gt;</description></item><item><title>dbx examples</title><link>https://DaiYuANg.github.io/arcgo/docs/dbx/examples/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/dbx/examples/</guid><description>
+&lt;h2&gt;dbx Examples&lt;span class="hx:absolute hx:-mt-20" id="dbx-examples"&gt;&lt;/span&gt;
+&lt;a href="#dbx-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;This page collects the runnable &lt;code&gt;examples/dbx&lt;/code&gt; programs and maps them to the API surface they demonstrate.&lt;/p&gt;
+&lt;h2&gt;Run Locally&lt;span class="hx:absolute hx:-mt-20" id="run-locally"&gt;&lt;/span&gt;
+&lt;a href="#run-locally" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Run from the &lt;code&gt;examples/dbx&lt;/code&gt; module:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;cd examples/dbx
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./codec
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./mutation
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./query_advanced
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./relations
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./migration
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./pure_sql&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;You can also run directly from the repository root:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/codec
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/mutation
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/query_advanced
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/relations
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/migration
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./examples/dbx/pure_sql&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example Matrix&lt;span class="hx:absolute hx:-mt-20" id="example-matrix"&gt;&lt;/span&gt;
+&lt;a href="#example-matrix" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Example&lt;/th&gt;
+&lt;th&gt;Focus&lt;/th&gt;
+&lt;th&gt;Directory&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;basic&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;schema-first modeling, mapper scan, projection, tx, debug SQL, hooks&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/basic"target="_blank" rel="noopener"&gt;examples/dbx/basic&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;codec&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;built-in codecs, scoped custom codecs, struct mapper reads, mapper write assignments&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/codec"target="_blank" rel="noopener"&gt;examples/dbx/codec&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;mutation&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;aggregate queries, subqueries, batch insert, insert-select, upsert, returning&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation"target="_blank" rel="noopener"&gt;examples/dbx/mutation&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;query_advanced&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;WITH&lt;/code&gt;, &lt;code&gt;UNION ALL&lt;/code&gt;, &lt;code&gt;CASE WHEN&lt;/code&gt;, named tables, result columns&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/query_advanced"target="_blank" rel="noopener"&gt;examples/dbx/query_advanced&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;relations&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;alias + relation metadata + &lt;code&gt;JoinRelation&lt;/code&gt;, plus &lt;code&gt;LoadBelongsTo&lt;/code&gt; and &lt;code&gt;LoadManyToMany&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations"target="_blank" rel="noopener"&gt;examples/dbx/relations&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;migration&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;PlanSchemaChanges&lt;/code&gt;, &lt;code&gt;SQLPreview&lt;/code&gt;, &lt;code&gt;AutoMigrate&lt;/code&gt;, &lt;code&gt;ValidateSchemas&lt;/code&gt;, &lt;code&gt;migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpSQL&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration"target="_blank" rel="noopener"&gt;examples/dbx/migration&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;pure_sql&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;sqltmplx&lt;/code&gt; registry, &lt;code&gt;dbx.SQLList/SQLGet/SQLFind/SQLScalar&lt;/code&gt;, statement-name logging, &lt;code&gt;tx.SQL().Exec(...)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql"target="_blank" rel="noopener"&gt;examples/dbx/pure_sql&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Example: Codec and StructMapper&lt;span class="hx:absolute hx:-mt-20" id="example-codec-and-structmapper"&gt;&lt;/span&gt;
+&lt;a href="#example-codec-and-structmapper" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;mapper&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStructMapperWithOptions&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Account&lt;/span&gt;](
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithMapperCodecs&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;csvCodec&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;items&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;QueryAll&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Accounts&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AllColumns&lt;/span&gt;()&lt;span style="color:#f92672"&gt;...&lt;/span&gt;).&lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Accounts&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;mapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Advanced Query DSL&lt;span class="hx:absolute hx:-mt-20" id="example-advanced-query-dsl"&gt;&lt;/span&gt;
+&lt;a href="#example-advanced-query-dsl" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;statusLabel&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;CaseWhen&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Eq&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;), &lt;span style="color:#e6db74"&gt;&amp;#34;active&amp;#34;&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Else&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;inactive&amp;#34;&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;As&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;status_label&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedTable&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;active_users&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeID&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedColumn&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;int64&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;id&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;activeName&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NamedColumn&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;username&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;query&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;activeID&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;activeName&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;statusLabel&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;With&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;active_users&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Select&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ID&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Where&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Eq&lt;/span&gt;(&lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;)),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ).
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;From&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;activeUsers&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Relation Loading&lt;span class="hx:absolute hx:-mt-20" id="example-relation-loading"&gt;&lt;/span&gt;
+&lt;a href="#example-relation-loading" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;LoadBelongsTo&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;users&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;userMapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Role&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Roles&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;roleMapper&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;index&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;int&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;user&lt;/span&gt; &lt;span style="color:#f92672"&gt;*&lt;/span&gt;&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;User&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;role&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;mo&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Option&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Role&lt;/span&gt;]) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// attach role&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; },
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;); &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Schema Plan Preview and Runner&lt;span class="hx:absolute hx:-mt-20" id="example-schema-plan-preview-and-runner"&gt;&lt;/span&gt;
+&lt;a href="#example-schema-plan-preview-and-runner" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;plan&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;PlanSchemaChanges&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Roles&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Users&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;catalog&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UserRoles&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;for&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;sqlText&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;range&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;plan&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQLPreview&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlText&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;runner&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Migrator&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;migrate&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;RunnerOptions&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;ValidateHash&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;_&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; = &lt;span style="color:#a6e22e"&gt;runner&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UpSQL&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;source&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Pure SQL With sqltmplx&lt;span class="hx:absolute hx:-mt-20" id="example-pure-sql-with-sqltmplx"&gt;&lt;/span&gt;
+&lt;a href="#example-pure-sql-with-sqltmplx" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;registry&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;sqltmplx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewRegistry&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlFS&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;items&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;SQLList&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;core&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;registry&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStatement&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;sql/user/find_active.sql&amp;#34;&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;struct&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;int&lt;/span&gt; &lt;span style="color:#e6db74"&gt;`dbx:&amp;#34;status&amp;#34;`&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }{&lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;},
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dbx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;MustStructMapper&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;shared&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;UserSummary&lt;/span&gt;](),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>dix examples</title><link>https://DaiYuANg.github.io/arcgo/docs/dix/examples/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/dix/examples/</guid><description>
+&lt;h2&gt;dix Examples&lt;span class="hx:absolute hx:-mt-20" id="dix-examples"&gt;&lt;/span&gt;
+&lt;a href="#dix-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;This page collects the runnable &lt;code&gt;examples/dix&lt;/code&gt; programs and maps them to the API surface they demonstrate.&lt;/p&gt;
+&lt;h2&gt;Run Locally&lt;span class="hx:absolute hx:-mt-20" id="run-locally"&gt;&lt;/span&gt;
+&lt;a href="#run-locally" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Run from the &lt;code&gt;examples/dix&lt;/code&gt; module:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;cd examples/dix
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./runtime_scope
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./inspect&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Core Examples&lt;span class="hx:absolute hx:-mt-20" id="core-examples"&gt;&lt;/span&gt;
+&lt;a href="#core-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Example&lt;/th&gt;
+&lt;th&gt;Focus&lt;/th&gt;
+&lt;th&gt;Directory&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;basic&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;immutable app spec, build/start/stop, health checks, &lt;code&gt;logx&lt;/code&gt; integration&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/basic"target="_blank" rel="noopener"&gt;examples/dix/basic&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;aggregate_params&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;provider graph composition with multiple typed dependencies&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/aggregate_params"target="_blank" rel="noopener"&gt;examples/dix/aggregate_params&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;build_runtime&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;explicit &lt;code&gt;Build()&lt;/code&gt; to &lt;code&gt;Runtime&lt;/code&gt; flow&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/build_runtime"target="_blank" rel="noopener"&gt;examples/dix/build_runtime&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;build_failure&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;validation/build failure behavior&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/build_failure"target="_blank" rel="noopener"&gt;examples/dix/build_failure&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Advanced Examples&lt;span class="hx:absolute hx:-mt-20" id="advanced-examples"&gt;&lt;/span&gt;
+&lt;a href="#advanced-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Example&lt;/th&gt;
+&lt;th&gt;Focus&lt;/th&gt;
+&lt;th&gt;Directory&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;advanced_do_bridge&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;explicit &lt;code&gt;do&lt;/code&gt; bridge setup&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/advanced_do_bridge"target="_blank" rel="noopener"&gt;examples/dix/advanced_do_bridge&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;named_alias&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;named services and typed alias binding&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/named_alias"target="_blank" rel="noopener"&gt;examples/dix/named_alias&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;runtime_scope&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;request-like runtime scope and scoped providers&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/runtime_scope"target="_blank" rel="noopener"&gt;examples/dix/runtime_scope&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;transient&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;transient provider semantics&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/transient"target="_blank" rel="noopener"&gt;examples/dix/transient&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;override&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;structured overrides&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/override"target="_blank" rel="noopener"&gt;examples/dix/override&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;inspect&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;runtime inspection and diagnostics&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/inspect"target="_blank" rel="noopener"&gt;examples/dix/inspect&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Example: Basic App Composition&lt;span class="hx:absolute hx:-mt-20" id="example-basic-app-composition"&gt;&lt;/span&gt;
+&lt;a href="#example-basic-app-composition" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;app&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;New&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;basic&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithLogger&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;logger&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithModule&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewModule&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;config&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithModuleProviders&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;dix&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Provider0&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;() &lt;span style="color:#a6e22e"&gt;Config&lt;/span&gt; { &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;Config&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Port&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;8080&lt;/span&gt;} }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;app&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Validate&lt;/span&gt;(); &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;app&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Build&lt;/span&gt;()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;defer&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;() {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; = &lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;StopWithReport&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Background&lt;/span&gt;())
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}()
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Start&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Background&lt;/span&gt;()); &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Runtime Scope&lt;span class="hx:absolute hx:-mt-20" id="example-runtime-scope"&gt;&lt;/span&gt;
+&lt;a href="#example-runtime-scope" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;requestScope&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Scope&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;request-42&amp;#34;&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;injector&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;do&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Injector&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ProvideScopedValue&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;injector&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;RequestContext&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;RequestID&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;req-42&amp;#34;&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ProvideScoped2&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;injector&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;cfg&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;AppConfig&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;req&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;RequestContext&lt;/span&gt;) &lt;span style="color:#a6e22e"&gt;ScopedService&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;ScopedService&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Config&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;cfg&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;Request&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;req&lt;/span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; })
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;svc&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ResolveScopedAs&lt;/span&gt;[&lt;span style="color:#a6e22e"&gt;ScopedService&lt;/span&gt;](&lt;span style="color:#a6e22e"&gt;requestScope&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;svc&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Request&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;RequestID&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Fine-Grained Inspection&lt;span class="hx:absolute hx:-mt-20" id="example-fine-grained-inspection"&gt;&lt;/span&gt;
+&lt;a href="#example-fine-grained-inspection" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;provided&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ListProvidedServices&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;deps&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;advanced&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;ExplainNamedDependencies&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;rt&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;tenant.default&amp;#34;&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;provided services:&amp;#34;&lt;/span&gt;, len(&lt;span style="color:#a6e22e"&gt;provided&lt;/span&gt;))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;fmt&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Println&lt;/span&gt;(&lt;span style="color:#e6db74"&gt;&amp;#34;tenant graph known:&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;deps&lt;/span&gt;[&lt;span style="color:#e6db74"&gt;&amp;#34;tenant.default&amp;#34;&lt;/span&gt;] &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#e6db74"&gt;&amp;#34;&amp;#34;&lt;/span&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Use the fine-grained inspection helpers when you only need one diagnostic view.
+&lt;code&gt;InspectRuntime(...)&lt;/code&gt; remains convenient, but it is the heavier aggregation path.&lt;/p&gt;</description></item><item><title>sqltmplx examples</title><link>https://DaiYuANg.github.io/arcgo/docs/sqltmplx/examples/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/sqltmplx/examples/</guid><description>
+&lt;h2&gt;sqltmplx Examples&lt;span class="hx:absolute hx:-mt-20" id="sqltmplx-examples"&gt;&lt;/span&gt;
+&lt;a href="#sqltmplx-examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;This page collects the runnable &lt;code&gt;examples/sqltmplx&lt;/code&gt; programs and maps them to the API surface they demonstrate.&lt;/p&gt;
+&lt;h2&gt;Run Locally&lt;span class="hx:absolute hx:-mt-20" id="run-locally"&gt;&lt;/span&gt;
+&lt;a href="#run-locally" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Run from the &lt;code&gt;examples/sqltmplx&lt;/code&gt; module:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;cd examples/sqltmplx
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./basic
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./postgres
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./sqlite_update
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go run ./precompile&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example Matrix&lt;span class="hx:absolute hx:-mt-20" id="example-matrix"&gt;&lt;/span&gt;
+&lt;a href="#example-matrix" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Example&lt;/th&gt;
+&lt;th&gt;Focus&lt;/th&gt;
+&lt;th&gt;Directory&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;basic&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;MySQL dialect, registry-based validator selection, map parameters&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/sqltmplx/basic"target="_blank" rel="noopener"&gt;examples/sqltmplx/basic&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;postgres&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;PostgreSQL bind variables, struct tag binding, parser-backed validation&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/sqltmplx/postgres"target="_blank" rel="noopener"&gt;examples/sqltmplx/postgres&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;sqlite_update&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;set&lt;/code&gt; block cleanup for dynamic update statements&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/sqltmplx/sqlite_update"target="_blank" rel="noopener"&gt;examples/sqltmplx/sqlite_update&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;code&gt;precompile&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;Compile()&lt;/code&gt; once and render many times&lt;/td&gt;
+&lt;td&gt;&lt;a href="https://github.com/DaiYuANg/arcgo/tree/main/examples/sqltmplx/precompile"target="_blank" rel="noopener"&gt;examples/sqltmplx/precompile&lt;/a&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Example: Dynamic WHERE&lt;span class="hx:absolute hx:-mt-20" id="example-dynamic-where"&gt;&lt;/span&gt;
+&lt;a href="#example-dynamic-where" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;sqltmplx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;New&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;postgres&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;{},
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;sqltmplx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithValidator&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;validate&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewSQLParser&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;postgres&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;{})),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;bound&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Render&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;tpl&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;Query&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Tenant&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;acme&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Name&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;alice&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;IDs&lt;/span&gt;: []&lt;span style="color:#66d9ef"&gt;int&lt;/span&gt;{&lt;span style="color:#ae81ff"&gt;1&lt;/span&gt;, &lt;span style="color:#ae81ff"&gt;2&lt;/span&gt;, &lt;span style="color:#ae81ff"&gt;3&lt;/span&gt;},
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Dynamic SET&lt;span class="hx:absolute hx:-mt-20" id="example-dynamic-set"&gt;&lt;/span&gt;
+&lt;a href="#example-dynamic-set" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;sqltmplx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;New&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;sqlite&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;{})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;bound&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Render&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;tpl&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;UpdateCommand&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;ID&lt;/span&gt;: &lt;span style="color:#ae81ff"&gt;42&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Name&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;alice&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Status&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;active&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Example: Template Reuse&lt;span class="hx:absolute hx:-mt-20" id="example-template-reuse"&gt;&lt;/span&gt;
+&lt;a href="#example-template-reuse" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;sqltmplx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;New&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;mysql&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Dialect&lt;/span&gt;{})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;tpl&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Compile&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;queryText&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#66d9ef"&gt;if&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;!=&lt;/span&gt; &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt; {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; panic(&lt;span style="color:#a6e22e"&gt;err&lt;/span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;}
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;bound1&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;tpl&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Render&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;map&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;]&lt;span style="color:#66d9ef"&gt;any&lt;/span&gt;{&lt;span style="color:#e6db74"&gt;&amp;#34;Tenant&amp;#34;&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;acme&amp;#34;&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;Status&amp;#34;&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;PAID&amp;#34;&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;bound2&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;tpl&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Render&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;map&lt;/span&gt;[&lt;span style="color:#66d9ef"&gt;string&lt;/span&gt;]&lt;span style="color:#66d9ef"&gt;any&lt;/span&gt;{&lt;span style="color:#e6db74"&gt;&amp;#34;Tenant&amp;#34;&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;acme&amp;#34;&lt;/span&gt;, &lt;span style="color:#e6db74"&gt;&amp;#34;Status&amp;#34;&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;SHIPPED&amp;#34;&lt;/span&gt;})&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>dbx Dialect</title><link>https://DaiYuANg.github.io/arcgo/docs/dbx/dialect/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/dbx/dialect/</guid><description>
+&lt;h2&gt;dialect&lt;span class="hx:absolute hx:-mt-20" id="dialect"&gt;&lt;/span&gt;
+&lt;a href="#dialect" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Dialect abstraction for dbx and sqltmplx. Capabilities are layered; implement only what you need.&lt;/p&gt;
+&lt;h2&gt;Capability layers&lt;span class="hx:absolute hx:-mt-20" id="capability-layers"&gt;&lt;/span&gt;
+&lt;a href="#capability-layers" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Layer&lt;/th&gt;
+&lt;th&gt;Interface&lt;/th&gt;
+&lt;th&gt;Required&lt;/th&gt;
+&lt;th&gt;Used by&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Contract&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;Name()&lt;/code&gt;, &lt;code&gt;BindVar(n)&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Yes&lt;/td&gt;
+&lt;td&gt;sqltmplx render, dbx render, validate&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;Dialect&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Contract + &lt;code&gt;QuoteIdent&lt;/code&gt;, &lt;code&gt;RenderLimitOffset&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Yes for query DSL&lt;/td&gt;
+&lt;td&gt;dbx query build&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;QueryFeaturesProvider&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;&lt;code&gt;QueryFeatures()&lt;/code&gt;&lt;/td&gt;
+&lt;td&gt;Optional&lt;/td&gt;
+&lt;td&gt;dbx render (upsert, RETURNING, excluded ref). Fallback: &lt;code&gt;DefaultQueryFeatures(name)&lt;/code&gt; for known dialects&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;strong&gt;SchemaDialect&lt;/strong&gt;&lt;/td&gt;
+&lt;td&gt;Dialect + DDL/inspect (in dbx)&lt;/td&gt;
+&lt;td&gt;Optional&lt;/td&gt;
+&lt;td&gt;schema migrate, AutoMigrate&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Adding a new dialect&lt;span class="hx:absolute hx:-mt-20" id="adding-a-new-dialect"&gt;&lt;/span&gt;
+&lt;a href="#adding-a-new-dialect" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ol&gt;
+&lt;li&gt;Implement &lt;code&gt;dialect.Dialect&lt;/code&gt; (Contract + QuoteIdent + RenderLimitOffset).&lt;/li&gt;
+&lt;li&gt;Implement &lt;code&gt;dialect.QueryFeaturesProvider&lt;/code&gt; to declare upsert/returning support (or rely on &lt;code&gt;DefaultQueryFeatures&lt;/code&gt; if your dialect matches a known one).&lt;/li&gt;
+&lt;li&gt;For schema migration: implement &lt;code&gt;dbx.SchemaDialect&lt;/code&gt; (BuildCreateTable, InspectTable, etc.) or rely on Atlas when supported.&lt;/li&gt;
+&lt;li&gt;For sqltmplx validation: register a parser via &lt;code&gt;validate.Register(dialectName, factory)&lt;/code&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;No need to add dialect branches in render.go, schema_migrate_atlas.go, or sqltmplx—capabilities are declared via interfaces.&lt;/p&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/docs/authx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/authx/roadmap/</guid><description>
+&lt;h2&gt;authx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="authx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#authx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;authx&lt;/code&gt; is intended to be an extensible security core plus a thin integration layer, not a full security framework.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;authx-core&lt;/code&gt;: authn/authz domain model, policy loading, error/event semantics&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx-integrations&lt;/code&gt;: thin adapters for HTTP/RPC ecosystems&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Phase 1 (core stabilization): completed&lt;/li&gt;
+&lt;li&gt;Phase 2 (integration foundation): in progress&lt;/li&gt;
+&lt;li&gt;Ready: typed errors, subject resolver, policy merger, multi-source policy loading, eventx reuse, diagnostics&lt;/li&gt;
+&lt;li&gt;Gaps: &lt;code&gt;authx-http&lt;/code&gt;, API key/bearer verify-only, database/remote policy sources, systematic examples&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Version Plan (Suggested)&lt;span class="hx:absolute hx:-mt-20" id="version-plan-suggested"&gt;&lt;/span&gt;
+&lt;a href="#version-plan-suggested" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.4&lt;/code&gt; (current focus): &lt;code&gt;authx-http&lt;/code&gt; + API key/bearer verify-only&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.5&lt;/code&gt;: database/remote policy sources + examples and integration docs&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.6&lt;/code&gt;: observability hardening, performance tuning, production test matrix&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Priority Suggestions&lt;span class="hx:absolute hx:-mt-20" id="priority-suggestions"&gt;&lt;/span&gt;
+&lt;a href="#priority-suggestions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0 (Now)&lt;span class="hx:absolute hx:-mt-20" id="p0-now"&gt;&lt;/span&gt;
+&lt;a href="#p0-now" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Finish &lt;code&gt;authx-http&lt;/code&gt; middleware layer:&lt;/li&gt;
+&lt;li&gt;credential extraction&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SecurityContext&lt;/code&gt; injection&lt;/li&gt;
+&lt;li&gt;unified 401/403 mapping&lt;/li&gt;
+&lt;li&gt;deliver minimal runnable examples (basic + http)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1 (Next)&lt;span class="hx:absolute hx:-mt-20" id="p1-next"&gt;&lt;/span&gt;
+&lt;a href="#p1-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Implement &lt;code&gt;apikey&lt;/code&gt; and &lt;code&gt;bearer verify-only&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Add adapters (suggested order: &lt;code&gt;chi&lt;/code&gt;, then &lt;code&gt;huma&lt;/code&gt;)&lt;/li&gt;
+&lt;li&gt;Improve diagnostics and audit event conventions&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2 (Later)&lt;span class="hx:absolute hx:-mt-20" id="p2-later"&gt;&lt;/span&gt;
+&lt;a href="#p2-later" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Database Policy Source&lt;/li&gt;
+&lt;li&gt;Remote HTTP Policy Source&lt;/li&gt;
+&lt;li&gt;Multi-tenant extension points (without premature heavy abstraction)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No full web framework&lt;/li&gt;
+&lt;li&gt;No full runtime lifecycle takeover&lt;/li&gt;
+&lt;li&gt;No replacement of Casbin with a custom authorization engine&lt;/li&gt;
+&lt;li&gt;No early investment into a heavy ABAC platform&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Adjustment Note&lt;span class="hx:absolute hx:-mt-20" id="adjustment-note"&gt;&lt;/span&gt;
+&lt;a href="#adjustment-note" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Compared to the historical roadmap, prioritize &amp;ldquo;usable integration layer&amp;rdquo; before adding more policy-source variants.
+Without stable integration entry points, core capabilities cannot close the feedback loop with real adoption.&lt;/p&gt;
+&lt;h2&gt;Migration Source&lt;span class="hx:absolute hx:-mt-20" id="migration-source"&gt;&lt;/span&gt;
+&lt;a href="#migration-source" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Historical package file (removed): &lt;code&gt;authx/ROADMAP.md&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;This page is now the canonical maintained version in docs&lt;/li&gt;
+&lt;li&gt;Iteration execution: see &lt;a href="./iteration-plan"&gt;authx iteration plan&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/docs/clientx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/clientx/roadmap/</guid><description>
+&lt;h2&gt;clientx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="clientx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#clientx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;clientx&lt;/code&gt; is a protocol-oriented client layer, not a heavyweight RPC framework.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Keep protocol-specific APIs explicit (&lt;code&gt;http&lt;/code&gt; request/response, &lt;code&gt;tcp&lt;/code&gt; stream, &lt;code&gt;udp&lt;/code&gt; packet).&lt;/li&gt;
+&lt;li&gt;Unify engineering conventions instead of call shapes (config validation/defaults, error model, policies, observability hooks).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Snapshot (Updated)&lt;span class="hx:absolute hx:-mt-20" id="snapshot-updated"&gt;&lt;/span&gt;
+&lt;a href="#snapshot-updated" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Completed in current iteration:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;New&lt;/code&gt; constructors now validate and normalize configs with explicit defaults.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Close()&lt;/code&gt; lifecycle capability is unified across &lt;code&gt;http&lt;/code&gt;, &lt;code&gt;tcp&lt;/code&gt;, and &lt;code&gt;udp&lt;/code&gt; clients.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;http.Execute&lt;/code&gt; now requires &lt;code&gt;context.Context&lt;/code&gt;; TCP TLS dial path also honors context cancellation.&lt;/li&gt;
+&lt;li&gt;Capability interfaces are introduced in root package:
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;clientx.Closer&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;clientx.Dialer&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;clientx.PacketListener&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;Policy pipeline foundation is introduced:
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;clientx.Operation&lt;/code&gt; / &lt;code&gt;OperationKind&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;clientx.Policy&lt;/code&gt; / &lt;code&gt;PolicyFuncs&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;clientx.InvokeWithPolicies&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;WithPolicies(...)&lt;/code&gt; is wired into &lt;code&gt;http&lt;/code&gt;, &lt;code&gt;tcp&lt;/code&gt;, and &lt;code&gt;udp&lt;/code&gt; clients.&lt;/li&gt;
+&lt;li&gt;Built-in timeout-guard, retry/backoff, and concurrency-limit policies are implemented in &lt;code&gt;clientx&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Hook/policy panic isolation is enabled by default so single extension failures do not crash the client data path.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;http.Config.Retry&lt;/code&gt; is mapped to the unified policy pipeline, and &lt;code&gt;WithConcurrencyLimit(...)&lt;/code&gt; / &lt;code&gt;WithTimeoutGuard(...)&lt;/code&gt; are now available for HTTP/TCP/UDP.&lt;/li&gt;
+&lt;li&gt;Engineering presets are introduced in &lt;code&gt;clientx/preset&lt;/code&gt;: &lt;code&gt;NewEdgeHTTP&lt;/code&gt;, &lt;code&gt;NewInternalRPC&lt;/code&gt;, and &lt;code&gt;NewLowLatencyUDP&lt;/code&gt; (with override options).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Version Plan (Execution-Oriented)&lt;span class="hx:absolute hx:-mt-20" id="version-plan-execution-oriented"&gt;&lt;/span&gt;
+&lt;a href="#version-plan-execution-oriented" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.3.0-alpha.2&lt;/code&gt; (completed)
+&lt;ul&gt;
+&lt;li&gt;Add built-in policy modules: timeout guard, retry/backoff, concurrency limit.&lt;/li&gt;
+&lt;li&gt;Add hook panic isolation (policy/hook failures must not crash client path by default).&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.3.0-beta.1&lt;/code&gt;
+&lt;ul&gt;
+&lt;li&gt;Standardize operation taxonomy and policy metadata conventions.&lt;/li&gt;
+&lt;li&gt;Add unified telemetry enrichment adapters for &lt;code&gt;observabilityx&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.3.0-rc.1&lt;/code&gt;
+&lt;ul&gt;
+&lt;li&gt;Publish end-to-end examples for service-to-service HTTP/TCP/UDP profiles.&lt;/li&gt;
+&lt;li&gt;Complete regression/perf baselines for policy overhead.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Priority Suggestions&lt;span class="hx:absolute hx:-mt-20" id="priority-suggestions"&gt;&lt;/span&gt;
+&lt;a href="#priority-suggestions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0 (Now)&lt;span class="hx:absolute hx:-mt-20" id="p0-now"&gt;&lt;/span&gt;
+&lt;a href="#p0-now" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Finalize built-in policy set and default composition order.&lt;/li&gt;
+&lt;li&gt;Harden preset default profiles and override rules in docs/examples.&lt;/li&gt;
+&lt;li&gt;Expand tests for policy ordering, error-joining, and cancellation semantics.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1 (Next)&lt;span class="hx:absolute hx:-mt-20" id="p1-next"&gt;&lt;/span&gt;
+&lt;a href="#p1-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Introduce context-aware hook contract and canonical operation attributes.&lt;/li&gt;
+&lt;li&gt;Provide policy-level idempotency and retry classification helpers.&lt;/li&gt;
+&lt;li&gt;Align docs and examples with capability-interface based usage.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2 (Later)&lt;span class="hx:absolute hx:-mt-20" id="p2-later"&gt;&lt;/span&gt;
+&lt;a href="#p2-later" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Add optional transport extension points while keeping core lightweight.&lt;/li&gt;
+&lt;li&gt;Add benchmark matrix for protocol + policy combinations.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No one-size-fits-all abstraction that hides protocol semantics.&lt;/li&gt;
+&lt;li&gt;No replacement of mature full-feature protocol SDKs.&lt;/li&gt;
+&lt;li&gt;No forced dependency on one telemetry/retry implementation.&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/docs/collectionx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/collectionx/roadmap/</guid><description>
+&lt;h2&gt;collectionx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="collectionx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#collectionx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;collectionx&lt;/code&gt; is a generic data-structure toolkit for Go, not a replacement for database/index engines.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Provide predictable, strongly typed APIs for common and advanced collections.&lt;/li&gt;
+&lt;li&gt;Offer both concurrent and non-concurrent variants with explicit tradeoffs.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Core structures are available (&lt;code&gt;set&lt;/code&gt;, &lt;code&gt;mapping&lt;/code&gt;, &lt;code&gt;list&lt;/code&gt;, &lt;code&gt;interval&lt;/code&gt;, &lt;code&gt;prefix&lt;/code&gt;, &lt;code&gt;tree&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;API surface is already broad and usable.&lt;/li&gt;
+&lt;li&gt;Main gaps: benchmark baseline, complexity/memory behavior docs, and stronger semantic consistency notes.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Version Plan (Suggested)&lt;span class="hx:absolute hx:-mt-20" id="version-plan-suggested"&gt;&lt;/span&gt;
+&lt;a href="#version-plan-suggested" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.3&lt;/code&gt;: API semantics clarification + benchmark baseline&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.4&lt;/code&gt;: benchmark-driven optimizations on hot paths&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.5&lt;/code&gt;: selective additions only for high-demand missing structures&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Priority Suggestions&lt;span class="hx:absolute hx:-mt-20" id="priority-suggestions"&gt;&lt;/span&gt;
+&lt;a href="#priority-suggestions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0 (Now)&lt;span class="hx:absolute hx:-mt-20" id="p0-now"&gt;&lt;/span&gt;
+&lt;a href="#p0-now" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Define and document behavior boundaries for concurrent vs non-concurrent variants.&lt;/li&gt;
+&lt;li&gt;Add benchmark suites for hot structures (&lt;code&gt;Map&lt;/code&gt;, &lt;code&gt;Set&lt;/code&gt;, &lt;code&gt;Trie&lt;/code&gt;, &lt;code&gt;PriorityQueue&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;Clarify complexity and mutation semantics in package docs.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1 (Next)&lt;span class="hx:absolute hx:-mt-20" id="p1-next"&gt;&lt;/span&gt;
+&lt;a href="#p1-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Optimize high-frequency paths based on benchmark results.&lt;/li&gt;
+&lt;li&gt;Reduce avoidable allocations in critical methods.&lt;/li&gt;
+&lt;li&gt;Add regression benchmarks in CI for key structures.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2 (Later)&lt;span class="hx:absolute hx:-mt-20" id="p2-later"&gt;&lt;/span&gt;
+&lt;a href="#p2-later" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Add only clearly demanded structures/APIs.&lt;/li&gt;
+&lt;li&gt;Keep extension policy conservative to avoid API sprawl.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No attempt to become a database/index subsystem.&lt;/li&gt;
+&lt;li&gt;No hidden background runtime/workers.&lt;/li&gt;
+&lt;li&gt;No speculative expansion without concrete use cases.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Migration Source&lt;span class="hx:absolute hx:-mt-20" id="migration-source"&gt;&lt;/span&gt;
+&lt;a href="#migration-source" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Consolidated from ArcGo global roadmap draft and current package status.&lt;/li&gt;
+&lt;li&gt;This page is the canonical roadmap maintained in docs.&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/docs/configx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/configx/roadmap/</guid><description>
+&lt;h2&gt;configx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="configx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#configx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;configx&lt;/code&gt; is a layered configuration loader/validator, not a full configuration center.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Keep source merging predictable.&lt;/li&gt;
+&lt;li&gt;Keep validation explicit and easy to reason about.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Dotenv/file/env loading, defaults, priority control, and validation are available.&lt;/li&gt;
+&lt;li&gt;Optional observability hooks are already exposed.&lt;/li&gt;
+&lt;li&gt;Main gaps: source-conflict diagnostics, decision guidance for priority/validation profiles, optional remote source extension story.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Version Plan (Suggested)&lt;span class="hx:absolute hx:-mt-20" id="version-plan-suggested"&gt;&lt;/span&gt;
+&lt;a href="#version-plan-suggested" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.3&lt;/code&gt;: precedence and validation playbook + diagnostics improvements&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.4&lt;/code&gt;: conflict/decode/validation error visibility hardening&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.5&lt;/code&gt;: optional pluggable remote/secret-manager sources&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Priority Suggestions&lt;span class="hx:absolute hx:-mt-20" id="priority-suggestions"&gt;&lt;/span&gt;
+&lt;a href="#priority-suggestions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0 (Now)&lt;span class="hx:absolute hx:-mt-20" id="p0-now"&gt;&lt;/span&gt;
+&lt;a href="#p0-now" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Complete clear docs for source precedence and common patterns.&lt;/li&gt;
+&lt;li&gt;Add practical validation recipes (strict/lenient/service-cli profiles).&lt;/li&gt;
+&lt;li&gt;Improve error messages for decode and validation failures.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1 (Next)&lt;span class="hx:absolute hx:-mt-20" id="p1-next"&gt;&lt;/span&gt;
+&lt;a href="#p1-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Add better conflict diagnostics when multiple sources override the same keys.&lt;/li&gt;
+&lt;li&gt;Provide traceable source metadata for effective value origin.&lt;/li&gt;
+&lt;li&gt;Improve observability events around load/reload/validation lifecycle.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2 (Later)&lt;span class="hx:absolute hx:-mt-20" id="p2-later"&gt;&lt;/span&gt;
+&lt;a href="#p2-later" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Add optional pluggable remote sources without coupling core package.&lt;/li&gt;
+&lt;li&gt;Add secret source adapters with explicit dependency boundaries.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No heavy runtime config center.&lt;/li&gt;
+&lt;li&gt;No hidden dynamic reload semantics without explicit opt-in.&lt;/li&gt;
+&lt;li&gt;No hard dependency on one cloud/vendor source.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Migration Source&lt;span class="hx:absolute hx:-mt-20" id="migration-source"&gt;&lt;/span&gt;
+&lt;a href="#migration-source" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Consolidated from ArcGo global roadmap draft and current package status.&lt;/li&gt;
+&lt;li&gt;This page is the canonical roadmap maintained in docs.&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/docs/eventx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/eventx/roadmap/</guid><description>
+&lt;h2&gt;eventx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="eventx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#eventx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;eventx&lt;/code&gt; is an in-process typed event bus, not a distributed MQ replacement.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Keep API simple and type-safe.&lt;/li&gt;
+&lt;li&gt;Keep async behavior explicit and controllable.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Sync/async publish, middleware, and graceful close are available.&lt;/li&gt;
+&lt;li&gt;Core usage is stable for service-internal eventing.&lt;/li&gt;
+&lt;li&gt;Main gaps: stronger async worker observability, shutdown guarantees, and advanced error-handling playbooks.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Version Plan (Suggested)&lt;span class="hx:absolute hx:-mt-20" id="version-plan-suggested"&gt;&lt;/span&gt;
+&lt;a href="#version-plan-suggested" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.3&lt;/code&gt;: async observability + shutdown semantics hardening&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.4&lt;/code&gt;: middleware and error-handling guidance completion&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.5&lt;/code&gt;: optional in-process delivery policy extensions&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Priority Suggestions&lt;span class="hx:absolute hx:-mt-20" id="priority-suggestions"&gt;&lt;/span&gt;
+&lt;a href="#priority-suggestions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0 (Now)&lt;span class="hx:absolute hx:-mt-20" id="p0-now"&gt;&lt;/span&gt;
+&lt;a href="#p0-now" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Strengthen async queue/worker lifecycle observability.&lt;/li&gt;
+&lt;li&gt;Clarify and test close/drain guarantees under load.&lt;/li&gt;
+&lt;li&gt;Improve diagnostics for handler failures/timeouts.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1 (Next)&lt;span class="hx:absolute hx:-mt-20" id="p1-next"&gt;&lt;/span&gt;
+&lt;a href="#p1-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Expand middleware composition examples and best practices.&lt;/li&gt;
+&lt;li&gt;Provide practical error-handling patterns (drop/retry/report).&lt;/li&gt;
+&lt;li&gt;Align event naming and telemetry fields with &lt;code&gt;observabilityx&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2 (Later)&lt;span class="hx:absolute hx:-mt-20" id="p2-later"&gt;&lt;/span&gt;
+&lt;a href="#p2-later" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Add optional in-process delivery policies while keeping default behavior simple.&lt;/li&gt;
+&lt;li&gt;Add performance baselines for common fan-out scenarios.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No distributed transport or persistence queue.&lt;/li&gt;
+&lt;li&gt;No global workflow/orchestration runtime.&lt;/li&gt;
+&lt;li&gt;No hidden at-least-once guarantees beyond explicit policies.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Migration Source&lt;span class="hx:absolute hx:-mt-20" id="migration-source"&gt;&lt;/span&gt;
+&lt;a href="#migration-source" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Consolidated from ArcGo global roadmap draft and current package status.&lt;/li&gt;
+&lt;li&gt;This page is the canonical roadmap maintained in docs.&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/docs/httpx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/httpx/roadmap/</guid><description>
+&lt;h2&gt;httpx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="httpx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#httpx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;httpx&lt;/code&gt; is a thin service-organization layer around Huma.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Keep typed route, group, and OpenAPI ergonomics in &lt;code&gt;httpx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Keep native router/app ownership in adapters&lt;/li&gt;
+&lt;li&gt;Avoid re-wrapping framework request/response models&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;ServerRuntime&lt;/code&gt; is centered on &lt;code&gt;huma.API&lt;/code&gt;, not &lt;code&gt;http.Handler&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;std&lt;/code&gt; / &lt;code&gt;gin&lt;/code&gt; / &lt;code&gt;echo&lt;/code&gt; / &lt;code&gt;fiber&lt;/code&gt; adapters are thin wrappers over the official Huma integrations&lt;/li&gt;
+&lt;li&gt;Docs and OpenAPI route exposure are adapter-owned through &lt;code&gt;adapter.HumaOptions&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Listen(addr)&lt;/code&gt;, &lt;code&gt;ListenPort(port)&lt;/code&gt;, &lt;code&gt;ListenAndServeContext(ctx, addr)&lt;/code&gt;, and &lt;code&gt;Shutdown()&lt;/code&gt; are the unified runtime helpers&lt;/li&gt;
+&lt;li&gt;Examples, tests, and docs now follow the thin-adapter model&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Execution Record (2026-03-19)&lt;span class="hx:absolute hx:-mt-20" id="execution-record-2026-03-19"&gt;&lt;/span&gt;
+&lt;a href="#execution-record-2026-03-19" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Removed the &lt;code&gt;http.Handler&lt;/code&gt; contract from &lt;code&gt;ServerRuntime&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Removed adapter-native &lt;code&gt;Handle&lt;/code&gt; / &lt;code&gt;Group&lt;/code&gt; / &lt;code&gt;ServeHTTP&lt;/code&gt; bridge behavior&lt;/li&gt;
+&lt;li&gt;Removed the Fiber request-copy bridge path used to fake &lt;code&gt;net/http&lt;/code&gt; compatibility&lt;/li&gt;
+&lt;li&gt;Removed &lt;code&gt;WithDocs&lt;/code&gt;, &lt;code&gt;WithOpenAPIDocs&lt;/code&gt;, &lt;code&gt;ConfigureDocs&lt;/code&gt;, &lt;code&gt;server.Adapter()&lt;/code&gt;, and &lt;code&gt;UseAdapter(...)&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Removed adapter build-time logger/timeout option layers; native host configuration stays with the framework&lt;/li&gt;
+&lt;li&gt;Rewrote tests, examples, and docs around direct router/app access&lt;/li&gt;
+&lt;li&gt;Regression checks passed:
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;go test ./httpx/...&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./examples/httpx/... ./examples/observabilityx/... ./examples/eventx/... ./configx/examples/...&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/std&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/gin&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/echo&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go test ./...&lt;/code&gt; in &lt;code&gt;httpx/adapter/fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Next&lt;span class="hx:absolute hx:-mt-20" id="next"&gt;&lt;/span&gt;
+&lt;a href="#next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Add more organization examples around auth, monitoring, and multi-host setups&lt;/li&gt;
+&lt;li&gt;Add benchmark and regression guardrails for typed-route hot paths&lt;/li&gt;
+&lt;li&gt;Improve &lt;code&gt;httpx/fx&lt;/code&gt; lifecycle coverage&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No heavy framework abstraction above native routers/apps&lt;/li&gt;
+&lt;li&gt;No fake cross-framework middleware API&lt;/li&gt;
+&lt;li&gt;No reintroduction of a universal request/response bridge&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/docs/logx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/logx/roadmap/</guid><description>
+&lt;h2&gt;logx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="logx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#logx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;logx&lt;/code&gt; is structured logging infrastructure for ArcGo packages and services, not a full observability platform.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Provide consistent logging ergonomics across modules.&lt;/li&gt;
+&lt;li&gt;Keep integration with &lt;code&gt;slog&lt;/code&gt; and upper layers practical.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Core logger options and file rotation support are available.&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;slog&lt;/code&gt; interoperability is available.&lt;/li&gt;
+&lt;li&gt;Main gaps: production operation playbook, cross-package field conventions, and context propagation helpers.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Version Plan (Suggested)&lt;span class="hx:absolute hx:-mt-20" id="version-plan-suggested"&gt;&lt;/span&gt;
+&lt;a href="#version-plan-suggested" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.3&lt;/code&gt;: integration guidance + field convention baseline&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.4&lt;/code&gt;: production presets for rotation/retention and operational safety&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.5&lt;/code&gt;: richer context propagation helpers and integration examples&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Priority Suggestions&lt;span class="hx:absolute hx:-mt-20" id="priority-suggestions"&gt;&lt;/span&gt;
+&lt;a href="#priority-suggestions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0 (Now)&lt;span class="hx:absolute hx:-mt-20" id="p0-now"&gt;&lt;/span&gt;
+&lt;a href="#p0-now" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Define cross-package logging field conventions (&lt;code&gt;trace_id&lt;/code&gt;, &lt;code&gt;request_id&lt;/code&gt;, &lt;code&gt;event&lt;/code&gt;).&lt;/li&gt;
+&lt;li&gt;Add practical guidance for &lt;code&gt;logx&lt;/code&gt; + &lt;code&gt;slog&lt;/code&gt; composition.&lt;/li&gt;
+&lt;li&gt;Provide baseline recommendations for service environments.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1 (Next)&lt;span class="hx:absolute hx:-mt-20" id="p1-next"&gt;&lt;/span&gt;
+&lt;a href="#p1-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Add production presets for file rotation/retention.&lt;/li&gt;
+&lt;li&gt;Improve diagnostics around sink/IO errors.&lt;/li&gt;
+&lt;li&gt;Expand integration examples with &lt;code&gt;httpx&lt;/code&gt;, &lt;code&gt;eventx&lt;/code&gt;, and &lt;code&gt;authx&lt;/code&gt;.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2 (Later)&lt;span class="hx:absolute hx:-mt-20" id="p2-later"&gt;&lt;/span&gt;
+&lt;a href="#p2-later" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Improve context propagation helper surface.&lt;/li&gt;
+&lt;li&gt;Add benchmark and regression checks for high-volume logging paths.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No centralized logging backend.&lt;/li&gt;
+&lt;li&gt;No forced vendor-specific observability stack.&lt;/li&gt;
+&lt;li&gt;No hidden log shipping/runtime agents.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Migration Source&lt;span class="hx:absolute hx:-mt-20" id="migration-source"&gt;&lt;/span&gt;
+&lt;a href="#migration-source" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Consolidated from ArcGo global roadmap draft and current package status.&lt;/li&gt;
+&lt;li&gt;This page is the canonical roadmap maintained in docs.&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/docs/observabilityx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/observabilityx/roadmap/</guid><description>
+&lt;h2&gt;observabilityx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="observabilityx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#observabilityx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;observabilityx&lt;/code&gt; is an optional observability facade for ArcGo modules, not a mandatory telemetry framework.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Keep business and upper-layer APIs decoupled from concrete telemetry backends.&lt;/li&gt;
+&lt;li&gt;Provide consistent telemetry semantics across modules.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;Nop&lt;/code&gt;, OTel, and Prometheus backends are available.&lt;/li&gt;
+&lt;li&gt;Multi-backend composition is supported.&lt;/li&gt;
+&lt;li&gt;Main gaps: cross-module naming conventions, minimal default instrumentation profile, and clearer fan-out failure semantics.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Version Plan (Suggested)&lt;span class="hx:absolute hx:-mt-20" id="version-plan-suggested"&gt;&lt;/span&gt;
+&lt;a href="#version-plan-suggested" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.3&lt;/code&gt;: metric/trace naming conventions and baseline guidance&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.4&lt;/code&gt;: minimal instrumentation profile and module integration examples&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.5&lt;/code&gt;: fan-out failure isolation and backend resilience hardening&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Priority Suggestions&lt;span class="hx:absolute hx:-mt-20" id="priority-suggestions"&gt;&lt;/span&gt;
+&lt;a href="#priority-suggestions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0 (Now)&lt;span class="hx:absolute hx:-mt-20" id="p0-now"&gt;&lt;/span&gt;
+&lt;a href="#p0-now" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Define shared metric and trace naming conventions for &lt;code&gt;authx/eventx/configx/httpx&lt;/code&gt;.&lt;/li&gt;
+&lt;li&gt;Standardize common attributes/tags and event field naming.&lt;/li&gt;
+&lt;li&gt;Publish a lightweight default instrumentation profile.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1 (Next)&lt;span class="hx:absolute hx:-mt-20" id="p1-next"&gt;&lt;/span&gt;
+&lt;a href="#p1-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Add curated integration examples across major modules.&lt;/li&gt;
+&lt;li&gt;Improve diagnostic visibility when backend export fails.&lt;/li&gt;
+&lt;li&gt;Clarify per-backend enable/disable behavior in composed setups.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2 (Later)&lt;span class="hx:absolute hx:-mt-20" id="p2-later"&gt;&lt;/span&gt;
+&lt;a href="#p2-later" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Refine multi-backend fan-out failure isolation.&lt;/li&gt;
+&lt;li&gt;Add policy-style controls for backend-specific sampling/export behavior.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No requirement that all projects must use observability backends.&lt;/li&gt;
+&lt;li&gt;No lock-in to one telemetry vendor.&lt;/li&gt;
+&lt;li&gt;No replacement of native backend SDK capabilities.&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Migration Source&lt;span class="hx:absolute hx:-mt-20" id="migration-source"&gt;&lt;/span&gt;
+&lt;a href="#migration-source" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Consolidated from ArcGo global roadmap draft and current package status.&lt;/li&gt;
+&lt;li&gt;This page is the canonical roadmap maintained in docs.&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>iteration-plan</title><link>https://DaiYuANg.github.io/arcgo/docs/authx/iteration-plan/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/docs/authx/iteration-plan/</guid><description>
+&lt;h2&gt;authx Iteration Plan (v0.4)&lt;span class="hx:absolute hx:-mt-20" id="authx-iteration-plan-v04"&gt;&lt;/span&gt;
+&lt;a href="#authx-iteration-plan-v04" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;This plan converts the roadmap into continuous executable engineering steps.&lt;/p&gt;
+&lt;h2&gt;Step 1 (Completed)&lt;span class="hx:absolute hx:-mt-20" id="step-1-completed"&gt;&lt;/span&gt;
+&lt;a href="#step-1-completed" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Goal: land a minimal &lt;code&gt;authx-http&lt;/code&gt; loop&lt;/li&gt;
+&lt;li&gt;Deliverables:&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Authenticate&lt;/code&gt; middleware (credential extraction + SecurityContext injection)&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Require&lt;/code&gt; middleware (&lt;code&gt;manager.Can&lt;/code&gt; authorization check)&lt;/li&gt;
+&lt;li&gt;default 401/403 response mapping&lt;/li&gt;
+&lt;li&gt;default credential extractor (Basic / API key / Bearer)&lt;/li&gt;
+&lt;li&gt;tests for success/missing credential/optional/allow/deny&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 2 (Next)&lt;span class="hx:absolute hx:-mt-20" id="step-2-next"&gt;&lt;/span&gt;
+&lt;a href="#step-2-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Goal: strengthen extractor and error mapping configurability&lt;/li&gt;
+&lt;li&gt;Deliverables:&lt;/li&gt;
+&lt;li&gt;extractor composition support (priority chain)&lt;/li&gt;
+&lt;li&gt;optional unified JSON error response&lt;/li&gt;
+&lt;li&gt;tests for invalid credential, extraction errors, custom header&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 3&lt;span class="hx:absolute hx:-mt-20" id="step-3"&gt;&lt;/span&gt;
+&lt;a href="#step-3" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Goal: complete integration examples and docs with &lt;code&gt;httpx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Deliverables:&lt;/li&gt;
+&lt;li&gt;minimal &lt;code&gt;authx + httpx&lt;/code&gt; example&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx + httpx + observabilityx&lt;/code&gt; example&lt;/li&gt;
+&lt;li&gt;docs updates for integration flow and pitfalls&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 4&lt;span class="hx:absolute hx:-mt-20" id="step-4"&gt;&lt;/span&gt;
+&lt;a href="#step-4" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Goal: implement &lt;code&gt;apikey&lt;/code&gt; / &lt;code&gt;bearer verify-only&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Deliverables:&lt;/li&gt;
+&lt;li&gt;authenticators for both modes&lt;/li&gt;
+&lt;li&gt;cleaner default mapping from middleware extraction to authenticators&lt;/li&gt;
+&lt;li&gt;tests for failure semantics&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Acceptance Rule&lt;span class="hx:absolute hx:-mt-20" id="acceptance-rule"&gt;&lt;/span&gt;
+&lt;a href="#acceptance-rule" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Each step must include:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;API delivery&lt;/li&gt;
+&lt;li&gt;examples&lt;/li&gt;
+&lt;li&gt;tests&lt;/li&gt;
+&lt;li&gt;documentation&lt;/li&gt;
+&lt;/ul&gt;</description></item></channel></rss>

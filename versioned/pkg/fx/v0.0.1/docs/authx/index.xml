@@ -1,0 +1,230 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – authx</title><link>https://DaiYuANg.github.io/arcgo/versioned/pkg/fx/v0.0.1/docs/authx/</link><description>Recent content in authx on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>en</language><atom:link href="https://DaiYuANg.github.io/arcgo/versioned/pkg/fx/v0.0.1/docs/authx/index.xml" rel="self" type="application/rss+xml"/><item><title>authx v0.3.0 (Refactor)</title><link>https://DaiYuANg.github.io/arcgo/versioned/pkg/fx/v0.0.1/docs/authx/release-v0.3.0/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/pkg/fx/v0.0.1/docs/authx/release-v0.3.0/</guid><description>
+&lt;h2&gt;Overview&lt;span class="hx:absolute hx:-mt-20" id="overview"&gt;&lt;/span&gt;
+&lt;a href="#overview" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;authx v0.3.0&lt;/code&gt; is a major refactor focused on unified abstractions and multi-scenario extensibility.&lt;/p&gt;
+&lt;p&gt;Key updates:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;Authentication and authorization are split into &lt;code&gt;Check&lt;/code&gt; and &lt;code&gt;Can&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Engine&lt;/code&gt; is no longer coupled to a specific auth mechanism&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ProviderManager&lt;/code&gt; can register providers for multiple credential types&lt;/li&gt;
+&lt;li&gt;New &lt;code&gt;authx/http&lt;/code&gt; package with &lt;code&gt;std&lt;/code&gt;/&lt;code&gt;gin&lt;/code&gt;/&lt;code&gt;echo&lt;/code&gt;/&lt;code&gt;fiber&lt;/code&gt; integrations&lt;/li&gt;
+&lt;li&gt;New &lt;code&gt;RequireFast&lt;/code&gt; and &lt;code&gt;TypedGuard&lt;/code&gt; for hot-path and typed ergonomics&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;New Core Model&lt;span class="hx:absolute hx:-mt-20" id="new-core-model"&gt;&lt;/span&gt;
+&lt;a href="#new-core-model" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The new core is composed of:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;AuthenticationProvider[C]&lt;/code&gt;: handles one credential type &lt;code&gt;C&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;AuthenticationManager&lt;/code&gt;: selects and executes matched provider&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Authorizer&lt;/code&gt;: performs authorization decisions independently&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;code&gt;Engine&lt;/code&gt; orchestrates:&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;Check(ctx, credential)&lt;/code&gt; -&amp;gt; &lt;code&gt;AuthenticationResult&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Can(ctx, AuthorizationModel)&lt;/code&gt; -&amp;gt; &lt;code&gt;Decision&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;Typical Usage&lt;span class="hx:absolute hx:-mt-20" id="typical-usage"&gt;&lt;/span&gt;
+&lt;a href="#typical-usage" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewEngine&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthenticationManager&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewProviderManager&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewAuthenticationProviderFunc&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;in&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;UsernamePassword&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ) (&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthenticationResult&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthenticationResult&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;ID&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;in&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;},
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthorizer&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizerFunc&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;model&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizationModel&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ) (&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Decision&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Decision&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Allowed&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;}, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; })),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;result&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Check&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;UsernamePassword&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;alice&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;Password&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;secret&amp;#34;&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;decision&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Can&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizationModel&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;result&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Action&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;query&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Resource&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;order&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;})&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;New HTTP Integrations&lt;span class="hx:absolute hx:-mt-20" id="new-http-integrations"&gt;&lt;/span&gt;
+&lt;a href="#new-http-integrations" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;authx/http&lt;/code&gt; now provides a unified Guard layer:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;authx/http/std&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/gin&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/echo&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Unified extension points:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;WithCredentialResolverFunc&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;WithAuthorizationResolverFunc&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;Middleware usage:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;guard&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewGuard&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithCredentialResolverFunc&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;resolveCredential&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthorizationResolverFunc&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;resolveAuthorization&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;router&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Use&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;authstd&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Require&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;guard&lt;/span&gt;))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// or: router.Use(authstd.RequireFast(guard))&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Performance and Maintainability&lt;span class="hx:absolute hx:-mt-20" id="performance-and-maintainability"&gt;&lt;/span&gt;
+&lt;a href="#performance-and-maintainability" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Added core benchmarks (including parallel scenarios)&lt;/li&gt;
+&lt;li&gt;Added middleware benchmarks for &lt;code&gt;std/gin/echo/fiber&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Reduced request-path temporary object creation&lt;/li&gt;
+&lt;li&gt;Added &lt;code&gt;RequireFast&lt;/code&gt; path to further reduce allocations&lt;/li&gt;
+&lt;li&gt;Split large files in &lt;code&gt;authx&lt;/code&gt; for better maintainability&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Examples&lt;span class="hx:absolute hx:-mt-20" id="examples"&gt;&lt;/span&gt;
+&lt;a href="#examples" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Shared example: &lt;code&gt;authx/http/examples/shared&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;JWT example: &lt;code&gt;authx/http/examples/jwt&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Framework examples: &lt;code&gt;authx/http/examples/std|gin|echo|fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Benchmark Commands&lt;span class="hx:absolute hx:-mt-20" id="benchmark-commands"&gt;&lt;/span&gt;
+&lt;a href="#benchmark-commands" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx -run ^$ -bench BenchmarkEngine -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/std -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/gin -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/echo -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/fiber -run ^$ -bench BenchmarkRequire -benchmem&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/versioned/pkg/fx/v0.0.1/docs/authx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/pkg/fx/v0.0.1/docs/authx/roadmap/</guid><description>
+&lt;h2&gt;authx Roadmap (2026-03)&lt;span class="hx:absolute hx:-mt-20" id="authx-roadmap-2026-03"&gt;&lt;/span&gt;
+&lt;a href="#authx-roadmap-2026-03" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;Positioning&lt;span class="hx:absolute hx:-mt-20" id="positioning"&gt;&lt;/span&gt;
+&lt;a href="#positioning" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;authx&lt;/code&gt; is intended to be an extensible security core plus a thin integration layer, not a full security framework.&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;authx-core&lt;/code&gt;: authn/authz domain model, policy loading, error/event semantics&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx-integrations&lt;/code&gt;: thin adapters for HTTP/RPC ecosystems&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Current State&lt;span class="hx:absolute hx:-mt-20" id="current-state"&gt;&lt;/span&gt;
+&lt;a href="#current-state" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Phase 1 (core stabilization): completed&lt;/li&gt;
+&lt;li&gt;Phase 2 (integration foundation): in progress&lt;/li&gt;
+&lt;li&gt;Ready: typed errors, subject resolver, policy merger, multi-source policy loading, eventx reuse, diagnostics&lt;/li&gt;
+&lt;li&gt;Gaps: &lt;code&gt;authx-http&lt;/code&gt;, API key/bearer verify-only, database/remote policy sources, systematic examples&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Version Plan (Suggested)&lt;span class="hx:absolute hx:-mt-20" id="version-plan-suggested"&gt;&lt;/span&gt;
+&lt;a href="#version-plan-suggested" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.4&lt;/code&gt; (current focus): &lt;code&gt;authx-http&lt;/code&gt; + API key/bearer verify-only&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.5&lt;/code&gt;: database/remote policy sources + examples and integration docs&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.6&lt;/code&gt;: observability hardening, performance tuning, production test matrix&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Priority Suggestions&lt;span class="hx:absolute hx:-mt-20" id="priority-suggestions"&gt;&lt;/span&gt;
+&lt;a href="#priority-suggestions" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0 (Now)&lt;span class="hx:absolute hx:-mt-20" id="p0-now"&gt;&lt;/span&gt;
+&lt;a href="#p0-now" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Finish &lt;code&gt;authx-http&lt;/code&gt; middleware layer:&lt;/li&gt;
+&lt;li&gt;credential extraction&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SecurityContext&lt;/code&gt; injection&lt;/li&gt;
+&lt;li&gt;unified 401/403 mapping&lt;/li&gt;
+&lt;li&gt;deliver minimal runnable examples (basic + http)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1 (Next)&lt;span class="hx:absolute hx:-mt-20" id="p1-next"&gt;&lt;/span&gt;
+&lt;a href="#p1-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Implement &lt;code&gt;apikey&lt;/code&gt; and &lt;code&gt;bearer verify-only&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Add adapters (suggested order: &lt;code&gt;chi&lt;/code&gt;, then &lt;code&gt;huma&lt;/code&gt;)&lt;/li&gt;
+&lt;li&gt;Improve diagnostics and audit event conventions&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2 (Later)&lt;span class="hx:absolute hx:-mt-20" id="p2-later"&gt;&lt;/span&gt;
+&lt;a href="#p2-later" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Database Policy Source&lt;/li&gt;
+&lt;li&gt;Remote HTTP Policy Source&lt;/li&gt;
+&lt;li&gt;Multi-tenant extension points (without premature heavy abstraction)&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Non-Goals&lt;span class="hx:absolute hx:-mt-20" id="non-goals"&gt;&lt;/span&gt;
+&lt;a href="#non-goals" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;No full web framework&lt;/li&gt;
+&lt;li&gt;No full runtime lifecycle takeover&lt;/li&gt;
+&lt;li&gt;No replacement of Casbin with a custom authorization engine&lt;/li&gt;
+&lt;li&gt;No early investment into a heavy ABAC platform&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Adjustment Note&lt;span class="hx:absolute hx:-mt-20" id="adjustment-note"&gt;&lt;/span&gt;
+&lt;a href="#adjustment-note" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Compared to the historical roadmap, prioritize &amp;ldquo;usable integration layer&amp;rdquo; before adding more policy-source variants.
+Without stable integration entry points, core capabilities cannot close the feedback loop with real adoption.&lt;/p&gt;
+&lt;h2&gt;Migration Source&lt;span class="hx:absolute hx:-mt-20" id="migration-source"&gt;&lt;/span&gt;
+&lt;a href="#migration-source" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Historical package file (removed): &lt;code&gt;authx/ROADMAP.md&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;This page is now the canonical maintained version in docs&lt;/li&gt;
+&lt;li&gt;Iteration execution: see &lt;a href="./iteration-plan"&gt;authx iteration plan&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>iteration-plan</title><link>https://DaiYuANg.github.io/arcgo/versioned/pkg/fx/v0.0.1/docs/authx/iteration-plan/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/pkg/fx/v0.0.1/docs/authx/iteration-plan/</guid><description>
+&lt;h2&gt;authx Iteration Plan (v0.4)&lt;span class="hx:absolute hx:-mt-20" id="authx-iteration-plan-v04"&gt;&lt;/span&gt;
+&lt;a href="#authx-iteration-plan-v04" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;This plan converts the roadmap into continuous executable engineering steps.&lt;/p&gt;
+&lt;h2&gt;Step 1 (Completed)&lt;span class="hx:absolute hx:-mt-20" id="step-1-completed"&gt;&lt;/span&gt;
+&lt;a href="#step-1-completed" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Goal: land a minimal &lt;code&gt;authx-http&lt;/code&gt; loop&lt;/li&gt;
+&lt;li&gt;Deliverables:&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Authenticate&lt;/code&gt; middleware (credential extraction + SecurityContext injection)&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Require&lt;/code&gt; middleware (&lt;code&gt;manager.Can&lt;/code&gt; authorization check)&lt;/li&gt;
+&lt;li&gt;default 401/403 response mapping&lt;/li&gt;
+&lt;li&gt;default credential extractor (Basic / API key / Bearer)&lt;/li&gt;
+&lt;li&gt;tests for success/missing credential/optional/allow/deny&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 2 (Next)&lt;span class="hx:absolute hx:-mt-20" id="step-2-next"&gt;&lt;/span&gt;
+&lt;a href="#step-2-next" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Goal: strengthen extractor and error mapping configurability&lt;/li&gt;
+&lt;li&gt;Deliverables:&lt;/li&gt;
+&lt;li&gt;extractor composition support (priority chain)&lt;/li&gt;
+&lt;li&gt;optional unified JSON error response&lt;/li&gt;
+&lt;li&gt;tests for invalid credential, extraction errors, custom header&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 3&lt;span class="hx:absolute hx:-mt-20" id="step-3"&gt;&lt;/span&gt;
+&lt;a href="#step-3" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Goal: complete integration examples and docs with &lt;code&gt;httpx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Deliverables:&lt;/li&gt;
+&lt;li&gt;minimal &lt;code&gt;authx + httpx&lt;/code&gt; example&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx + httpx + observabilityx&lt;/code&gt; example&lt;/li&gt;
+&lt;li&gt;docs updates for integration flow and pitfalls&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 4&lt;span class="hx:absolute hx:-mt-20" id="step-4"&gt;&lt;/span&gt;
+&lt;a href="#step-4" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Goal: implement &lt;code&gt;apikey&lt;/code&gt; / &lt;code&gt;bearer verify-only&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Deliverables:&lt;/li&gt;
+&lt;li&gt;authenticators for both modes&lt;/li&gt;
+&lt;li&gt;cleaner default mapping from middleware extraction to authenticators&lt;/li&gt;
+&lt;li&gt;tests for failure semantics&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Acceptance Rule&lt;span class="hx:absolute hx:-mt-20" id="acceptance-rule"&gt;&lt;/span&gt;
+&lt;a href="#acceptance-rule" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;Each step must include:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;API delivery&lt;/li&gt;
+&lt;li&gt;examples&lt;/li&gt;
+&lt;li&gt;tests&lt;/li&gt;
+&lt;li&gt;documentation&lt;/li&gt;
+&lt;/ul&gt;</description></item></channel></rss>

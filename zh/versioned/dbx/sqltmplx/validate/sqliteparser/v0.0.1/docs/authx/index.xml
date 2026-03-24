@@ -1,0 +1,230 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – authx</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/</link><description>Recent content in authx on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>zh-cn</language><atom:link href="https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/index.xml" rel="self" type="application/rss+xml"/><item><title>authx v0.3.0（重构版）</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/release-v0.3.0/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/release-v0.3.0/</guid><description>
+&lt;h2&gt;概览&lt;span class="hx:absolute hx:-mt-20" id="概览"&gt;&lt;/span&gt;
+&lt;a href="#%e6%a6%82%e8%a7%88" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;authx v0.3.0&lt;/code&gt; 是一次面向“统一抽象 + 多场景扩展”的重构版本。&lt;/p&gt;
+&lt;p&gt;核心变化：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;认证与鉴权 API 明确拆分为 &lt;code&gt;Check&lt;/code&gt; 与 &lt;code&gt;Can&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Engine&lt;/code&gt; 不绑定具体认证方式（JWT/Session/OTP 等均可扩展）&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;ProviderManager&lt;/code&gt; 支持多种 credential 类型并行注册&lt;/li&gt;
+&lt;li&gt;新增 &lt;code&gt;authx/http&lt;/code&gt; 子包，覆盖 &lt;code&gt;std&lt;/code&gt;/&lt;code&gt;gin&lt;/code&gt;/&lt;code&gt;echo&lt;/code&gt;/&lt;code&gt;fiber&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;新增 &lt;code&gt;RequireFast&lt;/code&gt; 与 &lt;code&gt;TypedGuard&lt;/code&gt;，优化热路径与类型体验&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;新核心模型&lt;span class="hx:absolute hx:-mt-20" id="新核心模型"&gt;&lt;/span&gt;
+&lt;a href="#%e6%96%b0%e6%a0%b8%e5%bf%83%e6%a8%a1%e5%9e%8b" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;新版核心是三层协作：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;AuthenticationProvider[C]&lt;/code&gt;: 处理某一类凭证 &lt;code&gt;C&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;AuthenticationManager&lt;/code&gt;: 负责选择并调用匹配 provider&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Authorizer&lt;/code&gt;: 专注授权决策（与认证解耦）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;code&gt;Engine&lt;/code&gt; 仅编排流程：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;code&gt;Check(ctx, credential)&lt;/code&gt; 返回 &lt;code&gt;AuthenticationResult&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Can(ctx, AuthorizationModel)&lt;/code&gt; 返回 &lt;code&gt;Decision&lt;/code&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;h2&gt;典型调用方式&lt;span class="hx:absolute hx:-mt-20" id="典型调用方式"&gt;&lt;/span&gt;
+&lt;a href="#%e5%85%b8%e5%9e%8b%e8%b0%83%e7%94%a8%e6%96%b9%e5%bc%8f" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewEngine&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthenticationManager&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewProviderManager&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewAuthenticationProviderFunc&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;in&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;UsernamePassword&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ) (&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthenticationResult&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#75715e"&gt;// verify...&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthenticationResult&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;ID&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;in&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;},
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; }),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthorizer&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizerFunc&lt;/span&gt;(&lt;span style="color:#66d9ef"&gt;func&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;_&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;context&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Context&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;model&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizationModel&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; ) (&lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Decision&lt;/span&gt;, &lt;span style="color:#66d9ef"&gt;error&lt;/span&gt;) {
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#66d9ef"&gt;return&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Decision&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Allowed&lt;/span&gt;: &lt;span style="color:#66d9ef"&gt;true&lt;/span&gt;}, &lt;span style="color:#66d9ef"&gt;nil&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; })),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;result&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Check&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;UsernamePassword&lt;/span&gt;{&lt;span style="color:#a6e22e"&gt;Username&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;alice&amp;#34;&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;Password&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;secret&amp;#34;&lt;/span&gt;})
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;decision&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;err&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Can&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;ctx&lt;/span&gt;, &lt;span style="color:#a6e22e"&gt;authx&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;AuthorizationModel&lt;/span&gt;{
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;: &lt;span style="color:#a6e22e"&gt;result&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Principal&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Action&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;query&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;Resource&lt;/span&gt;: &lt;span style="color:#e6db74"&gt;&amp;#34;order&amp;#34;&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;})&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;HTTP 集成（新增）&lt;span class="hx:absolute hx:-mt-20" id="http-集成新增"&gt;&lt;/span&gt;
+&lt;a href="#http-%e9%9b%86%e6%88%90%e6%96%b0%e5%a2%9e" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;新增 &lt;code&gt;authx/http&lt;/code&gt; 统一 Guard 层：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;authx/http/std&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/gin&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/echo&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx/http/fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;统一扩展点：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;WithCredentialResolverFunc&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;WithAuthorizationResolverFunc&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;框架侧只需挂中间件：&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-go" data-lang="go"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;guard&lt;/span&gt; &lt;span style="color:#f92672"&gt;:=&lt;/span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;NewGuard&lt;/span&gt;(
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;engine&lt;/span&gt;,
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithCredentialResolverFunc&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;resolveCredential&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt; &lt;span style="color:#a6e22e"&gt;authhttp&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;WithAuthorizationResolverFunc&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;resolveAuthorization&lt;/span&gt;),
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;)
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#a6e22e"&gt;router&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Use&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;authstd&lt;/span&gt;.&lt;span style="color:#a6e22e"&gt;Require&lt;/span&gt;(&lt;span style="color:#a6e22e"&gt;guard&lt;/span&gt;))
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;// 或：router.Use(authstd.RequireFast(guard))&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;性能与可维护性更新&lt;span class="hx:absolute hx:-mt-20" id="性能与可维护性更新"&gt;&lt;/span&gt;
+&lt;a href="#%e6%80%a7%e8%83%bd%e4%b8%8e%e5%8f%af%e7%bb%b4%e6%8a%a4%e6%80%a7%e6%9b%b4%e6%96%b0" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;新增 core benchmark（含并行场景）&lt;/li&gt;
+&lt;li&gt;为 &lt;code&gt;std/gin/echo/fiber&lt;/code&gt; 各自新增 middleware benchmark&lt;/li&gt;
+&lt;li&gt;热路径减少请求期对象构造，&lt;code&gt;RequireFast&lt;/code&gt; 进一步降低分配&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx&lt;/code&gt; 目录内 Go 文件按可维护性拆分，避免超长单文件&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;示例&lt;span class="hx:absolute hx:-mt-20" id="示例"&gt;&lt;/span&gt;
+&lt;a href="#%e7%a4%ba%e4%be%8b" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;通用示例：&lt;code&gt;authx/http/examples/shared&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;JWT 示例：&lt;code&gt;authx/http/examples/jwt&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;框架示例：&lt;code&gt;authx/http/examples/std|gin|echo|fiber&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;基准命令&lt;span class="hx:absolute hx:-mt-20" id="基准命令"&gt;&lt;/span&gt;
+&lt;a href="#%e5%9f%ba%e5%87%86%e5%91%bd%e4%bb%a4" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx -run ^$ -bench BenchmarkEngine -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/std -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/gin -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/echo -run ^$ -bench BenchmarkRequire -benchmem
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go test ./authx/http/fiber -run ^$ -bench BenchmarkRequire -benchmem&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="复制代码"
+aria-label="复制代码"
+data-copied-label="已复制！"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;</description></item><item><title>roadmap</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/roadmap/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/roadmap/</guid><description>
+&lt;h2&gt;authx Roadmap（2026-03）&lt;span class="hx:absolute hx:-mt-20" id="authx-roadmap2026-03"&gt;&lt;/span&gt;
+&lt;a href="#authx-roadmap2026-03" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h2&gt;定位&lt;span class="hx:absolute hx:-mt-20" id="定位"&gt;&lt;/span&gt;
+&lt;a href="#%e5%ae%9a%e4%bd%8d" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;&lt;code&gt;authx&lt;/code&gt; 的目标是成为可扩展的安全内核 + 轻量集成层，而不是完整安全框架。&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;authx-core&lt;/code&gt;: 认证/授权领域模型、策略装载、错误与事件语义&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx-integrations&lt;/code&gt;: 面向 HTTP/RPC 生态的薄适配层&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;当前状态&lt;span class="hx:absolute hx:-mt-20" id="当前状态"&gt;&lt;/span&gt;
+&lt;a href="#%e5%bd%93%e5%89%8d%e7%8a%b6%e6%80%81" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Phase 1（核心内核稳定化）: 已完成&lt;/li&gt;
+&lt;li&gt;Phase 2（基础适配层）: 进行中&lt;/li&gt;
+&lt;li&gt;已具备：typed errors、subject resolver、policy merger、多策略源、eventx 复用、诊断能力&lt;/li&gt;
+&lt;li&gt;主要缺口：&lt;code&gt;authx-http&lt;/code&gt;、API Key/Bearer verify-only、数据库/远程策略源、系统化示例&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;版本规划（建议）&lt;span class="hx:absolute hx:-mt-20" id="版本规划建议"&gt;&lt;/span&gt;
+&lt;a href="#%e7%89%88%e6%9c%ac%e8%a7%84%e5%88%92%e5%bb%ba%e8%ae%ae" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;v0.4&lt;/code&gt;（当前重点）: &lt;code&gt;authx-http&lt;/code&gt; + API Key/Bearer verify-only&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.5&lt;/code&gt;: 数据库/远程策略源 + 示例与接入文档&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;v0.6&lt;/code&gt;: 可观测性强化、性能优化、生产化测试矩阵&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;优先级建议&lt;span class="hx:absolute hx:-mt-20" id="优先级建议"&gt;&lt;/span&gt;
+&lt;a href="#%e4%bc%98%e5%85%88%e7%ba%a7%e5%bb%ba%e8%ae%ae" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;h3&gt;P0（立即）&lt;span class="hx:absolute hx:-mt-20" id="p0立即"&gt;&lt;/span&gt;
+&lt;a href="#p0%e7%ab%8b%e5%8d%b3" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;完成 &lt;code&gt;authx-http&lt;/code&gt; 中间件层：&lt;/li&gt;
+&lt;li&gt;credential 提取&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;SecurityContext&lt;/code&gt; 注入&lt;/li&gt;
+&lt;li&gt;401/403 统一响应映射&lt;/li&gt;
+&lt;li&gt;完成最小可运行示例（basic + http）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P1（下一阶段）&lt;span class="hx:absolute hx:-mt-20" id="p1下一阶段"&gt;&lt;/span&gt;
+&lt;a href="#p1%e4%b8%8b%e4%b8%80%e9%98%b6%e6%ae%b5" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;实现 &lt;code&gt;apikey&lt;/code&gt; 与 &lt;code&gt;bearer verify-only&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;增补 adapter（建议先 &lt;code&gt;chi&lt;/code&gt;，再 &lt;code&gt;huma&lt;/code&gt;）&lt;/li&gt;
+&lt;li&gt;完善诊断与审计事件输出规范&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h3&gt;P2（后续）&lt;span class="hx:absolute hx:-mt-20" id="p2后续"&gt;&lt;/span&gt;
+&lt;a href="#p2%e5%90%8e%e7%bb%ad" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h3&gt;&lt;ul&gt;
+&lt;li&gt;Database Policy Source&lt;/li&gt;
+&lt;li&gt;Remote HTTP Policy Source&lt;/li&gt;
+&lt;li&gt;多租户能力预留（不提前做重型抽象）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;非目标&lt;span class="hx:absolute hx:-mt-20" id="非目标"&gt;&lt;/span&gt;
+&lt;a href="#%e9%9d%9e%e7%9b%ae%e6%a0%87" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;不做完整 web framework&lt;/li&gt;
+&lt;li&gt;不接管应用全生命周期与路由系统&lt;/li&gt;
+&lt;li&gt;不自建权限引擎替代 Casbin&lt;/li&gt;
+&lt;li&gt;不在早期投入复杂 ABAC 平台&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;调整说明&lt;span class="hx:absolute hx:-mt-20" id="调整说明"&gt;&lt;/span&gt;
+&lt;a href="#%e8%b0%83%e6%95%b4%e8%af%b4%e6%98%8e" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;相对历史 roadmap，当前更建议把“适配层可用”置于“策略源继续扩展”之前。
+原因是：没有稳定接入层，核心能力难形成真实用户反馈闭环。&lt;/p&gt;
+&lt;h2&gt;迁移来源&lt;span class="hx:absolute hx:-mt-20" id="迁移来源"&gt;&lt;/span&gt;
+&lt;a href="#%e8%bf%81%e7%a7%bb%e6%9d%a5%e6%ba%90" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;历史包内文件（已删除）：&lt;code&gt;authx/ROADMAP.md&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;本页为 docs 内维护的正式版本&lt;/li&gt;
+&lt;li&gt;迭代执行：见 &lt;a href="./iteration-plan"&gt;authx iteration plan&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</description></item><item><title>iteration-plan</title><link>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/iteration-plan/</link><pubDate>Mon, 01 Jan 0001 00:00:00 +0000</pubDate><guid>https://DaiYuANg.github.io/arcgo/zh/versioned/dbx/sqltmplx/validate/sqliteparser/v0.0.1/docs/authx/iteration-plan/</guid><description>
+&lt;h2&gt;authx 迭代计划（v0.4）&lt;span class="hx:absolute hx:-mt-20" id="authx-迭代计划v04"&gt;&lt;/span&gt;
+&lt;a href="#authx-%e8%bf%ad%e4%bb%a3%e8%ae%a1%e5%88%92v04" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;本计划用于把 roadmap 落成连续可执行的工程步骤。&lt;/p&gt;
+&lt;h2&gt;Step 1（已完成）&lt;span class="hx:absolute hx:-mt-20" id="step-1已完成"&gt;&lt;/span&gt;
+&lt;a href="#step-1%e5%b7%b2%e5%ae%8c%e6%88%90" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;目标：落地 &lt;code&gt;authx-http&lt;/code&gt; 最小闭环&lt;/li&gt;
+&lt;li&gt;交付：&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Authenticate&lt;/code&gt; 中间件（credential 提取 + SecurityContext 注入）&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;Require&lt;/code&gt; 中间件（&lt;code&gt;manager.Can&lt;/code&gt; 授权判定）&lt;/li&gt;
+&lt;li&gt;默认 401/403 响应映射&lt;/li&gt;
+&lt;li&gt;默认 credential 提取器（Basic / API key / Bearer）&lt;/li&gt;
+&lt;li&gt;覆盖测试（认证成功、缺失凭证、optional、授权允许/拒绝）&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 2（下一步）&lt;span class="hx:absolute hx:-mt-20" id="step-2下一步"&gt;&lt;/span&gt;
+&lt;a href="#step-2%e4%b8%8b%e4%b8%80%e6%ad%a5" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;目标：增强提取器与错误映射可配置性&lt;/li&gt;
+&lt;li&gt;交付：&lt;/li&gt;
+&lt;li&gt;提供 extractor 组合器（优先级链）&lt;/li&gt;
+&lt;li&gt;增加统一错误响应结构（JSON）可选实现&lt;/li&gt;
+&lt;li&gt;补充无效凭证、提取异常、自定义 header 测试&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 3&lt;span class="hx:absolute hx:-mt-20" id="step-3"&gt;&lt;/span&gt;
+&lt;a href="#step-3" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;目标：接入 &lt;code&gt;httpx&lt;/code&gt; 的示例与文档&lt;/li&gt;
+&lt;li&gt;交付：&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx + httpx&lt;/code&gt; 最小示例&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;authx + httpx + observabilityx&lt;/code&gt; 示例&lt;/li&gt;
+&lt;li&gt;模块文档补充接入流程与常见坑位&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Step 4&lt;span class="hx:absolute hx:-mt-20" id="step-4"&gt;&lt;/span&gt;
+&lt;a href="#step-4" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;目标：推进 &lt;code&gt;apikey&lt;/code&gt; / &lt;code&gt;bearer verify-only&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;交付：&lt;/li&gt;
+&lt;li&gt;对应 authenticator&lt;/li&gt;
+&lt;li&gt;中间件到 authenticator 的默认映射收敛&lt;/li&gt;
+&lt;li&gt;覆盖认证失败语义测试&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;验收标准&lt;span class="hx:absolute hx:-mt-20" id="验收标准"&gt;&lt;/span&gt;
+&lt;a href="#%e9%aa%8c%e6%94%b6%e6%a0%87%e5%87%86" class="subheading-anchor" aria-label="此章节的永久链接"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;每个 step 必须有：&lt;/li&gt;
+&lt;li&gt;API 交付&lt;/li&gt;
+&lt;li&gt;示例&lt;/li&gt;
+&lt;li&gt;测试&lt;/li&gt;
+&lt;li&gt;文档&lt;/li&gt;
+&lt;/ul&gt;</description></item></channel></rss>

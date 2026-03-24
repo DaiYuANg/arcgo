@@ -1,0 +1,187 @@
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ArcGo – ArcGo Documentation</title><link>https://DaiYuANg.github.io/arcgo/versioned/kvx/v0.0.1/</link><description>Recent content in ArcGo Documentation on ArcGo</description><generator>Hugo -- gohugo.io</generator><language>en</language><lastBuildDate>Sun, 08 Mar 2026 00:00:00 +0800</lastBuildDate><atom:link href="https://DaiYuANg.github.io/arcgo/versioned/kvx/v0.0.1/index.xml" rel="self" type="application/rss+xml"/><item><title>ArcGo Documentation</title><link>https://DaiYuANg.github.io/arcgo/versioned/kvx/v0.0.1/docs/</link><pubDate>Sun, 08 Mar 2026 00:00:00 +0800</pubDate><guid>https://DaiYuANg.github.io/arcgo/versioned/kvx/v0.0.1/docs/</guid><description>
+&lt;h1&gt;ArcGo&lt;/h1&gt;&lt;p&gt;&lt;strong&gt;ArcGo&lt;/strong&gt; is a modular Go backend infrastructure toolkit. It consists of independent packages, so you can adopt only what you need.&lt;/p&gt;
+&lt;h2&gt;Quick Start&lt;span class="hx:absolute hx:-mt-20" id="quick-start"&gt;&lt;/span&gt;
+&lt;a href="#quick-start" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go get github.com/DaiYuANg/arcgo/&lt;span style="color:#f92672"&gt;{&lt;/span&gt;package&lt;span style="color:#f92672"&gt;}&lt;/span&gt;&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Package Overview&lt;span class="hx:absolute hx:-mt-20" id="package-overview"&gt;&lt;/span&gt;
+&lt;a href="#package-overview" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;Package&lt;/th&gt;
+&lt;th&gt;Purpose&lt;/th&gt;
+&lt;th&gt;Description&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./authx"&gt;authx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Authentication &amp;amp; Authorization&lt;/td&gt;
+&lt;td&gt;Extensible abstraction for multi-scenario authentication and authorization&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./clientx"&gt;clientx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Protocol Clients&lt;/td&gt;
+&lt;td&gt;Protocol-oriented clients (&lt;code&gt;http/tcp/udp&lt;/code&gt;) with shared engineering conventions&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./collectionx"&gt;collectionx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Data Structures&lt;/td&gt;
+&lt;td&gt;Generic collections and concurrency-safe structures&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./configx"&gt;configx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Configuration Management&lt;/td&gt;
+&lt;td&gt;Hierarchical configuration loading and validation&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./dix"&gt;dix&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Application Framework&lt;/td&gt;
+&lt;td&gt;Strongly typed modular app framework built on &lt;code&gt;do&lt;/code&gt;&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./eventx"&gt;eventx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Event Bus&lt;/td&gt;
+&lt;td&gt;In-process strongly typed event bus&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./httpx"&gt;httpx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;HTTP Routing&lt;/td&gt;
+&lt;td&gt;Multi-framework unified strongly typed HTTP routing&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./kvx"&gt;kvx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Redis / Valkey Access&lt;/td&gt;
+&lt;td&gt;Strongly typed Redis / Valkey object access and repository layer&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./logx"&gt;logx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Logging&lt;/td&gt;
+&lt;td&gt;Structured logging with slog interoperability&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./observabilityx"&gt;observabilityx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;Observability&lt;/td&gt;
+&lt;td&gt;Optional observability abstraction (OTel/Prometheus)&lt;/td&gt;
+&lt;/tr&gt;
+&lt;tr&gt;
+&lt;td&gt;&lt;a href="./dbx"&gt;dbx&lt;/a&gt;&lt;/td&gt;
+&lt;td&gt;ORM &amp;amp; Migrations&lt;/td&gt;
+&lt;td&gt;Schema-first / generic-first ORM core on &lt;code&gt;database/sql&lt;/code&gt;（包含 &lt;code&gt;dbx/sqltmplx&lt;/code&gt;）&lt;/td&gt;
+&lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
+&lt;h2&gt;Roadmap&lt;span class="hx:absolute hx:-mt-20" id="roadmap"&gt;&lt;/span&gt;
+&lt;a href="#roadmap" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Unified roadmap (all modules): &lt;a href="./roadmap"&gt;ArcGo roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;Module-level roadmap details:&lt;/li&gt;
+&lt;li&gt;&lt;a href="./authx/roadmap"&gt;authx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./clientx/roadmap"&gt;clientx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./collectionx/roadmap"&gt;collectionx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./configx/roadmap"&gt;configx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./eventx/roadmap"&gt;eventx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./httpx/roadmap"&gt;httpx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./logx/roadmap"&gt;logx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="./observabilityx/roadmap"&gt;observabilityx roadmap&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;How to Choose&lt;span class="hx:absolute hx:-mt-20" id="how-to-choose"&gt;&lt;/span&gt;
+&lt;a href="#how-to-choose" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Need container/data utilities: Start with &lt;code&gt;collectionx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need an extensible authentication/authorization abstraction: Start with &lt;code&gt;authx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need protocol-oriented clients (&lt;code&gt;http/tcp/udp&lt;/code&gt;) with shared conventions: Start with &lt;code&gt;clientx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need configuration loading from &lt;code&gt;.env&lt;/code&gt; + files + environment variables: Start with &lt;code&gt;configx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need modular application composition, typed DI, lifecycle, and startup validation: Start with &lt;code&gt;dix&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need in-process typed pub/sub: Start with &lt;code&gt;eventx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need unified typed HTTP handlers across frameworks: Start with &lt;code&gt;httpx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need strongly typed Redis / Valkey repositories and access helpers: Start with &lt;code&gt;kvx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need SQL-first dynamic query templating with optional parser-backed validation: Start with &lt;code&gt;dbx&lt;/code&gt;（includes &lt;code&gt;dbx/sqltmplx&lt;/code&gt;）&lt;/li&gt;
+&lt;li&gt;Need structured logging with rotation: Start with &lt;code&gt;logx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;Need optional telemetry abstraction (OTel/Prometheus): Start with &lt;code&gt;observabilityx&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Typical Combinations&lt;span class="hx:absolute hx:-mt-20" id="typical-combinations"&gt;&lt;/span&gt;
+&lt;a href="#typical-combinations" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;API Service Baseline&lt;/strong&gt;: &lt;code&gt;httpx + configx + logx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Modular App Baseline&lt;/strong&gt;: &lt;code&gt;dix + configx + logx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Event-driven within monolith&lt;/strong&gt;: &lt;code&gt;eventx + logx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Redis / Valkey-backed service&lt;/strong&gt;: &lt;code&gt;kvx + httpx + configx&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;Data-intensive tools/internal libraries&lt;/strong&gt;: &lt;code&gt;collectionx + configx&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Common Commands&lt;span class="hx:absolute hx:-mt-20" id="common-commands"&gt;&lt;/span&gt;
+&lt;a href="#common-commands" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# Format code&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task fmt
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# Lint code&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task lint
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# Run tests&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task test
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;&lt;span style="color:#75715e"&gt;# Full check&lt;/span&gt;
+&lt;/span&gt;&lt;/span&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task check&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;h2&gt;Pre-commit Git Hook&lt;span class="hx:absolute hx:-mt-20" id="pre-commit-git-hook"&gt;&lt;/span&gt;
+&lt;a href="#pre-commit-git-hook" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;p&gt;The repository uses &lt;code&gt;lefthook&lt;/code&gt; (managed via &lt;code&gt;go tool&lt;/code&gt;).&lt;/p&gt;
+&lt;p&gt;Install once per clone:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task git:hooks:install&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;Run hooks manually:&lt;/p&gt;
+&lt;div class="hextra-code-block hx:relative hx:mt-6 hx:first:mt-0 hx:group/code"&gt;
+&lt;div&gt;&lt;div class="highlight"&gt;&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;-webkit-text-size-adjust:none;"&gt;&lt;code class="language-bash" data-lang="bash"&gt;&lt;span style="display:flex;"&gt;&lt;span&gt;go tool task git:hooks:run&lt;/span&gt;&lt;/span&gt;&lt;/code&gt;&lt;/pre&gt;&lt;/div&gt;&lt;/div&gt;&lt;div class="hextra-code-copy-btn-container hx:opacity-0 hx:transition hx:group-hover/code:opacity-100 hx:flex hx:gap-1 hx:absolute hx:m-[11px] hx:right-0 hx:top-0"&gt;
+&lt;button
+class="hextra-code-copy-btn hx:group/copybtn hx:cursor-pointer hx:transition-all hx:active:opacity-50 hx:bg-primary-700/5 hx:border hx:border-black/5 hx:text-gray-600 hx:hover:text-gray-900 hx:rounded-md hx:p-1.5 hx:dark:bg-primary-300/10 hx:dark:border-white/10 hx:dark:text-gray-400 hx:dark:hover:text-gray-50"
+title="Copy code"
+aria-label="Copy code"
+data-copied-label="Copied"
+&gt;
+&lt;div class="hextra-copy-icon hx:group-[.copied]/copybtn:hidden hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;div class="hextra-success-icon hx:hidden hx:group-[.copied]/copybtn:block hx:pointer-events-none hx:h-4 hx:w-4"&gt;&lt;/div&gt;
+&lt;/button&gt;
+&lt;/div&gt;
+&lt;/div&gt;
+&lt;p&gt;The &lt;code&gt;pre-commit&lt;/code&gt; hook runs:&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;code&gt;go tool task fmt&lt;/code&gt;&lt;/li&gt;
+&lt;li&gt;&lt;code&gt;go tool task lint&lt;/code&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Notes&lt;span class="hx:absolute hx:-mt-20" id="notes"&gt;&lt;/span&gt;
+&lt;a href="#notes" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;Code comments are unified in English&lt;/li&gt;
+&lt;li&gt;Chinese documentation uses &lt;code&gt;_index.md&lt;/code&gt; files&lt;/li&gt;
+&lt;/ul&gt;
+&lt;h2&gt;Links&lt;span class="hx:absolute hx:-mt-20" id="links"&gt;&lt;/span&gt;
+&lt;a href="#links" class="subheading-anchor" aria-label="Permalink for this section"&gt;&lt;/a&gt;&lt;/h2&gt;&lt;ul&gt;
+&lt;li&gt;&lt;a href="https://github.com/DaiYuANg/arcgo"target="_blank" rel="noopener"&gt;GitHub Repository&lt;/a&gt;&lt;/li&gt;
+&lt;li&gt;&lt;a href="https://pkg.go.dev/github.com/DaiYuANg/arcgo"target="_blank" rel="noopener"&gt;Go Module&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;</description></item></channel></rss>

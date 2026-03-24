@@ -72,6 +72,7 @@ These are implementation details. The exposed API is still `dbx`, `dbx/sqltmplx`
 - Logging and hooks: [Observability](./observability)
 - Production rollout checklist: [Production Checklist](./production-checklist)
 - API quick lookup: [API Quick Reference](./api-reference)
+- Generic repository abstraction: [Repository Mode](./repository)
 - Dialect abstraction: [Dialect](./dialect)
 - dbx + pure SQL templates: [sqltmplx Integration](./sqltmplx)
 - Runnable examples: [Examples](./examples)

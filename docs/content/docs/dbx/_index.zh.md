@@ -72,6 +72,7 @@ weight: 7
 - 日志与 Hook：[Observability](./observability)
 - 生产落地清单：[Production Checklist](./production-checklist)
 - API 速查：[API Quick Reference](./api-reference)
+- 泛型仓储抽象：[Repository Mode](./repository)
 - 方言抽象：[Dialect](./dialect)
 - dbx + 纯 SQL 模板：[sqltmplx Integration](./sqltmplx)
 - 可运行示例：[Examples](./examples)

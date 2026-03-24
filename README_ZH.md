@@ -22,6 +22,41 @@
 | `logx` | 结构化日志与 `slog` 互通 |
 | `observabilityx` | 可选可观测性抽象（OTel/Prometheus） |
 
+## 安装
+
+快速上手（`@latest`）：
+
+```bash
+go get github.com/DaiYuANg/arcgo/dix@latest
+go get github.com/DaiYuANg/arcgo/httpx@latest
+go get github.com/DaiYuANg/arcgo/dbx@latest
+go get github.com/DaiYuANg/arcgo/kvx@latest
+```
+
+固定版本（生产/CI 推荐）：
+
+```bash
+go get github.com/DaiYuANg/arcgo/authx@v0.0.1
+go get github.com/DaiYuANg/arcgo/clientx@v0.0.1
+go get github.com/DaiYuANg/arcgo/collectionx@v0.0.1
+go get github.com/DaiYuANg/arcgo/configx@v0.0.1
+go get github.com/DaiYuANg/arcgo/dbx@v0.0.1
+go get github.com/DaiYuANg/arcgo/dix@v0.0.1
+go get github.com/DaiYuANg/arcgo/eventx@v0.0.1
+go get github.com/DaiYuANg/arcgo/httpx@v0.0.1
+go get github.com/DaiYuANg/arcgo/kvx@v0.0.1
+go get github.com/DaiYuANg/arcgo/logx@v0.0.1
+go get github.com/DaiYuANg/arcgo/observabilityx@v0.0.1
+```
+
+可选子模块：
+
+```bash
+go get github.com/DaiYuANg/arcgo/dbx/migrate@v0.0.1
+go get github.com/DaiYuANg/arcgo/httpx/middleware@v0.0.1
+go get github.com/DaiYuANg/arcgo/httpx/websocket@v0.0.1
+```
+
 ## 快速选择
 
 - 需要容器/数据工具：从 `collectionx` 开始

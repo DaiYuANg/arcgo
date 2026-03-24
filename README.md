@@ -23,6 +23,41 @@ English | [Chinese](./README_ZH.md)
 | `logx` | Structured logging with zerolog + slog bridge |
 | `observabilityx` | Optional observability facade with OTel/Prometheus adapters |
 
+## Install
+
+Quick start (`@latest`):
+
+```bash
+go get github.com/DaiYuANg/arcgo/dix@latest
+go get github.com/DaiYuANg/arcgo/httpx@latest
+go get github.com/DaiYuANg/arcgo/dbx@latest
+go get github.com/DaiYuANg/arcgo/kvx@latest
+```
+
+Pinned version (recommended for production/CI):
+
+```bash
+go get github.com/DaiYuANg/arcgo/authx@v0.0.1
+go get github.com/DaiYuANg/arcgo/clientx@v0.0.1
+go get github.com/DaiYuANg/arcgo/collectionx@v0.0.1
+go get github.com/DaiYuANg/arcgo/configx@v0.0.1
+go get github.com/DaiYuANg/arcgo/dbx@v0.0.1
+go get github.com/DaiYuANg/arcgo/dix@v0.0.1
+go get github.com/DaiYuANg/arcgo/eventx@v0.0.1
+go get github.com/DaiYuANg/arcgo/httpx@v0.0.1
+go get github.com/DaiYuANg/arcgo/kvx@v0.0.1
+go get github.com/DaiYuANg/arcgo/logx@v0.0.1
+go get github.com/DaiYuANg/arcgo/observabilityx@v0.0.1
+```
+
+Optional submodules:
+
+```bash
+go get github.com/DaiYuANg/arcgo/dbx/migrate@v0.0.1
+go get github.com/DaiYuANg/arcgo/httpx/middleware@v0.0.1
+go get github.com/DaiYuANg/arcgo/httpx/websocket@v0.0.1
+```
+
 ## How To Choose Quickly
 
 - You need container/data helpers: start with `collectionx`.

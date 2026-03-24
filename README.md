@@ -18,7 +18,7 @@ English | [Chinese](./README_ZH.md)
 | `dix` | Strongly typed modular app framework built on top of `do` |
 | `eventx` | In-memory typed event bus |
 | `clientx` | Protocol-oriented client packages with shared conventions (HTTP/TCP/UDP) |
-| `httpx` | Typed HTTP routing across adapters |
+| `httpx` | Typed HTTP routing across adapters (optional submodules: `httpx/middleware`, `httpx/websocket`) |
 | `kvx` | Redis/Valkey unified typed access framework |
 | `logx` | Structured logging with zerolog + slog bridge |
 | `observabilityx` | Optional observability facade with OTel/Prometheus adapters |

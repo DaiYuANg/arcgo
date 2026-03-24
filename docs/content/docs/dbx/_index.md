@@ -259,7 +259,7 @@ for _, sqlText := range plan.SQLPreview() {
     fmt.Println(sqlText)
 }
 
-runner := core.Migrator(migrate.RunnerOptions{ValidateHash: true})
+runner := migrate.NewRunner(core.SQLDB(), core.Dialect(), migrate.RunnerOptions{ValidateHash: true})
 _, err = runner.UpGo(ctx, migrate.NewGoMigration("1", "create users", up, nil))
 if err != nil {
     panic(err)

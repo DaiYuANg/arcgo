@@ -7,7 +7,6 @@ import (
 	"slices"
 
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
-	"github.com/DaiYuANg/arcgo/dbx/migrate"
 )
 
 type DB struct {
@@ -173,10 +172,6 @@ func (db *DB) WithTx(tx *sql.Tx) *Tx {
 		return nil
 	}
 	return &Tx{raw: tx, dialect: db.dialect, observe: db.observe, relation: db.relation}
-}
-
-func (db *DB) Migrator(opts migrate.RunnerOptions) *migrate.Runner {
-	return migrate.NewRunner(db.raw, db.dialect, opts)
 }
 
 func (db *DB) SQL() *SQLExecutor {

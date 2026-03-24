@@ -15,6 +15,7 @@ use (
 	./configx
 	./configx/fx
 	./dbx
+	./dbx/migrate
 	./dbx/sqltmplx
 	./dbx/sqltmplx/validate
 	./dbx/sqltmplx/validate/mysqlparser
@@ -39,6 +40,8 @@ use (
 	./httpx/adapter/gin
 	./httpx/adapter/std
 	./httpx/fx
+	./httpx/middleware
+	./httpx/websocket
 	./kvx
 	./kvx/adapter/redis
 	./kvx/adapter/valkey

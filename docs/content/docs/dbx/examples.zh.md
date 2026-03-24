@@ -45,7 +45,7 @@ go run ./examples/dbx/pure_sql
 | `mutation` | 聚合查询、子查询、批量插入、insert-select、upsert、returning | [examples/dbx/mutation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/mutation) |
 | `query_advanced` | `WITH`、`UNION ALL`、`CASE WHEN`、named table、result column | [examples/dbx/query_advanced](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/query_advanced) |
 | `relations` | alias + relation metadata + `JoinRelation`，以及 `LoadBelongsTo`、`LoadManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
-| `migration` | `PlanSchemaChanges`、`SQLPreview`、`AutoMigrate`、`ValidateSchemas`、`core.Migrator(...).UpGo/UpSQL` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
+| `migration` | `PlanSchemaChanges`、`SQLPreview`、`AutoMigrate`、`ValidateSchemas`、`migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpSQL` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
 | `pure_sql` | `sqltmplx` registry、`dbx.SQLList/SQLGet/SQLFind/SQLScalar`、statement 名称日志、`tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
 
 ## 示例：Codec 与 StructMapper

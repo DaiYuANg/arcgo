@@ -56,7 +56,7 @@ func main() {
 		fmt.Printf("- name=%s columns=%v target=%s(%v)\n", fk.Name, fk.Columns, fk.TargetTable, fk.TargetColumns)
 	}
 
-	runner := core.Migrator(migrate.RunnerOptions{ValidateHash: true})
+	runner := migrate.NewRunner(core.SQLDB(), core.Dialect(), migrate.RunnerOptions{ValidateHash: true})
 	goReport, err := runner.UpGo(ctx, migrate.NewGoMigration(
 		"1",
 		"create runner events",

@@ -3,8 +3,6 @@ package dbx
 import (
 	"database/sql"
 	"testing"
-
-	"github.com/DaiYuANg/arcgo/dbx/migrate"
 )
 
 type Role struct {
@@ -175,21 +173,6 @@ func TestQueryBuildersCompactNilInputs(t *testing.T) {
 	}
 }
 
-func TestMigrationFilenameParsing(t *testing.T) {
-	parsed, err := migrate.ParseVersionedFilename("V1_2__create_users.sql")
-	if err != nil {
-		t.Fatalf("ParseVersionedFilename returned error: %v", err)
-	}
-	if parsed.Version != "1_2" || parsed.Description != "create users" {
-		t.Fatalf("unexpected parsed migration: %+v", parsed)
-	}
-
-	runner := migrate.NewRunner(nil, testSQLiteDialect{}, migrate.RunnerOptions{})
-	if runner.Options().HistoryTable != "schema_history" {
-		t.Fatalf("unexpected default history table: %q", runner.Options().HistoryTable)
-	}
-}
-
 func TestOptionsPresets(t *testing.T) {
 	db := NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, TestOptions()...)
 	if !db.Debug() {
@@ -210,8 +193,5 @@ func TestDBWrapper(t *testing.T) {
 	bound := core.Bound("select 1 where id = ?", 1)
 	if bound.SQL != "select 1 where id = ?" || len(bound.Args) != 1 {
 		t.Fatalf("unexpected bound query: %+v", bound)
-	}
-	if core.Migrator(migrate.RunnerOptions{}).DB() != nil {
-		t.Fatal("expected migrator db to be nil when core wraps no *sql.DB")
 	}
 }

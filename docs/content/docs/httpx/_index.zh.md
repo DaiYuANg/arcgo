@@ -38,6 +38,33 @@ weight: 5
 - `adapter/*`: 运行时、路由器集成、原生中间件生态系统
 - `httpx`: 统一服务组织 API 和 Huma 能力暴露
 
+## 可选子模块
+
+`httpx` 将可选集成拆分为独立子模块，核心用户可避免拉取额外依赖。
+
+- `github.com/DaiYuANg/arcgo/httpx/middleware`
+  - 包含 Prometheus 与 OpenTelemetry 中间件。
+  - 仅在需要指标/追踪中间件时导入。
+- `github.com/DaiYuANg/arcgo/httpx/websocket`
+  - 提供基于 `gws` 的轻量 websocket 抽象。
+  - 需要 websocket 端点时可直接使用：
+
+```go
+import "github.com/DaiYuANg/arcgo/httpx/websocket"
+
+router.HandleFunc("/ws", websocket.HandlerFunc(func(ctx context.Context, conn websocket.Conn) error {
+    for {
+        msg, err := conn.Read(ctx)
+        if err != nil {
+            return err
+        }
+        if err := conn.Write(msg); err != nil {
+            return err
+        }
+    }
+}))
+```
+
 ## 最小设置
 
 ```go
@@ -436,6 +463,8 @@ if rec.Code != http.StatusOK {
   - 文档路径、安全、全局头和组默认值
   - 查看 [`examples/httpx/organization/README.md`](https://github.com/DaiYuANg/arcgo/tree/main/examples/httpx/organization)
 - SSE: `go run ./examples/httpx/sse`
+- WebSocket: `go run ./examples/httpx/websocket`
+  - Echo websocket endpoint over `gws`
   - 基于 `text/event-stream` 的类型化事件流
 - Conditional Requests: `go run ./examples/httpx/conditional`
   - 基于 ETag 和 Last-Modified 的前置条件校验

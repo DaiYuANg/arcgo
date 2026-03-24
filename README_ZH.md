@@ -17,7 +17,7 @@
 | `dix` | 基于 `do` 的强类型模块化应用框架 |
 | `eventx` | 进程内强类型事件总线 |
 | `clientx` | 面向协议的客户端包集合（HTTP/TCP/UDP） |
-| `httpx` | 多框架统一强类型 HTTP 路由 |
+| `httpx` | 多框架统一强类型 HTTP 路由（可选子模块：`httpx/middleware`、`httpx/websocket`） |
 | `kvx` | Redis / Valkey 的统一强类型访问框架 |
 | `logx` | 结构化日志与 `slog` 互通 |
 | `observabilityx` | 可选可观测性抽象（OTel/Prometheus） |

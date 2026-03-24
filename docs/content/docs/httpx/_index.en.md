@@ -38,6 +38,33 @@ The division of responsibilities is as follows:
 - `adapter/*`: Runtime, router integration, native middleware ecosystem
 - `httpx`: Unified service organization API and Huma capability exposure
 
+## Optional Modules
+
+`httpx` keeps optional integrations in separate submodules so core users avoid pulling extra dependencies.
+
+- `github.com/DaiYuANg/arcgo/httpx/middleware`
+  - Contains Prometheus and OpenTelemetry middlewares.
+  - Import when you need metrics/tracing middleware.
+- `github.com/DaiYuANg/arcgo/httpx/websocket`
+  - Provides a minimal websocket abstraction based on `gws`.
+  - Use directly when you need websocket endpoints:
+
+```go
+import "github.com/DaiYuANg/arcgo/httpx/websocket"
+
+router.HandleFunc("/ws", websocket.HandlerFunc(func(ctx context.Context, conn websocket.Conn) error {
+    for {
+        msg, err := conn.Read(ctx)
+        if err != nil {
+            return err
+        }
+        if err := conn.Write(msg); err != nil {
+            return err
+        }
+    }
+}))
+```
+
 ## Minimal Setup
 
 ```go
@@ -436,6 +463,8 @@ No. Keep adapter-native middleware on the adapter itself, and use `httpx` for Hu
   - Documentation paths, security, global headers, and group defaults
   - See [`examples/httpx/organization/README.md`](https://github.com/DaiYuANg/arcgo/tree/main/examples/httpx/organization)
 - SSE: `go run ./examples/httpx/sse`
+- WebSocket: `go run ./examples/httpx/websocket`
+  - Echo websocket endpoint over `gws`
   - Typed event streaming over `text/event-stream`
 - Conditional Requests: `go run ./examples/httpx/conditional`
   - ETag and Last-Modified based precondition checks

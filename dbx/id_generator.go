@@ -3,24 +3,56 @@ package dbx
 import (
 	"context"
 	"fmt"
+	"hash/fnv"
+	"os"
 	"sync"
 	"time"
 
+	"github.com/oklog/ulid/v2"
 	"github.com/google/uuid"
+	"github.com/segmentio/ksuid"
 )
 
 type IDGenerator interface {
 	GenerateID(ctx context.Context, column ColumnMeta) (any, error)
 }
 
+const (
+	DefaultNodeID uint16 = 1
+	MinNodeID     uint16 = 1
+	MaxNodeID     uint16 = 1023
+)
+
 type defaultIDGenerator struct {
-	mu           sync.Mutex
-	lastUnixMs   int64
-	snowflakeSeq int64
+	mu             sync.Mutex
+	nodeID         uint16
+	lastUnixMs     int64
+	snowflakeSeq   int64
 }
 
-func newDefaultIDGenerator() *defaultIDGenerator {
-	return &defaultIDGenerator{}
+func NewSnowflakeGenerator(nodeID uint16) (IDGenerator, error) {
+	if nodeID < MinNodeID || nodeID > MaxNodeID {
+		return nil, &NodeIDOutOfRangeError{NodeID: nodeID, Min: MinNodeID, Max: MaxNodeID}
+	}
+	return &defaultIDGenerator{nodeID: nodeID}, nil
+}
+
+func ResolveNodeIDFromHostName() uint16 {
+	hostName, err := os.Hostname()
+	if err != nil || hostName == "" {
+		return DefaultNodeID
+	}
+	hasher := fnv.New32a()
+	_, _ = hasher.Write([]byte(hostName))
+	id := uint16(hasher.Sum32() % (uint32(MaxNodeID) + 1))
+	if id < MinNodeID {
+		return MinNodeID
+	}
+	return id
+}
+
+func newDefaultIDGenerator(nodeID uint16) *defaultIDGenerator {
+	return &defaultIDGenerator{nodeID: nodeID}
 }
 
 func (g *defaultIDGenerator) GenerateID(_ context.Context, column ColumnMeta) (any, error) {
@@ -29,6 +61,10 @@ func (g *defaultIDGenerator) GenerateID(_ context.Context, column ColumnMeta) (a
 		return g.nextSnowflakeID(), nil
 	case IDStrategyUUID:
 		return g.nextUUID(column.UUIDVersion)
+	case IDStrategyULID:
+		return ulid.Make().String(), nil
+	case IDStrategyKSUID:
+		return ksuid.New().String(), nil
 	default:
 		return nil, fmt.Errorf("dbx: unsupported id strategy %q", column.IDStrategy)
 	}
@@ -68,6 +104,6 @@ func (g *defaultIDGenerator) nextSnowflakeID() int64 {
 	}
 	g.lastUnixMs = nowMs
 
-	// 41-bit timestamp + 12-bit sequence, node id kept as 0 in default generator.
-	return (nowMs << 22) | g.snowflakeSeq
+	// 41-bit timestamp + 10-bit node id + 12-bit sequence.
+	return (nowMs << 22) | (int64(g.nodeID) << 12) | g.snowflakeSeq
 }

@@ -59,7 +59,7 @@ func TestDBDebugLoggingAndHooks(t *testing.T) {
 	beforeCount := 0
 	afterCount := 0
 
-	db := NewWithOptions(
+	db := MustNewWithOptions(
 		sqlDB,
 		testSQLiteDialect{},
 		WithLogger(logger),
@@ -84,7 +84,7 @@ func TestDBDebugLoggingAndHooks(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
 	mapper := MustMapper[User](users)
 	entity := &User{Username: "alice", Email: "alice@example.com", Status: 1, RoleID: 9}
-	assignments, err := mapper.InsertAssignments(users, entity)
+	assignments, err := mapper.InsertAssignments(db, users, entity)
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
@@ -132,7 +132,7 @@ func TestSchemaOperationsEmitObserverEvents(t *testing.T) {
 		ForeignKeys: toForeignKeyStates(spec.ForeignKeys),
 	}
 
-	db := NewWithOptions(
+	db := MustNewWithOptions(
 		nil,
 		schemaDialect,
 		WithLogger(logger),
@@ -177,12 +177,7 @@ func TestHookEventMetadataAndDuration(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
 	mapper := MustMapper[User](users)
 	entity := &User{Username: "bob", Email: "bob@example.com", Status: 1, RoleID: 1}
-	assignments, err := mapper.InsertAssignments(users, entity)
-	if err != nil {
-		t.Fatalf("InsertAssignments returned error: %v", err)
-	}
-
-	db := NewWithOptions(
+	db := MustNewWithOptions(
 		sqlDB,
 		testSQLiteDialect{},
 		WithLogger(logger),
@@ -198,6 +193,10 @@ func TestHookEventMetadataAndDuration(t *testing.T) {
 			},
 		}),
 	)
+	assignments, err := mapper.InsertAssignments(db, users, entity)
+	if err != nil {
+		t.Fatalf("InsertAssignments returned error: %v", err)
+	}
 
 	type ctxKey struct{}
 	ctx := context.WithValue(context.Background(), ctxKey{}, "abc-123")

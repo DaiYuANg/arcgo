@@ -8,7 +8,7 @@ weight: 9
 ## ID Generation
 
 `dbx` supports typed ID generation strategies for primary keys.  
-Configure ID behavior with `NewIDColumn[..., ..., Marker]()` and marker types, not string tags.
+Configure ID behavior directly in schema fields with `IDColumn[..., ..., Marker]`, not string tags.
 
 ## Marker Types
 
@@ -19,6 +19,8 @@ Configure ID behavior with `NewIDColumn[..., ..., Marker]()` and marker types, n
 | `dbx.IDUUID` | `string` | App-generated UUID (defaults to v7) |
 | `dbx.IDUUIDv7` | `string` | App-generated UUIDv7 |
 | `dbx.IDUUIDv4` | `string` | App-generated UUIDv4 |
+| `dbx.IDULID` | `string` | App-generated ULID |
+| `dbx.IDKSUID` | `string` | App-generated KSUID |
 
 ## Recommended Usage
 
@@ -30,13 +32,10 @@ type Event struct {
 
 type EventSchema struct {
     dbx.Schema[Event]
-    ID   dbx.Column[Event, int64]  `dbx:"id,pk"`
-    Name dbx.Column[Event, string] `dbx:"name"`
+    ID   dbx.IDColumn[Event, int64, dbx.IDSnowflake] `dbx:"id,pk"`
+    Name dbx.Column[Event, string]                   `dbx:"name"`
 }
-
-var Events = dbx.MustSchema("events", EventSchema{
-    ID: dbx.NewIDColumn[Event, int64, dbx.IDSnowflake](),
-})
+var Events = dbx.MustSchema("events", EventSchema{})
 ```
 
 ## Defaults
@@ -44,7 +43,14 @@ var Events = dbx.MustSchema("events", EventSchema{
 - `int64` primary key with `dbx:"id,pk"` defaults to `db_auto`.
 - `string` primary key with `dbx:"id,pk"` defaults to `uuid` with version `v7`.
 
+## Production Guidance
+
+- Single-instance can rely on the default node id behavior.
+- Multi-instance should set an explicit stable node id with `dbx.WithNodeID(...)`.
+- Keep declaration and execution separated: schema uses `IDColumn`, runtime generation uses DB options.
+- `WithNodeID` and `WithIDGenerator` are mutually exclusive; configuring both returns an error.
+
 ## Migration Note
 
 `idgen` and `uuidv` tag parameters are removed.  
-Use marker types (`NewIDColumn`) for explicit ID strategy configuration.
+Use marker types on `IDColumn` for explicit ID strategy configuration.

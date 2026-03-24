@@ -32,6 +32,8 @@ const (
 	IDStrategyDBAuto    IDStrategy = "db_auto"
 	IDStrategySnowflake IDStrategy = "snowflake"
 	IDStrategyUUID      IDStrategy = "uuid"
+	IDStrategyULID      IDStrategy = "ulid"
+	IDStrategyKSUID     IDStrategy = "ksuid"
 	DefaultUUIDVersion             = "v7"
 )
 
@@ -84,6 +86,12 @@ type Column[E any, T any] struct {
 	meta ColumnMeta
 }
 
+// IDColumn declares an ID policy directly in the schema field type.
+// The marker strategy is applied during schema binding.
+type IDColumn[E any, T any, M IDMarker] struct {
+	Column[E, T]
+}
+
 type ColumnOption[E any, T any] func(Column[E, T]) Column[E, T]
 
 type IDAuto struct{}
@@ -91,6 +99,8 @@ type IDSnowflake struct{}
 type IDUUID struct{}
 type IDUUIDv7 struct{}
 type IDUUIDv4 struct{}
+type IDULID struct{}
+type IDKSUID struct{}
 
 func (IDAuto) idStrategy() IDStrategy      { return IDStrategyDBAuto }
 func (IDAuto) uuidVersion() string         { return "" }
@@ -102,6 +112,10 @@ func (IDUUIDv7) idStrategy() IDStrategy    { return IDStrategyUUID }
 func (IDUUIDv7) uuidVersion() string       { return "v7" }
 func (IDUUIDv4) idStrategy() IDStrategy    { return IDStrategyUUID }
 func (IDUUIDv4) uuidVersion() string       { return "v4" }
+func (IDULID) idStrategy() IDStrategy      { return IDStrategyULID }
+func (IDULID) uuidVersion() string         { return "" }
+func (IDKSUID) idStrategy() IDStrategy     { return IDStrategyKSUID }
+func (IDKSUID) uuidVersion() string        { return "" }
 
 func NewColumn[E any, T any](opts ...ColumnOption[E, T]) Column[E, T] {
 	column := Column[E, T]{}
@@ -111,17 +125,16 @@ func NewColumn[E any, T any](opts ...ColumnOption[E, T]) Column[E, T] {
 	return column
 }
 
-func NewIDColumn[E any, T any, M IDMarker](opts ...ColumnOption[E, T]) Column[E, T] {
+func (c IDColumn[E, T, M]) bindColumn(binding columnBinding) any {
 	marker := *new(M)
-	base := []ColumnOption[E, T]{
-		PrimaryKeyColumn[E, T](),
-		WithIDStrategyColumn[E, T](marker.idStrategy()),
-	}
+	base := c.Column
+	base.meta.PrimaryKey = true
+	base.meta.IDStrategy = marker.idStrategy()
 	if version := marker.uuidVersion(); version != "" {
-		base = append(base, WithUUIDVersionColumn[E, T](version))
+		base.meta.UUIDVersion = version
 	}
-	base = append(base, opts...)
-	return NewColumn[E, T](base...)
+	bound := base.bindColumn(binding).(Column[E, T])
+	return IDColumn[E, T, M]{Column: bound}
 }
 
 func NamedColumn[T any](source TableSource, name string) Column[struct{}, T] {

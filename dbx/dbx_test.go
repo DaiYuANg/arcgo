@@ -2,6 +2,7 @@ package dbx
 
 import (
 	"database/sql"
+	"errors"
 	"testing"
 )
 
@@ -37,7 +38,7 @@ type StrongTypedIDUser struct {
 
 type StrongTypedIDUserSchema struct {
 	Schema[StrongTypedIDUser]
-	ID   Column[StrongTypedIDUser, int64]  `dbx:"id,pk"`
+	ID   IDColumn[StrongTypedIDUser, int64, IDSnowflake] `dbx:"id,pk"`
 	Name Column[StrongTypedIDUser, string] `dbx:"name"`
 }
 
@@ -139,13 +140,11 @@ func TestDefaultUUIDIDStrategyForStringPrimaryKey(t *testing.T) {
 	}
 }
 
-func TestColumnOptionOverridesIDStrategy(t *testing.T) {
-	schema := MustSchema("users", StrongTypedIDUserSchema{
-		ID: NewIDColumn[StrongTypedIDUser, int64, IDSnowflake](),
-	})
+func TestIDColumnTypeAppliesIDStrategy(t *testing.T) {
+	schema := MustSchema("users", StrongTypedIDUserSchema{})
 	meta := schema.ID.Meta()
 	if meta.IDStrategy != IDStrategySnowflake {
-		t.Fatalf("expected snowflake id strategy from column option, got %q", meta.IDStrategy)
+		t.Fatalf("expected snowflake id strategy from typed id column, got %q", meta.IDStrategy)
 	}
 	if meta.AutoIncrement {
 		t.Fatalf("snowflake strategy should disable auto increment: %+v", meta)
@@ -226,15 +225,24 @@ func TestQueryBuildersCompactNilInputs(t *testing.T) {
 }
 
 func TestOptionsPresets(t *testing.T) {
-	db := NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, TestOptions()...)
+	db, err := NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, TestOptions()...)
+	if err != nil {
+		t.Fatalf("NewWithOptions returned error: %v", err)
+	}
 	if !db.Debug() {
 		t.Error("TestOptions should enable debug")
 	}
-	db = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, ProductionOptions()...)
+	db, err = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, ProductionOptions()...)
+	if err != nil {
+		t.Fatalf("NewWithOptions returned error: %v", err)
+	}
 	if db.Debug() {
 		t.Error("ProductionOptions should disable debug")
 	}
-	db = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, DefaultOptions()...)
+	db, err = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, DefaultOptions()...)
+	if err != nil {
+		t.Fatalf("NewWithOptions returned error: %v", err)
+	}
 	if db.Debug() {
 		t.Error("DefaultOptions should have debug false")
 	}
@@ -245,5 +253,36 @@ func TestDBWrapper(t *testing.T) {
 	bound := core.Bound("select 1 where id = ?", 1)
 	if bound.SQL != "select 1 where id = ?" || len(bound.Args) != 1 {
 		t.Fatalf("unexpected bound query: %+v", bound)
+	}
+}
+
+func TestNewWithOptionsRejectsConflictingIDOptions(t *testing.T) {
+	generator, err := NewSnowflakeGenerator(DefaultNodeID)
+	if err != nil {
+		t.Fatalf("NewSnowflakeGenerator returned error: %v", err)
+	}
+	_, err = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{},
+		WithIDGenerator(generator),
+		WithNodeID(DefaultNodeID),
+	)
+	if !errors.Is(err, ErrIDGeneratorNodeIDConflict) {
+		t.Fatalf("expected ErrIDGeneratorNodeIDConflict, got: %v", err)
+	}
+}
+
+func TestNewWithOptionsRejectsInvalidNodeID(t *testing.T) {
+	_, err := NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, WithNodeID(0))
+	if err == nil {
+		t.Fatal("expected invalid node id error")
+	}
+	if !errors.Is(err, ErrInvalidNodeID) {
+		t.Fatalf("expected ErrInvalidNodeID, got: %v", err)
+	}
+	var outOfRange *NodeIDOutOfRangeError
+	if !errors.As(err, &outOfRange) {
+		t.Fatalf("expected NodeIDOutOfRangeError, got: %T", err)
+	}
+	if outOfRange.NodeID != 0 {
+		t.Fatalf("unexpected node id in error: %d", outOfRange.NodeID)
 	}
 }

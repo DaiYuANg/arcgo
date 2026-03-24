@@ -50,7 +50,7 @@ func BenchmarkMapperInsertAssignments(b *testing.B) {
 
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		if _, err := mapper.InsertAssignments(accounts, entity); err != nil {
+		if _, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), accounts, entity); err != nil {
 			b.Fatalf("InsertAssignments returned error: %v", err)
 		}
 	}
@@ -79,14 +79,14 @@ type benchmarkDBAutoIDSchema struct {
 
 type benchmarkSnowflakeIDSchema struct {
 	Schema[benchmarkSnowflakeIDRecord]
-	ID    Column[benchmarkSnowflakeIDRecord, int64]  `dbx:"id,pk"`
-	Label Column[benchmarkSnowflakeIDRecord, string] `dbx:"label"`
+	ID    IDColumn[benchmarkSnowflakeIDRecord, int64, IDSnowflake] `dbx:"id,pk"`
+	Label Column[benchmarkSnowflakeIDRecord, string]               `dbx:"label"`
 }
 
 type benchmarkUUIDIDSchema struct {
 	Schema[benchmarkUUIDIDRecord]
-	ID    Column[benchmarkUUIDIDRecord, string] `dbx:"id,pk"`
-	Label Column[benchmarkUUIDIDRecord, string] `dbx:"label"`
+	ID    IDColumn[benchmarkUUIDIDRecord, string, IDUUIDv7] `dbx:"id,pk"`
+	Label Column[benchmarkUUIDIDRecord, string]             `dbx:"label"`
 }
 
 func BenchmarkMapperInsertAssignmentsIDStrategy(b *testing.B) {
@@ -94,15 +94,11 @@ func BenchmarkMapperInsertAssignmentsIDStrategy(b *testing.B) {
 	dbAutoMapper := MustMapper[benchmarkDBAutoIDRecord](dbAutoSchema)
 	dbAutoEntity := &benchmarkDBAutoIDRecord{Label: "admin"}
 
-	snowflakeSchema := MustSchema("benchmark_snowflake_records", benchmarkSnowflakeIDSchema{
-		ID: NewIDColumn[benchmarkSnowflakeIDRecord, int64, IDSnowflake](),
-	})
+	snowflakeSchema := MustSchema("benchmark_snowflake_records", benchmarkSnowflakeIDSchema{})
 	snowflakeMapper := MustMapper[benchmarkSnowflakeIDRecord](snowflakeSchema)
 	snowflakeEntity := &benchmarkSnowflakeIDRecord{Label: "admin"}
 
-	uuidSchema := MustSchema("benchmark_uuid_records", benchmarkUUIDIDSchema{
-		ID: NewIDColumn[benchmarkUUIDIDRecord, string, IDUUIDv7](),
-	})
+	uuidSchema := MustSchema("benchmark_uuid_records", benchmarkUUIDIDSchema{})
 	uuidMapper := MustMapper[benchmarkUUIDIDRecord](uuidSchema)
 	uuidEntity := &benchmarkUUIDIDRecord{Label: "admin"}
 
@@ -110,7 +106,7 @@ func BenchmarkMapperInsertAssignmentsIDStrategy(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			dbAutoEntity.ID = 0
-			if _, err := dbAutoMapper.InsertAssignments(dbAutoSchema, dbAutoEntity); err != nil {
+			if _, err := dbAutoMapper.InsertAssignments(New(nil, testSQLiteDialect{}), dbAutoSchema, dbAutoEntity); err != nil {
 				b.Fatalf("InsertAssignments returned error: %v", err)
 			}
 		}
@@ -120,7 +116,7 @@ func BenchmarkMapperInsertAssignmentsIDStrategy(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			snowflakeEntity.ID = 0
-			if _, err := snowflakeMapper.InsertAssignments(snowflakeSchema, snowflakeEntity); err != nil {
+			if _, err := snowflakeMapper.InsertAssignments(New(nil, testSQLiteDialect{}), snowflakeSchema, snowflakeEntity); err != nil {
 				b.Fatalf("InsertAssignments returned error: %v", err)
 			}
 		}
@@ -130,7 +126,7 @@ func BenchmarkMapperInsertAssignmentsIDStrategy(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			uuidEntity.ID = ""
-			if _, err := uuidMapper.InsertAssignments(uuidSchema, uuidEntity); err != nil {
+			if _, err := uuidMapper.InsertAssignments(New(nil, testSQLiteDialect{}), uuidSchema, uuidEntity); err != nil {
 				b.Fatalf("InsertAssignments returned error: %v", err)
 			}
 		}
@@ -311,7 +307,7 @@ func BenchmarkMapperInsertAssignmentsCodec(b *testing.B) {
 
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
-		if _, err := mapper.InsertAssignments(accounts, entity); err != nil {
+		if _, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), accounts, entity); err != nil {
 			b.Fatalf("InsertAssignments returned error: %v", err)
 		}
 	}

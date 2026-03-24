@@ -15,7 +15,7 @@ func TestSQLListScansStructMapperAndPropagatesStatementName(t *testing.T) {
 	defer cleanup()
 
 	var event HookEvent
-	core := NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{
+	core := MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{
 		AfterFunc: func(_ context.Context, actual *HookEvent) {
 			if actual != nil && actual.Operation == OperationQuery {
 				event = *actual

@@ -43,14 +43,20 @@ defer db.Close()
 core := dbx.New(raw, dialect)
 
 // 预设 + 覆盖
-core := dbx.NewWithOptions(raw, dialect, append(dbx.TestOptions(), dbx.WithLogger(myLogger))...)
+core, err := dbx.NewWithOptions(raw, dialect, append(dbx.TestOptions(), dbx.WithLogger(myLogger))...)
+if err != nil {
+    return err
+}
 
 // 自定义组合
-core := dbx.NewWithOptions(raw, dialect,
+core, err := dbx.NewWithOptions(raw, dialect,
     dbx.WithLogger(logger),
     dbx.WithDebug(true),
     dbx.WithHooks(dbx.HookFuncs{AfterFunc: myAfterHook}),
 )
+if err != nil {
+    return err
+}
 ```
 
 ## Options 表
@@ -60,6 +66,8 @@ core := dbx.NewWithOptions(raw, dialect,
 | `WithLogger(logger)` | `slog.Default()` | 操作事件日志。debug=false 时仅记录错误。 |
 | `WithHooks(hooks...)` | `[]` | 每个操作前后执行的 hooks，可叠加。详见 [Observability 可观测性](./observability)（慢查询、Metadata trace_id/request_id 等）。 |
 | `WithDebug(enabled)` | `false` | 为 true 时，所有操作以 Debug 级别记录。开发/测试中用于查看 SQL。 |
+| `WithNodeID(nodeID)` | 主机名自动推导 | DB 节点标识，内建 Snowflake 生成器会使用它。 |
+| `WithIDGenerator(generator)` | 内建生成器 | 覆盖当前 DB 实例的内建 ID 生成器。 |
 
 ## Composition 组合
 
@@ -73,4 +81,22 @@ dbx.NewWithOptions(raw, d,
     dbx.WithDebug(true),
     dbx.WithHooks(h2),
 )
+```
+
+`WithNodeID` 与 `WithIDGenerator` 互斥，同时配置会返回错误。
+
+## 错误处理
+
+```go
+core, err := dbx.NewWithOptions(raw, d, dbx.WithNodeID(0))
+if err != nil {
+    if errors.Is(err, dbx.ErrInvalidNodeID) {
+        var out *dbx.NodeIDOutOfRangeError
+        if errors.As(err, &out) {
+            // out.NodeID, out.Min, out.Max
+        }
+    }
+    return err
+}
+_ = core
 ```

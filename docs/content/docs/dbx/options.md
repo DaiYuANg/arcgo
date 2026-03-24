@@ -43,14 +43,20 @@ Required: `WithDriver`, `WithDSN`, `WithDialect`. If any is missing, `Open` retu
 core := dbx.New(raw, dialect)
 
 // Preset + override
-core := dbx.NewWithOptions(raw, dialect, append(dbx.TestOptions(), dbx.WithLogger(myLogger))...)
+core, err := dbx.NewWithOptions(raw, dialect, append(dbx.TestOptions(), dbx.WithLogger(myLogger))...)
+if err != nil {
+    return err
+}
 
 // Custom combination
-core := dbx.NewWithOptions(raw, dialect,
+core, err := dbx.NewWithOptions(raw, dialect,
     dbx.WithLogger(logger),
     dbx.WithDebug(true),
     dbx.WithHooks(dbx.HookFuncs{AfterFunc: myAfterHook}),
 )
+if err != nil {
+    return err
+}
 ```
 
 ## Options table
@@ -60,6 +66,8 @@ core := dbx.NewWithOptions(raw, dialect,
 | `WithLogger(logger)` | `slog.Default()` | Logger for operation events. When debug=false, only errors are logged. |
 | `WithHooks(hooks...)` | `[]` | Hooks run before/after each operation. Additive; call multiple times or pass multiple hooks to combine. See [Observability](./observability) for slow-query detection, Metadata (trace_id, request_id), and more. |
 | `WithDebug(enabled)` | `false` | When true, all operations are logged at Debug level. Use in dev/tests to inspect SQL. |
+| `WithNodeID(nodeID)` | auto derived from hostname | DB node id used by the built-in Snowflake generator. |
+| `WithIDGenerator(generator)` | built-in generator | Overrides the built-in ID generator for this DB instance. |
 
 ## Composition
 
@@ -73,4 +81,22 @@ dbx.NewWithOptions(raw, d,
     dbx.WithDebug(true),
     dbx.WithHooks(h2),
 )
+```
+
+`WithNodeID` and `WithIDGenerator` are mutually exclusive. Passing both returns an error.
+
+## Error Handling
+
+```go
+core, err := dbx.NewWithOptions(raw, d, dbx.WithNodeID(0))
+if err != nil {
+    if errors.Is(err, dbx.ErrInvalidNodeID) {
+        var out *dbx.NodeIDOutOfRangeError
+        if errors.As(err, &out) {
+            // out.NodeID, out.Min, out.Max
+        }
+    }
+    return err
+}
+_ = core
 ```

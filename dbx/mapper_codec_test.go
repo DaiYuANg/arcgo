@@ -60,7 +60,7 @@ const (
 func (s accountStatus) MarshalText() ([]byte, error) {
 	switch s {
 	case accountStatusActive, accountStatusBlocked:
-		return []byte(string(s)), nil
+		return []byte(s), nil
 	default:
 		return nil, errors.New("dbx: invalid account status")
 	}
@@ -204,7 +204,7 @@ func TestMapperAssignmentsUseCodecEncoding(t *testing.T) {
 		Tags: []string{"alpha", "beta"},
 	}
 
-	assignments, err := mapper.InsertAssignments(accounts, entity)
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), accounts, entity)
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestMapperAssignmentsUseCodecEncoding(t *testing.T) {
 	}
 
 	rec := &hookRecorder{}
-	if _, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(accounts).Values(assignments...)); err != nil {
+	if _, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(accounts).Values(assignments...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
 	if rec.execCount != 1 {
@@ -304,12 +304,12 @@ func TestBuiltInUnixMilliTimeCodecScanAndEncode(t *testing.T) {
 		t.Fatalf("unexpected time codec items: %+v", items)
 	}
 
-	assignments, err := mapper.InsertAssignments(schema, &items[0])
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), schema, &items[0])
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
 	rec := &hookRecorder{}
-	if _, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(schema).Values(assignments...)); err != nil {
+	if _, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(schema).Values(assignments...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
 	if rec.execCount != 1 {
@@ -345,12 +345,12 @@ func TestBuiltInTextCodecScanAndEncode(t *testing.T) {
 		t.Fatalf("unexpected balance: %s", items[0].Balance.String())
 	}
 
-	assignments, err := mapper.InsertAssignments(schema, &items[0])
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), schema, &items[0])
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
 	rec := &hookRecorder{}
-	if _, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(schema).Values(assignments...)); err != nil {
+	if _, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(schema).Values(assignments...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
 	if rec.execCount != 1 {

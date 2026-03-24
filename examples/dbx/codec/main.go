@@ -25,7 +25,7 @@ const (
 func (s AccountStatus) MarshalText() ([]byte, error) {
 	switch s {
 	case AccountStatusActive, AccountStatusBlocked:
-		return []byte(string(s)), nil
+		return []byte(s), nil
 	default:
 		return nil, fmt.Errorf("invalid account status %q", s)
 	}
@@ -118,7 +118,7 @@ func main() {
 			Tags: []string{"sqlite", "json"},
 		},
 	} {
-		assignments, err := mapper.InsertAssignments(accounts, &account)
+		assignments, err := mapper.InsertAssignments(core, accounts, &account)
 		if err != nil {
 			panic(err)
 		}

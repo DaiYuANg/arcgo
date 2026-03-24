@@ -52,11 +52,11 @@ func WithDialect(d dialect.Dialect) OpenOption {
 // ApplyOptions applies Option (WithLogger, WithHooks, WithDebug) to the DB created by Open.
 func ApplyOptions(opts ...Option) OpenOption {
 	return func(c *openConfig) error {
-		lo.ForEach(lo.Filter(opts, func(opt Option, _ int) bool {
-			return opt != nil
-		}), func(opt Option, _ int) {
-			opt(&c.observe)
-		})
+		observe, err := applyOptions(opts...)
+		if err != nil {
+			return err
+		}
+		c.observe = observe
 		return nil
 	}
 }
@@ -86,9 +86,16 @@ func Open(opts ...OpenOption) (*DB, error) {
 		return nil, err
 	}
 
-	return NewWithOptions(raw, config.dialect,
+	dbOpts := []Option{
 		WithLogger(config.observe.logger),
 		WithHooks(config.observe.hooks...),
 		WithDebug(config.observe.debug),
-	), nil
+	}
+	if config.observe.hasIDGenerator {
+		dbOpts = append(dbOpts, WithIDGenerator(config.observe.idGenerator))
+	}
+	if config.observe.hasNodeID {
+		dbOpts = append(dbOpts, WithNodeID(config.observe.nodeID))
+	}
+	return NewWithOptions(raw, config.dialect, dbOpts...)
 }

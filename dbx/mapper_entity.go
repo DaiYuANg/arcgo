@@ -8,16 +8,18 @@ import (
 	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
-var globalIDGenerator IDGenerator = newDefaultIDGenerator()
-
-func (m Mapper[E]) InsertAssignments(schema SchemaResource, entity *E) ([]Assignment, error) {
-	return m.InsertAssignmentsWithID(context.Background(), schema, entity, globalIDGenerator)
+func (m Mapper[E]) InsertAssignments(session Session, schema SchemaResource, entity *E) ([]Assignment, error) {
+	if session == nil {
+		return nil, ErrNilDB
+	}
+	carrier, ok := any(session).(interface{ IDGenerator() IDGenerator })
+	if !ok {
+		return nil, fmt.Errorf("dbx: session does not expose id generator")
+	}
+	return m.InsertAssignmentsWithID(context.Background(), schema, entity, carrier.IDGenerator())
 }
 
 func (m Mapper[E]) InsertAssignmentsWithID(ctx context.Context, schema SchemaResource, entity *E, generator IDGenerator) ([]Assignment, error) {
-	if generator == nil {
-		generator = globalIDGenerator
-	}
 	return m.entityAssignments(ctx, schema, entity, generator, func(column ColumnMeta, field MappedField) bool {
 		if !field.Insertable {
 			return false
@@ -117,7 +119,10 @@ func (m Mapper[E]) entityAssignments(ctx context.Context, schema SchemaResource,
 }
 
 func shouldGenerateID(column ColumnMeta) bool {
-	return column.IDStrategy == IDStrategySnowflake || column.IDStrategy == IDStrategyUUID
+	return column.IDStrategy == IDStrategySnowflake ||
+		column.IDStrategy == IDStrategyUUID ||
+		column.IDStrategy == IDStrategyULID ||
+		column.IDStrategy == IDStrategyKSUID
 }
 
 func (m Mapper[E]) ensureGeneratedID(ctx context.Context, root reflect.Value, field MappedField, column ColumnMeta, generator IDGenerator) (reflect.Value, bool, error) {

@@ -22,6 +22,6 @@ Coverage:
 - projection queries
 - relation join helpers and relation loading
 - pure SQL execution via `sqltmplx` registry + `dbx.SQL*`
-- typed ID generation strategies via marker types (`NewIDColumn`)
+- typed ID generation strategies via marker types (`IDColumn`)
 - conservative auto-migrate / validate / migration runner
 - `slog` debug SQL logging and hooks

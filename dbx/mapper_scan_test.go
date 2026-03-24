@@ -115,7 +115,7 @@ func TestMapperInsertAssignmentsWithNilEmbeddedPointerAndValuer(t *testing.T) {
 		Label: "ADMIN",
 	}
 
-	assignments, err := mapper.InsertAssignments(accounts, entity)
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), accounts, entity)
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestMapperInsertAssignmentsWithNilEmbeddedPointerAndValuer(t *testing.T) {
 	}
 
 	rec := &hookRecorder{}
-	if _, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(accounts).Values(assignments...)); err != nil {
+	if _, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(accounts).Values(assignments...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
 	if rec.execCount != 1 {

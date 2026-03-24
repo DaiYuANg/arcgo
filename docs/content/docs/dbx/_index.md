@@ -129,13 +129,11 @@ type Event struct {
 
 type EventSchema struct {
     dbx.Schema[Event]
-    ID   dbx.Column[Event, int64]  `dbx:"id,pk"`
-    Name dbx.Column[Event, string] `dbx:"name"`
+    ID   dbx.IDColumn[Event, int64, dbx.IDSnowflake] `dbx:"id,pk"`
+    Name dbx.Column[Event, string]                   `dbx:"name"`
 }
 
-var Events = dbx.MustSchema("events", EventSchema{
-    ID: dbx.NewIDColumn[Event, int64, dbx.IDSnowflake](),
-})
+var Events = dbx.MustSchema("events", EventSchema{})
 ```
 
 ## Query DSL

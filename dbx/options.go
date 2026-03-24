@@ -10,9 +10,13 @@ import (
 type Option func(*options)
 
 type options struct {
-	logger *slog.Logger
-	hooks  []Hook
-	debug  bool
+	logger         *slog.Logger
+	hooks          []Hook
+	debug          bool
+	idGenerator    IDGenerator
+	nodeID         uint16
+	hasIDGenerator bool
+	hasNodeID      bool
 }
 
 func defaultOptions() options {
@@ -20,6 +24,7 @@ func defaultOptions() options {
 		logger: slog.Default(),
 		hooks:  make([]Hook, 0, 4),
 		debug:  false,
+		nodeID: ResolveNodeIDFromHostName(),
 	}
 }
 
@@ -67,12 +72,41 @@ func WithDebug(enabled bool) Option {
 	}
 }
 
-func applyOptions(opts ...Option) options {
+// WithIDGenerator sets the DB-scoped ID generator used by mapper insert assignment helpers.
+// Mutually exclusive with WithNodeID.
+func WithIDGenerator(generator IDGenerator) Option {
+	return func(opts *options) {
+		if generator == nil {
+			return
+		}
+		opts.idGenerator = generator
+		opts.hasIDGenerator = true
+	}
+}
+
+// WithNodeID sets the DB node id used by the default Snowflake generator.
+// Mutually exclusive with WithIDGenerator.
+func WithNodeID(nodeID uint16) Option {
+	return func(opts *options) {
+		opts.nodeID = nodeID
+		opts.hasNodeID = true
+	}
+}
+
+func applyOptions(opts ...Option) (options, error) {
 	config := defaultOptions()
 	lo.ForEach(lo.Filter(opts, func(opt Option, _ int) bool {
 		return opt != nil
 	}), func(opt Option, _ int) {
 		opt(&config)
 	})
-	return config
+	if config.hasIDGenerator && config.hasNodeID {
+		return options{}, ErrIDGeneratorNodeIDConflict
+	}
+	if config.hasNodeID {
+		if config.nodeID < MinNodeID || config.nodeID > MaxNodeID {
+			return options{}, &NodeIDOutOfRangeError{NodeID: config.nodeID, Min: MinNodeID, Max: MaxNodeID}
+		}
+	}
+	return config, nil
 }

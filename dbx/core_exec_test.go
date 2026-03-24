@@ -18,7 +18,7 @@ type SnowflakeUser struct {
 
 type SnowflakeUserSchema struct {
 	Schema[SnowflakeUser]
-	ID       Column[SnowflakeUser, int64]  `dbx:"id,pk"`
+	ID       IDColumn[SnowflakeUser, int64, IDSnowflake] `dbx:"id,pk"`
 	Username Column[SnowflakeUser, string] `dbx:"username"`
 }
 
@@ -29,8 +29,30 @@ type UUIDUser struct {
 
 type UUIDUserSchema struct {
 	Schema[UUIDUser]
-	ID       Column[UUIDUser, string] `dbx:"id,pk"`
+	ID       IDColumn[UUIDUser, string, IDUUIDv7] `dbx:"id,pk"`
 	Username Column[UUIDUser, string] `dbx:"username"`
+}
+
+type ULIDUser struct {
+	ID       string `dbx:"id"`
+	Username string `dbx:"username"`
+}
+
+type ULIDUserSchema struct {
+	Schema[ULIDUser]
+	ID       IDColumn[ULIDUser, string, IDULID] `dbx:"id,pk"`
+	Username Column[ULIDUser, string] `dbx:"username"`
+}
+
+type KSUIDUser struct {
+	ID       string `dbx:"id"`
+	Username string `dbx:"username"`
+}
+
+type KSUIDUserSchema struct {
+	Schema[KSUIDUser]
+	ID       IDColumn[KSUIDUser, string, IDKSUID] `dbx:"id,pk"`
+	Username Column[KSUIDUser, string] `dbx:"username"`
 }
 
 type hookRecorder struct {
@@ -63,7 +85,7 @@ func TestQueryAllBuildsAndScansWithMapper(t *testing.T) {
 	users := MustSchema("users", UserSchema{})
 	mapper := MustMapper[User](users)
 	rec := &hookRecorder{}
-	core := NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after}))
+	core := MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after}))
 
 	items, err := QueryAll(context.Background(), core, Select(users.AllColumns()...).From(users).Where(users.Status.Eq(1)), mapper)
 	if err != nil {
@@ -178,7 +200,7 @@ func TestMapperBuildsAssignmentsAndPrimaryPredicate(t *testing.T) {
 		RoleID:   9,
 	}
 
-	insertAssignments, err := mapper.InsertAssignments(users, entity)
+	insertAssignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), users, entity)
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
@@ -230,13 +252,13 @@ func TestExecBuildsAndRunsBoundQuery(t *testing.T) {
 		RoleID:   9,
 	}
 
-	assignments, err := mapper.InsertAssignments(users, entity)
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), users, entity)
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
 
 	rec := &hookRecorder{}
-	result, err := Exec(context.Background(), NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(users).Values(assignments...))
+	result, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(users).Values(assignments...))
 	if err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
@@ -261,7 +283,7 @@ func TestBeginTxExecsWithinTransaction(t *testing.T) {
 
 	users := MustSchema("users", UserSchema{})
 	rec := &hookRecorder{}
-	core := NewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after}))
+	core := MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after}))
 	tx, err := core.BeginTx(context.Background(), nil)
 	if err != nil {
 		t.Fatalf("BeginTx returned error: %v", err)
@@ -288,13 +310,11 @@ func TestBeginTxExecsWithinTransaction(t *testing.T) {
 }
 
 func TestInsertAssignmentsGenerateSnowflakeID(t *testing.T) {
-	users := MustSchema("users", SnowflakeUserSchema{
-		ID: NewIDColumn[SnowflakeUser, int64, IDSnowflake](),
-	})
+	users := MustSchema("users", SnowflakeUserSchema{})
 	mapper := MustMapper[SnowflakeUser](users)
 	entity := &SnowflakeUser{Username: "alice"}
 
-	assignments, err := mapper.InsertAssignments(users, entity)
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), users, entity)
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
@@ -307,18 +327,50 @@ func TestInsertAssignmentsGenerateSnowflakeID(t *testing.T) {
 }
 
 func TestInsertAssignmentsGenerateUUIDv7ID(t *testing.T) {
-	users := MustSchema("users", UUIDUserSchema{
-		ID: NewIDColumn[UUIDUser, string, IDUUIDv7](),
-	})
+	users := MustSchema("users", UUIDUserSchema{})
 	mapper := MustMapper[UUIDUser](users)
 	entity := &UUIDUser{Username: "alice"}
 
-	assignments, err := mapper.InsertAssignments(users, entity)
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), users, entity)
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
 	if entity.ID == "" {
 		t.Fatal("expected generated uuid id")
+	}
+	if len(assignments) != 2 {
+		t.Fatalf("expected id + username assignments, got %d", len(assignments))
+	}
+}
+
+func TestInsertAssignmentsGenerateULID(t *testing.T) {
+	users := MustSchema("users", ULIDUserSchema{})
+	mapper := MustMapper[ULIDUser](users)
+	entity := &ULIDUser{Username: "alice"}
+
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), users, entity)
+	if err != nil {
+		t.Fatalf("InsertAssignments returned error: %v", err)
+	}
+	if entity.ID == "" {
+		t.Fatal("expected generated ulid")
+	}
+	if len(assignments) != 2 {
+		t.Fatalf("expected id + username assignments, got %d", len(assignments))
+	}
+}
+
+func TestInsertAssignmentsGenerateKSUID(t *testing.T) {
+	users := MustSchema("users", KSUIDUserSchema{})
+	mapper := MustMapper[KSUIDUser](users)
+	entity := &KSUIDUser{Username: "alice"}
+
+	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), users, entity)
+	if err != nil {
+		t.Fatalf("InsertAssignments returned error: %v", err)
+	}
+	if entity.ID == "" {
+		t.Fatal("expected generated ksuid")
 	}
 	if len(assignments) != 2 {
 		t.Fatalf("expected id + username assignments, got %d", len(assignments))

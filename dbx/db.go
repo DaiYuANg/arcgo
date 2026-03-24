@@ -10,24 +10,50 @@ import (
 )
 
 type DB struct {
-	raw     *sql.DB
-	dialect dialect.Dialect
-	observe runtimeObserver
-	relation *relationRuntime
+	raw         *sql.DB
+	dialect     dialect.Dialect
+	observe     runtimeObserver
+	relation    *relationRuntime
+	idGenerator IDGenerator
+	nodeID      uint16
 }
 
 func New(raw *sql.DB, d dialect.Dialect) *DB {
-	return NewWithOptions(raw, d)
+	db, err := NewWithOptions(raw, d)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
-func NewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) *DB {
-	config := applyOptions(opts...)
-	return &DB{
-		raw:     raw,
-		dialect: d,
-		observe: newRuntimeObserver(config),
-		relation: newRelationRuntime(),
+func NewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) (*DB, error) {
+	config, err := applyOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
+	idGenerator := config.idGenerator
+	if idGenerator == nil {
+		idGenerator, err = NewSnowflakeGenerator(config.nodeID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &DB{
+		raw:         raw,
+		dialect:     d,
+		observe:     newRuntimeObserver(config),
+		relation:    newRelationRuntime(),
+		idGenerator: idGenerator,
+		nodeID:      config.nodeID,
+	}, nil
+}
+
+func MustNewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) *DB {
+	db, err := NewWithOptions(raw, d, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
 func (db *DB) SQLDB() *sql.DB {
@@ -39,7 +65,14 @@ func (db *DB) Dialect() dialect.Dialect {
 }
 
 func (db *DB) WithSQLDB(raw *sql.DB) *DB {
-	return &DB{raw: raw, dialect: db.dialect, observe: db.observe, relation: db.relation}
+	return &DB{
+		raw:         raw,
+		dialect:     db.dialect,
+		observe:     db.observe,
+		relation:    db.relation,
+		idGenerator: db.idGenerator,
+		nodeID:      db.nodeID,
+	}
 }
 
 // RelationRuntime returns the relation load runtime (cache and pools) for this DB.
@@ -61,6 +94,20 @@ func (db *DB) Hooks() []Hook {
 
 func (db *DB) Debug() bool {
 	return db.observe.debug
+}
+
+func (db *DB) IDGenerator() IDGenerator {
+	if db == nil {
+		return nil
+	}
+	return db.idGenerator
+}
+
+func (db *DB) NodeID() uint16 {
+	if db == nil {
+		return 0
+	}
+	return db.nodeID
 }
 
 func (db *DB) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
@@ -164,14 +211,14 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 		return nil, err
 	}
 	db.observe.after(ctx, event)
-	return &Tx{raw: tx, dialect: db.dialect, observe: db.observe, relation: db.relation}, nil
+	return &Tx{raw: tx, dialect: db.dialect, observe: db.observe, relation: db.relation, idGenerator: db.idGenerator, nodeID: db.nodeID}, nil
 }
 
 func (db *DB) WithTx(tx *sql.Tx) *Tx {
 	if tx == nil {
 		return nil
 	}
-	return &Tx{raw: tx, dialect: db.dialect, observe: db.observe, relation: db.relation}
+	return &Tx{raw: tx, dialect: db.dialect, observe: db.observe, relation: db.relation, idGenerator: db.idGenerator, nodeID: db.nodeID}
 }
 
 func (db *DB) SQL() *SQLExecutor {

@@ -53,5 +53,10 @@ func OpenSQLiteRaw(name string, opts ...dbx.Option) (*dbx.DB, func() error, erro
 		_ = raw.Close()
 		return nil, nil, err
 	}
-	return dbx.NewWithOptions(raw, sqlitedialect.Dialect{}, opts...), raw.Close, nil
+	db, err := dbx.NewWithOptions(raw, sqlitedialect.Dialect{}, opts...)
+	if err != nil {
+		_ = raw.Close()
+		return nil, nil, err
+	}
+	return db, raw.Close, nil
 }

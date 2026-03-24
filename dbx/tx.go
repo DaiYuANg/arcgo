@@ -14,6 +14,8 @@ type Tx struct {
 	dialect  dialect.Dialect
 	observe  runtimeObserver
 	relation *relationRuntime
+	idGenerator IDGenerator
+	nodeID      uint16
 }
 
 func (tx *Tx) SQLTx() *sql.Tx {
@@ -145,6 +147,20 @@ func (tx *Tx) Logger() *slog.Logger {
 
 func (tx *Tx) Debug() bool {
 	return tx.observe.debug
+}
+
+func (tx *Tx) IDGenerator() IDGenerator {
+	if tx == nil {
+		return nil
+	}
+	return tx.idGenerator
+}
+
+func (tx *Tx) NodeID() uint16 {
+	if tx == nil {
+		return 0
+	}
+	return tx.nodeID
 }
 
 // RelationRuntime returns the relation load runtime for this Tx.

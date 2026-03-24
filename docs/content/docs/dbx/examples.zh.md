@@ -49,7 +49,7 @@ go run ./examples/dbx/id_generation
 | `relations` | alias + relation metadata + `JoinRelation`，以及 `LoadBelongsTo`、`LoadManyToMany` | [examples/dbx/relations](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/relations) |
 | `migration` | `PlanSchemaChanges`、`SQLPreview`、`AutoMigrate`、`ValidateSchemas`、`migrate.NewRunner(core.SQLDB(), core.Dialect(), ...).UpGo/UpSQL` | [examples/dbx/migration](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/migration) |
 | `pure_sql` | `sqltmplx` registry、`dbx.SQLList/SQLGet/SQLFind/SQLScalar`、statement 名称日志、`tx.SQL().Exec(...)` | [examples/dbx/pure_sql](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/pure_sql) |
-| `id_generation` | 主键策略 marker：`IDAuto`、`IDSnowflake`、`IDUUIDv7` 与 `NewIDColumn` | [examples/dbx/id_generation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/id_generation) |
+| `id_generation` | 主键策略 marker：`IDAuto`、`IDSnowflake`、`IDUUIDv7` 与 `IDColumn` | [examples/dbx/id_generation](https://github.com/DaiYuANg/arcgo/tree/main/examples/dbx/id_generation) |
 
 ## 示例：Codec 与 StructMapper
 

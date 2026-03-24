@@ -19,6 +19,10 @@ type ChangeHandler func(cfg *Config, err error)
 
 type changeHandlers []ChangeHandler
 
+// ChangeHandlerT is the callback signature for typed hot-reload handlers.
+// cfg is the newly decoded typed config value when err is nil.
+type ChangeHandlerT[T any] func(cfg T, err error)
+
 // Watcher manages a live-reloading *Config.
 //
 // It sets up an fsnotify watcher for every file listed in the original option
@@ -284,4 +288,84 @@ func buildWatchProviders(paths []string) []*file.File {
 		}
 	}
 	return out
+}
+
+// WatcherT provides typed hot-reload snapshots on top of Watcher.
+type WatcherT[T any] struct {
+	base    *Watcher
+	current atomic.Pointer[T]
+}
+
+func newWatcherTFromOptions[T any](opts *Options) (*WatcherT[T], error) {
+	base, err := newWatcherFromOptions(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var initial T
+	if err := base.Config().Unmarshal("", &initial); err != nil {
+		return nil, fmt.Errorf("%w initial typed watcher unmarshal: %v", ErrUnmarshal, err)
+	}
+	if err := base.Config().validateStruct(initial); err != nil {
+		return nil, fmt.Errorf("%w initial typed watcher value: %v", ErrValidate, err)
+	}
+
+	w := &WatcherT[T]{base: base}
+	w.current.Store(&initial)
+	return w, nil
+}
+
+// Config returns the latest successfully decoded typed snapshot.
+func (w *WatcherT[T]) Config() T {
+	ptr := w.current.Load()
+	if ptr == nil {
+		var zero T
+		return zero
+	}
+	return *ptr
+}
+
+// RawConfig returns the underlying dynamic config snapshot.
+func (w *WatcherT[T]) RawConfig() *Config {
+	return w.base.Config()
+}
+
+// OnChange registers a typed callback. Decode/validate failures are surfaced
+// via err and do not replace the current typed snapshot.
+func (w *WatcherT[T]) OnChange(fn ChangeHandlerT[T]) {
+	if fn == nil {
+		return
+	}
+	w.base.OnChange(func(cfg *Config, err error) {
+		var zero T
+		if err != nil {
+			fn(zero, err)
+			return
+		}
+		var out T
+		if err := cfg.Unmarshal("", &out); err != nil {
+			wrapped := fmt.Errorf("%w watcher typed callback decode: %v", ErrUnmarshal, err)
+			w.base.handleErr(wrapped)
+			fn(zero, wrapped)
+			return
+		}
+		if err := cfg.validateStruct(out); err != nil {
+			wrapped := fmt.Errorf("%w watcher typed callback value: %v", ErrValidate, err)
+			w.base.handleErr(wrapped)
+			fn(zero, wrapped)
+			return
+		}
+		w.current.Store(&out)
+		fn(out, nil)
+	})
+}
+
+// Start starts the underlying watcher loop.
+func (w *WatcherT[T]) Start(ctx context.Context) error {
+	return w.base.Start(ctx)
+}
+
+// Close stops the underlying watcher.
+func (w *WatcherT[T]) Close() error {
+	return w.base.Close()
 }

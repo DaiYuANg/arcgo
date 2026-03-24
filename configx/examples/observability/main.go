@@ -13,23 +13,23 @@ import (
 )
 
 type appConfig struct {
-	Name string `mapstructure:"name" validate:"required"`
-	Port int    `mapstructure:"port" validate:"required,min=1,max=65535"`
+	Name string `validate:"required"`
+	Port int    `validate:"required,min=1,max=65535"`
 }
 
 func main() {
 	prom := promobs.New(promobs.WithNamespace("configx_example"))
 	obs := observabilityx.Multi(otelobs.New(), prom)
 
-	cfg := appConfig{}
-	if err := configx.Load(&cfg,
+	cfg, err := configx.LoadTErr[appConfig](
 		configx.WithObservability(obs),
 		configx.WithDefaults(map[string]any{
 			"name": "arcgo",
 			"port": 8080,
 		}),
-		configx.WithValidateLevel(configx.ValidateLevelRequired),
-	); err != nil {
+		configx.WithValidateLevel(configx.ValidateLevelStruct),
+	)
+	if err != nil {
 		panic(err)
 	}
 
@@ -43,7 +43,7 @@ func main() {
 
 	fmt.Println("httpx metrics route registered: GET /metrics")
 	_ = metricsServer
-	err := metricsServer.ListenAndServe(":8080")
+	err = metricsServer.ListenAndServe(":8080")
 	if err != nil {
 		panic(err)
 	}

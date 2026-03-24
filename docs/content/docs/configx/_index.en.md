@@ -20,7 +20,7 @@ weight: 3
 - Configuration file loading (`WithFiles`)
 - Environment variable loading (`WithEnvPrefix`)
 - Custom source priority (`WithPriority`)
-- Set defaults via map or struct (`WithDefaults`, `WithDefaultsTyped`, `WithDefaultsStruct`, `WithDefaultsFrom`)
+- Set defaults via map or typed object (`WithDefaults`, `WithDefaultsTyped`, `WithTypedDefaults`)
 - Optional validation (`WithValidateLevel`, `WithValidator`)
 - Optional observability (`WithObservability`)
 - Generic and non-generic loading entry points
@@ -39,16 +39,15 @@ Default priority:
 
 ```go
 type AppConfig struct {
-    Name string `mapstructure:"name" validate:"required"`
-    Port int    `mapstructure:"port" validate:"required,min=1,max=65535"`
+    Name string `validate:"required"`
+    Port int    `validate:"required,min=1,max=65535"`
 }
 
-var cfg AppConfig
-err := configx.Load(&cfg,
+cfg, err := configx.LoadTErr[AppConfig](
     configx.WithDotenv(),
     configx.WithFiles("config.yaml"),
     configx.WithEnvPrefix("APP"),
-    configx.WithValidateLevel(configx.ValidateLevelRequired),
+    configx.WithValidateLevel(configx.ValidateLevelStruct),
 )
 if err != nil {
     panic(err)
@@ -87,20 +86,7 @@ err := configx.Load(&cfg,
 )
 ```
 
-### 4) Set Defaults from Struct
-
-```go
-type DefaultCfg struct {
-    Name string `mapstructure:"name"`
-    Port int    `mapstructure:"port"`
-}
-
-err := configx.Load(&cfg,
-    configx.WithDefaultsStruct(DefaultCfg{Name: "svc", Port: 8080}),
-)
-```
-
-### 5) Generic Loading API
+### 4) Generic Loading API (Recommended)
 
 ```go
 result := configx.LoadT[AppConfig](
@@ -112,7 +98,7 @@ if result.IsError() {
 cfg := result.MustGet()
 ```
 
-### 6) Explicit `Config` Object Usage
+### 5) Explicit `Config` Object Usage (Dynamic Paths)
 
 ```go
 c, err := configx.LoadConfig(
@@ -129,7 +115,7 @@ all := c.All()
 _, _, _, _ = name, port, exists, all
 ```
 
-### 7) Optional Observability (OTel + Prometheus)
+### 6) Optional Observability (OTel + Prometheus)
 
 ```go
 otelObs := otelobs.New()
@@ -146,7 +132,6 @@ err := configx.Load(&cfg,
 
 - `ValidateLevelNone`: No validation
 - `ValidateLevelStruct`: Run struct validation
-- `ValidateLevelRequired`: Enforce required tags (same path as struct validation)
 
 If you need custom validators/tags:
 
@@ -154,7 +139,7 @@ If you need custom validators/tags:
 v := validator.New(validator.WithRequiredStructEnabled())
 err := configx.Load(&cfg,
     configx.WithValidator(v),
-    configx.WithValidateLevel(configx.ValidateLevelRequired),
+    configx.WithValidateLevel(configx.ValidateLevelStruct),
 )
 ```
 
@@ -185,15 +170,10 @@ With `WithEnvPrefix("APP")`:
 In most services, environment variables should be highest priority in production.
 Common order is: defaults -> file -> env.
 
-### Should I use `Load` or `LoadConfig`?
+### Should I use `LoadT[T]` or `LoadConfig`?
 
-- Use `Load` if you only need a typed struct.
-- Use `LoadConfig` if you also need dynamic getters (`GetString`, `Exists`, `All`) after loading.
-
-### Map Defaults vs Struct Defaults?
-
-- `WithDefaults(map[string]any)` is explicit and dynamic.
-- `WithDefaultsStruct` is more convenient when you already have a typed default config struct.
+- Use `LoadT[T]` / `LoadTErr[T]` for strong typing and validation-first workflows.
+- Use `LoadConfig` only when you need dynamic getters (`GetString`, `Exists`, `All`) or path-based access.
 
 ## Troubleshooting
 
@@ -214,10 +194,10 @@ Set `WithValidateLevel(...)`, or wire `WithValidator(...)` plus validation level
 
 Use `WithIgnoreDotenvError(true)` in environments where `.env` is optional.
 
-### `WithDefaultsStruct` fails for unsupported types
+### Defaults shape mismatch
 
-Struct-to-map conversion is reflection-based.
-Keep default structs simple and use predictable `mapstructure` tags for exported fields.
+Prefer explicit map defaults for dynamic keys.
+For strong typing, keep defaults in the target config type and load through `LoadT[T]`/`LoadTErr[T]`.
 
 ## Anti-Patterns
 

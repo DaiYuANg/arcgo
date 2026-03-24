@@ -535,3 +535,45 @@ func TestWatcher_ConcurrentConfigReads(t *testing.T) {
 
 	wg.Wait()
 }
+
+func TestWatcherT_HotReload_TypedValueChanges(t *testing.T) {
+	type typedCfg struct {
+		Name string `validate:"required"`
+		Port int    `validate:"gte=1"`
+	}
+
+	path := tempYAML(t, "name: before\nport: 1111\n")
+	w, err := NewWatcherT[typedCfg](
+		WithFiles(path),
+		WithWatchDebounce(30*time.Millisecond),
+		WithValidateLevel(ValidateLevelStruct),
+	)
+	require.NoError(t, err)
+
+	changed := make(chan typedCfg, 1)
+	w.OnChange(func(cfg typedCfg, err error) {
+		require.NoError(t, err)
+		changed <- cfg
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(func() {
+		cancel()
+		_ = w.Close()
+	})
+	go func() { _ = w.Start(ctx) }()
+	time.Sleep(50 * time.Millisecond)
+
+	writeYAML(t, path, "name: after\nport: 2222\n")
+	select {
+	case got := <-changed:
+		assert.Equal(t, "after", got.Name)
+		assert.Equal(t, 2222, got.Port)
+	case <-time.After(3 * time.Second):
+		t.Fatal("timed out waiting for typed watcher reload")
+	}
+
+	latest := w.Config()
+	assert.Equal(t, "after", latest.Name)
+	assert.Equal(t, 2222, latest.Port)
+}

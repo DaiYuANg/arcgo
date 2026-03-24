@@ -3,8 +3,8 @@ package configx
 import "testing"
 
 type benchmarkServiceConfig struct {
-	Name string `mapstructure:"name"`
-	Port int    `mapstructure:"port"`
+	Name string
+	Port int
 }
 
 var benchmarkDefaults = map[string]any{

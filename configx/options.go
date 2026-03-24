@@ -1,6 +1,8 @@
 package configx
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/DaiYuANg/arcgo/observabilityx"
@@ -43,9 +45,6 @@ const (
 	ValidateLevelNone ValidateLevel = iota
 	// ValidateLevelStruct runs go-playground/validator struct validation.
 	ValidateLevelStruct
-	// ValidateLevelRequired is an alias for ValidateLevelStruct; it is kept
-	// for clarity when only required-field checking is intended.
-	ValidateLevelRequired
 )
 
 // defaultEnvSeparator is the substring in an env key that is replaced with "."
@@ -67,7 +66,7 @@ type Options struct {
 	files           []string
 	priority        []Source
 	defaults        mo.Option[map[string]any]
-	defaultsStruct  any
+	typedDefaults   mo.Option[map[string]any]
 	ignoreDotenvErr bool
 
 	// --- validation ---
@@ -172,17 +171,33 @@ func WithDefaultsTyped[T any](m map[string]T) Option {
 	}
 }
 
-// WithDefaultsStruct sets default values decoded from a struct. Fields are
-// read via their mapstructure tags; keys are normalised to lowercase.
-func WithDefaultsStruct(s any) Option {
+// WithTypedDefaults sets defaults from a strongly typed config object.
+// This option is intended for typed loading flows (LoadT/LoadTErr/LoaderT).
+func WithTypedDefaults[T any](cfg T) Option {
 	return func(o *Options) {
-		o.defaultsStruct = s
+		m, err := typedDefaultsToMap(cfg)
+		if err != nil {
+			// Preserve option signature; the load path will report this via ErrDefaults.
+			o.typedDefaults = mo.Some(map[string]any{"__configx_invalid_typed_defaults__": err.Error()})
+			return
+		}
+		o.typedDefaults = mo.Some(m)
 	}
 }
 
-// WithDefaultsFrom is a type-safe alternative to WithDefaultsStruct.
-func WithDefaultsFrom[T any](s T) Option {
-	return WithDefaultsStruct(s)
+func typedDefaultsToMap(v any) (map[string]any, error) {
+	raw, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("%w: marshal typed defaults: %v", ErrDefaults, err)
+	}
+	var out map[string]any
+	if err := json.Unmarshal(raw, &out); err != nil {
+		return nil, fmt.Errorf("%w: unmarshal typed defaults: %v", ErrDefaults, err)
+	}
+	if out == nil {
+		return nil, fmt.Errorf("%w: typed defaults must be an object-like value", ErrDefaults)
+	}
+	return out, nil
 }
 
 // WithIgnoreDotenvError controls whether missing or malformed dotenv files
@@ -201,7 +216,7 @@ func WithValidator(v *validator.Validate) Option {
 
 // WithValidateLevel sets the validation level applied after a successful load.
 // ValidateLevelNone (default) skips validation entirely.
-// ValidateLevelStruct / ValidateLevelRequired run full struct validation.
+// ValidateLevelStruct runs full struct validation.
 func WithValidateLevel(level ValidateLevel) Option {
 	return func(o *Options) { o.validateLevel = level }
 }

@@ -9,8 +9,8 @@ import (
 )
 
 type SimpleConfig struct {
-	Name string `mapstructure:"name" validate:"required"`
-	Port int    `mapstructure:"port" validate:"gte=1000,lte=65535"`
+	Name string `validate:"required"`
+	Port int    `validate:"gte=1000,lte=65535"`
 }
 
 func TestNewConfig_Basic(t *testing.T) {
@@ -23,16 +23,6 @@ func TestNewConfig_Basic(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "test", cfg.GetString("name"))
 	assert.Equal(t, 8080, cfg.GetInt("port"))
-}
-
-func TestWithDefaultsStruct(t *testing.T) {
-	defaults := SimpleConfig{Name: "struct-default", Port: 3000}
-	cfg, err := LoadConfig(
-		WithDefaultsStruct(defaults),
-	)
-	assert.NoError(t, err)
-	assert.Equal(t, "struct-default", cfg.GetString("name"))
-	assert.Equal(t, 3000, cfg.GetInt("port"))
 }
 
 func TestWithDefaultsTyped(t *testing.T) {
@@ -71,13 +61,43 @@ func TestLoadTErr_Generic(t *testing.T) {
 	assert.Equal(t, 9100, cfg.Port)
 }
 
+func TestWithTypedDefaults_Generic(t *testing.T) {
+	type AppConfig struct {
+		Name string `validate:"required"`
+		Port int    `validate:"gte=1"`
+	}
+
+	cfg, err := LoadTErr[AppConfig](
+		WithTypedDefaults(AppConfig{Name: "typed-default", Port: 8081}),
+		WithValidateLevel(ValidateLevelStruct),
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, "typed-default", cfg.Name)
+	assert.Equal(t, 8081, cfg.Port)
+}
+
+func TestSnapshot_ReturnsSortedKeys(t *testing.T) {
+	cfg, err := LoadConfig(
+		WithDefaults(map[string]any{
+			"b.key": 2,
+			"a.key": 1,
+		}),
+		WithPriority(),
+	)
+	assert.NoError(t, err)
+	snapshot := cfg.Snapshot()
+	assert.Equal(t, []string{"a.key", "b.key"}, snapshot.Keys)
+	assert.Equal(t, 1, snapshot.Values["a.key"])
+	assert.Equal(t, 2, snapshot.Values["b.key"])
+}
+
 func TestValidate_Required(t *testing.T) {
 	result := LoadT[SimpleConfig](
 		WithDefaults(map[string]any{
 			"name": "", // empty → required fails
 			"port": 8080,
 		}),
-		WithValidateLevel(ValidateLevelRequired),
+		WithValidateLevel(ValidateLevelStruct),
 	)
 	assert.True(t, result.IsError())
 	err := result.Error()
@@ -90,7 +110,7 @@ func TestValidate_Range(t *testing.T) {
 			"name": "ok",
 			"port": 500, // < 1000 → gte fails
 		}),
-		WithValidateLevel(ValidateLevelRequired),
+		WithValidateLevel(ValidateLevelStruct),
 	)
 	assert.True(t, result.IsError())
 	assert.Error(t, result.Error())

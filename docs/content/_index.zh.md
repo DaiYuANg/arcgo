@@ -64,12 +64,11 @@ go get github.com/DaiYuANg/arcgo/{package}
 
 ```go
 type AppConfig struct {
-    Name string `mapstructure:"name" validate:"required"`
-    Port int    `mapstructure:"port" validate:"required,min=1,max=65535"`
+    Name string `validate:"required"`
+    Port int    `validate:"required,min=1,max=65535"`
 }
 
-var cfg AppConfig
-err := configx.Load(&cfg,
+cfg, err := configx.LoadTErr[AppConfig](
     configx.WithDotenv(),
     configx.WithFiles("config.yaml"),
     configx.WithEnvPrefix("APP"),

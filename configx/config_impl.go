@@ -1,7 +1,9 @@
 package configx
 
 import (
+	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -32,7 +34,7 @@ func (c *Config) validateStruct(out any) error {
 	switch c.level {
 	case ValidateLevelNone:
 		return nil
-	case ValidateLevelStruct, ValidateLevelRequired:
+	case ValidateLevelStruct:
 		return c.validate.Struct(out)
 	default:
 		return nil
@@ -88,7 +90,7 @@ func (c *Config) GetIntSlice(path string) []int {
 // path documents related behavior.
 func (c *Config) Unmarshal(path string, out any) error {
 	if err := c.k.Unmarshal(path, out); err != nil {
-		return fmt.Errorf("configx: unmarshal %q: %w", path, err)
+		return fmt.Errorf("unmarshal %q: %w", path, errors.Join(ErrUnmarshal, err))
 	}
 	return nil
 }
@@ -97,10 +99,10 @@ func (c *Config) Unmarshal(path string, out any) error {
 // path documents related behavior.
 func (c *Config) UnmarshalWithValidate(path string, out any) error {
 	if err := c.k.Unmarshal(path, out); err != nil {
-		return fmt.Errorf("configx: unmarshal %q: %w", path, err)
+		return fmt.Errorf("unmarshal %q: %w", path, errors.Join(ErrUnmarshal, err))
 	}
 	if err := c.validate.Struct(out); err != nil {
-		return fmt.Errorf("configx: validate %q: %w", path, err)
+		return fmt.Errorf("validate %q: %w", path, errors.Join(ErrValidate, err))
 	}
 	return nil
 }
@@ -117,5 +119,28 @@ func (c *Config) All() map[string]any {
 
 // Validate documents related behavior.
 func (c *Config) Validate(out any) error {
-	return c.validate.Struct(out)
+	if err := c.validate.Struct(out); err != nil {
+		return fmt.Errorf("validate: %w", errors.Join(ErrValidate, err))
+	}
+	return nil
+}
+
+// ConfigSnapshot provides a deterministic, inspectable view of loaded values.
+type ConfigSnapshot struct {
+	Values map[string]any
+	Keys   []string
+}
+
+// Snapshot returns a copy-like diagnostic view of config values and sorted keys.
+func (c *Config) Snapshot() ConfigSnapshot {
+	values := c.All()
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return ConfigSnapshot{
+		Values: values,
+		Keys:   keys,
+	}
 }

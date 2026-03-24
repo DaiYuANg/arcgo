@@ -20,7 +20,7 @@ weight: 3
 - 配置文件加载 (`WithFiles`)
 - 环境变量加载 (`WithEnvPrefix`)
 - 自定义源优先级 (`WithPriority`)
-- 通过 map 或 struct 设置默认值 (`WithDefaults`, `WithDefaultsTyped`, `WithDefaultsStruct`, `WithDefaultsFrom`)
+- 通过 map 或 typed 对象设置默认值 (`WithDefaults`, `WithDefaultsTyped`, `WithTypedDefaults`)
 - 可选验证 (`WithValidateLevel`, `WithValidator`)
 - 可选可观测性 (`WithObservability`)
 - 泛型和非泛型加载入口点
@@ -39,16 +39,15 @@ weight: 3
 
 ```go
 type AppConfig struct {
-    Name string `mapstructure:"name" validate:"required"`
-    Port int    `mapstructure:"port" validate:"required,min=1,max=65535"`
+    Name string `validate:"required"`
+    Port int    `validate:"required,min=1,max=65535"`
 }
 
-var cfg AppConfig
-err := configx.Load(&cfg,
+cfg, err := configx.LoadTErr[AppConfig](
     configx.WithDotenv(),
     configx.WithFiles("config.yaml"),
     configx.WithEnvPrefix("APP"),
-    configx.WithValidateLevel(configx.ValidateLevelRequired),
+    configx.WithValidateLevel(configx.ValidateLevelStruct),
 )
 if err != nil {
     panic(err)
@@ -87,20 +86,7 @@ err := configx.Load(&cfg,
 )
 ```
 
-### 4) 从 struct 设置默认值
-
-```go
-type DefaultCfg struct {
-    Name string `mapstructure:"name"`
-    Port int    `mapstructure:"port"`
-}
-
-err := configx.Load(&cfg,
-    configx.WithDefaultsStruct(DefaultCfg{Name: "svc", Port: 8080}),
-)
-```
-
-### 5) 泛型加载 API
+### 4) 泛型加载 API（推荐）
 
 ```go
 result := configx.LoadT[AppConfig](
@@ -112,7 +98,7 @@ if result.IsError() {
 cfg := result.MustGet()
 ```
 
-### 6) 显式 `Config` 对象使用
+### 5) 显式 `Config` 对象使用（动态路径）
 
 ```go
 c, err := configx.LoadConfig(
@@ -129,7 +115,7 @@ all := c.All()
 _, _, _, _ = name, port, exists, all
 ```
 
-### 7) 可选可观测性（OTel + Prometheus）
+### 6) 可选可观测性（OTel + Prometheus）
 
 ```go
 otelObs := otelobs.New()
@@ -146,7 +132,6 @@ err := configx.Load(&cfg,
 
 - `ValidateLevelNone`: 无验证
 - `ValidateLevelStruct`: 运行 struct 验证
-- `ValidateLevelRequired`: 强制 required 标签（与 struct 验证路径相同）
 
 如果你需要自定义验证器/标签：
 
@@ -154,7 +139,7 @@ err := configx.Load(&cfg,
 v := validator.New(validator.WithRequiredStructEnabled())
 err := configx.Load(&cfg,
     configx.WithValidator(v),
-    configx.WithValidateLevel(configx.ValidateLevelRequired),
+    configx.WithValidateLevel(configx.ValidateLevelStruct),
 )
 ```
 
@@ -185,15 +170,10 @@ err := configx.Load(&cfg,
 在大多数服务中，环境变量在生产环境中应该是最高优先级。
 常见顺序是：defaults -> file -> env。
 
-### 我应该使用 `Load` 还是 `LoadConfig`？
+### 我应该使用 `LoadT[T]` 还是 `LoadConfig`？
 
-- 如果你只需要一个 typed struct，使用 `Load`。
-- 如果你还需要在加载后使用动态 getters（`GetString`、`Exists`、`All`），使用 `LoadConfig`。
-
-### Map 默认值 vs struct 默认值？
-
-- `WithDefaults(map[string]any)` 是显式和动态的。
-- 当你已经有 typed 默认配置 struct 时，`WithDefaultsStruct` 更方便。
+- 如果你想要强类型和校验优先，使用 `LoadT[T]` / `LoadTErr[T]`。
+- 仅在需要动态 getter（`GetString`、`Exists`、`All`）或路径式读取时使用 `LoadConfig`。
 
 ## 故障排除
 
@@ -214,10 +194,10 @@ err := configx.Load(&cfg,
 
 在 `.env` 可选的环境中使用 `WithIgnoreDotenvError(true)`。
 
-### `WithDefaultsStruct` 对不支持的类型失败
+### 默认值结构不匹配
 
-struct 到 map 的转换是基于反射的。
-保持默认 struct 简单，并使用可预测的 `mapstructure` 标签导出字段。
+动态键请优先使用显式 map 默认值。
+如果是强类型配置，请把默认值保留在目标配置类型中，并通过 `LoadT[T]`/`LoadTErr[T]` 加载。
 
 ## 反模式
 

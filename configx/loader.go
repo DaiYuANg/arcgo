@@ -2,6 +2,7 @@ package configx
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -51,13 +52,13 @@ func New(opts ...Option) *Loader {
 func (l *Loader) Load(out any) error {
 	cfg, err := l.loadInternal()
 	if err != nil {
-		return fmt.Errorf("configx: load config: %w", err)
+		return fmt.Errorf("%w config: %v", ErrLoad, err)
 	}
 	if err := cfg.k.Unmarshal("", out); err != nil {
-		return fmt.Errorf("configx: unmarshal config into output: %w", err)
+		return fmt.Errorf("config output: %w", errors.Join(ErrUnmarshal, err))
 	}
 	if err := cfg.validateStruct(out); err != nil {
-		return fmt.Errorf("configx: validate output: %w", err)
+		return fmt.Errorf("config output: %w", errors.Join(ErrValidate, err))
 	}
 	return nil
 }
@@ -111,7 +112,7 @@ type LoaderT[T any] struct {
 //	loader := configx.NewT[AppConfig](
 //	    configx.WithFiles("config.yaml"),
 //	    configx.WithEnvPrefix("APP"),
-//	    configx.WithValidateLevel(configx.ValidateLevelRequired),
+//	    configx.WithValidateLevel(configx.ValidateLevelStruct),
 //	)
 func NewT[T any](opts ...Option) *LoaderT[T] {
 	options := NewOptions()
@@ -133,10 +134,10 @@ func (l *LoaderT[T]) Load() mo.Result[T] {
 
 	var out T
 	if err := cfg.k.Unmarshal("", &out); err != nil {
-		return mo.Err[T](fmt.Errorf("configx: unmarshal config into typed output: %w", err))
+		return mo.Err[T](fmt.Errorf("typed output: %w", errors.Join(ErrUnmarshal, err)))
 	}
 	if err := cfg.validateStruct(out); err != nil {
-		return mo.Err[T](fmt.Errorf("configx: validate typed output: %w", err))
+		return mo.Err[T](fmt.Errorf("typed output: %w", errors.Join(ErrValidate, err)))
 	}
 	return mo.Ok(out)
 }
@@ -155,11 +156,29 @@ func (l *LoaderT[T]) NewWatcher() (*Watcher, error) {
 	return newWatcherFromOptions(l.opts)
 }
 
+// NewWatcherT performs the initial load and returns a typed watcher that
+// publishes validated T snapshots on every successful reload.
+func (l *LoaderT[T]) NewWatcherT() (*WatcherT[T], error) {
+	return newWatcherTFromOptions[T](l.opts)
+}
+
 // Watch is a convenience wrapper around [LoaderT.NewWatcher] + [Watcher.Start].
 // It registers onChange as a [ChangeHandler] and then blocks until ctx is
 // cancelled.
 func (l *LoaderT[T]) Watch(ctx context.Context, onChange ChangeHandler) error {
 	w, err := newWatcherFromOptions(l.opts)
+	if err != nil {
+		return err
+	}
+	if onChange != nil {
+		w.OnChange(onChange)
+	}
+	return w.Start(ctx)
+}
+
+// WatchT is the typed convenience wrapper around NewWatcherT + Start.
+func (l *LoaderT[T]) WatchT(ctx context.Context, onChange ChangeHandlerT[T]) error {
+	w, err := l.NewWatcherT()
 	if err != nil {
 		return err
 	}
@@ -215,6 +234,11 @@ func LoadConfigT[T any](opts ...Option) (*Config, error) {
 	return NewT[T](opts...).LoadConfig()
 }
 
+// NewWatcherT creates a one-shot typed watcher.
+func NewWatcherT[T any](opts ...Option) (*WatcherT[T], error) {
+	return NewT[T](opts...).NewWatcherT()
+}
+
 // ─── core load logic ──────────────────────────────────────────────────────────
 
 // loadConfigFromOptions is the single authoritative code path that builds a
@@ -244,25 +268,31 @@ func loadConfigFromOptions(opts *Options) (*Config, error) {
 
 	// 1. In-memory defaults (map form) – loaded first so every other source
 	//    can override them.
+	if opts.typedDefaults.IsPresent() {
+		defaults, _ := opts.typedDefaults.Get()
+		if errMsg, bad := defaults["__configx_invalid_typed_defaults__"].(string); bad {
+			err := fmt.Errorf("typed defaults: %w", errors.Join(ErrDefaults, errors.New(errMsg)))
+			result = "error"
+			span.RecordError(err)
+			return nil, err
+		}
+		if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
+			result = "error"
+			span.RecordError(err)
+			return nil, fmt.Errorf("typed defaults map: %w", errors.Join(ErrDefaults, err))
+		}
+	}
+
 	if opts.defaults.IsPresent() {
 		defaults, _ := opts.defaults.Get()
 		if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
 			result = "error"
 			span.RecordError(err)
-			return nil, fmt.Errorf("configx: load defaults map: %w", err)
+			return nil, fmt.Errorf("defaults map: %w", errors.Join(ErrDefaults, err))
 		}
 	}
 
-	// 2. In-memory defaults (struct form).
-	if opts.defaultsStruct != nil {
-		if err := loadDefaultsStruct(k, opts.defaultsStruct); err != nil {
-			result = "error"
-			span.RecordError(err)
-			return nil, fmt.Errorf("configx: load defaults struct: %w", err)
-		}
-	}
-
-	// 3. External sources in priority order (later = higher precedence).
+	// 2. External sources in priority order (later = higher precedence).
 	for _, src := range opts.priority {
 		switch src {
 		case SourceDotenv:
@@ -271,7 +301,7 @@ func loadConfigFromOptions(opts *Options) (*Config, error) {
 			}); err != nil {
 				result = "error"
 				span.RecordError(err)
-				return nil, fmt.Errorf("configx: load dotenv source: %w", err)
+				return nil, fmt.Errorf("dotenv source: %w", errors.Join(ErrLoad, err))
 			}
 
 		case SourceFile:
@@ -280,7 +310,7 @@ func loadConfigFromOptions(opts *Options) (*Config, error) {
 			}); err != nil {
 				result = "error"
 				span.RecordError(err)
-				return nil, fmt.Errorf("configx: load file source: %w", err)
+				return nil, fmt.Errorf("file source: %w", errors.Join(ErrLoad, err))
 			}
 
 		case SourceEnv:
@@ -291,7 +321,7 @@ func loadConfigFromOptions(opts *Options) (*Config, error) {
 			}); err != nil {
 				result = "error"
 				span.RecordError(err)
-				return nil, fmt.Errorf("configx: load env source: %w", err)
+				return nil, fmt.Errorf("env source: %w", errors.Join(ErrLoad, err))
 			}
 		}
 	}

@@ -13,6 +13,8 @@ type Adapter struct {
 	client valkey.Client
 }
 
+var _ kvx.Client = (*Adapter)(nil)
+
 // New creates a new Valkey adapter.
 func New(opts kvx.ClientOptions) (*Adapter, error) {
 	client, err := valkey.NewClient(valkey.ClientOption{

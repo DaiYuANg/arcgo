@@ -13,6 +13,8 @@ type Adapter struct {
 	client *redis.Client
 }
 
+var _ kvx.Client = (*Adapter)(nil)
+
 // New creates a new Redis adapter.
 func New(opts kvx.ClientOptions) (*Adapter, error) {
 	rdb := redis.NewClient(&redis.Options{

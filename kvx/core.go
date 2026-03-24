@@ -249,7 +249,6 @@ type Client interface {
 	Script
 	JSON
 	Search
-	Pipeline
 	Lock
 
 	// Pipeline creates a new pipeline.

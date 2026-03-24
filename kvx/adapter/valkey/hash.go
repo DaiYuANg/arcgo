@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/valkey-io/valkey-go"
+	"strconv"
 )
 
 // ============== Hash Interface ==============
@@ -20,6 +21,22 @@ func (a *Adapter) HGet(ctx context.Context, key string, field string) ([]byte, e
 	return resp.AsBytes()
 }
 
+// HMGet gets multiple fields from a hash.
+func (a *Adapter) HMGet(ctx context.Context, key string, fields []string) (map[string][]byte, error) {
+	result := make(map[string][]byte, len(fields))
+	for _, field := range fields {
+		value, err := a.HGet(ctx, key, field)
+		if err != nil {
+			if kvx.IsNil(err) {
+				continue
+			}
+			return nil, err
+		}
+		result[field] = value
+	}
+	return result, nil
+}
+
 // HSet sets fields in a hash.
 func (a *Adapter) HSet(ctx context.Context, key string, values map[string][]byte) error {
 	// Build the command with FieldValue chain
@@ -28,6 +45,11 @@ func (a *Adapter) HSet(ctx context.Context, key string, values map[string][]byte
 		cmd = cmd.FieldValue(k, valkey.BinaryString(v))
 	}
 	return a.client.Do(ctx, cmd.Build()).Error()
+}
+
+// HMSet sets multiple fields in a hash.
+func (a *Adapter) HMSet(ctx context.Context, key string, values map[string][]byte) error {
+	return a.HSet(ctx, key, values)
 }
 
 // HGetAll gets all fields and values from a hash.
@@ -92,6 +114,15 @@ func (a *Adapter) HVals(ctx context.Context, key string) ([][]byte, error) {
 // HLen gets the number of fields in a hash.
 func (a *Adapter) HLen(ctx context.Context, key string) (int64, error) {
 	resp := a.client.Do(ctx, a.client.B().Hlen().Key(key).Build())
+	if resp.Error() != nil {
+		return 0, resp.Error()
+	}
+	return resp.AsInt64()
+}
+
+// HIncrBy increments a field by the given value.
+func (a *Adapter) HIncrBy(ctx context.Context, key string, field string, increment int64) (int64, error) {
+	resp := a.client.Do(ctx, a.client.B().Arbitrary("HINCRBY").Args(key, field, strconv.FormatInt(increment, 10)).Build())
 	if resp.Error() != nil {
 		return 0, resp.Error()
 	}

@@ -12,6 +12,7 @@ import (
 
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/mo"
 )
 
 var (
@@ -50,9 +51,7 @@ func DefaultOptions() *Options {
 
 // New creates a new Lock instance.
 func New(client kvx.Lock, key string, opts *Options) *Lock {
-	if opts == nil {
-		opts = DefaultOptions()
-	}
+	opts = resolveOptions(opts)
 
 	return &Lock{
 		client:     client,
@@ -62,6 +61,10 @@ func New(client kvx.Lock, key string, opts *Options) *Lock {
 		autoExtend: opts.AutoExtend,
 		stopExtend: make(chan struct{}),
 	}
+}
+
+func resolveOptions(opts *Options) *Options {
+	return mo.TupleToOption(opts, opts != nil).OrElse(DefaultOptions())
 }
 
 // Acquire acquires the lock.

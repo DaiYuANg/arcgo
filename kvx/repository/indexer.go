@@ -6,8 +6,10 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
+	"github.com/samber/lo"
 )
 
 // Indexer manages secondary indexes for entities.
@@ -235,17 +237,10 @@ func diffIndexEntries(left []string, right []string) []string {
 	if len(left) == 0 {
 		return nil
 	}
-	rightSet := make(map[string]struct{}, len(right))
-	for _, entry := range right {
-		rightSet[entry] = struct{}{}
-	}
-	result := make([]string, 0, len(left))
-	for _, entry := range left {
-		if _, ok := rightSet[entry]; !ok {
-			result = append(result, entry)
-		}
-	}
-	return result
+	rightSet := set.NewSet[string](right...)
+	return lo.Filter(left, func(entry string, _ int) bool {
+		return !rightSet.Contains(entry)
+	})
 }
 
 func extractIDFromKey(key string) string {

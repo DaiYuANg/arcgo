@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
 // Search provides high-level search operations.
@@ -50,9 +52,7 @@ func (i *Index) Drop(ctx context.Context) error {
 
 // Search performs a search query on this index.
 func (i *Index) Search(ctx context.Context, query string, opts *SearchOptions) (*SearchResult, error) {
-	if opts == nil {
-		opts = DefaultSearchOptions()
-	}
+	opts = resolveSearchOptions(opts)
 
 	limit := opts.Limit
 	if limit <= 0 {
@@ -130,12 +130,15 @@ func (qb *QueryBuilder) Tag(field, value string) *QueryBuilder {
 
 // Tags adds a tag search condition with multiple values (OR).
 func (qb *QueryBuilder) Tags(field string, values []string) *QueryBuilder {
-	escaped := make([]string, len(values))
-	for i, v := range values {
-		escaped[i] = escapeTag(v)
-	}
+	escaped := lo.Map(values, func(value string, _ int) string {
+		return escapeTag(value)
+	})
 	qb.parts = append(qb.parts, fmt.Sprintf("@%s:{%s}", field, strings.Join(escaped, "|")))
 	return qb
+}
+
+func resolveSearchOptions(opts *SearchOptions) *SearchOptions {
+	return mo.TupleToOption(opts, opts != nil).OrElse(DefaultSearchOptions())
 }
 
 // Range adds a numeric range condition.

@@ -103,18 +103,9 @@ func (r *JSONRepository[T]) FindByID(ctx context.Context, id string) (*T, error)
 }
 
 func (r *JSONRepository[T]) FindByIDs(ctx context.Context, ids []string) (map[string]*T, error) {
-	results := make(map[string]*T, len(ids))
-	for _, id := range ids {
-		entity, err := r.FindByID(ctx, id)
-		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				continue
-			}
-			return nil, err
-		}
-		results[id] = entity
-	}
-	return results, nil
+	return collectPresentMap(ids, func(id string) (*T, error) {
+		return r.FindByID(ctx, id)
+	})
 }
 
 func (r *JSONRepository[T]) Exists(ctx context.Context, id string) (bool, error) {
@@ -127,11 +118,7 @@ func (r *JSONRepository[T]) ExistsBatch(ctx context.Context, ids []string) (map[
 	if err != nil {
 		return nil, err
 	}
-	results := make(map[string]bool, len(ids))
-	for i, id := range ids {
-		results[id] = existsMap[keys[i]]
-	}
-	return results, nil
+	return mapExistsResults(ids, keys, existsMap), nil
 }
 
 func (r *JSONRepository[T]) Delete(ctx context.Context, id string) error {
@@ -161,12 +148,9 @@ func (r *JSONRepository[T]) Delete(ctx context.Context, id string) error {
 }
 
 func (r *JSONRepository[T]) DeleteBatch(ctx context.Context, ids []string) error {
-	for _, id := range ids {
-		if err := r.Delete(ctx, id); err != nil {
-			return err
-		}
-	}
-	return nil
+	return runAll(ids, func(id string) error {
+		return r.Delete(ctx, id)
+	})
 }
 
 func (r *JSONRepository[T]) UpdateField(ctx context.Context, id string, fieldPath string, value interface{}) error {
@@ -234,18 +218,9 @@ func (r *JSONRepository[T]) FindAll(ctx context.Context) ([]*T, error) {
 	if err != nil {
 		return nil, err
 	}
-	results := make([]*T, 0, len(keys))
-	for _, key := range keys {
-		entity, err := r.findByKey(ctx, key)
-		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				continue
-			}
-			return nil, err
-		}
-		results = append(results, entity)
-	}
-	return results, nil
+	return collectPresentSlice(keys, func(key string) (*T, error) {
+		return r.findByKey(ctx, key)
+	})
 }
 
 func (r *JSONRepository[T]) Count(ctx context.Context) (int64, error) {
@@ -282,18 +257,9 @@ func (r *JSONRepository[T]) findByKey(ctx context.Context, key string) (*T, erro
 }
 
 func (r *JSONRepository[T]) findManyByIDs(ctx context.Context, ids []string) ([]*T, error) {
-	results := make([]*T, 0, len(ids))
-	for _, id := range ids {
-		entity, err := r.FindByID(ctx, id)
-		if err != nil {
-			if errors.Is(err, ErrNotFound) {
-				continue
-			}
-			return nil, err
-		}
-		results = append(results, entity)
-	}
-	return results, nil
+	return collectPresentSlice(ids, func(id string) (*T, error) {
+		return r.FindByID(ctx, id)
+	})
 }
 
 func extractFieldNameFromPath(path string) string {

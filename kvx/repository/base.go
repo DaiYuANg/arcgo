@@ -2,11 +2,13 @@ package repository
 
 import (
 	"context"
+	"errors"
 
 	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
 const scanBatchSize int64 = 256
@@ -88,4 +90,59 @@ func intersectStringSlices(groups ...[]string) []string {
 
 func stringSliceIntersection(a, b []string) []string {
 	return intersectStringSlices(a, b)
+}
+
+func collectPresentMap[K comparable, T any](items []K, load func(K) (*T, error)) (map[K]*T, error) {
+	results := make(map[K]*T, len(items))
+	for _, item := range items {
+		entityOpt, err := loadPresent(load(item))
+		if err != nil {
+			return nil, err
+		}
+		if entityOpt.IsPresent() {
+			results[item] = entityOpt.MustGet()
+		}
+	}
+	return results, nil
+}
+
+func collectPresentSlice[K any, T any](items []K, load func(K) (*T, error)) ([]*T, error) {
+	results := make([]*T, 0, len(items))
+	for _, item := range items {
+		entityOpt, err := loadPresent(load(item))
+		if err != nil {
+			return nil, err
+		}
+		if entityOpt.IsPresent() {
+			results = append(results, entityOpt.MustGet())
+		}
+	}
+	return results, nil
+}
+
+func loadPresent[T any](entity *T, err error) (mo.Option[*T], error) {
+	if err == nil {
+		return mo.Some(entity), nil
+	}
+	if errors.Is(err, ErrNotFound) {
+		return mo.None[*T](), nil
+	}
+	return mo.None[*T](), err
+}
+
+func mapExistsResults(ids []string, keys []string, existsMap map[string]bool) map[string]bool {
+	results := make(map[string]bool, len(ids))
+	for i, id := range ids {
+		results[id] = existsMap[keys[i]]
+	}
+	return results
+}
+
+func runAll[T any](items []T, fn func(T) error) error {
+	for _, item := range items {
+		if err := fn(item); err != nil {
+			return err
+		}
+	}
+	return nil
 }

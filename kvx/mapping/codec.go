@@ -6,6 +6,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/samber/mo"
 )
 
 // Serializer defines the interface for serializing/deserializing values.
@@ -41,10 +43,9 @@ type HashCodec struct {
 
 // NewHashCodec creates a new HashCodec.
 func NewHashCodec(serializer Serializer) *HashCodec {
-	if serializer == nil {
-		serializer = NewJSONSerializer()
+	return &HashCodec{
+		serializer: mo.TupleToOption(serializer, serializer != nil).OrElse(NewJSONSerializer()),
 	}
-	return &HashCodec{serializer: serializer}
 }
 
 // Encode encodes an entity to a hash map.
@@ -67,11 +68,7 @@ func (c *HashCodec) Encode(entity interface{}, metadata *EntityMetadata) (map[st
 			return nil, fmt.Errorf("encode field %s: %w", fieldName, err)
 		}
 
-		storeName := fieldTag.Name
-		if storeName == "" {
-			storeName = fieldName
-		}
-		result[storeName] = data
+		result[storageFieldName(fieldName, fieldTag)] = data
 	}
 
 	return result, nil
@@ -87,11 +84,7 @@ func (c *HashCodec) Decode(data map[string][]byte, entity interface{}, metadata 
 	// Build reverse map: store name -> field name
 	storeToField := make(map[string]string)
 	for fieldName, fieldTag := range metadata.Fields {
-		storeName := fieldTag.Name
-		if storeName == "" {
-			storeName = fieldName
-		}
-		storeToField[storeName] = fieldName
+		storeToField[storageFieldName(fieldName, fieldTag)] = fieldName
 	}
 
 	for storeName, fieldData := range data {
@@ -206,4 +199,11 @@ func (c *HashCodec) decodeField(v reflect.Value, data []byte) error {
 func (c *HashCodec) EncodeSingleValue(value interface{}) ([]byte, error) {
 	v := reflect.ValueOf(value)
 	return c.encodeField(v)
+}
+
+func storageFieldName(fieldName string, fieldTag FieldTag) string {
+	if fieldTag.Name != "" {
+		return fieldTag.Name
+	}
+	return fieldName
 }

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // ConsumerGroup provides high-level consumer group operations.
@@ -340,10 +341,9 @@ func (c *BatchConsumer) processBatch(ctx context.Context, entries []kvx.StreamEn
 	}
 
 	if c.autoAck {
-		ids := make([]string, len(entries))
-		for i, entry := range entries {
-			ids[i] = entry.ID
-		}
+		ids := lo.Map(entries, func(entry kvx.StreamEntry, _ int) string {
+			return entry.ID
+		})
 		return c.group.Ack(ctx, ids)
 	}
 

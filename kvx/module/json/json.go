@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // JSON provides high-level JSON document operations.
@@ -236,11 +237,7 @@ func (j *JSON) ObjectKeys(ctx context.Context, key, path string) ([]string, erro
 		return nil, err
 	}
 
-	keys := make([]string, 0, len(obj))
-	for k := range obj {
-		keys = append(keys, k)
-	}
-	return keys, nil
+	return lo.Keys(obj), nil
 }
 
 // ObjectMerge merges multiple objects into the target object.

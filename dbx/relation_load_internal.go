@@ -167,18 +167,18 @@ func indexRelationTargets[E any](targets []E, mapper Mapper[E], column string, r
 	indexed := make(map[any]E, len(targets))
 	counts := make(map[any]int, len(targets))
 	for index := range targets {
-		key, err := entityRelationKey(mapper, &targets[index], column)
+		key, err := presentEntityRelationKey(mapper, &targets[index], column)
 		if err != nil {
 			return nil, err
 		}
-		if !key.present {
+		if !key.ok {
 			continue
 		}
-		counts[key.key]++
-		if enforceUnique && counts[key.key] > 1 {
-			return nil, &RelationCardinalityError{Relation: relationName, Key: key.key, Count: counts[key.key]}
+		counts[key.value]++
+		if enforceUnique && counts[key.value] > 1 {
+			return nil, &RelationCardinalityError{Relation: relationName, Key: key.value, Count: counts[key.value]}
 		}
-		indexed[key.key] = targets[index]
+		indexed[key.value] = targets[index]
 	}
 	return indexed, nil
 }
@@ -190,30 +190,26 @@ func groupRelationTargets[E any](rt *relationRuntime, targets []E, mapper Mapper
 		rt.countsMapPool.Put(counts)
 	}()
 	for index := range targets {
-		key, err := entityRelationKey(mapper, &targets[index], column)
+		key, err := presentEntityRelationKey(mapper, &targets[index], column)
 		if err != nil {
 			return nil, err
 		}
-		if !key.present {
+		if !key.ok {
 			continue
 		}
-		v, _ := counts.Get(key.key)
-		counts.Set(key.key, v+1)
+		v, _ := counts.Get(key.value)
+		counts.Set(key.value, v+1)
 	}
-	grouped := make(map[any][]E, counts.Len())
-	counts.Range(func(k any, cap int) bool {
-		grouped[k] = make([]E, 0, cap)
-		return true
-	})
+	grouped := groupedValuesFromCounts[E](counts)
 	for index := range targets {
-		key, err := entityRelationKey(mapper, &targets[index], column)
+		key, err := presentEntityRelationKey(mapper, &targets[index], column)
 		if err != nil {
 			return nil, err
 		}
-		if !key.present {
+		if !key.ok {
 			continue
 		}
-		grouped[key.key] = append(grouped[key.key], targets[index])
+		grouped[key.value] = append(grouped[key.value], targets[index])
 	}
 	return grouped, nil
 }
@@ -367,11 +363,7 @@ func groupManyToManyTargets[E any](rt *relationRuntime, pairs []relationKeyPair,
 			counts.Set(pair.source, v+1)
 		}
 	}
-	grouped := make(map[any][]E, counts.Len())
-	counts.Range(func(k any, cap int) bool {
-		grouped[k] = make([]E, 0, cap)
-		return true
-	})
+	grouped := groupedValuesFromCounts[E](counts)
 	for _, pair := range pairs {
 		target, ok := indexed[pair.target]
 		if !ok {
@@ -379,6 +371,31 @@ func groupManyToManyTargets[E any](rt *relationRuntime, pairs []relationKeyPair,
 		}
 		grouped[pair.source] = append(grouped[pair.source], target)
 	}
+	return grouped
+}
+
+type presentRelationKey struct {
+	value any
+	ok    bool
+}
+
+func presentEntityRelationKey[E any](mapper Mapper[E], entity *E, column string) (presentRelationKey, error) {
+	key, err := entityRelationKey(mapper, entity, column)
+	if err != nil {
+		return presentRelationKey{}, err
+	}
+	if !key.present {
+		return presentRelationKey{}, nil
+	}
+	return presentRelationKey{value: key.key, ok: true}, nil
+}
+
+func groupedValuesFromCounts[E any](counts collectionx.Map[any, int]) map[any][]E {
+	grouped := make(map[any][]E, counts.Len())
+	counts.Range(func(key any, capacity int) bool {
+		grouped[key] = make([]E, 0, capacity)
+		return true
+	})
 	return grouped
 }
 

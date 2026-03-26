@@ -14,6 +14,7 @@ var (
 	ErrIDGeneratorNodeIDConflict = errors.New("dbx: WithIDGenerator and WithNodeID cannot be used together")
 	ErrInvalidNodeID             = errors.New("dbx: node id is out of range")
 	ErrNilDialect                = errors.New("dbx: dialect is nil")
+	ErrNilQuery                  = errors.New("dbx: query is nil")
 	ErrNilCodec                  = errors.New("dbx: codec is nil")
 	ErrNilMapper                 = errors.New("dbx: mapper is nil")
 	ErrNilRow                    = errors.New("dbx: row is nil")

@@ -2,6 +2,7 @@ package dbx
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 )
@@ -19,7 +20,7 @@ type SnowflakeUser struct {
 type SnowflakeUserSchema struct {
 	Schema[SnowflakeUser]
 	ID       IDColumn[SnowflakeUser, int64, IDSnowflake] `dbx:"id,pk"`
-	Username Column[SnowflakeUser, string] `dbx:"username"`
+	Username Column[SnowflakeUser, string]               `dbx:"username"`
 }
 
 type UUIDUser struct {
@@ -30,7 +31,7 @@ type UUIDUser struct {
 type UUIDUserSchema struct {
 	Schema[UUIDUser]
 	ID       IDColumn[UUIDUser, string, IDUUIDv7] `dbx:"id,pk"`
-	Username Column[UUIDUser, string] `dbx:"username"`
+	Username Column[UUIDUser, string]             `dbx:"username"`
 }
 
 type ULIDUser struct {
@@ -41,7 +42,7 @@ type ULIDUser struct {
 type ULIDUserSchema struct {
 	Schema[ULIDUser]
 	ID       IDColumn[ULIDUser, string, IDULID] `dbx:"id,pk"`
-	Username Column[ULIDUser, string] `dbx:"username"`
+	Username Column[ULIDUser, string]           `dbx:"username"`
 }
 
 type KSUIDUser struct {
@@ -52,7 +53,7 @@ type KSUIDUser struct {
 type KSUIDUserSchema struct {
 	Schema[KSUIDUser]
 	ID       IDColumn[KSUIDUser, string, IDKSUID] `dbx:"id,pk"`
-	Username Column[KSUIDUser, string] `dbx:"username"`
+	Username Column[KSUIDUser, string]            `dbx:"username"`
 }
 
 type hookRecorder struct {
@@ -186,6 +187,34 @@ func TestQueryCursorAndEach(t *testing.T) {
 	})
 	if len(fromEach) != 2 || fromEach[0].Username != "alice" || fromEach[1].ID != 2 {
 		t.Fatalf("unexpected each items: %+v", fromEach)
+	}
+}
+
+func TestBuildRejectsNilQuery(t *testing.T) {
+	_, err := Build(New(nil, testSQLiteDialect{}), nil)
+	if !errors.Is(err, ErrNilQuery) {
+		t.Fatalf("expected ErrNilQuery, got: %v", err)
+	}
+}
+
+func TestExecRejectsNilQuery(t *testing.T) {
+	_, err := Exec(context.Background(), New(nil, testSQLiteDialect{}), nil)
+	if !errors.Is(err, ErrNilQuery) {
+		t.Fatalf("expected ErrNilQuery, got: %v", err)
+	}
+}
+
+func TestQueryAllRejectsNilQuery(t *testing.T) {
+	_, err := QueryAll(context.Background(), New(nil, testSQLiteDialect{}), nil, MustStructMapper[UserSummary]())
+	if !errors.Is(err, ErrNilQuery) {
+		t.Fatalf("expected ErrNilQuery, got: %v", err)
+	}
+}
+
+func TestQueryCursorRejectsNilQuery(t *testing.T) {
+	_, err := QueryCursor(context.Background(), New(nil, testSQLiteDialect{}), nil, MustStructMapper[UserSummary]())
+	if !errors.Is(err, ErrNilQuery) {
+		t.Fatalf("expected ErrNilQuery, got: %v", err)
 	}
 }
 

@@ -22,7 +22,7 @@ func (s *Store[E, S]) Repository() *repository.Base[E, S] {
 }
 
 func (s *Store[E, S]) Wrap(entity *E) *Model[E, S] {
-	return &Model[E, S]{store: s, entity: entity}
+	return s.newModel(entity)
 }
 
 func (s *Store[E, S]) FindByID(ctx context.Context, id any) (*Model[E, S], error) {
@@ -30,20 +30,12 @@ func (s *Store[E, S]) FindByID(ctx context.Context, id any) (*Model[E, S], error
 	if err != nil {
 		return nil, err
 	}
-	return &Model[E, S]{store: s, entity: &entity, key: s.keyOf(&entity)}, nil
+	return s.newKeyedModel(&entity, s.keyOf(&entity)), nil
 }
 
 func (s *Store[E, S]) FindByIDOption(ctx context.Context, id any) (mo.Option[*Model[E, S]], error) {
 	entity, err := s.repository.GetByIDOption(ctx, id)
-	if err != nil {
-		return mo.None[*Model[E, S]](), err
-	}
-	item, ok := entity.Get()
-	if !ok {
-		return mo.None[*Model[E, S]](), nil
-	}
-	e := item
-	return mo.Some(&Model[E, S]{store: s, entity: &e, key: s.keyOf(&e)}), nil
+	return s.wrapOption(entity, err)
 }
 
 func (s *Store[E, S]) FindByKey(ctx context.Context, key repository.Key) (*Model[E, S], error) {
@@ -51,7 +43,7 @@ func (s *Store[E, S]) FindByKey(ctx context.Context, key repository.Key) (*Model
 	if err != nil {
 		return nil, err
 	}
-	return &Model[E, S]{store: s, entity: &entity, key: key}, nil
+	return s.newKeyedModel(&entity, key), nil
 }
 
 func (s *Store[E, S]) FindByKeyOption(ctx context.Context, key repository.Key) (mo.Option[*Model[E, S]], error) {
@@ -59,12 +51,10 @@ func (s *Store[E, S]) FindByKeyOption(ctx context.Context, key repository.Key) (
 	if err != nil {
 		return mo.None[*Model[E, S]](), err
 	}
-	item, ok := entity.Get()
-	if !ok {
-		return mo.None[*Model[E, S]](), nil
-	}
-	e := item
-	return mo.Some(&Model[E, S]{store: s, entity: &e, key: s.keyOf(&e)}), nil
+	return mapOption(entity, func(item E) *Model[E, S] {
+		entity := item
+		return s.newKeyedModel(&entity, key)
+	}), nil
 }
 
 func (s *Store[E, S]) List(ctx context.Context, specs ...repository.Spec) ([]*Model[E, S], error) {
@@ -72,10 +62,34 @@ func (s *Store[E, S]) List(ctx context.Context, specs ...repository.Spec) ([]*Mo
 	if err != nil {
 		return nil, err
 	}
-	models := lo.Map(items, func(item E, _ int) *Model[E, S] {
+	return lo.Map(items, func(item E, _ int) *Model[E, S] {
 		entity := item
-		return &Model[E, S]{store: s, entity: &entity, key: s.keyOf(&entity)}
-	})
-	return models, nil
+		return s.newKeyedModel(&entity, s.keyOf(&entity))
+	}), nil
 }
 
+func (s *Store[E, S]) newModel(entity *E) *Model[E, S] {
+	return &Model[E, S]{store: s, entity: entity}
+}
+
+func (s *Store[E, S]) newKeyedModel(entity *E, key repository.Key) *Model[E, S] {
+	return &Model[E, S]{store: s, entity: entity, key: cloneKey(key)}
+}
+
+func (s *Store[E, S]) wrapOption(entity mo.Option[E], err error) (mo.Option[*Model[E, S]], error) {
+	if err != nil {
+		return mo.None[*Model[E, S]](), err
+	}
+	return mapOption(entity, func(item E) *Model[E, S] {
+		entity := item
+		return s.newKeyedModel(&entity, s.keyOf(&entity))
+	}), nil
+}
+
+func mapOption[T any, R any](value mo.Option[T], mapper func(T) R) mo.Option[R] {
+	item, ok := value.Get()
+	if !ok {
+		return mo.None[R]()
+	}
+	return mo.Some(mapper(item))
+}

@@ -11,10 +11,7 @@ func (r *Base[E, S]) List(ctx context.Context, query *dbx.SelectQuery) ([]E, err
 	if r == nil || r.session == nil {
 		return nil, dbx.ErrNilDB
 	}
-	if query == nil {
-		query = r.defaultSelect()
-	}
-	return dbx.QueryAll(ctx, r.session, query, r.mapper)
+	return dbx.QueryAll(ctx, r.session, cloneOrDefault(r, query), r.mapper)
 }
 
 func (r *Base[E, S]) ListSpec(ctx context.Context, specs ...Spec) ([]E, error) {
@@ -26,12 +23,7 @@ func (r *Base[E, S]) First(ctx context.Context, query *dbx.SelectQuery) (E, erro
 	if r == nil || r.session == nil {
 		return zero, dbx.ErrNilDB
 	}
-	firstQuery := query
-	if firstQuery == nil {
-		firstQuery = r.defaultSelect()
-	} else {
-		firstQuery = firstQuery.Clone()
-	}
+	firstQuery := cloneOrDefault(r, query)
 	items, err := dbx.QueryAll(ctx, r.session, firstQuery.Limit(1), r.mapper)
 	if err != nil {
 		return zero, err
@@ -95,12 +87,7 @@ func (r *Base[E, S]) ListPage(ctx context.Context, query *dbx.SelectQuery, page 
 	if err != nil {
 		return PageResult[E]{}, err
 	}
-	pagedQuery := query
-	if pagedQuery == nil {
-		pagedQuery = r.defaultSelect()
-	} else {
-		pagedQuery = pagedQuery.Clone()
-	}
+	pagedQuery := cloneOrDefault(r, query)
 	offset := (page - 1) * pageSize
 	items, err := r.List(ctx, pagedQuery.Limit(pageSize).Offset(offset))
 	if err != nil {

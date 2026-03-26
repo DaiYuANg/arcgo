@@ -2,11 +2,13 @@ package repository
 
 import (
 	"database/sql"
+	"errors"
 	"slices"
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
 type countRow struct {
@@ -40,6 +42,23 @@ func cloneForCount(query *dbx.SelectQuery) *dbx.SelectQuery {
 	cloned.LimitN = nil
 	cloned.OffsetN = nil
 	return cloned
+}
+
+func cloneOrDefault[E any, S dbx.SchemaSource[E]](r *Base[E, S], query *dbx.SelectQuery) *dbx.SelectQuery {
+	if query == nil {
+		return r.defaultSelect()
+	}
+	return query.Clone()
+}
+
+func optionFromResult[T any](item T, err error) (mo.Option[T], error) {
+	if err == nil {
+		return mo.Some(item), nil
+	}
+	if errors.Is(err, ErrNotFound) {
+		return mo.None[T](), nil
+	}
+	return mo.None[T](), err
 }
 
 func (r *Base[E, S]) primaryColumnName() string {

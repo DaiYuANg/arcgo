@@ -39,8 +39,8 @@ func Build(session Session, query QueryBuilder) (BoundQuery, error) {
 		return BoundQuery{}, ErrNilDialect
 	}
 	if query == nil {
-		logRuntimeNode(session, "build.skip_nil_query")
-		return BoundQuery{}, nil
+		logRuntimeNode(session, "build.error", "error", ErrNilQuery)
+		return BoundQuery{}, ErrNilQuery
 	}
 	logRuntimeNode(session, "build.start")
 	bound, err := query.Build(session.Dialect())

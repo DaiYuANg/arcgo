@@ -473,6 +473,70 @@ func TestBaseFirstDoesNotMutateQuery(t *testing.T) {
 	}
 }
 
+func TestBaseListDoesNotMutateQuery(t *testing.T) {
+	ctx := context.Background()
+	raw, err := sql.Open("sqlite", "file:repository_list_immutable_test?mode=memory&cache=shared")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer raw.Close()
+	core := dbx.MustNewWithOptions(raw, sqlitedialect.New())
+	users := dbx.MustSchema("users", UserSchema{})
+	if _, err := core.AutoMigrate(ctx, users); err != nil {
+		t.Fatalf("auto migrate: %v", err)
+	}
+	repo := New[User](core, users)
+	if err := repo.CreateMany(ctx, &User{Name: "alice"}, &User{Name: "bob"}); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	query := dbx.Select(users.AllColumns()...).From(users).OrderBy(users.Name.Asc()).Limit(10).Offset(5)
+	if _, err := repo.List(ctx, query); err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	if query.LimitN == nil || *query.LimitN != 10 {
+		t.Fatalf("expected List to preserve query limit, got: %v", query.LimitN)
+	}
+	if query.OffsetN == nil || *query.OffsetN != 5 {
+		t.Fatalf("expected List to preserve query offset, got: %v", query.OffsetN)
+	}
+	if len(query.Orders) != 1 {
+		t.Fatalf("expected List to preserve query order clauses, got: %d", len(query.Orders))
+	}
+}
+
+func TestBaseCountDoesNotMutateQuery(t *testing.T) {
+	ctx := context.Background()
+	raw, err := sql.Open("sqlite", "file:repository_count_immutable_test?mode=memory&cache=shared")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer raw.Close()
+	core := dbx.MustNewWithOptions(raw, sqlitedialect.New())
+	users := dbx.MustSchema("users", UserSchema{})
+	if _, err := core.AutoMigrate(ctx, users); err != nil {
+		t.Fatalf("auto migrate: %v", err)
+	}
+	repo := New[User](core, users)
+	if err := repo.CreateMany(ctx, &User{Name: "alice"}, &User{Name: "bob"}); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	query := dbx.Select(users.AllColumns()...).From(users).OrderBy(users.Name.Asc()).Limit(10).Offset(5)
+	if _, err := repo.Count(ctx, query); err != nil {
+		t.Fatalf("count: %v", err)
+	}
+	if query.LimitN == nil || *query.LimitN != 10 {
+		t.Fatalf("expected Count to preserve query limit, got: %v", query.LimitN)
+	}
+	if query.OffsetN == nil || *query.OffsetN != 5 {
+		t.Fatalf("expected Count to preserve query offset, got: %v", query.OffsetN)
+	}
+	if len(query.Orders) != 1 {
+		t.Fatalf("expected Count to preserve query order clauses, got: %d", len(query.Orders))
+	}
+}
+
 func TestBaseListPageDoesNotMutateQuery(t *testing.T) {
 	ctx := context.Background()
 	raw, err := sql.Open("sqlite", "file:repository_page_immutable_test?mode=memory&cache=shared")

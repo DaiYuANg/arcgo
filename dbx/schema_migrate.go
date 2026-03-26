@@ -256,22 +256,22 @@ func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...Sc
 		spec := buildTableSpec(schema.schemaRef())
 		if diff.MissingTable {
 			actions.Add(buildCreateTableAction(schemaDialect, spec))
-			actions.Add(lo.Map(spec.Indexes, func(index IndexMeta, _ int) MigrationAction {
+			actions.Add(mappedMigrationActions(spec.Indexes, func(index IndexMeta) MigrationAction {
 				return buildCreateIndexAction(schemaDialect, index)
 			})...)
 			continue
 		}
 
-		actions.Add(lo.Map(diff.MissingColumns, func(c ColumnMeta, _ int) MigrationAction {
+		actions.Add(mappedMigrationActions(diff.MissingColumns, func(c ColumnMeta) MigrationAction {
 			return buildAddColumnAction(schemaDialect, diff.Table, c)
 		})...)
-		actions.Add(lo.Map(diff.MissingIndexes, func(index IndexMeta, _ int) MigrationAction {
+		actions.Add(mappedMigrationActions(diff.MissingIndexes, func(index IndexMeta) MigrationAction {
 			return buildCreateIndexAction(schemaDialect, index)
 		})...)
-		actions.Add(lo.Map(diff.MissingForeignKeys, func(fk ForeignKeyMeta, _ int) MigrationAction {
+		actions.Add(mappedMigrationActions(diff.MissingForeignKeys, func(fk ForeignKeyMeta) MigrationAction {
 			return buildAddForeignKeyAction(schemaDialect, diff.Table, fk)
 		})...)
-		actions.Add(lo.Map(diff.MissingChecks, func(check CheckMeta, _ int) MigrationAction {
+		actions.Add(mappedMigrationActions(diff.MissingChecks, func(check CheckMeta) MigrationAction {
 			return buildAddCheckAction(schemaDialect, diff.Table, check)
 		})...)
 		if diff.PrimaryKeyDiff != nil {
@@ -281,13 +281,7 @@ func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...Sc
 				Summary: "manual primary key migration required",
 			})
 		}
-		actions.Add(lo.Map(diff.ColumnDiffs, func(cd ColumnDiff, _ int) MigrationAction {
-			return MigrationAction{
-				Kind:    MigrationActionManual,
-				Table:   diff.Table,
-				Summary: "manual column migration required for " + cd.Column.Name + ": " + strings.Join(cd.Issues, "; "),
-			}
-		})...)
+		actions.Add(columnDiffManualActions(diff)...)
 	}
 
 	return MigrationPlan{
@@ -514,37 +508,22 @@ func diffSchema(ctx context.Context, schemaDialect SchemaDialect, session Sessio
 		return diff, nil
 	}
 
-	actualColumns := collectionx.NewMapWithCapacity[string, ColumnState](len(actual.Columns))
-	for _, column := range actual.Columns {
-		actualColumns.Set(column.Name, column)
-	}
+	actualColumns := lo.SliceToMap(actual.Columns, func(column ColumnState) (string, ColumnState) {
+		return column.Name, column
+	})
 
 	for _, expected := range spec.Columns {
-		column, ok := actualColumns.Get(expected.Name)
+		column, ok := actualColumns[expected.Name]
 		if !ok {
 			missingColumns.Add(expected)
 			continue
 		}
 
-		issues := collectionx.NewList[string]()
-		expectedType := normalizeExpectedType(schemaDialect, expected)
-		actualType := schemaDialect.NormalizeType(column.Type)
-		if expectedType != "" && actualType != "" && expectedType != actualType {
-			issues.Add("type mismatch: expected " + expectedType + " got " + actualType)
-		}
-		if !column.PrimaryKey && expected.Nullable != column.Nullable {
-			issues.Add("nullable mismatch")
-		}
-		if expected.AutoIncrement != column.AutoIncrement {
-			issues.Add("auto increment mismatch")
-		}
-		if expected.DefaultValue != "" && normalizeDefault(expected.DefaultValue) != normalizeDefault(column.DefaultValue) {
-			issues.Add("default mismatch")
-		}
-		if issues.Len() > 0 {
+		issues := columnDiffIssues(schemaDialect, expected, column)
+		if len(issues) > 0 {
 			columnDiffs.Add(ColumnDiff{
 				Column: expected,
-				Issues: issues.Values(),
+				Issues: issues,
 			})
 		}
 	}
@@ -565,32 +544,29 @@ func diffSchema(ctx context.Context, schemaDialect SchemaDialect, session Sessio
 		}
 	}
 
-	actualIndexes := collectionx.NewMapWithCapacity[string, IndexState](len(actual.Indexes))
-	for _, index := range actual.Indexes {
-		actualIndexes.Set(indexKey(index.Unique, index.Columns), index)
-	}
+	actualIndexes := lo.SliceToMap(actual.Indexes, func(index IndexState) (string, IndexState) {
+		return indexKey(index.Unique, index.Columns), index
+	})
 	for _, expected := range spec.Indexes {
-		if _, ok := actualIndexes.Get(indexKey(expected.Unique, expected.Columns)); !ok {
+		if _, ok := actualIndexes[indexKey(expected.Unique, expected.Columns)]; !ok {
 			missingIndexes.Add(expected)
 		}
 	}
 
-	actualForeignKeys := collectionx.NewMapWithCapacity[string, ForeignKeyState](len(actual.ForeignKeys))
-	for _, foreignKey := range actual.ForeignKeys {
-		actualForeignKeys.Set(foreignKeyKeyFromState(foreignKey), foreignKey)
-	}
+	actualForeignKeys := lo.SliceToMap(actual.ForeignKeys, func(foreignKey ForeignKeyState) (string, ForeignKeyState) {
+		return foreignKeyKeyFromState(foreignKey), foreignKey
+	})
 	for _, expected := range spec.ForeignKeys {
-		if _, ok := actualForeignKeys.Get(foreignKeyKey(expected)); !ok {
+		if _, ok := actualForeignKeys[foreignKeyKey(expected)]; !ok {
 			missingForeignKeys.Add(expected)
 		}
 	}
 
-	actualChecks := collectionx.NewMapWithCapacity[string, CheckState](len(actual.Checks))
-	for _, check := range actual.Checks {
-		actualChecks.Set(checkKey(check.Expression), check)
-	}
+	actualChecks := lo.SliceToMap(actual.Checks, func(check CheckState) (string, CheckState) {
+		return checkKey(check.Expression), check
+	})
 	for _, expected := range spec.Checks {
-		if _, ok := actualChecks.Get(checkKey(expected.Expression)); !ok {
+		if _, ok := actualChecks[checkKey(expected.Expression)]; !ok {
 			missingChecks.Add(expected)
 		}
 	}
@@ -658,19 +634,16 @@ func derivePrimaryKey(def schemaDefinition) *PrimaryKeyMeta {
 		return &copyPrimary
 	}
 
-	columns := collectionx.NewList[string]()
-	for _, column := range def.columns {
-		if column.PrimaryKey {
-			columns.Add(column.Name)
-		}
-	}
-	if columns.Len() == 0 {
+	columns := lo.FilterMap(def.columns, func(column ColumnMeta, _ int) (string, bool) {
+		return column.Name, column.PrimaryKey
+	})
+	if len(columns) == 0 {
 		return nil
 	}
 	return &PrimaryKeyMeta{
 		Name:    "pk_" + def.table.name,
 		Table:   def.table.name,
-		Columns: columns.Values(),
+		Columns: columns,
 	}
 }
 
@@ -727,6 +700,41 @@ func deriveChecks(def schemaDefinition) []CheckMeta {
 	return lo.Map(def.checks, func(check CheckMeta, _ int) CheckMeta {
 		return cloneCheckMeta(check)
 	})
+}
+
+func mappedMigrationActions[T any](items []T, mapper func(T) MigrationAction) []MigrationAction {
+	return lo.Map(items, func(item T, _ int) MigrationAction {
+		return mapper(item)
+	})
+}
+
+func columnDiffManualActions(diff TableDiff) []MigrationAction {
+	return mappedMigrationActions(diff.ColumnDiffs, func(cd ColumnDiff) MigrationAction {
+		return MigrationAction{
+			Kind:    MigrationActionManual,
+			Table:   diff.Table,
+			Summary: "manual column migration required for " + cd.Column.Name + ": " + strings.Join(cd.Issues, "; "),
+		}
+	})
+}
+
+func columnDiffIssues(schemaDialect SchemaDialect, expected ColumnMeta, actual ColumnState) []string {
+	issues := collectionx.NewList[string]()
+	expectedType := normalizeExpectedType(schemaDialect, expected)
+	actualType := schemaDialect.NormalizeType(actual.Type)
+	if expectedType != "" && actualType != "" && expectedType != actualType {
+		issues.Add("type mismatch: expected " + expectedType + " got " + actualType)
+	}
+	if !actual.PrimaryKey && expected.Nullable != actual.Nullable {
+		issues.Add("nullable mismatch")
+	}
+	if expected.AutoIncrement != actual.AutoIncrement {
+		issues.Add("auto increment mismatch")
+	}
+	if expected.DefaultValue != "" && normalizeDefault(expected.DefaultValue) != normalizeDefault(actual.DefaultValue) {
+		issues.Add("default mismatch")
+	}
+	return issues.Values()
 }
 
 func buildCreateTableAction(schemaDialect SchemaDialect, spec TableSpec) MigrationAction {

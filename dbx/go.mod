@@ -5,7 +5,6 @@ go 1.26.1
 require (
 	ariga.io/atlas v1.1.0
 	github.com/google/uuid v1.6.0
-	github.com/mattn/go-sqlite3 v1.14.37
 	github.com/oklog/ulid/v2 v2.1.1
 	github.com/samber/hot v0.13.0
 	github.com/samber/lo v1.53.0

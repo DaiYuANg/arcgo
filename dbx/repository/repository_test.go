@@ -8,7 +8,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/dbx"
 	sqlitedialect "github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type User struct {
@@ -41,8 +41,8 @@ type Membership struct {
 
 type MembershipSchema struct {
 	dbx.Schema[Membership]
-	TenantID dbx.Column[Membership, int64] `dbx:"tenant_id"`
-	UserID   dbx.Column[Membership, int64] `dbx:"user_id"`
+	TenantID dbx.Column[Membership, int64]  `dbx:"tenant_id"`
+	UserID   dbx.Column[Membership, int64]  `dbx:"user_id"`
 	Role     dbx.Column[Membership, string] `dbx:"role"`
 	PK       dbx.CompositeKey[Membership]   `key:"columns=tenant_id|user_id"`
 }
@@ -78,7 +78,7 @@ func TestNewUsesSchemaAsMetadataSource(t *testing.T) {
 
 func TestBaseCreateListAndFirst(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_crud_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_crud_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -111,7 +111,7 @@ func TestBaseCreateListAndFirst(t *testing.T) {
 
 func TestBaseFirstNotFound(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_not_found_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_not_found_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -130,7 +130,7 @@ func TestBaseFirstNotFound(t *testing.T) {
 
 func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_features_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_features_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -194,7 +194,7 @@ func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 
 func TestBaseByIDUsesPrimaryKeyColumnFromSchema(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_pk_column_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_pk_column_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -230,7 +230,7 @@ func TestBaseByIDUsesPrimaryKeyColumnFromSchema(t *testing.T) {
 
 func TestBaseByIDNotFoundAsErrorOption(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_not_found_option_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_not_found_option_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -260,7 +260,7 @@ func TestBaseByIDNotFoundAsErrorOption(t *testing.T) {
 
 func TestBaseCreateManyAndUpsert(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_create_many_upsert_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_create_many_upsert_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -299,7 +299,7 @@ func TestBaseCreateManyAndUpsert(t *testing.T) {
 
 func TestBaseCompositePrimaryKeyByKey(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_composite_key_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_composite_key_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -339,7 +339,7 @@ func TestBaseCompositePrimaryKeyByKey(t *testing.T) {
 
 func TestBaseSpecAPIs(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_spec_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_spec_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -374,7 +374,7 @@ func TestBaseSpecAPIs(t *testing.T) {
 
 func TestBaseOptionAPIs(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_option_api_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_option_api_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -417,7 +417,7 @@ func TestBaseOptionAPIs(t *testing.T) {
 
 func TestBaseUpdateByVersion(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:repository_version_conflict_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:repository_version_conflict_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -441,5 +441,63 @@ func TestBaseUpdateByVersion(t *testing.T) {
 	}
 	if _, err := repo.UpdateByVersion(ctx, key, 1, users.Name.Set("alice-stale")); !errors.Is(err, ErrVersionConflict) {
 		t.Fatalf("expected ErrVersionConflict, got: %v", err)
+	}
+}
+
+func TestBaseFirstDoesNotMutateQuery(t *testing.T) {
+	ctx := context.Background()
+	raw, err := sql.Open("sqlite", "file:repository_first_immutable_test?mode=memory&cache=shared")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer raw.Close()
+	core := dbx.MustNewWithOptions(raw, sqlitedialect.New())
+	users := dbx.MustSchema("users", UserSchema{})
+	if _, err := core.AutoMigrate(ctx, users); err != nil {
+		t.Fatalf("auto migrate: %v", err)
+	}
+	repo := New[User](core, users)
+	if err := repo.Create(ctx, &User{Name: "alice"}); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	query := dbx.Select(users.AllColumns()...).From(users).Where(users.Name.Eq("alice"))
+	if _, err := repo.First(ctx, query); err != nil {
+		t.Fatalf("first: %v", err)
+	}
+	if query.LimitN != nil {
+		t.Fatalf("expected First to leave query limit unchanged, got: %d", *query.LimitN)
+	}
+	if query.OffsetN != nil {
+		t.Fatalf("expected First to leave query offset unchanged, got: %d", *query.OffsetN)
+	}
+}
+
+func TestBaseListPageDoesNotMutateQuery(t *testing.T) {
+	ctx := context.Background()
+	raw, err := sql.Open("sqlite", "file:repository_page_immutable_test?mode=memory&cache=shared")
+	if err != nil {
+		t.Fatalf("open sqlite: %v", err)
+	}
+	defer raw.Close()
+	core := dbx.MustNewWithOptions(raw, sqlitedialect.New())
+	users := dbx.MustSchema("users", UserSchema{})
+	if _, err := core.AutoMigrate(ctx, users); err != nil {
+		t.Fatalf("auto migrate: %v", err)
+	}
+	repo := New[User](core, users)
+	if err := repo.CreateMany(ctx, &User{Name: "alice"}, &User{Name: "bob"}); err != nil {
+		t.Fatalf("seed: %v", err)
+	}
+
+	query := dbx.Select(users.AllColumns()...).From(users).OrderBy(users.Name.Asc())
+	if _, err := repo.ListPage(ctx, query, 2, 1); err != nil {
+		t.Fatalf("list page: %v", err)
+	}
+	if query.LimitN != nil {
+		t.Fatalf("expected ListPage to leave query limit unchanged, got: %d", *query.LimitN)
+	}
+	if query.OffsetN != nil {
+		t.Fatalf("expected ListPage to leave query offset unchanged, got: %d", *query.OffsetN)
 	}
 }

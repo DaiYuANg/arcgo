@@ -75,6 +75,22 @@ func Select(items ...SelectItem) *SelectQuery {
 	return &SelectQuery{Items: compactSelectItems(items)}
 }
 
+func (q *SelectQuery) Clone() *SelectQuery {
+	if q == nil {
+		return nil
+	}
+	cloned := *q
+	cloned.Items = append([]SelectItem(nil), q.Items...)
+	cloned.Joins = append([]Join(nil), q.Joins...)
+	cloned.Groups = append([]Expression(nil), q.Groups...)
+	cloned.Orders = append([]Order(nil), q.Orders...)
+	cloned.CTEs = cloneCTEs(q.CTEs)
+	cloned.Unions = cloneUnionClauses(q.Unions)
+	cloned.LimitN = cloneInt(q.LimitN)
+	cloned.OffsetN = cloneInt(q.OffsetN)
+	return &cloned
+}
+
 func (q *SelectQuery) WithDistinct() *SelectQuery {
 	q.Distinct = true
 	return q
@@ -153,6 +169,36 @@ func (q *SelectQuery) RightJoin(source TableSource) *JoinBuilder {
 func (b *JoinBuilder) On(predicate Predicate) *SelectQuery {
 	b.query.Joins[b.index].Predicate = predicate
 	return b.query
+}
+
+func cloneCTEs(items []CTE) []CTE {
+	if len(items) == 0 {
+		return nil
+	}
+	cloned := make([]CTE, len(items))
+	for i, item := range items {
+		cloned[i] = CTE{Name: item.Name, Query: item.Query.Clone()}
+	}
+	return cloned
+}
+
+func cloneUnionClauses(items []UnionClause) []UnionClause {
+	if len(items) == 0 {
+		return nil
+	}
+	cloned := make([]UnionClause, len(items))
+	for i, item := range items {
+		cloned[i] = UnionClause{All: item.All, Query: item.Query.Clone()}
+	}
+	return cloned
+}
+
+func cloneInt(value *int) *int {
+	if value == nil {
+		return nil
+	}
+	copyValue := *value
+	return &copyValue
 }
 
 func InsertInto(source TableSource) *InsertQuery {

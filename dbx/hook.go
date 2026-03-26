@@ -99,8 +99,6 @@ func (o runtimeObserver) before(ctx context.Context, event HookEvent) (context.C
 		ctx, err = hook.Before(ctx, &event)
 		if err != nil {
 			event.Err = err
-			event.Duration = time.Since(event.StartedAt)
-			o.log(event)
 			return ctx, &event, err
 		}
 	}

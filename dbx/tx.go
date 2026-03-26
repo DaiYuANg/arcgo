@@ -10,10 +10,10 @@ import (
 )
 
 type Tx struct {
-	raw      *sql.Tx
-	dialect  dialect.Dialect
-	observe  runtimeObserver
-	relation *relationRuntime
+	raw         *sql.Tx
+	dialect     dialect.Dialect
+	observe     runtimeObserver
+	relation    *relationRuntime
 	idGenerator IDGenerator
 	nodeID      uint16
 }
@@ -48,6 +48,7 @@ func (tx *Tx) queryContext(ctx context.Context, statement string, query string, 
 		Args:      args,
 	})
 	if err != nil {
+		tx.observe.after(ctx, event)
 		return nil, err
 	}
 	rows, queryErr := tx.raw.QueryContext(ctx, query, args...)
@@ -74,6 +75,7 @@ func (tx *Tx) execContext(ctx context.Context, statement string, query string, a
 		Args:      args,
 	})
 	if err != nil {
+		tx.observe.after(ctx, event)
 		return nil, err
 	}
 	result, execErr := tx.raw.ExecContext(ctx, query, args...)
@@ -88,17 +90,25 @@ func (tx *Tx) execContext(ctx context.Context, statement string, query string, a
 	return result, execErr
 }
 
-func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	if tx == nil || tx.raw == nil {
-		return nil
+func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *Row {
+	if tx == nil {
+		return errorRow(ErrNilDB)
+	}
+	if tx.raw == nil {
+		return errorRow(ErrNilSQLDB)
 	}
 	ctx, event, err := tx.observe.before(ctx, HookEvent{Operation: OperationQueryRow, SQL: query, Args: args})
 	if err != nil {
-		return nil
+		tx.observe.after(ctx, event)
+		return errorRow(err)
 	}
-	row := tx.raw.QueryRowContext(ctx, query, args...)
-	tx.observe.after(ctx, event)
-	return row
+	rows, queryErr := tx.raw.QueryContext(ctx, query, args...)
+	if queryErr != nil {
+		event.Err = queryErr
+		tx.observe.after(ctx, event)
+		return errorRow(queryErr)
+	}
+	return observedRow(ctx, tx.observe, event, rows)
 }
 
 func (tx *Tx) QueryBoundContext(ctx context.Context, bound BoundQuery) (*sql.Rows, error) {
@@ -115,6 +125,7 @@ func (tx *Tx) Commit() error {
 	}
 	ctx, event, err := tx.observe.before(context.Background(), HookEvent{Operation: OperationCommitTx})
 	if err != nil {
+		tx.observe.after(ctx, event)
 		return err
 	}
 	commitErr := tx.raw.Commit()
@@ -129,6 +140,7 @@ func (tx *Tx) Rollback() error {
 	}
 	ctx, event, err := tx.observe.before(context.Background(), HookEvent{Operation: OperationRollbackTx})
 	if err != nil {
+		tx.observe.after(ctx, event)
 		return err
 	}
 	rollbackErr := tx.raw.Rollback()

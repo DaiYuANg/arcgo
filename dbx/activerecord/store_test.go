@@ -9,7 +9,7 @@ import (
 	"github.com/DaiYuANg/arcgo/dbx"
 	sqlitedialect "github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
 	"github.com/DaiYuANg/arcgo/dbx/repository"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 type User struct {
@@ -20,12 +20,12 @@ type User struct {
 type UserSchema struct {
 	dbx.Schema[User]
 	ID   dbx.IDColumn[User, int64, dbx.IDSnowflake] `dbx:"id,pk"`
-	Name dbx.Column[User, string] `dbx:"name"`
+	Name dbx.Column[User, string]                   `dbx:"name"`
 }
 
 func TestModelSaveReloadDelete(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:activerecord_model_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:activerecord_model_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -77,7 +77,7 @@ func TestModelSaveReloadDelete(t *testing.T) {
 
 func TestStoreFindOptionAPIs(t *testing.T) {
 	ctx := context.Background()
-	raw, err := sql.Open("sqlite3", "file:activerecord_option_test?mode=memory&cache=shared")
+	raw, err := sql.Open("sqlite", "file:activerecord_option_test?mode=memory&cache=shared")
 	if err != nil {
 		t.Fatalf("open sqlite: %v", err)
 	}
@@ -121,4 +121,3 @@ func TestStoreFindOptionAPIs(t *testing.T) {
 		t.Fatalf("expected same model by key, ok=%v model=%+v", ok, again)
 	}
 }
-

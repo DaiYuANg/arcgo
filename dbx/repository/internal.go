@@ -32,11 +32,14 @@ func (r *Base[E, S]) applySpecs(specs ...Spec) *dbx.SelectQuery {
 }
 
 func cloneForCount(query *dbx.SelectQuery) *dbx.SelectQuery {
-	cloned := *query
+	cloned := query.Clone()
+	if cloned == nil {
+		return nil
+	}
 	cloned.Orders = nil
 	cloned.LimitN = nil
 	cloned.OffsetN = nil
-	return &cloned
+	return cloned
 }
 
 func (r *Base[E, S]) primaryColumnName() string {
@@ -96,4 +99,3 @@ func wrapMutationError(err error) error {
 	}
 	return err
 }
-

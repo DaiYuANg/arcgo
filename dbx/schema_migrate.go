@@ -336,6 +336,7 @@ func (db *DB) ValidateSchemas(ctx context.Context, schemas ...SchemaResource) (V
 		Table:     schemaNames(schemas),
 	})
 	if err != nil {
+		db.observe.after(ctx, event)
 		return ValidationReport{}, err
 	}
 	report, validateErr := ValidateSchemas(ctx, db, schemas...)
@@ -350,6 +351,7 @@ func (db *DB) AutoMigrate(ctx context.Context, schemas ...SchemaResource) (Valid
 		Table:     schemaNames(schemas),
 	})
 	if err != nil {
+		db.observe.after(ctx, event)
 		return ValidationReport{}, err
 	}
 	report, migrateErr := AutoMigrate(ctx, db, schemas...)
@@ -368,6 +370,7 @@ func (tx *Tx) ValidateSchemas(ctx context.Context, schemas ...SchemaResource) (V
 		Table:     schemaNames(schemas),
 	})
 	if err != nil {
+		tx.observe.after(ctx, event)
 		return ValidationReport{}, err
 	}
 	report, validateErr := ValidateSchemas(ctx, tx, schemas...)
@@ -382,6 +385,7 @@ func (tx *Tx) AutoMigrate(ctx context.Context, schemas ...SchemaResource) (Valid
 		Table:     schemaNames(schemas),
 	})
 	if err != nil {
+		tx.observe.after(ctx, event)
 		return ValidationReport{}, err
 	}
 	report, migrateErr := AutoMigrate(ctx, tx, schemas...)

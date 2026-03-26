@@ -48,7 +48,8 @@ func TestInspectTable(t *testing.T) {
 		}
 	}
 
-	state, err := Dialect{}.InspectTable(context.Background(), db, "users")
+	core := dbx.New(db, Dialect{})
+	state, err := Dialect{}.InspectTable(context.Background(), core, "users")
 	if err != nil {
 		t.Fatalf("InspectTable returned error: %v", err)
 	}

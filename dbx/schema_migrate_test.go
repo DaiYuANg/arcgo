@@ -167,8 +167,8 @@ func (s *fakeSession) ExecContext(ctx context.Context, query string, args ...any
 	return s.ExecBoundContext(ctx, BoundQuery{SQL: query, Args: args})
 }
 
-func (s *fakeSession) QueryRowContext(context.Context, string, ...any) *sql.Row {
-	return nil
+func (s *fakeSession) QueryRowContext(context.Context, string, ...any) *Row {
+	return errorRow(sql.ErrNoRows)
 }
 
 func (s *fakeSession) QueryBoundContext(context.Context, BoundQuery) (*sql.Rows, error) {

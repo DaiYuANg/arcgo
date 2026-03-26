@@ -128,6 +128,7 @@ func (db *DB) queryContext(ctx context.Context, statement string, query string, 
 		Args:      args,
 	})
 	if err != nil {
+		db.observe.after(ctx, event)
 		return nil, err
 	}
 	rows, queryErr := db.raw.QueryContext(ctx, query, args...)
@@ -154,6 +155,7 @@ func (db *DB) execContext(ctx context.Context, statement string, query string, a
 		Args:      args,
 	})
 	if err != nil {
+		db.observe.after(ctx, event)
 		return nil, err
 	}
 	result, execErr := db.raw.ExecContext(ctx, query, args...)
@@ -168,17 +170,25 @@ func (db *DB) execContext(ctx context.Context, statement string, query string, a
 	return result, execErr
 }
 
-func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row {
-	if db == nil || db.raw == nil {
-		return nil
+func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *Row {
+	if db == nil {
+		return errorRow(ErrNilDB)
+	}
+	if db.raw == nil {
+		return errorRow(ErrNilSQLDB)
 	}
 	ctx, event, err := db.observe.before(ctx, HookEvent{Operation: OperationQueryRow, SQL: query, Args: args})
 	if err != nil {
-		return nil
+		db.observe.after(ctx, event)
+		return errorRow(err)
 	}
-	row := db.raw.QueryRowContext(ctx, query, args...)
-	db.observe.after(ctx, event)
-	return row
+	rows, queryErr := db.raw.QueryContext(ctx, query, args...)
+	if queryErr != nil {
+		event.Err = queryErr
+		db.observe.after(ctx, event)
+		return errorRow(queryErr)
+	}
+	return observedRow(ctx, db.observe, event, rows)
 }
 
 func (db *DB) Bound(sql string, args ...any) BoundQuery {
@@ -202,6 +212,7 @@ func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {
 	}
 	ctx, event, err := db.observe.before(ctx, HookEvent{Operation: OperationBeginTx})
 	if err != nil {
+		db.observe.after(ctx, event)
 		return nil, err
 	}
 	tx, err := db.raw.BeginTx(ctx, opts)

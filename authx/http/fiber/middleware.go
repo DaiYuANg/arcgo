@@ -13,6 +13,7 @@ import (
 	"github.com/samber/lo"
 )
 
+// Option configures fiber middleware behavior.
 type Option func(*config)
 
 type config struct {
@@ -27,6 +28,7 @@ func defaultConfig() config {
 	}
 }
 
+// WithFailureHandler overrides the default auth failure handler.
 func WithFailureHandler(handler func(*fiber.Ctx, int, string) error) Option {
 	return func(cfg *config) {
 		if handler != nil {

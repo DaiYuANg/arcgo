@@ -1,9 +1,10 @@
-package authx
+package authx_test
 
 import (
 	"context"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/authx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,16 +21,16 @@ func (hook *hookRecorder) BeforeCheck(_ context.Context, _ any) error {
 	return nil
 }
 
-func (hook *hookRecorder) AfterCheck(_ context.Context, _ any, _ AuthenticationResult, _ error) {
+func (hook *hookRecorder) AfterCheck(_ context.Context, _ any, _ authx.AuthenticationResult, _ error) {
 	hook.afterCheck++
 }
 
-func (hook *hookRecorder) BeforeCan(_ context.Context, _ AuthorizationModel) error {
+func (hook *hookRecorder) BeforeCan(_ context.Context, _ authx.AuthorizationModel) error {
 	hook.beforeCan++
 	return nil
 }
 
-func (hook *hookRecorder) AfterCan(_ context.Context, _ AuthorizationModel, _ Decision, _ error) {
+func (hook *hookRecorder) AfterCan(_ context.Context, _ authx.AuthorizationModel, _ authx.Decision, _ error) {
 	hook.afterCan++
 }
 
@@ -38,29 +39,29 @@ type credentialA struct {
 }
 
 func TestEngineCheckAndCan(t *testing.T) {
-	provider := NewAuthenticationProviderFunc[credentialA](func(_ context.Context, credential credentialA) (AuthenticationResult, error) {
-		return AuthenticationResult{Principal: Principal{ID: credential.ID}}, nil
+	provider := authx.NewAuthenticationProviderFunc[credentialA](func(_ context.Context, credential credentialA) (authx.AuthenticationResult, error) {
+		return authx.AuthenticationResult{Principal: authx.Principal{ID: credential.ID}}, nil
 	})
-	manager := NewProviderManager(provider)
+	manager := authx.NewProviderManager(provider)
 
-	engine := NewEngine(
-		WithAuthenticationManager(manager),
-		WithAuthorizer(AuthorizerFunc(func(_ context.Context, input AuthorizationModel) (Decision, error) {
-			principal, ok := input.Principal.(Principal)
+	engine := authx.NewEngine(
+		authx.WithAuthenticationManager(manager),
+		authx.WithAuthorizer(authx.AuthorizerFunc(func(_ context.Context, input authx.AuthorizationModel) (authx.Decision, error) {
+			principal, ok := input.Principal.(authx.Principal)
 			if ok && principal.ID == "u1" && input.Action == "read" {
-				return Decision{Allowed: true, PolicyID: "p1"}, nil
+				return authx.Decision{Allowed: true, PolicyID: "p1"}, nil
 			}
-			return Decision{Allowed: false, Reason: "deny"}, nil
+			return authx.Decision{Allowed: false, Reason: "deny"}, nil
 		})),
 	)
 
 	authn, err := engine.Check(context.Background(), credentialA{ID: "u1"})
 	require.NoError(t, err)
-	principal, ok := authn.Principal.(Principal)
+	principal, ok := authn.Principal.(authx.Principal)
 	require.True(t, ok)
 	assert.Equal(t, "u1", principal.ID)
 
-	decision, err := engine.Can(context.Background(), AuthorizationModel{
+	decision, err := engine.Can(context.Background(), authx.AuthorizationModel{
 		Principal: authn.Principal,
 		Action:    "read",
 		Resource:  "/orders/1",
@@ -71,43 +72,43 @@ func TestEngineCheckAndCan(t *testing.T) {
 }
 
 func TestEngineCheckManagerMissing(t *testing.T) {
-	engine := NewEngine()
+	engine := authx.NewEngine()
 	_, err := engine.Check(context.Background(), credentialA{ID: "x"})
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrAuthenticationManagerNotConfigured)
+	assert.ErrorIs(t, err, authx.ErrAuthenticationManagerNotConfigured)
 }
 
 func TestEngineCanAuthorizerMissing(t *testing.T) {
-	provider := NewAuthenticationProviderFunc[credentialA](func(_ context.Context, credential credentialA) (AuthenticationResult, error) {
-		return AuthenticationResult{Principal: Principal{ID: credential.ID}}, nil
+	provider := authx.NewAuthenticationProviderFunc[credentialA](func(_ context.Context, credential credentialA) (authx.AuthenticationResult, error) {
+		return authx.AuthenticationResult{Principal: authx.Principal{ID: credential.ID}}, nil
 	})
-	engine := NewEngine(WithAuthenticationManager(NewProviderManager(provider)))
+	engine := authx.NewEngine(authx.WithAuthenticationManager(authx.NewProviderManager(provider)))
 
-	_, err := engine.Can(context.Background(), AuthorizationModel{
-		Principal: Principal{ID: "u1"},
+	_, err := engine.Can(context.Background(), authx.AuthorizationModel{
+		Principal: authx.Principal{ID: "u1"},
 		Action:    "read",
 		Resource:  "orders",
 	})
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrAuthorizerNotConfigured)
+	assert.ErrorIs(t, err, authx.ErrAuthorizerNotConfigured)
 }
 
 func TestEngineHooks(t *testing.T) {
 	hook := &hookRecorder{}
-	provider := NewAuthenticationProviderFunc[credentialA](func(_ context.Context, credential credentialA) (AuthenticationResult, error) {
-		return AuthenticationResult{Principal: Principal{ID: credential.ID}}, nil
+	provider := authx.NewAuthenticationProviderFunc[credentialA](func(_ context.Context, credential credentialA) (authx.AuthenticationResult, error) {
+		return authx.AuthenticationResult{Principal: authx.Principal{ID: credential.ID}}, nil
 	})
-	engine := NewEngine(
-		WithAuthenticationManager(NewProviderManager(provider)),
-		WithAuthorizer(AuthorizerFunc(func(_ context.Context, _ AuthorizationModel) (Decision, error) {
-			return Decision{Allowed: true}, nil
+	engine := authx.NewEngine(
+		authx.WithAuthenticationManager(authx.NewProviderManager(provider)),
+		authx.WithAuthorizer(authx.AuthorizerFunc(func(_ context.Context, _ authx.AuthorizationModel) (authx.Decision, error) {
+			return authx.Decision{Allowed: true}, nil
 		})),
-		WithHook(hook),
+		authx.WithHook(hook),
 	)
 
 	authn, err := engine.Check(context.Background(), credentialA{ID: "u1"})
 	require.NoError(t, err)
-	_, err = engine.Can(context.Background(), AuthorizationModel{
+	_, err = engine.Can(context.Background(), authx.AuthorizationModel{
 		Principal: authn.Principal,
 		Action:    "read",
 		Resource:  "orders",
@@ -121,13 +122,13 @@ func TestEngineHooks(t *testing.T) {
 }
 
 func TestEngineValidation(t *testing.T) {
-	engine := NewEngine()
+	engine := authx.NewEngine()
 
 	_, err := engine.Check(context.Background(), nil)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrInvalidAuthenticationCredential)
+	assert.ErrorIs(t, err, authx.ErrInvalidAuthenticationCredential)
 
-	_, err = engine.Can(context.Background(), AuthorizationModel{Action: "", Resource: "orders"})
+	_, err = engine.Can(context.Background(), authx.AuthorizationModel{Action: "", Resource: "orders"})
 	require.Error(t, err)
-	assert.ErrorIs(t, err, ErrInvalidAuthorizationModel)
+	assert.ErrorIs(t, err, authx.ErrInvalidAuthorizationModel)
 }

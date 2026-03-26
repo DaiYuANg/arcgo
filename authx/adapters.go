@@ -2,6 +2,7 @@ package authx
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 )
 
@@ -13,6 +14,7 @@ type TypedAuthenticationProvider[C any] interface {
 // TypedAuthenticationProviderFunc is a lightweight typed provider helper.
 type TypedAuthenticationProviderFunc[C any] func(ctx context.Context, credential C) (AuthenticationResult, error)
 
+// Authenticate calls fn or returns ErrUnauthenticated when fn is nil.
 func (fn TypedAuthenticationProviderFunc[C]) Authenticate(
 	ctx context.Context,
 	credential C,
@@ -27,7 +29,7 @@ func (fn TypedAuthenticationProviderFunc[C]) Authenticate(
 func NewAuthenticationProvider[C any](provider TypedAuthenticationProvider[C]) AuthenticationProvider {
 	return &typedProviderAdapter[C]{
 		provider:       provider,
-		credentialType: reflect.TypeOf((*C)(nil)).Elem(),
+		credentialType: reflect.TypeFor[C](),
 	}
 }
 
@@ -55,12 +57,17 @@ func (adapter *typedProviderAdapter[C]) AuthenticateAny(
 	if !ok {
 		return AuthenticationResult{}, ErrInvalidAuthenticationCredential
 	}
-	return adapter.provider.Authenticate(ctx, typedCredential)
+	result, err := adapter.provider.Authenticate(ctx, typedCredential)
+	if err != nil {
+		return AuthenticationResult{}, fmt.Errorf("authenticate credential: %w", err)
+	}
+	return result, nil
 }
 
 // AuthenticationManagerFunc is a lightweight manager helper.
 type AuthenticationManagerFunc func(ctx context.Context, credential any) (AuthenticationResult, error)
 
+// Authenticate calls fn or returns ErrAuthenticationManagerNotConfigured when fn is nil.
 func (fn AuthenticationManagerFunc) Authenticate(
 	ctx context.Context,
 	credential any,
@@ -74,6 +81,7 @@ func (fn AuthenticationManagerFunc) Authenticate(
 // AuthorizerFunc is a lightweight authorizer helper.
 type AuthorizerFunc func(ctx context.Context, input AuthorizationModel) (Decision, error)
 
+// Authorize calls fn or returns ErrAuthorizerNotConfigured when fn is nil.
 func (fn AuthorizerFunc) Authorize(ctx context.Context, input AuthorizationModel) (Decision, error) {
 	if fn == nil {
 		return Decision{}, ErrAuthorizerNotConfigured

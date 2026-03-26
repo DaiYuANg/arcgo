@@ -1,10 +1,11 @@
-package fx
+package fx_test
 
 import (
 	"context"
 	"testing"
 
 	"github.com/DaiYuANg/arcgo/authx"
+	authfx "github.com/DaiYuANg/arcgo/authx/fx"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/fx"
 )
@@ -23,15 +24,13 @@ func TestNewAuthxModule(t *testing.T) {
 	})
 
 	app := fx.New(
-		NewAuthxModule(
+		authfx.NewAuthxModule(
 			authx.WithAuthenticationManager(authx.NewProviderManager(provider)),
 		),
 		fx.Populate(&engine),
 	)
 
-	startCtx, startCancel := context.WithCancel(context.Background())
-	defer startCancel()
-	require.NoError(t, app.Start(startCtx))
+	require.NoError(t, app.Start(t.Context()))
 	t.Cleanup(func() {
 		require.NoError(t, app.Stop(context.Background()))
 	})
@@ -56,14 +55,12 @@ func TestWithEngineOptions(t *testing.T) {
 	})
 
 	app := fx.New(
-		NewAuthxModule(),
-		WithEngineOptions(authx.WithAuthenticationManager(authx.NewProviderManager(provider))),
+		authfx.NewAuthxModule(),
+		authfx.WithEngineOptions(authx.WithAuthenticationManager(authx.NewProviderManager(provider))),
 		fx.Populate(&engine),
 	)
 
-	startCtx, startCancel := context.WithCancel(context.Background())
-	defer startCancel()
-	require.NoError(t, app.Start(startCtx))
+	require.NoError(t, app.Start(t.Context()))
 	t.Cleanup(func() {
 		require.NoError(t, app.Stop(context.Background()))
 	})

@@ -8,8 +8,11 @@ import (
 )
 
 const (
-	HeaderUserID   = "X-User-ID"
-	HeaderAction   = "X-Action"
+	// HeaderUserID carries the benchmark user identity.
+	HeaderUserID = "X-User-ID"
+	// HeaderAction carries the benchmark action name.
+	HeaderAction = "X-Action"
+	// HeaderResource carries the benchmark resource name.
 	HeaderResource = "X-Resource"
 )
 
@@ -17,6 +20,7 @@ type credential struct {
 	UserID string
 }
 
+// NewGuard constructs a benchmark-ready authhttp.Guard from dataset.
 func NewGuard(dataset Dataset) *authhttp.Guard {
 	manager := authx.NewProviderManager(
 		authx.NewAuthenticationProviderFunc(func(_ context.Context, input credential) (authx.AuthenticationResult, error) {

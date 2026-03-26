@@ -19,6 +19,7 @@ type AuthorizationResolver interface {
 // CredentialResolverFunc is function adapter for CredentialResolver.
 type CredentialResolverFunc func(ctx context.Context, req RequestInfo) (any, error)
 
+// ResolveCredential calls fn.
 func (fn CredentialResolverFunc) ResolveCredential(ctx context.Context, req RequestInfo) (any, error) {
 	return fn(ctx, req)
 }
@@ -42,6 +43,7 @@ type AuthorizationResolverFunc func(
 	principal any,
 ) (authx.AuthorizationModel, error)
 
+// ResolveAuthorization calls fn.
 func (fn AuthorizationResolverFunc) ResolveAuthorization(
 	ctx context.Context,
 	req RequestInfo,

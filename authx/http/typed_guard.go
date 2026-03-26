@@ -2,18 +2,22 @@ package authhttp
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/DaiYuANg/arcgo/authx"
 )
 
+// TypedCredentialResolverFunc resolves a strongly typed credential from an HTTP request.
 type TypedCredentialResolverFunc[C any] func(ctx context.Context, req RequestInfo) (C, error)
 
+// TypedAuthorizationResolverFunc builds an authorization model from a typed principal.
 type TypedAuthorizationResolverFunc[P any] func(
 	ctx context.Context,
 	req RequestInfo,
 	principal P,
 ) (authx.AuthorizationModel, error)
 
+// TypedOption configures a TypedGuard.
 type TypedOption[C any, P any] func(*TypedGuard[C, P])
 
 // TypedGuard is an optional generic fast path that avoids request-path type assertions in resolvers.
@@ -23,6 +27,7 @@ type TypedGuard[C any, P any] struct {
 	authorizationResolver TypedAuthorizationResolverFunc[P]
 }
 
+// NewTypedGuard constructs a TypedGuard from engine and opts.
 func NewTypedGuard[C any, P any](engine *authx.Engine, opts ...TypedOption[C, P]) *TypedGuard[C, P] {
 	guard := &TypedGuard[C, P]{engine: engine}
 	for _, opt := range opts {
@@ -33,12 +38,14 @@ func NewTypedGuard[C any, P any](engine *authx.Engine, opts ...TypedOption[C, P]
 	return guard
 }
 
+// WithTypedCredentialResolverFunc configures the typed credential resolver.
 func WithTypedCredentialResolverFunc[C any, P any](resolver TypedCredentialResolverFunc[C]) TypedOption[C, P] {
 	return func(guard *TypedGuard[C, P]) {
 		guard.credentialResolver = resolver
 	}
 }
 
+// WithTypedAuthorizationResolverFunc configures the typed authorization resolver.
 func WithTypedAuthorizationResolverFunc[C any, P any](
 	resolver TypedAuthorizationResolverFunc[P],
 ) TypedOption[C, P] {
@@ -47,6 +54,7 @@ func WithTypedAuthorizationResolverFunc[C any, P any](
 	}
 }
 
+// Engine returns the underlying authx engine.
 func (guard *TypedGuard[C, P]) Engine() *authx.Engine {
 	if guard == nil {
 		return nil
@@ -54,6 +62,7 @@ func (guard *TypedGuard[C, P]) Engine() *authx.Engine {
 	return guard.engine
 }
 
+// Check authenticates the request using the typed credential resolver.
 func (guard *TypedGuard[C, P]) Check(
 	ctx context.Context,
 	req RequestInfo,
@@ -70,9 +79,14 @@ func (guard *TypedGuard[C, P]) Check(
 		return authx.AuthenticationResult{}, err
 	}
 
-	return guard.engine.Check(ctx, credential)
+	result, checkErr := guard.engine.Check(ctx, credential)
+	if checkErr != nil {
+		return authx.AuthenticationResult{}, fmt.Errorf("check request credential: %w", checkErr)
+	}
+	return result, nil
 }
 
+// Can authorizes the request using the typed principal.
 func (guard *TypedGuard[C, P]) Can(
 	ctx context.Context,
 	req RequestInfo,
@@ -90,9 +104,14 @@ func (guard *TypedGuard[C, P]) Can(
 		return authx.Decision{}, err
 	}
 
-	return guard.engine.Can(ctx, model)
+	decision, canErr := guard.engine.Can(ctx, model)
+	if canErr != nil {
+		return authx.Decision{}, fmt.Errorf("authorize request: %w", canErr)
+	}
+	return decision, nil
 }
 
+// Require authenticates and authorizes the request.
 func (guard *TypedGuard[C, P]) Require(
 	ctx context.Context,
 	req RequestInfo,
@@ -105,6 +124,7 @@ func (guard *TypedGuard[C, P]) Require(
 	return result, decision, nil
 }
 
+// RequireTyped authenticates and authorizes the request while returning the typed principal.
 func (guard *TypedGuard[C, P]) RequireTyped(
 	ctx context.Context,
 	req RequestInfo,
@@ -119,14 +139,8 @@ func (guard *TypedGuard[C, P]) requireTyped(
 ) (authx.AuthenticationResult, P, authx.Decision, error) {
 	var zeroPrincipal P
 
-	if guard == nil || guard.engine == nil {
-		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, ErrNilEngine
-	}
-	if guard.credentialResolver == nil {
-		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, ErrCredentialResolverNotConfigured
-	}
-	if guard.authorizationResolver == nil {
-		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, ErrAuthorizationResolverNotConfigured
+	if err := guard.validateRequireReady(); err != nil {
+		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, err
 	}
 
 	credential, err := guard.credentialResolver(ctx, req)
@@ -134,25 +148,12 @@ func (guard *TypedGuard[C, P]) requireTyped(
 		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, err
 	}
 
-	result, err := guard.engine.Check(ctx, credential)
-	if err != nil {
-		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, err
-	}
-	if result.Principal == nil {
-		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, ErrPrincipalNotFound
-	}
-
-	principal, ok := result.Principal.(P)
-	if !ok {
-		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, ErrPrincipalTypeMismatch
-	}
-
-	model, err := guard.authorizationResolver(ctx, req, principal)
+	result, principal, err := guard.checkTyped(ctx, credential)
 	if err != nil {
 		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, err
 	}
 
-	decision, err := guard.engine.Can(ctx, model)
+	decision, err := guard.authorizeTyped(ctx, req, principal)
 	if err != nil {
 		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, err
 	}
@@ -184,4 +185,69 @@ func (guard *TypedGuard[C, P]) AsGuard() *Guard {
 			return guard.authorizationResolver(ctx, req, typedPrincipal)
 		}),
 	)
+}
+
+func (guard *TypedGuard[C, P]) validateRequireReady() error {
+	switch {
+	case guard == nil || guard.engine == nil:
+		return ErrNilEngine
+	case guard.credentialResolver == nil:
+		return ErrCredentialResolverNotConfigured
+	case guard.authorizationResolver == nil:
+		return ErrAuthorizationResolverNotConfigured
+	default:
+		return nil
+	}
+}
+
+func (guard *TypedGuard[C, P]) checkTyped(
+	ctx context.Context,
+	credential C,
+) (authx.AuthenticationResult, P, error) {
+	var zeroPrincipal P
+
+	result, err := guard.engine.Check(ctx, credential)
+	if err != nil {
+		return authx.AuthenticationResult{}, zeroPrincipal, fmt.Errorf("check request credential: %w", err)
+	}
+
+	principal, principalErr := principalFromResult[P](result)
+	if principalErr != nil {
+		return authx.AuthenticationResult{}, zeroPrincipal, principalErr
+	}
+
+	return result, principal, nil
+}
+
+func (guard *TypedGuard[C, P]) authorizeTyped(
+	ctx context.Context,
+	req RequestInfo,
+	principal P,
+) (authx.Decision, error) {
+	model, err := guard.authorizationResolver(ctx, req, principal)
+	if err != nil {
+		return authx.Decision{}, err
+	}
+
+	decision, err := guard.engine.Can(ctx, model)
+	if err != nil {
+		return authx.Decision{}, fmt.Errorf("authorize request: %w", err)
+	}
+
+	return decision, nil
+}
+
+func principalFromResult[P any](result authx.AuthenticationResult) (P, error) {
+	var zeroPrincipal P
+
+	if result.Principal == nil {
+		return zeroPrincipal, ErrPrincipalNotFound
+	}
+
+	principal, ok := result.Principal.(P)
+	if !ok {
+		return zeroPrincipal, ErrPrincipalTypeMismatch
+	}
+
+	return principal, nil
 }

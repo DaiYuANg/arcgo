@@ -1,12 +1,14 @@
 package std
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/DaiYuANg/arcgo/authx"
 	authhttp "github.com/DaiYuANg/arcgo/authx/http"
 )
 
+// Option configures std middleware behavior.
 type Option func(*config)
 
 type config struct {
@@ -15,19 +17,30 @@ type config struct {
 
 func defaultConfig() config {
 	return config{
-		failureHandler: func(w http.ResponseWriter, _ *http.Request, status int, message string) {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(status)
-			_, _ = w.Write([]byte(`{"error":"` + message + `"}`))
-		},
+		failureHandler: writeFailureJSON,
 	}
 }
 
+// WithFailureHandler overrides the default auth failure writer.
 func WithFailureHandler(handler func(http.ResponseWriter, *http.Request, int, string)) Option {
 	return func(cfg *config) {
 		if handler != nil {
 			cfg.failureHandler = handler
 		}
+	}
+}
+
+func writeFailureJSON(w http.ResponseWriter, _ *http.Request, status int, message string) {
+	payload, err := json.Marshal(map[string]string{"error": message})
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	if _, err = w.Write(payload); err != nil {
+		return
 	}
 }
 

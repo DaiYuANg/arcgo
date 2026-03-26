@@ -7,6 +7,7 @@ import (
 	"github.com/brianvoe/gofakeit/v7"
 )
 
+// Query describes one benchmark authorization lookup.
 type Query struct {
 	UserID   string
 	Action   string
@@ -14,11 +15,13 @@ type Query struct {
 	Allowed  bool
 }
 
+// Dataset holds generated users, permissions, and benchmark queries.
 type Dataset struct {
 	userPermissions map[string]map[string]struct{}
 	Queries         []Query
 }
 
+// NewDataset generates a synthetic benchmark dataset.
 func NewDataset(
 	seed uint64,
 	userCount int,
@@ -27,53 +30,9 @@ func NewDataset(
 	queryCount int,
 ) Dataset {
 	randSource := gofakeit.New(seed)
-
-	permissions := make([]string, permissionCount)
-	for i := 0; i < permissionCount; i++ {
-		action := fmt.Sprintf("%s-%03d", normalizeFakeToken(randSource.Verb()), i/100)
-		resource := fmt.Sprintf("%s-%03d", normalizeFakeToken(randSource.Noun()), i%100)
-		permissions[i] = permissionKey(action, resource)
-	}
-
-	userIDs := make([]string, userCount)
-	userPermissions := make(map[string]map[string]struct{}, userCount)
-	for i := 0; i < userCount; i++ {
-		userID := fmt.Sprintf("%s-%05d", normalizeFakeToken(randSource.Username()), i)
-		userIDs[i] = userID
-
-		assigned := make(map[string]struct{}, permissionsPerUser)
-		for len(assigned) < permissionsPerUser {
-			assigned[permissions[randSource.Number(0, len(permissions)-1)]] = struct{}{}
-		}
-		userPermissions[userID] = assigned
-	}
-
-	queries := make([]Query, queryCount)
-	for i := 0; i < queryCount; i++ {
-		userID := userIDs[randSource.Number(0, len(userIDs)-1)]
-		assigned := userPermissions[userID]
-
-		permission := samplePermission(randSource, assigned)
-		allowed := true
-		if i%2 == 1 {
-			allowed = false
-			for {
-				candidate := permissions[randSource.Number(0, len(permissions)-1)]
-				if _, exists := assigned[candidate]; !exists {
-					permission = candidate
-					break
-				}
-			}
-		}
-
-		action, resource := parsePermissionKey(permission)
-		queries[i] = Query{
-			UserID:   userID,
-			Action:   action,
-			Resource: resource,
-			Allowed:  allowed,
-		}
-	}
+	permissions := buildPermissions(randSource, permissionCount)
+	userIDs, userPermissions := buildUsers(randSource, userCount, permissionsPerUser, permissions)
+	queries := buildQueries(randSource, userIDs, userPermissions, permissions, queryCount)
 
 	return Dataset{
 		userPermissions: userPermissions,
@@ -81,7 +40,8 @@ func NewDataset(
 	}
 }
 
-func (dataset Dataset) IsAllowed(userID string, action string, resource string) bool {
+// IsAllowed reports whether userID is allowed to access action/resource.
+func (dataset Dataset) IsAllowed(userID, action, resource string) bool {
 	permissions, ok := dataset.userPermissions[userID]
 	if !ok {
 		return false
@@ -90,12 +50,13 @@ func (dataset Dataset) IsAllowed(userID string, action string, resource string) 
 	return allowed
 }
 
+// HasUser reports whether userID exists in the generated dataset.
 func (dataset Dataset) HasUser(userID string) bool {
 	_, ok := dataset.userPermissions[userID]
 	return ok
 }
 
-func permissionKey(action string, resource string) string {
+func permissionKey(action, resource string) string {
 	return action + "|" + resource
 }
 
@@ -126,4 +87,95 @@ func normalizeFakeToken(raw string) string {
 		return "x"
 	}
 	return token
+}
+
+func buildPermissions(randSource *gofakeit.Faker, permissionCount int) []string {
+	permissions := make([]string, permissionCount)
+	for i := range permissionCount {
+		action := fmt.Sprintf("%s-%03d", normalizeFakeToken(randSource.Verb()), i/100)
+		resource := fmt.Sprintf("%s-%03d", normalizeFakeToken(randSource.Noun()), i%100)
+		permissions[i] = permissionKey(action, resource)
+	}
+	return permissions
+}
+
+func buildUsers(
+	randSource *gofakeit.Faker,
+	userCount int,
+	permissionsPerUser int,
+	permissions []string,
+) ([]string, map[string]map[string]struct{}) {
+	userIDs := make([]string, userCount)
+	userPermissions := make(map[string]map[string]struct{}, userCount)
+	for i := range userCount {
+		userID := fmt.Sprintf("%s-%05d", normalizeFakeToken(randSource.Username()), i)
+		userIDs[i] = userID
+		userPermissions[userID] = assignPermissions(randSource, permissionsPerUser, permissions)
+	}
+	return userIDs, userPermissions
+}
+
+func assignPermissions(
+	randSource *gofakeit.Faker,
+	permissionsPerUser int,
+	permissions []string,
+) map[string]struct{} {
+	assigned := make(map[string]struct{}, permissionsPerUser)
+	for len(assigned) < permissionsPerUser {
+		assigned[permissions[randSource.Number(0, len(permissions)-1)]] = struct{}{}
+	}
+	return assigned
+}
+
+func buildQueries(
+	randSource *gofakeit.Faker,
+	userIDs []string,
+	userPermissions map[string]map[string]struct{},
+	permissions []string,
+	queryCount int,
+) []Query {
+	queries := make([]Query, queryCount)
+	for i := range queryCount {
+		queries[i] = buildQuery(randSource, userIDs, userPermissions, permissions, i)
+	}
+	return queries
+}
+
+func buildQuery(
+	randSource *gofakeit.Faker,
+	userIDs []string,
+	userPermissions map[string]map[string]struct{},
+	permissions []string,
+	index int,
+) Query {
+	userID := userIDs[randSource.Number(0, len(userIDs)-1)]
+	assigned := userPermissions[userID]
+	permission, allowed := selectPermission(randSource, assigned, permissions, index)
+	action, resource := parsePermissionKey(permission)
+
+	return Query{
+		UserID:   userID,
+		Action:   action,
+		Resource: resource,
+		Allowed:  allowed,
+	}
+}
+
+func selectPermission(
+	randSource *gofakeit.Faker,
+	assigned map[string]struct{},
+	permissions []string,
+	index int,
+) (string, bool) {
+	permission := samplePermission(randSource, assigned)
+	if index%2 == 0 {
+		return permission, true
+	}
+
+	for {
+		candidate := permissions[randSource.Number(0, len(permissions)-1)]
+		if _, exists := assigned[candidate]; !exists {
+			return candidate, false
+		}
+	}
 }

@@ -3,6 +3,7 @@ package authhttp_test
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/DaiYuANg/arcgo/authx"
@@ -44,7 +45,7 @@ func newTestGuard() *authhttp.Guard {
 		}),
 		authhttp.WithAuthorizationResolverFunc(func(_ context.Context, req authhttp.RequestInfo, principal any) (authx.AuthorizationModel, error) {
 			action := "query"
-			if req.Method == "DELETE" {
+			if req.Method == http.MethodDelete {
 				action = "delete"
 			}
 			return authx.AuthorizationModel{
@@ -62,7 +63,7 @@ func newTestGuard() *authhttp.Guard {
 func TestGuardRequireAllowed(t *testing.T) {
 	guard := newTestGuard()
 	result, decision, err := guard.Require(context.Background(), authhttp.RequestInfo{
-		Method:       "GET",
+		Method:       http.MethodGet,
 		Path:         "/orders/1",
 		RoutePattern: "/orders/:id",
 		PathParams:   map[string]string{"id": "1"},
@@ -81,7 +82,7 @@ func TestGuardRequireAllowed(t *testing.T) {
 func TestGuardRequireDenied(t *testing.T) {
 	guard := newTestGuard()
 	_, decision, err := guard.Require(context.Background(), authhttp.RequestInfo{
-		Method:       "DELETE",
+		Method:       http.MethodDelete,
 		Path:         "/orders/1",
 		RoutePattern: "/orders/:id",
 		PathParams:   map[string]string{"id": "1"},

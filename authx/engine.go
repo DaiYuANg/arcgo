@@ -2,6 +2,7 @@ package authx
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"reflect"
 	"sync"
@@ -19,6 +20,7 @@ type Engine struct {
 	debug  bool
 }
 
+// NewEngine constructs an Engine from opts.
 func NewEngine(opts ...EngineOption) *Engine {
 	engine := &Engine{logger: slog.Default()}
 	for _, opt := range opts {
@@ -30,6 +32,7 @@ func NewEngine(opts ...EngineOption) *Engine {
 	return engine
 }
 
+// SetAuthenticationManager updates the authentication manager used by Check.
 func (engine *Engine) SetAuthenticationManager(manager AuthenticationManager) {
 	if engine == nil {
 		return
@@ -40,6 +43,7 @@ func (engine *Engine) SetAuthenticationManager(manager AuthenticationManager) {
 	engine.logDebug("authentication manager configured", "manager_type", reflect.TypeOf(manager))
 }
 
+// SetAuthorizer updates the authorizer used by Can.
 func (engine *Engine) SetAuthorizer(authorizer Authorizer) {
 	if engine == nil {
 		return
@@ -50,6 +54,7 @@ func (engine *Engine) SetAuthorizer(authorizer Authorizer) {
 	engine.logDebug("authorizer configured", "authorizer_type", reflect.TypeOf(authorizer))
 }
 
+// AddHook appends hook to the engine lifecycle hooks.
 func (engine *Engine) AddHook(hook Hook) {
 	if engine == nil || hook == nil {
 		return
@@ -76,7 +81,7 @@ func (engine *Engine) Check(ctx context.Context, credential any) (Authentication
 	for _, hook := range hooks {
 		if err := hook.BeforeCheck(ctx, credential); err != nil {
 			engine.logError("authx check before hook failed", "credential_type", reflect.TypeOf(credential), "error", err)
-			return AuthenticationResult{}, err
+			return AuthenticationResult{}, fmt.Errorf("before check hook: %w", err)
 		}
 	}
 
@@ -86,7 +91,7 @@ func (engine *Engine) Check(ctx context.Context, credential any) (Authentication
 	}
 	if err != nil {
 		engine.logError("authx check failed", "credential_type", reflect.TypeOf(credential), "error", err)
-		return AuthenticationResult{}, err
+		return AuthenticationResult{}, fmt.Errorf("authenticate credential: %w", err)
 	}
 	engine.logDebug("authx check completed", "credential_type", reflect.TypeOf(credential), "principal_type", reflect.TypeOf(result.Principal))
 	return result, nil
@@ -108,7 +113,7 @@ func (engine *Engine) Can(ctx context.Context, input AuthorizationModel) (Decisi
 	for _, hook := range hooks {
 		if err := hook.BeforeCan(ctx, input); err != nil {
 			engine.logError("authx can before hook failed", "action", input.Action, "resource", input.Resource, "error", err)
-			return Decision{}, err
+			return Decision{}, fmt.Errorf("before authorization hook: %w", err)
 		}
 	}
 
@@ -118,7 +123,7 @@ func (engine *Engine) Can(ctx context.Context, input AuthorizationModel) (Decisi
 	}
 	if err != nil {
 		engine.logError("authx can failed", "action", input.Action, "resource", input.Resource, "error", err)
-		return Decision{}, err
+		return Decision{}, fmt.Errorf("authorize request: %w", err)
 	}
 	engine.logDebug("authx can completed", "action", input.Action, "resource", input.Resource, "allowed", decision.Allowed, "policy_id", decision.PolicyID)
 	return decision, nil

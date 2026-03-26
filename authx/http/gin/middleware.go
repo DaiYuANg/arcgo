@@ -11,6 +11,7 @@ import (
 	"github.com/samber/lo"
 )
 
+// Option configures gin middleware behavior.
 type Option func(*config)
 
 type config struct {
@@ -25,6 +26,7 @@ func defaultConfig() config {
 	}
 }
 
+// WithFailureHandler overrides the default auth failure handler.
 func WithFailureHandler(handler func(*gin.Context, int, string)) Option {
 	return func(cfg *config) {
 		if handler != nil {

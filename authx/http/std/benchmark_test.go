@@ -1,6 +1,7 @@
 package std_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -31,6 +32,8 @@ func runInProcessBench(
 	seed uint64,
 	builder func(*authhttp.Guard, ...authstd.Option) func(http.Handler) http.Handler,
 ) {
+	b.Helper()
+
 	dataset := benchmarksupport.NewDataset(seed, 10_000, 10_000, 16, 2_048)
 	guard := benchmarksupport.NewGuard(dataset)
 
@@ -41,9 +44,9 @@ func runInProcessBench(
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		query := dataset.Queries[i%len(dataset.Queries)]
-		req := httptest.NewRequest(http.MethodGet, "/authz/benchmark", nil)
+		req := httptest.NewRequest(http.MethodGet, "/authz/benchmark", http.NoBody)
 		req.Header.Set(benchmarksupport.HeaderUserID, query.UserID)
 		req.Header.Set(benchmarksupport.HeaderAction, query.Action)
 		req.Header.Set(benchmarksupport.HeaderResource, query.Resource)
@@ -66,6 +69,8 @@ func runRealHTTPBench(
 	seed uint64,
 	builder func(*authhttp.Guard, ...authstd.Option) func(http.Handler) http.Handler,
 ) {
+	b.Helper()
+
 	dataset := benchmarksupport.NewDataset(seed, 10_000, 10_000, 16, 2_048)
 	guard := benchmarksupport.NewGuard(dataset)
 
@@ -76,13 +81,14 @@ func runRealHTTPBench(
 	b.Cleanup(server.Close)
 
 	client := server.Client()
+	ctx := context.Background()
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		query := dataset.Queries[i%len(dataset.Queries)]
-		req, err := http.NewRequest(http.MethodGet, server.URL+"/authz/benchmark", nil)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, server.URL+"/authz/benchmark", http.NoBody)
 		if err != nil {
 			b.Fatalf("create request failed: %v", err)
 		}
@@ -90,11 +96,8 @@ func runRealHTTPBench(
 		req.Header.Set(benchmarksupport.HeaderAction, query.Action)
 		req.Header.Set(benchmarksupport.HeaderResource, query.Resource)
 
-		resp, err := client.Do(req)
-		if err != nil {
-			b.Fatalf("request failed: %v", err)
-		}
-		_ = resp.Body.Close()
+		resp := doBenchmarkRequest(b, client, req)
+		closeResponseBody(b, resp)
 
 		expectedStatus := http.StatusNoContent
 		if !query.Allowed {
@@ -103,5 +106,25 @@ func runRealHTTPBench(
 		if resp.StatusCode != expectedStatus {
 			b.Fatalf("unexpected status: got=%d expected=%d", resp.StatusCode, expectedStatus)
 		}
+	}
+}
+
+func doBenchmarkRequest(b *testing.B, client *http.Client, req *http.Request) *http.Response {
+	b.Helper()
+
+	//nolint:gosec // Benchmark requests only target the local httptest server created above.
+	resp, err := client.Do(req)
+	if err != nil {
+		b.Fatalf("request failed: %v", err)
+	}
+
+	return resp
+}
+
+func closeResponseBody(b *testing.B, resp *http.Response) {
+	b.Helper()
+
+	if err := resp.Body.Close(); err != nil {
+		b.Fatalf("close response body failed: %v", err)
 	}
 }

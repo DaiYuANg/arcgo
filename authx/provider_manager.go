@@ -13,12 +13,14 @@ type ProviderManager struct {
 	providers map[reflect.Type]AuthenticationProvider
 }
 
+// NewProviderManager constructs a ProviderManager and registers providers.
 func NewProviderManager(providers ...AuthenticationProvider) *ProviderManager {
 	manager := &ProviderManager{providers: make(map[reflect.Type]AuthenticationProvider)}
 	manager.Register(providers...)
 	return manager
 }
 
+// Register adds providers keyed by their credential type.
 func (manager *ProviderManager) Register(providers ...AuthenticationProvider) {
 	if manager == nil || len(providers) == 0 {
 		return
@@ -38,6 +40,7 @@ func (manager *ProviderManager) Register(providers ...AuthenticationProvider) {
 	}
 }
 
+// Authenticate dispatches credential to the registered provider for its concrete type.
 func (manager *ProviderManager) Authenticate(
 	ctx context.Context,
 	credential any,
@@ -59,7 +62,7 @@ func (manager *ProviderManager) Authenticate(
 
 	result, err := provider.AuthenticateAny(ctx, credential)
 	if err != nil {
-		return AuthenticationResult{}, fmt.Errorf("%w: %v", ErrUnauthenticated, err)
+		return AuthenticationResult{}, fmt.Errorf("%w: %w", ErrUnauthenticated, err)
 	}
 	return result, nil
 }

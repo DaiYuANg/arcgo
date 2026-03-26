@@ -8,11 +8,16 @@ import (
 )
 
 var (
-	ErrNilEngine                          = errors.New("authx/http: engine is nil")
-	ErrCredentialResolverNotConfigured    = errors.New("authx/http: credential resolver is not configured")
+	// ErrNilEngine indicates that Guard was used without an engine.
+	ErrNilEngine = errors.New("authx/http: engine is nil")
+	// ErrCredentialResolverNotConfigured indicates that credential resolution is missing.
+	ErrCredentialResolverNotConfigured = errors.New("authx/http: credential resolver is not configured")
+	// ErrAuthorizationResolverNotConfigured indicates that authorization resolution is missing.
 	ErrAuthorizationResolverNotConfigured = errors.New("authx/http: authorization resolver is not configured")
-	ErrPrincipalNotFound                  = errors.New("authx/http: principal not found")
-	ErrPrincipalTypeMismatch              = errors.New("authx/http: principal type mismatch")
+	// ErrPrincipalNotFound indicates that authentication did not produce a principal.
+	ErrPrincipalNotFound = errors.New("authx/http: principal not found")
+	// ErrPrincipalTypeMismatch indicates that the authenticated principal does not match the expected type.
+	ErrPrincipalTypeMismatch = errors.New("authx/http: principal type mismatch")
 )
 
 // StatusCodeFromError maps common auth/authz errors to HTTP status code.

@@ -2,10 +2,12 @@ package authhttp
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/DaiYuANg/arcgo/authx"
 )
 
+// Option configures Guard behavior.
 type Option func(*Guard)
 
 // Guard drives authx Check/Can flow for HTTP integrations.
@@ -15,36 +17,42 @@ type Guard struct {
 	authorizationResolver AuthorizationResolverFunc
 }
 
+// NewGuard constructs a Guard from engine and opts.
 func NewGuard(engine *authx.Engine, opts ...Option) *Guard {
 	guard := &Guard{engine: engine}
 	ApplyOptions(guard, opts...)
 	return guard
 }
 
+// WithCredentialResolver configures how Guard reads credentials from a request.
 func WithCredentialResolver(resolver CredentialResolver) Option {
 	return func(guard *Guard) {
 		guard.credentialResolver = toCredentialResolverFunc(resolver)
 	}
 }
 
+// WithAuthorizationResolver configures how Guard builds the authorization model.
 func WithAuthorizationResolver(resolver AuthorizationResolver) Option {
 	return func(guard *Guard) {
 		guard.authorizationResolver = toAuthorizationResolverFunc(resolver)
 	}
 }
 
+// WithCredentialResolverFunc configures Guard with a function-based credential resolver.
 func WithCredentialResolverFunc(resolver CredentialResolverFunc) Option {
 	return func(guard *Guard) {
 		guard.credentialResolver = resolver
 	}
 }
 
+// WithAuthorizationResolverFunc configures Guard with a function-based authorization resolver.
 func WithAuthorizationResolverFunc(resolver AuthorizationResolverFunc) Option {
 	return func(guard *Guard) {
 		guard.authorizationResolver = resolver
 	}
 }
 
+// Engine returns the underlying authx engine.
 func (guard *Guard) Engine() *authx.Engine {
 	if guard == nil {
 		return nil
@@ -69,7 +77,11 @@ func (guard *Guard) Check(
 		return authx.AuthenticationResult{}, err
 	}
 
-	return guard.engine.Check(ctx, credential)
+	result, err := guard.engine.Check(ctx, credential)
+	if err != nil {
+		return authx.AuthenticationResult{}, fmt.Errorf("check request credential: %w", err)
+	}
+	return result, nil
 }
 
 // Can runs engine.Can from resolved AuthorizationModel.
@@ -93,7 +105,11 @@ func (guard *Guard) Can(
 		return authx.Decision{}, err
 	}
 
-	return guard.engine.Can(ctx, model)
+	decision, err := guard.engine.Can(ctx, model)
+	if err != nil {
+		return authx.Decision{}, fmt.Errorf("authorize request: %w", err)
+	}
+	return decision, nil
 }
 
 // Require runs Check then Can and returns both result/decision.
@@ -118,7 +134,7 @@ func (guard *Guard) Require(
 
 	result, err := guard.engine.Check(ctx, credential)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, err
+		return authx.AuthenticationResult{}, authx.Decision{}, fmt.Errorf("check request credential: %w", err)
 	}
 
 	if result.Principal == nil {
@@ -132,7 +148,7 @@ func (guard *Guard) Require(
 
 	decision, err := guard.engine.Can(ctx, model)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, err
+		return authx.AuthenticationResult{}, authx.Decision{}, fmt.Errorf("authorize request: %w", err)
 	}
 
 	return result, decision, nil

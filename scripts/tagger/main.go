@@ -37,6 +37,12 @@ type releaseTarget struct {
 	next   semver.Version
 }
 
+type modulePatchConfig struct {
+	remote      string
+	taggerName  string
+	taggerEmail string
+}
+
 var bumpTaskSpecs = []bumpTaskSpec{
 	{name: "patch", mode: bumpPatch},
 	{name: "minor", mode: bumpMinor},
@@ -51,8 +57,8 @@ func main() {
 		Name:  "help",
 		Usage: "Show script usage",
 		Action: func(a *goyek.A) {
-			_, _ = fmt.Fprintln(a.Output(), "Usage:")
-			_, _ = fmt.Fprintln(a.Output(), "  go run ./scripts/tagger [task]")
+			mustWriteString(a.Output(), "Usage:\n")
+			mustWriteString(a.Output(), "  go run ./scripts/tagger [task]\n")
 			printUsage(a.Output())
 		},
 	})
@@ -94,9 +100,15 @@ func defineBumpTasks() *goyek.DefinedTask {
 }
 
 func printUsage(w io.Writer) {
-	_, _ = fmt.Fprintln(w, "Usage: go run ./scripts/tagger [task]")
-	_, _ = fmt.Fprintln(w, "Tasks: patch, patch-push, minor, minor-push, major, major-push, modules-patch, modules-patch-push, modules-patch-dry-run, help")
-	_, _ = fmt.Fprintln(w, "Env: TAGGER_REMOTE=origin TAGGER_NAME=auto-tagger TAGGER_EMAIL=ci@local TAGGER_MODULE_SCOPE=libs|all")
+	mustWriteString(w, "Usage: go run ./scripts/tagger [task]\n")
+	mustWriteString(w, "Tasks: patch, patch-push, minor, minor-push, major, major-push, modules-patch, modules-patch-push, modules-patch-dry-run, help\n")
+	mustWriteString(w, "Env: TAGGER_REMOTE=origin TAGGER_NAME=auto-tagger TAGGER_EMAIL=ci@local TAGGER_MODULE_SCOPE=libs|all\n")
+}
+
+func mustWriteString(w io.Writer, text string) {
+	if _, err := io.WriteString(w, text); err != nil {
+		panic(err)
+	}
 }
 
 func runTagger(a *goyek.A, mode bumpMode, push bool) {
@@ -184,7 +196,7 @@ func defineModulePatchTasks() {
 	})
 }
 
-func runModulePatchTagger(a *goyek.A, push bool, dryRun bool) {
+func runModulePatchTagger(a *goyek.A, push, dryRun bool) {
 	repo, err := git.PlainOpen(".")
 	if err != nil {
 		a.Fatal(err)
@@ -199,69 +211,92 @@ func runModulePatchTagger(a *goyek.A, push bool, dryRun bool) {
 		return
 	}
 
-	remote := getenvDefault("TAGGER_REMOTE", "origin")
-	taggerName := getenvDefault("TAGGER_NAME", "auto-tagger")
-	taggerEmail := getenvDefault("TAGGER_EMAIL", "ci@local")
-
-	head, err := repo.Head()
+	commit, cfg, err := modulePatchContext(repo)
 	if err != nil {
 		a.Fatal(err)
+	}
+
+	for i := range targets {
+		runModulePatchTarget(a, repo, commit, cfg, &targets[i], push, dryRun)
+	}
+
+	logModulePatchSummary(a, len(targets), cfg.remote, push, dryRun)
+}
+
+func modulePatchContext(repo *git.Repository) (*object.Commit, modulePatchConfig, error) {
+	head, err := repo.Head()
+	if err != nil {
+		return nil, modulePatchConfig{}, fmt.Errorf("resolve repository head: %w", err)
 	}
 	commit, err := repo.CommitObject(head.Hash())
 	if err != nil {
-		a.Fatal(err)
+		return nil, modulePatchConfig{}, fmt.Errorf("resolve head commit: %w", err)
 	}
+	return commit, modulePatchConfig{
+		remote:      getenvDefault("TAGGER_REMOTE", "origin"),
+		taggerName:  getenvDefault("TAGGER_NAME", "auto-tagger"),
+		taggerEmail: getenvDefault("TAGGER_EMAIL", "ci@local"),
+	}, nil
+}
 
-	for _, target := range targets {
-		newTag := fmt.Sprintf("%s/v%s", target.name, target.next.String())
-		a.Logf("%s -> %s", target.name, newTag)
-		if dryRun {
-			continue
-		}
-
-		_, err := repo.CreateTag(newTag, commit.Hash, &git.CreateTagOptions{
-			Tagger: &object.Signature{
-				Name:  taggerName,
-				Email: taggerEmail,
-				When:  time.Now(),
-			},
-			Message: newTag,
-		})
-		if err != nil {
-			a.Fatalf("create tag %s: %v", newTag, err)
-		}
-
-		if !push {
-			continue
-		}
-		err = repo.Push(&git.PushOptions{
-			RemoteName: remote,
-			RefSpecs: []config.RefSpec{
-				config.RefSpec("refs/tags/" + newTag + ":refs/tags/" + newTag),
-			},
-		})
-		if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
-			a.Fatalf("push tag %s: %v", newTag, err)
-		}
-	}
-
+func runModulePatchTarget(
+	a *goyek.A,
+	repo *git.Repository,
+	commit *object.Commit,
+	cfg modulePatchConfig,
+	target *releaseTarget,
+	push, dryRun bool,
+) {
+	newTag := fmt.Sprintf("%s/v%s", target.name, target.next.String())
+	a.Logf("%s -> %s", target.name, newTag)
 	if dryRun {
-		a.Logf("Dry-run complete (%d tags)", len(targets))
+		return
+	}
+
+	_, err := repo.CreateTag(newTag, commit.Hash, &git.CreateTagOptions{
+		Tagger: &object.Signature{
+			Name:  cfg.taggerName,
+			Email: cfg.taggerEmail,
+			When:  time.Now(),
+		},
+		Message: newTag,
+	})
+	if err != nil {
+		a.Fatalf("create tag %s: %v", newTag, err)
+	}
+
+	if !push {
+		return
+	}
+	err = repo.Push(&git.PushOptions{
+		RemoteName: cfg.remote,
+		RefSpecs: []config.RefSpec{
+			config.RefSpec("refs/tags/" + newTag + ":refs/tags/" + newTag),
+		},
+	})
+	if err != nil && !errors.Is(err, git.NoErrAlreadyUpToDate) {
+		a.Fatalf("push tag %s: %v", newTag, err)
+	}
+}
+
+func logModulePatchSummary(a *goyek.A, count int, remote string, push, dryRun bool) {
+	if dryRun {
+		a.Logf("Dry-run complete (%d tags)", count)
 		return
 	}
 
 	if push {
-		a.Logf("Created and pushed %d module tags", len(targets))
+		a.Logf("Created and pushed %d module tags", count)
 		return
 	}
-	a.Logf("Created %d module tags locally", len(targets))
+	a.Logf("Created %d module tags locally", count)
 	a.Logf("Push manually with: git push %s --tags", remote)
 }
 
 func modulePatchTargets(repo *git.Repository) ([]releaseTarget, error) {
 	iter, err := repo.Tags()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("iterate repository tags: %w", err)
 	}
 
 	latestByModule := map[string]semver.Version{}
@@ -280,7 +315,7 @@ func modulePatchTargets(repo *git.Repository) ([]releaseTarget, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("scan module tags: %w", err)
 	}
 
 	modules := lo.Keys(latestByModule)
@@ -330,7 +365,7 @@ func includeModule(moduleName string) bool {
 func latestSemverTag(repo *git.Repository) (semver.Version, error) {
 	iter, err := repo.Tags()
 	if err != nil {
-		return semver.Version{}, err
+		return semver.Version{}, fmt.Errorf("iterate repository tags: %w", err)
 	}
 
 	latest := semver.New(0, 0, 0, "", "")
@@ -349,7 +384,7 @@ func latestSemverTag(repo *git.Repository) (semver.Version, error) {
 		return nil
 	})
 	if err != nil {
-		return semver.Version{}, err
+		return semver.Version{}, fmt.Errorf("scan semver tags: %w", err)
 	}
 
 	if !found {
@@ -376,13 +411,14 @@ func parseSemverTag(tag string) (*semver.Version, bool) {
 
 func bump(v semver.Version, mode bumpMode) semver.Version {
 	switch mode {
+	case bumpPatch:
+		return v.IncPatch()
 	case bumpMajor:
 		return v.IncMajor()
 	case bumpMinor:
 		return v.IncMinor()
-	default:
-		return v.IncPatch()
 	}
+	return v.IncPatch()
 }
 
 func getenvDefault(key, fallback string) string {

@@ -3,7 +3,7 @@ module github.com/DaiYuANg/arcgo/examples/dix
 go 1.26
 
 require (
-	github.com/danielgtaylor/huma/v2 v2.37.2
+	github.com/danielgtaylor/huma/v2 v2.37.3
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/samber/do/v2 v2.0.0

@@ -8,6 +8,7 @@ import (
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type ssePingData struct {
@@ -151,4 +152,23 @@ func TestServer_GroupRouteSSEWithPolicies_WithBasePath(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.True(t, server.HasRoute(http.MethodGet, "/api/v2/events/policy"))
+}
+
+func TestServer_DuplicateSSERouteRegistrationReturnsError(t *testing.T) {
+	server := newServer()
+
+	require.NoError(t, GetSSE(server, "/events", map[string]any{
+		"ping": ssePingData{},
+	}, func(ctx context.Context, input *struct{}, send SSESender) {
+		_ = send.Data(ssePingData{Message: "first"})
+	}))
+
+	err := GetSSE(server, "/events", map[string]any{
+		"ping": ssePingData{},
+	}, func(ctx context.Context, input *struct{}, send SSESender) {
+		_ = send.Data(ssePingData{Message: "second"})
+	})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrRouteAlreadyExists)
+	assert.Equal(t, 1, server.RouteCount())
 }

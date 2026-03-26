@@ -80,6 +80,9 @@ func registerSSE[I any](
 
 	s.openAPIMu.Lock()
 	defer s.openAPIMu.Unlock()
+	if err := s.validateRouteRegistration(method, fullPath); err != nil {
+		return err
+	}
 	humasse.Register(api, op, eventTypeMap, func(ctx context.Context, input *I, send SSESender) {
 		wrappedHandler(ctx, input, send)
 	})

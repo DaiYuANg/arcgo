@@ -12,6 +12,7 @@ var (
 	ErrInvalidEndpoint    = errors.New("httpx: invalid endpoint struct")
 	ErrInvalidHandlerName = errors.New("httpx: invalid handler function name")
 	ErrInvalidHandlerSig  = errors.New("httpx: invalid handler signature")
+	ErrRouteAlreadyExists = errors.New("httpx: route already registered")
 	ErrRouteNotRegistered = errors.New("httpx: route not registered")
 	ErrServerFrozen       = errors.New("httpx: server configuration is frozen")
 )
@@ -69,4 +70,9 @@ func IsInvalidEndpoint(err error) bool {
 // IsInvalidHandlerSignature reports whether the error wraps `ErrInvalidHandlerSig`.
 func IsInvalidHandlerSignature(err error) bool {
 	return errors.Is(err, ErrInvalidHandlerSig)
+}
+
+// IsRouteAlreadyRegistered reports whether the error wraps `ErrRouteAlreadyExists`.
+func IsRouteAlreadyRegistered(err error) bool {
+	return errors.Is(err, ErrRouteAlreadyExists)
 }

@@ -113,6 +113,11 @@ func (s *Server) ListenAndServeContext(ctx context.Context, addr string) error {
 		if err := shutdownable.Shutdown(); err != nil && !errors.Is(err, ErrAdapterNotFound) {
 			return fmt.Errorf("httpx: shutdown server on %q: %w", addr, err)
 		}
-		return <-errCh
+		select {
+		case err := <-errCh:
+			return err
+		default:
+			return ctx.Err()
+		}
 	}
 }

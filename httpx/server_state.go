@@ -11,6 +11,8 @@ func (s *Server) freezeConfiguration() {
 	if s == nil {
 		return
 	}
+	s.openAPIMu.Lock()
+	defer s.openAPIMu.Unlock()
 	s.frozen.Store(true)
 }
 

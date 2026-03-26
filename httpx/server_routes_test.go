@@ -3,6 +3,7 @@ package httpx
 import (
 	"context"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -81,4 +82,28 @@ func TestServer_AddTag_ReplacesExistingTagByName(t *testing.T) {
 	require.NotNil(t, doc)
 	require.Len(t, doc.Tags, 1)
 	assert.Equal(t, "updated", doc.Tags[0].Description)
+}
+
+func TestServer_DuplicateRouteRegistrationReturnsError(t *testing.T) {
+	server := newServer()
+
+	require.NoError(t, Get(server, "/users", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		out := &pingOutput{}
+		out.Body.Message = "first"
+		return out, nil
+	}))
+
+	err := Get(server, "/users", func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+		out := &pingOutput{}
+		out.Body.Message = "second"
+		return out, nil
+	})
+	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrRouteAlreadyExists)
+	assert.Equal(t, 1, server.RouteCount())
+
+	req := httptest.NewRequest(http.MethodGet, "/users", nil)
+	rec := serveRequest(t, server, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Contains(t, rec.Body.String(), "first")
 }

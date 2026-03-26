@@ -1,6 +1,7 @@
 package httpx
 
 import (
+	"fmt"
 	"log/slog"
 	"strings"
 
@@ -80,6 +81,19 @@ func (s *Server) addRoute(route RouteInfo) {
 
 	s.routes.Add(route)
 	s.printRoutesIfEnabled()
+}
+
+func (s *Server) validateRouteRegistration(method, path string) error {
+	if s == nil {
+		return fmt.Errorf("%w: server is nil", ErrRouteNotRegistered)
+	}
+	if s.IsFrozen() {
+		return fmt.Errorf("%w: cannot register route %s %s", ErrServerFrozen, strings.ToUpper(method), path)
+	}
+	if s.HasRoute(method, path) {
+		return fmt.Errorf("%w: %s %s", ErrRouteAlreadyExists, strings.ToUpper(method), path)
+	}
+	return nil
 }
 
 func (s *Server) routesSnapshot() []RouteInfo {

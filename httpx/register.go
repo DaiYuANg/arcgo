@@ -212,6 +212,9 @@ func registerTyped[I, O any](
 
 	s.openAPIMu.Lock()
 	defer s.openAPIMu.Unlock()
+	if err := s.validateRouteRegistration(method, fullPath); err != nil {
+		return err
+	}
 	huma.Register(api, op, func(ctx context.Context, input *I) (*O, error) {
 		return wrappedHandler(ctx, input)
 	})

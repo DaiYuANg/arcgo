@@ -247,11 +247,23 @@ func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...Sc
 	reportTables := collectionx.NewListWithCapacity[TableDiff](len(schemas))
 	actions := collectionx.NewListWithCapacity[MigrationAction](len(schemas))
 	for _, schema := range schemas {
+		logRuntimeNode(session, "schema.plan.legacy.diff", "table", schema.tableRef().TableName())
 		diff, diffErr := diffSchema(ctx, schemaDialect, session, schema)
 		if diffErr != nil {
+			logRuntimeNode(session, "schema.plan.legacy.error", "table", schema.tableRef().TableName(), "error", diffErr)
 			return MigrationPlan{}, diffErr
 		}
 		reportTables.Add(diff)
+		logRuntimeNode(session,
+			"schema.plan.legacy.diff_done",
+			"table", diff.Table,
+			"missing_table", diff.MissingTable,
+			"missing_columns", len(diff.MissingColumns),
+			"missing_indexes", len(diff.MissingIndexes),
+			"missing_foreign_keys", len(diff.MissingForeignKeys),
+			"missing_checks", len(diff.MissingChecks),
+			"column_diffs", len(diff.ColumnDiffs),
+		)
 
 		spec := buildTableSpec(schema.schemaRef())
 		if diff.MissingTable {
@@ -373,16 +385,20 @@ type txStarter interface {
 
 func autoMigrateExecutionSession(ctx context.Context, session Session, needExec bool) (Session, func() error, func() error, bool, error) {
 	if !needExec {
+		logRuntimeNode(session, "schema.auto_migrate.execution_session", "need_exec", false, "transactional", false)
 		return session, nil, nil, false, nil
 	}
 	starter, ok := session.(txStarter)
 	if !ok {
+		logRuntimeNode(session, "schema.auto_migrate.execution_session", "need_exec", true, "transactional", false, "reason", "session_has_no_begin_tx")
 		return session, nil, nil, false, nil
 	}
 	tx, err := starter.BeginTx(ctx, nil)
 	if err != nil {
+		logRuntimeNode(session, "schema.auto_migrate.execution_session.error", "error", err)
 		return nil, nil, nil, false, err
 	}
+	logRuntimeNode(session, "schema.auto_migrate.execution_session", "need_exec", true, "transactional", true)
 	return tx, tx.Commit, tx.Rollback, true, nil
 }
 

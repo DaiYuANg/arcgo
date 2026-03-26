@@ -31,21 +31,37 @@ func NewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) (*DB, error)
 	if err != nil {
 		return nil, err
 	}
+	logRuntimeNodeWithLogger(config.logger, config.debug,
+		"db.new.start",
+		"has_sql_db", raw != nil,
+		"dialect", dialectName(d),
+		"hooks", len(config.hooks),
+		"has_id_generator", config.idGenerator != nil,
+		"node_id", config.nodeID,
+	)
 	idGenerator := config.idGenerator
 	if idGenerator == nil {
 		idGenerator, err = NewSnowflakeGenerator(config.nodeID)
 		if err != nil {
+			logRuntimeNodeWithLogger(config.logger, config.debug, "db.new.error", "stage", "id_generator", "error", err)
 			return nil, err
 		}
 	}
-	return &DB{
+	db := &DB{
 		raw:         raw,
 		dialect:     d,
 		observe:     newRuntimeObserver(config),
 		relation:    newRelationRuntime(),
 		idGenerator: idGenerator,
 		nodeID:      config.nodeID,
-	}, nil
+	}
+	logRuntimeNodeWithLogger(config.logger, config.debug,
+		"db.new.done",
+		"dialect", dialectName(d),
+		"hooks", len(config.hooks),
+		"node_id", config.nodeID,
+	)
+	return db, nil
 }
 
 func MustNewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) *DB {
@@ -242,5 +258,19 @@ func (db *DB) Close() error {
 	if db == nil || db.raw == nil {
 		return nil
 	}
-	return db.raw.Close()
+	logRuntimeNode(db, "db.close.start")
+	err := db.raw.Close()
+	if err != nil {
+		logRuntimeNode(db, "db.close.error", "error", err)
+		return err
+	}
+	logRuntimeNode(db, "db.close.done")
+	return nil
+}
+
+func dialectName(d dialect.Dialect) string {
+	if d == nil {
+		return ""
+	}
+	return d.Name()
 }

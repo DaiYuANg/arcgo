@@ -65,26 +65,39 @@ func ApplyOptions(opts ...Option) OpenOption {
 // Returns error if any required option is missing or invalid. Call db.Close() when done.
 func Open(opts ...OpenOption) (*DB, error) {
 	config := defaultOpenConfig()
+	logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.start", "options", len(opts))
 	for _, opt := range lo.Filter(opts, func(opt OpenOption, _ int) bool { return opt != nil }) {
 		if err := opt(&config); err != nil {
+			logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "apply_option", "error", err)
 			return nil, err
 		}
 	}
+	logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug,
+		"db.open.configured",
+		"driver", config.driver,
+		"dialect", dialectName(config.dialect),
+		"hooks", len(config.observe.hooks),
+	)
 
 	if config.driver == "" {
+		logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "validate", "error", ErrMissingDriver)
 		return nil, ErrMissingDriver
 	}
 	if config.dsn == "" {
+		logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "validate", "error", ErrMissingDSN)
 		return nil, ErrMissingDSN
 	}
 	if config.dialect == nil {
+		logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "validate", "error", ErrMissingDialect)
 		return nil, ErrMissingDialect
 	}
 
 	raw, err := sql.Open(config.driver, config.dsn)
 	if err != nil {
+		logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "sql_open", "error", err)
 		return nil, err
 	}
+	logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.sql_opened", "driver", config.driver)
 
 	dbOpts := []Option{
 		WithLogger(config.observe.logger),
@@ -97,5 +110,11 @@ func Open(opts ...OpenOption) (*DB, error) {
 	if config.observe.hasNodeID {
 		dbOpts = append(dbOpts, WithNodeID(config.observe.nodeID))
 	}
-	return NewWithOptions(raw, config.dialect, dbOpts...)
+	db, err := NewWithOptions(raw, config.dialect, dbOpts...)
+	if err != nil {
+		logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "new_with_options", "error", err)
+		return nil, err
+	}
+	logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.done", "driver", config.driver, "dialect", dialectName(config.dialect))
+	return db, nil
 }

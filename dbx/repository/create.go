@@ -17,12 +17,20 @@ func (r *Base[E, S]) Create(ctx context.Context, entity *E) error {
 	if entity == nil {
 		return &ValidationError{Message: "entity is nil"}
 	}
+	dbx.LogRuntimeNode(r.session, "repository.create.start", "table", r.schema.TableName())
 	assignments, err := r.mapper.InsertAssignments(r.session, r.schema, entity)
 	if err != nil {
+		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
 	}
 	_, err = dbx.Exec(ctx, r.session, dbx.InsertInto(r.schema).Values(assignments...))
-	return wrapMutationError(err)
+	if err != nil {
+		wrapped := wrapMutationError(err)
+		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
+		return wrapped
+	}
+	dbx.LogRuntimeNode(r.session, "repository.create.done", "table", r.schema.TableName())
+	return nil
 }
 
 func (r *Base[E, S]) CreateMany(ctx context.Context, entities ...*E) error {
@@ -32,6 +40,7 @@ func (r *Base[E, S]) CreateMany(ctx context.Context, entities ...*E) error {
 	if len(entities) == 0 {
 		return nil
 	}
+	dbx.LogRuntimeNode(r.session, "repository.create_many.start", "table", r.schema.TableName(), "entities", len(entities))
 	query := dbx.InsertInto(r.schema)
 	for index, entity := range entities {
 		if entity == nil {
@@ -39,12 +48,19 @@ func (r *Base[E, S]) CreateMany(ctx context.Context, entities ...*E) error {
 		}
 		assignments, err := r.mapper.InsertAssignments(r.session, r.schema, entity)
 		if err != nil {
+			dbx.LogRuntimeNode(r.session, "repository.create_many.error", "table", r.schema.TableName(), "stage", "assignments", "index", index, "error", err)
 			return err
 		}
 		query.Values(assignments...)
 	}
 	_, err := dbx.Exec(ctx, r.session, query)
-	return wrapMutationError(err)
+	if err != nil {
+		wrapped := wrapMutationError(err)
+		dbx.LogRuntimeNode(r.session, "repository.create_many.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
+		return wrapped
+	}
+	dbx.LogRuntimeNode(r.session, "repository.create_many.done", "table", r.schema.TableName(), "entities", len(entities))
+	return nil
 }
 
 func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...string) error {
@@ -54,8 +70,10 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 	if entity == nil {
 		return &ValidationError{Message: "entity is nil"}
 	}
+	dbx.LogRuntimeNode(r.session, "repository.upsert.start", "table", r.schema.TableName(), "conflict_columns", conflictColumns)
 	assignments, err := r.mapper.InsertAssignments(r.session, r.schema, entity)
 	if err != nil {
+		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
 	}
 	query := dbx.InsertInto(r.schema).Values(assignments...)
@@ -73,7 +91,13 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 		query.OnConflict(targetExpressions...).DoUpdateSet(updateAssignments...)
 	}
 	_, err = dbx.Exec(ctx, r.session, query)
-	return wrapMutationError(err)
+	if err != nil {
+		wrapped := wrapMutationError(err)
+		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
+		return wrapped
+	}
+	dbx.LogRuntimeNode(r.session, "repository.upsert.done", "table", r.schema.TableName(), "conflict_columns", targetColumns)
+	return nil
 }
 
 func normalizeConflictColumns(columns []string, fallback []string) []string {

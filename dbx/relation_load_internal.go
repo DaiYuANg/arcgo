@@ -115,18 +115,30 @@ func queryRelationTargets[E any](ctx context.Context, session Session, rt *relat
 	if len(keys) == 0 {
 		return nil, nil
 	}
+	chunks := chunkRelationKeys(keys, relationChunkSize(session))
+	logRuntimeNode(session,
+		"relation.targets.query.start",
+		"table", schema.tableRef().TableName(),
+		"target_column", targetColumn.Name,
+		"keys", len(keys),
+		"chunks", len(chunks),
+	)
 	items := collectionx.NewListWithCapacity[E](len(keys))
-	for _, chunk := range chunkRelationKeys(keys, relationChunkSize(session)) {
+	for index, chunk := range chunks {
+		logRuntimeNode(session, "relation.targets.query.chunk", "index", index, "size", len(chunk))
 		bound, err := buildRelationTargetsBoundQuery(session, rt, schema, targetColumn, chunk)
 		if err != nil {
+			logRuntimeNode(session, "relation.targets.query.error", "stage", "build_bound", "error", err)
 			return nil, err
 		}
 		rows, err := QueryAllBound[E](ctx, session, bound, mapper)
 		if err != nil {
+			logRuntimeNode(session, "relation.targets.query.error", "stage", "query_rows", "index", index, "error", err)
 			return nil, err
 		}
 		items.Add(rows...)
 	}
+	logRuntimeNode(session, "relation.targets.query.done", "table", schema.tableRef().TableName(), "items", items.Len())
 	return items.Values(), nil
 }
 
@@ -137,10 +149,12 @@ func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema
 	selectSig := strings.Join(lo.Map(def.columns, func(c ColumnMeta, _ int) string { return c.Name }), ",")
 	cacheKey := fmt.Sprintf("rel:%s:%s:%s:%s:%d", dialectName, tableName, selectSig, targetColumn.Name, len(keys))
 	if cachedSQL, ok, _ := rt.queryCache.Get(cacheKey); ok {
+		logRuntimeNode(session, "relation.targets.bound.cache_hit", "table", tableName, "target_column", targetColumn.Name, "keys", len(keys))
 		args := make([]any, len(keys))
 		copy(args, keys)
 		return BoundQuery{SQL: cachedSQL, Args: args}, nil
 	}
+	logRuntimeNode(session, "relation.targets.bound.cache_miss", "table", tableName, "target_column", targetColumn.Name, "keys", len(keys))
 	query := Select(allSelectItems(def)...).
 		From(schema).
 		Where(metadataComparisonPredicate{
@@ -151,6 +165,7 @@ func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema
 		OrderBy(relationTargetOrders(schema, targetColumn)...)
 	bound, err := Build(session, query)
 	if err != nil {
+		logRuntimeNode(session, "relation.targets.bound.error", "table", tableName, "error", err)
 		return BoundQuery{}, err
 	}
 	rt.queryCache.Set(cacheKey, bound.SQL)
@@ -238,22 +253,29 @@ func queryManyToManyPairs(ctx context.Context, session Session, rt *relationRunt
 	}
 
 	pairs := collectionx.NewListWithCapacity[relationKeyPair](len(sourceKeys))
-	for _, chunk := range chunkRelationKeys(sourceKeys, relationChunkSize(session)) {
+	chunks := chunkRelationKeys(sourceKeys, relationChunkSize(session))
+	logRuntimeNode(session, "relation.m2m.pairs.start", "relation", meta.Name, "keys", len(sourceKeys), "chunks", len(chunks))
+	for index, chunk := range chunks {
+		logRuntimeNode(session, "relation.m2m.pairs.chunk", "relation", meta.Name, "index", index, "size", len(chunk))
 		bound, err := buildManyToManyPairsBoundQuery(session, rt, meta, chunk)
 		if err != nil {
+			logRuntimeNode(session, "relation.m2m.pairs.error", "stage", "build_bound", "relation", meta.Name, "error", err)
 			return nil, err
 		}
 		rows, err := session.QueryBoundContext(ctx, bound)
 		if err != nil {
+			logRuntimeNode(session, "relation.m2m.pairs.error", "stage", "query_rows", "relation", meta.Name, "index", index, "error", err)
 			return nil, err
 		}
 		scanned, scanErr := scanRelationPairs(rows, sourceType, targetType)
 		_ = rows.Close()
 		if scanErr != nil {
+			logRuntimeNode(session, "relation.m2m.pairs.error", "stage", "scan_rows", "relation", meta.Name, "index", index, "error", scanErr)
 			return nil, scanErr
 		}
 		pairs.Add(scanned...)
 	}
+	logRuntimeNode(session, "relation.m2m.pairs.done", "relation", meta.Name, "pairs", pairs.Len())
 	return pairs.Values(), nil
 }
 
@@ -261,10 +283,12 @@ func buildManyToManyPairsBoundQuery(session Session, rt *relationRuntime, meta R
 	dialectName := session.Dialect().Name()
 	cacheKey := fmt.Sprintf("m2m:%s:%s:%s:%s:%d", dialectName, meta.ThroughTable, meta.ThroughLocalColumn, meta.ThroughTargetColumn, len(sourceKeys))
 	if cachedSQL, ok, _ := rt.queryCache.Get(cacheKey); ok {
+		logRuntimeNode(session, "relation.m2m.bound.cache_hit", "relation", meta.Name, "through", meta.ThroughTable, "keys", len(sourceKeys))
 		args := make([]any, len(sourceKeys))
 		copy(args, sourceKeys)
 		return BoundQuery{SQL: cachedSQL, Args: args}, nil
 	}
+	logRuntimeNode(session, "relation.m2m.bound.cache_miss", "relation", meta.Name, "through", meta.ThroughTable, "keys", len(sourceKeys))
 
 	through := Table{def: tableDefinition{name: meta.ThroughTable}}
 	localColumn := ColumnMeta{Name: meta.ThroughLocalColumn, Table: through.Name(), GoType: nil}
@@ -283,6 +307,7 @@ func buildManyToManyPairsBoundQuery(session Session, rt *relationRuntime, meta R
 
 	bound, err := Build(session, query)
 	if err != nil {
+		logRuntimeNode(session, "relation.m2m.bound.error", "relation", meta.Name, "error", err)
 		return BoundQuery{}, err
 	}
 	rt.queryCache.Set(cacheKey, bound.SQL)

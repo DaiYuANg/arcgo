@@ -10,7 +10,7 @@ type Range[T cmp.Ordered] struct {
 }
 
 // NewRange creates a valid half-open range.
-func NewRange[T cmp.Ordered](start T, end T) (Range[T], bool) {
+func NewRange[T cmp.Ordered](start, end T) (Range[T], bool) {
 	r := Range[T]{Start: start, End: end}
 	return r, r.IsValid()
 }

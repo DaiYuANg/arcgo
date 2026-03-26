@@ -20,7 +20,7 @@ func NewRangeSet[T cmp.Ordered]() *RangeSet[T] {
 }
 
 // Add inserts one range and merges overlaps/adjacent ranges.
-func (s *RangeSet[T]) Add(start T, end T) bool {
+func (s *RangeSet[T]) Add(start, end T) bool {
 	return s.AddRange(Range[T]{Start: start, End: end})
 }
 
@@ -29,55 +29,12 @@ func (s *RangeSet[T]) AddRange(r Range[T]) bool {
 	if s == nil || !r.IsValid() {
 		return false
 	}
-
-	if len(s.ranges) == 0 {
-		s.ranges = append(s.ranges, r)
-		return true
-	}
-
-	first := sort.Search(len(s.ranges), func(i int) bool {
-		return s.ranges[i].End >= r.Start
-	})
-	if first == len(s.ranges) {
-		s.ranges = append(s.ranges, r)
-		return true
-	}
-
-	merged := r
-	end := first
-	for ; end < len(s.ranges); end++ {
-		current := s.ranges[end]
-		if current.Start > merged.End {
-			break
-		}
-		if current.Start < merged.Start {
-			merged.Start = current.Start
-		}
-		if current.End > merged.End {
-			merged.End = current.End
-		}
-	}
-
-	if end == first {
-		s.ranges = append(s.ranges, Range[T]{})
-		copy(s.ranges[first+1:], s.ranges[first:])
-		s.ranges[first] = merged
-		return true
-	}
-
-	s.ranges[first] = merged
-	consumed := end - first
-	if consumed > 1 {
-		copy(s.ranges[first+1:], s.ranges[end:])
-		newLen := len(s.ranges) - (consumed - 1)
-		clear(s.ranges[newLen:])
-		s.ranges = s.ranges[:newLen]
-	}
+	s.ranges = addRangeToSet(s.ranges, r)
 	return true
 }
 
 // Remove removes interval part from the set.
-func (s *RangeSet[T]) Remove(start T, end T) bool {
+func (s *RangeSet[T]) Remove(start, end T) bool {
 	if s == nil || len(s.ranges) == 0 {
 		return false
 	}
@@ -85,41 +42,10 @@ func (s *RangeSet[T]) Remove(start T, end T) bool {
 	if !cut.IsValid() {
 		return false
 	}
-
-	first := sort.Search(len(s.ranges), func(i int) bool {
-		return s.ranges[i].End > cut.Start
-	})
-	if first == len(s.ranges) {
-		return false
+	next, changed := removeRangeFromSet(s.ranges, cut)
+	if changed {
+		s.ranges = next
 	}
-
-	changed := false
-	next := make([]Range[T], 0, len(s.ranges))
-	next = append(next, s.ranges[:first]...)
-	for i := first; i < len(s.ranges); i++ {
-		current := s.ranges[i]
-		if current.Start >= cut.End {
-			next = append(next, s.ranges[i:]...)
-			s.ranges = next
-			return changed
-		}
-		if current.End <= cut.Start {
-			next = append(next, current)
-			continue
-		}
-
-		changed = true
-		if current.Start < cut.Start {
-			next = append(next, Range[T]{Start: current.Start, End: cut.Start})
-		}
-		if cut.End < current.End {
-			next = append(next, Range[T]{Start: cut.End, End: current.End})
-			next = append(next, s.ranges[i+1:]...)
-			s.ranges = next
-			return true
-		}
-	}
-	s.ranges = next
 	return changed
 }
 
@@ -135,7 +61,7 @@ func (s *RangeSet[T]) Contains(value T) bool {
 }
 
 // Overlaps reports whether input range overlaps any stored range.
-func (s *RangeSet[T]) Overlaps(start T, end T) bool {
+func (s *RangeSet[T]) Overlaps(start, end T) bool {
 	if s == nil || len(s.ranges) == 0 {
 		return false
 	}
@@ -188,4 +114,99 @@ func (s *RangeSet[T]) Range(fn func(r Range[T]) bool) {
 			return
 		}
 	}
+}
+
+func addRangeToSet[T cmp.Ordered](ranges []Range[T], input Range[T]) []Range[T] {
+	if len(ranges) == 0 {
+		return append(ranges, input)
+	}
+
+	first := findFirstRangeEndingAtOrAfter(ranges, input.Start)
+	if first == len(ranges) {
+		return append(ranges, input)
+	}
+	if ranges[first].Start > input.End {
+		return spliceRanges(ranges, first, first, input)
+	}
+
+	merged, end := mergeSetRanges(ranges, first, input)
+	return spliceRanges(ranges, first, end, merged)
+}
+
+func findFirstRangeEndingAtOrAfter[T cmp.Ordered](ranges []Range[T], point T) int {
+	return sort.Search(len(ranges), func(i int) bool {
+		return ranges[i].End >= point
+	})
+}
+
+func mergeSetRanges[T cmp.Ordered](ranges []Range[T], first int, merged Range[T]) (Range[T], int) {
+	end := first
+	for ; end < len(ranges); end++ {
+		current := ranges[end]
+		if current.Start > merged.End {
+			break
+		}
+		if current.Start < merged.Start {
+			merged.Start = current.Start
+		}
+		if current.End > merged.End {
+			merged.End = current.End
+		}
+	}
+	return merged, end
+}
+
+func removeRangeFromSet[T cmp.Ordered](ranges []Range[T], cut Range[T]) ([]Range[T], bool) {
+	first := findFirstRangeEndingAfter(ranges, cut.Start)
+	if first == len(ranges) {
+		return ranges, false
+	}
+
+	next := make([]Range[T], 0, len(ranges))
+	next = append(next, ranges[:first]...)
+	changed := false
+
+	for index := first; index < len(ranges); index++ {
+		current := ranges[index]
+		if current.Start >= cut.End {
+			next = append(next, ranges[index:]...)
+			return next, changed
+		}
+
+		changed = true
+		fragments, stop := trimSetRange(current, cut)
+		next = append(next, fragments...)
+		if stop {
+			next = append(next, ranges[index+1:]...)
+			return next, changed
+		}
+	}
+
+	return next, changed
+}
+
+func findFirstRangeEndingAfter[T cmp.Ordered](ranges []Range[T], point T) int {
+	return sort.Search(len(ranges), func(i int) bool {
+		return ranges[i].End > point
+	})
+}
+
+func trimSetRange[T cmp.Ordered](current, cut Range[T]) ([]Range[T], bool) {
+	fragments := make([]Range[T], 0, 2)
+	if current.Start < cut.Start {
+		fragments = append(fragments, Range[T]{Start: current.Start, End: cut.Start})
+	}
+	if cut.End < current.End {
+		fragments = append(fragments, Range[T]{Start: cut.End, End: current.End})
+		return fragments, true
+	}
+	return fragments, false
+}
+
+func spliceRanges[T cmp.Ordered](ranges []Range[T], start, end int, replacement ...Range[T]) []Range[T] {
+	next := make([]Range[T], 0, len(ranges)-(end-start)+len(replacement))
+	next = append(next, ranges[:start]...)
+	next = append(next, replacement...)
+	next = append(next, ranges[end:]...)
+	return next
 }

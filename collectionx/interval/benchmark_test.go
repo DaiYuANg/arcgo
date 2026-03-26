@@ -1,27 +1,31 @@
-package interval
+package interval_test
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/DaiYuANg/arcgo/collectionx/interval"
+)
 
 const benchRangeSetSize = 1 << 10
 
 func BenchmarkRangeContains(b *testing.B) {
-	r := Range[int]{Start: 128, End: 2048}
+	r := interval.Range[int]{Start: 128, End: 2048}
 	mask := 4095
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		_ = r.Contains(i & mask)
 	}
 }
 
 func BenchmarkRangeMerge(b *testing.B) {
-	left := Range[int]{Start: 100, End: 200}
-	right := Range[int]{Start: 150, End: 250}
+	left := interval.Range[int]{Start: 100, End: 200}
+	right := interval.Range[int]{Start: 150, End: 250}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		merged, ok := left.Merge(right)
 		if !ok || merged.Start != 100 || merged.End != 250 {
 			b.Fatalf("unexpected merge result: %+v ok=%v", merged, ok)
@@ -30,12 +34,12 @@ func BenchmarkRangeMerge(b *testing.B) {
 }
 
 func BenchmarkRangeSetAdd(b *testing.B) {
-	s := NewRangeSet[int]()
+	s := interval.NewRangeSet[int]()
 	sizeMask := benchRangeSetSize - 1
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		slot := i & sizeMask
 		start := slot * 4
 		s.Add(start, start+2)
@@ -43,8 +47,8 @@ func BenchmarkRangeSetAdd(b *testing.B) {
 }
 
 func BenchmarkRangeSetContains(b *testing.B) {
-	s := NewRangeSet[int]()
-	for i := 0; i < benchRangeSetSize; i++ {
+	s := interval.NewRangeSet[int]()
+	for i := range benchRangeSetSize {
 		start := i * 2
 		s.Add(start, start+1)
 	}
@@ -52,18 +56,18 @@ func BenchmarkRangeSetContains(b *testing.B) {
 	mask := (benchRangeSetSize * 2) - 1
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		_ = s.Contains(i & mask)
 	}
 }
 
 func BenchmarkRangeMapPutGet(b *testing.B) {
-	m := NewRangeMap[int, int]()
+	m := interval.NewRangeMap[int, int]()
 	sizeMask := benchRangeSetSize - 1
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		slot := i & sizeMask
 		start := slot * 2
 		end := start + 2
@@ -73,8 +77,8 @@ func BenchmarkRangeMapPutGet(b *testing.B) {
 }
 
 func BenchmarkRangeMapGet(b *testing.B) {
-	m := NewRangeMap[int, int]()
-	for i := 0; i < benchRangeSetSize; i++ {
+	m := interval.NewRangeMap[int, int]()
+	for i := range benchRangeSetSize {
 		start := i * 4
 		m.Put(start, start+3, i)
 	}
@@ -82,15 +86,15 @@ func BenchmarkRangeMapGet(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		point := (i & mask) * 4
 		_, _ = m.Get(point)
 	}
 }
 
 func BenchmarkRangeSetRemove(b *testing.B) {
-	s := NewRangeSet[int]()
-	for i := 0; i < benchRangeSetSize; i++ {
+	s := interval.NewRangeSet[int]()
+	for i := range benchRangeSetSize {
 		start := i * 2
 		s.Add(start, start+1)
 	}
@@ -98,7 +102,7 @@ func BenchmarkRangeSetRemove(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		slot := i & sizeMask
 		start := slot * 2
 		s.Remove(start, start+1)
@@ -107,36 +111,36 @@ func BenchmarkRangeSetRemove(b *testing.B) {
 }
 
 func BenchmarkRangeSetRanges(b *testing.B) {
-	s := NewRangeSet[int]()
-	for i := 0; i < benchRangeSetSize; i++ {
+	s := interval.NewRangeSet[int]()
+	for i := range benchRangeSetSize {
 		start := i * 2
 		s.Add(start, start+1)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = s.Ranges()
 	}
 }
 
 func BenchmarkRangeMapEntries(b *testing.B) {
-	m := NewRangeMap[int, int]()
-	for i := 0; i < benchRangeSetSize; i++ {
+	m := interval.NewRangeMap[int, int]()
+	for i := range benchRangeSetSize {
 		start := i * 4
 		m.Put(start, start+3, i)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = m.Entries()
 	}
 }
 
 func BenchmarkRangeMapDeleteRange(b *testing.B) {
-	m := NewRangeMap[int, int]()
-	for i := 0; i < benchRangeSetSize; i++ {
+	m := interval.NewRangeMap[int, int]()
+	for i := range benchRangeSetSize {
 		start := i * 4
 		m.Put(start, start+3, i)
 	}
@@ -144,7 +148,7 @@ func BenchmarkRangeMapDeleteRange(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		slot := i & sizeMask
 		start := slot * 4
 		m.DeleteRange(start, start+3)

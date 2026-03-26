@@ -1,15 +1,27 @@
 package interval
 
-import common "github.com/DaiYuANg/arcgo/collectionx/internal"
+import (
+	"fmt"
+
+	common "github.com/DaiYuANg/arcgo/collectionx/internal"
+)
 
 // ToJSON serializes normalized ranges to JSON.
 func (s *RangeSet[T]) ToJSON() ([]byte, error) {
-	return common.MarshalJSONValue(s.Ranges())
+	data, err := common.MarshalJSONValue(s.Ranges())
+	if err != nil {
+		return nil, fmt.Errorf("marshal range set json: %w", err)
+	}
+	return data, nil
 }
 
 // MarshalJSON implements json.Marshaler.
 func (s *RangeSet[T]) MarshalJSON() ([]byte, error) {
-	return common.ForwardToJSON(s.ToJSON)
+	data, err := common.ForwardToJSON(s.ToJSON)
+	if err != nil {
+		return nil, fmt.Errorf("marshal range set: %w", err)
+	}
+	return data, nil
 }
 
 // String implements fmt.Stringer.
@@ -19,12 +31,20 @@ func (s *RangeSet[T]) String() string {
 
 // ToJSON serializes range-map entries to JSON.
 func (m *RangeMap[T, V]) ToJSON() ([]byte, error) {
-	return common.MarshalJSONValue(m.Entries())
+	data, err := common.MarshalJSONValue(m.Entries())
+	if err != nil {
+		return nil, fmt.Errorf("marshal range map json: %w", err)
+	}
+	return data, nil
 }
 
 // MarshalJSON implements json.Marshaler.
 func (m *RangeMap[T, V]) MarshalJSON() ([]byte, error) {
-	return common.ForwardToJSON(m.ToJSON)
+	data, err := common.ForwardToJSON(m.ToJSON)
+	if err != nil {
+		return nil, fmt.Errorf("marshal range map: %w", err)
+	}
+	return data, nil
 }
 
 // String implements fmt.Stringer.

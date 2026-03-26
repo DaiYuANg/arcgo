@@ -29,96 +29,15 @@ func NewRangeMap[T cmp.Ordered, V any]() *RangeMap[T, V] {
 }
 
 // Put assigns value to [start, end), overriding any overlaps.
-func (m *RangeMap[T, V]) Put(start T, end T, value V) bool {
+func (m *RangeMap[T, V]) Put(start, end T, value V) bool {
 	if m == nil {
 		return false
 	}
-	input := Range[T]{Start: start, End: end}
-	if !input.IsValid() {
+	input, ok := newRangeEntry(start, end, value)
+	if !ok {
 		return false
 	}
-	inputEntry := RangeEntry[T, V]{Range: input, Value: value}
-
-	if len(m.entries) == 0 {
-		m.entries = append(m.entries, inputEntry)
-		return true
-	}
-
-	first := sort.Search(len(m.entries), func(i int) bool {
-		return m.entries[i].Range.End > input.Start
-	})
-	if first == len(m.entries) {
-		m.entries = append(m.entries, inputEntry)
-		return true
-	}
-
-	if m.entries[first].Range.Start >= input.End {
-		m.entries = append(m.entries, RangeEntry[T, V]{})
-		copy(m.entries[first+1:], m.entries[first:])
-		m.entries[first] = inputEntry
-		return true
-	}
-
-	var leftEntry RangeEntry[T, V]
-	hasLeft := false
-	if m.entries[first].Range.Start < input.Start {
-		leftEntry = RangeEntry[T, V]{
-			Range: Range[T]{Start: m.entries[first].Range.Start, End: input.Start},
-			Value: m.entries[first].Value,
-		}
-		hasLeft = true
-	}
-
-	endIndex := first
-	var rightEntry RangeEntry[T, V]
-	hasRight := false
-	for ; endIndex < len(m.entries); endIndex++ {
-		entry := m.entries[endIndex]
-		if entry.Range.Start >= input.End {
-			break
-		}
-		if entry.Range.End > input.End {
-			rightEntry = RangeEntry[T, V]{
-				Range: Range[T]{Start: input.End, End: entry.Range.End},
-				Value: entry.Value,
-			}
-			hasRight = true
-			endIndex++
-			break
-		}
-	}
-
-	inserted := 1
-	if hasLeft {
-		inserted++
-	}
-	if hasRight {
-		inserted++
-	}
-	consumed := endIndex - first
-	oldLen := len(m.entries)
-	newLen := oldLen - consumed + inserted
-	if newLen > oldLen {
-		m.entries = append(m.entries, make([]RangeEntry[T, V], newLen-oldLen)...)
-	}
-
-	copy(m.entries[first+inserted:], m.entries[endIndex:oldLen])
-
-	write := first
-	if hasLeft {
-		m.entries[write] = leftEntry
-		write++
-	}
-	m.entries[write] = inputEntry
-	write++
-	if hasRight {
-		m.entries[write] = rightEntry
-	}
-
-	if newLen < oldLen {
-		clear(m.entries[newLen:oldLen])
-	}
-	m.entries = m.entries[:newLen]
+	m.entries = putRangeEntry(m.entries, input)
 	return true
 }
 
@@ -147,7 +66,7 @@ func (m *RangeMap[T, V]) GetOption(point T) mo.Option[V] {
 }
 
 // DeleteRange removes mappings in [start, end).
-func (m *RangeMap[T, V]) DeleteRange(start T, end T) bool {
+func (m *RangeMap[T, V]) DeleteRange(start, end T) bool {
 	if m == nil || len(m.entries) == 0 {
 		return false
 	}
@@ -155,49 +74,10 @@ func (m *RangeMap[T, V]) DeleteRange(start T, end T) bool {
 	if !input.IsValid() {
 		return false
 	}
-
-	first := sort.Search(len(m.entries), func(i int) bool {
-		return m.entries[i].Range.End > input.Start
-	})
-	if first == len(m.entries) {
-		return false
+	next, changed := deleteRangeEntries(m.entries, input)
+	if changed {
+		m.entries = next
 	}
-
-	changed := false
-	next := make([]RangeEntry[T, V], 0, len(m.entries))
-	next = append(next, m.entries[:first]...)
-
-	for i := first; i < len(m.entries); i++ {
-		entry := m.entries[i]
-		if entry.Range.Start >= input.End {
-			next = append(next, m.entries[i:]...)
-			m.entries = next
-			return changed
-		}
-		if entry.Range.End <= input.Start {
-			next = append(next, entry)
-			continue
-		}
-
-		changed = true
-		if entry.Range.Start < input.Start {
-			next = append(next, RangeEntry[T, V]{
-				Range: Range[T]{Start: entry.Range.Start, End: input.Start},
-				Value: entry.Value,
-			})
-		}
-		if input.End < entry.Range.End {
-			next = append(next, RangeEntry[T, V]{
-				Range: Range[T]{Start: input.End, End: entry.Range.End},
-				Value: entry.Value,
-			})
-			next = append(next, m.entries[i+1:]...)
-			m.entries = next
-			return true
-		}
-	}
-
-	m.entries = next
 	return changed
 }
 
@@ -240,4 +120,130 @@ func (m *RangeMap[T, V]) Range(fn func(entry RangeEntry[T, V]) bool) {
 			return
 		}
 	}
+}
+
+func newRangeEntry[T cmp.Ordered, V any](start, end T, value V) (RangeEntry[T, V], bool) {
+	input := Range[T]{Start: start, End: end}
+	if !input.IsValid() {
+		return RangeEntry[T, V]{}, false
+	}
+	return RangeEntry[T, V]{Range: input, Value: value}, true
+}
+
+func putRangeEntry[T cmp.Ordered, V any](entries []RangeEntry[T, V], input RangeEntry[T, V]) []RangeEntry[T, V] {
+	if len(entries) == 0 {
+		return append(entries, input)
+	}
+
+	first := findFirstRangeEntryEndingAfter(entries, input.Range.Start)
+	if first == len(entries) {
+		return append(entries, input)
+	}
+	if entries[first].Range.Start >= input.Range.End {
+		return spliceRangeEntries(entries, first, first, input)
+	}
+
+	replacement, end := buildPutRangeEntries(entries, first, input)
+	return spliceRangeEntries(entries, first, end, replacement...)
+}
+
+func buildPutRangeEntries[T cmp.Ordered, V any](entries []RangeEntry[T, V], first int, input RangeEntry[T, V]) ([]RangeEntry[T, V], int) {
+	replacement := make([]RangeEntry[T, V], 0, 3)
+	if left, ok := splitLeftRangeEntry(entries[first], input.Range.Start); ok {
+		replacement = append(replacement, left)
+	}
+	replacement = append(replacement, input)
+
+	end, right, ok := splitRightRangeEntry(entries, first, input.Range.End)
+	if ok {
+		replacement = append(replacement, right)
+	}
+	return replacement, end
+}
+
+func findFirstRangeEntryEndingAfter[T cmp.Ordered, V any](entries []RangeEntry[T, V], point T) int {
+	return sort.Search(len(entries), func(i int) bool {
+		return entries[i].Range.End > point
+	})
+}
+
+func splitLeftRangeEntry[T cmp.Ordered, V any](entry RangeEntry[T, V], splitAt T) (RangeEntry[T, V], bool) {
+	if entry.Range.Start >= splitAt {
+		return RangeEntry[T, V]{}, false
+	}
+	return RangeEntry[T, V]{
+		Range: Range[T]{Start: entry.Range.Start, End: splitAt},
+		Value: entry.Value,
+	}, true
+}
+
+func splitRightRangeEntry[T cmp.Ordered, V any](entries []RangeEntry[T, V], first int, end T) (int, RangeEntry[T, V], bool) {
+	for index := first; index < len(entries); index++ {
+		entry := entries[index]
+		if entry.Range.Start >= end {
+			return index, RangeEntry[T, V]{}, false
+		}
+		if entry.Range.End > end {
+			return index + 1, RangeEntry[T, V]{
+				Range: Range[T]{Start: end, End: entry.Range.End},
+				Value: entry.Value,
+			}, true
+		}
+	}
+	return len(entries), RangeEntry[T, V]{}, false
+}
+
+func deleteRangeEntries[T cmp.Ordered, V any](entries []RangeEntry[T, V], cut Range[T]) ([]RangeEntry[T, V], bool) {
+	first := findFirstRangeEntryEndingAfter(entries, cut.Start)
+	if first == len(entries) {
+		return entries, false
+	}
+
+	next := make([]RangeEntry[T, V], 0, len(entries))
+	next = append(next, entries[:first]...)
+	changed := false
+
+	for index := first; index < len(entries); index++ {
+		entry := entries[index]
+		if entry.Range.Start >= cut.End {
+			next = append(next, entries[index:]...)
+			return next, changed
+		}
+
+		changed = true
+		fragments, stop := trimRangeEntry(entry, cut)
+		next = append(next, fragments...)
+		if stop {
+			next = append(next, entries[index+1:]...)
+			return next, changed
+		}
+	}
+
+	return next, changed
+}
+
+func trimRangeEntry[T cmp.Ordered, V any](entry RangeEntry[T, V], cut Range[T]) ([]RangeEntry[T, V], bool) {
+	fragments := make([]RangeEntry[T, V], 0, 2)
+	if entry.Range.Start < cut.Start {
+		fragments = append(fragments, RangeEntry[T, V]{
+			Range: Range[T]{Start: entry.Range.Start, End: cut.Start},
+			Value: entry.Value,
+		})
+	}
+	if cut.End < entry.Range.End {
+		fragments = append(fragments, RangeEntry[T, V]{
+			Range: Range[T]{Start: cut.End, End: entry.Range.End},
+			Value: entry.Value,
+		})
+		return fragments, true
+	}
+	return fragments, false
+}
+
+func spliceRangeEntries[T cmp.Ordered, V any](entries []RangeEntry[T, V], start, end int, replacement ...RangeEntry[T, V]) []RangeEntry[T, V] {
+	next := make([]RangeEntry[T, V], 0, len(entries)-(end-start)+len(replacement))
+	next = append(next, entries[:start]...)
+	next = append(next, replacement...)
+	next = append(next, entries[end:]...)
+	return next
 }

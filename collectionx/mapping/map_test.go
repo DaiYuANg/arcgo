@@ -1,15 +1,16 @@
-package mapping
+package mapping_test
 
 import (
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMap_ZeroValueAndClone(t *testing.T) {
 	t.Parallel()
 
-	var m Map[string, int]
+	var m mapping.Map[string, int]
 	m.Set("a", 1)
 	m.Set("b", 2)
 
@@ -29,7 +30,7 @@ func TestMap_ZeroValueAndClone(t *testing.T) {
 func TestMap_AllReturnsCopy(t *testing.T) {
 	t.Parallel()
 
-	m := NewMapFrom(map[string]int{
+	m := mapping.NewMapFrom(map[string]int{
 		"a": 1,
 		"b": 2,
 	})
@@ -45,7 +46,7 @@ func TestMap_AllReturnsCopy(t *testing.T) {
 func TestMap_GetOption(t *testing.T) {
 	t.Parallel()
 
-	m := NewMapFrom(map[string]int{
+	m := mapping.NewMapFrom(map[string]int{
 		"a": 1,
 	})
 
@@ -61,7 +62,7 @@ func TestMap_GetOption(t *testing.T) {
 func TestMap_RangeStop(t *testing.T) {
 	t.Parallel()
 
-	m := NewMapFrom(map[int]int{
+	m := mapping.NewMapFrom(map[int]int{
 		1: 10,
 		2: 20,
 		3: 30,
@@ -78,7 +79,7 @@ func TestMap_RangeStop(t *testing.T) {
 func TestNewMapWithCapacity(t *testing.T) {
 	t.Parallel()
 
-	m := NewMapWithCapacity[string, int](8)
+	m := mapping.NewMapWithCapacity[string, int](8)
 	m.Set("a", 1)
 	m.Set("b", 2)
 

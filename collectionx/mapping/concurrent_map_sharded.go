@@ -2,6 +2,7 @@ package mapping
 
 import (
 	"hash/maphash"
+	"strconv"
 	"sync"
 
 	"github.com/samber/mo"
@@ -48,18 +49,18 @@ func NewShardedConcurrentMap[K comparable, V any](shardCount int, hash func(K) u
 	return &ShardedConcurrentMap[K, V]{
 		shards: shards,
 		hash:   hash,
-		mask:   uint64(shardCount - 1),
+		mask:   shardMask(shardCount),
 	}
 }
 
 // HashInt returns a hash for int keys.
 func HashInt(k int) uint64 {
-	return uint64(k)
+	return hashSignedInt64(int64(k))
 }
 
 // HashInt64 returns a hash for int64 keys.
 func HashInt64(k int64) uint64 {
-	return uint64(k)
+	return hashSignedInt64(k)
 }
 
 // HashUint64 returns a hash for uint64 keys.
@@ -71,7 +72,7 @@ func HashUint64(k uint64) uint64 {
 func HashString(k string) uint64 {
 	var h maphash.Hash
 	h.SetSeed(hashStringSeed)
-	h.WriteString(k)
+	mustWriteHashString(&h, k)
 	return h.Sum64()
 }
 
@@ -84,6 +85,36 @@ func (m *ShardedConcurrentMap[K, V]) shard(key K) *struct {
 	}
 	i := m.hash(key) & m.mask
 	return &m.shards[i]
+}
+
+func shardMask(shardCount int) uint64 {
+	var mask uint64
+	for range shardCount - 1 {
+		mask++
+	}
+	return mask
+}
+
+func hashSignedInt64(value int64) uint64 {
+	var h maphash.Hash
+	h.SetSeed(hashStringSeed)
+	buffer := strconv.AppendInt(nil, value, 10)
+	mustWriteHashBytes(&h, buffer)
+	return h.Sum64()
+}
+
+func mustWriteHashString(h *maphash.Hash, value string) {
+	written, err := h.WriteString(value)
+	if err != nil || written != len(value) {
+		panic("maphash.WriteString failed")
+	}
+}
+
+func mustWriteHashBytes(h *maphash.Hash, value []byte) {
+	written, err := h.Write(value)
+	if err != nil || written != len(value) {
+		panic("maphash.Write failed")
+	}
 }
 
 // Set puts a key-value pair.

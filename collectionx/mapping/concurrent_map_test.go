@@ -1,17 +1,18 @@
-package mapping
+package mapping_test
 
 import (
 	"strconv"
 	"sync"
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConcurrentMap_ParallelSet(t *testing.T) {
 	t.Parallel()
 
-	var m ConcurrentMap[int, int]
+	var m mapping.ConcurrentMap[int, int]
 
 	const workers = 20
 	const each = 200
@@ -19,12 +20,11 @@ func TestConcurrentMap_ParallelSet(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(workers)
 
-	for worker := 0; worker < workers; worker++ {
-		worker := worker
+	for worker := range workers {
 		go func() {
 			defer wg.Done()
 			base := worker * each
-			for i := 0; i < each; i++ {
+			for i := range each {
 				m.Set(base+i, i)
 			}
 		}()
@@ -37,7 +37,7 @@ func TestConcurrentMap_ParallelSet(t *testing.T) {
 func TestConcurrentMap_GetOrStore(t *testing.T) {
 	t.Parallel()
 
-	var m ConcurrentMap[string, int]
+	var m mapping.ConcurrentMap[string, int]
 
 	value, loaded := m.GetOrStore("a", 1)
 	require.False(t, loaded)
@@ -51,7 +51,7 @@ func TestConcurrentMap_GetOrStore(t *testing.T) {
 func TestConcurrentMap_LoadAndDelete(t *testing.T) {
 	t.Parallel()
 
-	var m ConcurrentMap[string, string]
+	var m mapping.ConcurrentMap[string, string]
 	m.Set("k", "v")
 
 	value, ok := m.LoadAndDelete("k")
@@ -65,7 +65,7 @@ func TestConcurrentMap_LoadAndDelete(t *testing.T) {
 func TestConcurrentMap_OptionAPIs(t *testing.T) {
 	t.Parallel()
 
-	var m ConcurrentMap[string, int]
+	var m mapping.ConcurrentMap[string, int]
 	m.Set("x", 42)
 
 	opt := m.GetOption("x")
@@ -86,8 +86,8 @@ func TestConcurrentMap_OptionAPIs(t *testing.T) {
 func TestConcurrentMap_Range(t *testing.T) {
 	t.Parallel()
 
-	m := NewConcurrentMap[string, int]()
-	for i := 0; i < 10; i++ {
+	m := mapping.NewConcurrentMap[string, int]()
+	for i := range 10 {
 		m.Set(strconv.Itoa(i), i)
 	}
 
@@ -102,7 +102,7 @@ func TestConcurrentMap_Range(t *testing.T) {
 func TestNewConcurrentMapWithCapacity(t *testing.T) {
 	t.Parallel()
 
-	m := NewConcurrentMapWithCapacity[string, int](8)
+	m := mapping.NewConcurrentMapWithCapacity[string, int](8)
 	m.Set("a", 1)
 
 	value, ok := m.Get("a")

@@ -1,15 +1,16 @@
-package mapping
+package mapping_test
 
 import (
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMultiMap_BasicOps(t *testing.T) {
 	t.Parallel()
 
-	var m MultiMap[string, int]
+	var m mapping.MultiMap[string, int]
 
 	m.Put("a", 1)
 	m.PutAll("a", 2, 3)
@@ -30,7 +31,7 @@ func TestMultiMap_BasicOps(t *testing.T) {
 func TestMultiMap_ViewStaysStableAfterWriteAndCopy(t *testing.T) {
 	t.Parallel()
 
-	m := NewMultiMap[string, int]()
+	m := mapping.NewMultiMap[string, int]()
 	m.PutAll("k", 1, 2)
 
 	view := m.Get("k")
@@ -54,7 +55,7 @@ func TestMultiMap_ViewStaysStableAfterWriteAndCopy(t *testing.T) {
 func TestNewMultiMapWithCapacity(t *testing.T) {
 	t.Parallel()
 
-	m := NewMultiMapWithCapacity[string, int](8)
+	m := mapping.NewMultiMapWithCapacity[string, int](8)
 	m.PutAll("k", 1, 2)
 
 	require.Equal(t, 1, m.Len())

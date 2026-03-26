@@ -1,16 +1,17 @@
-package mapping
+package mapping_test
 
 import (
 	"sync"
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConcurrentTable_ParallelPut(t *testing.T) {
 	t.Parallel()
 
-	var tb ConcurrentTable[int, int, int]
+	var tb mapping.ConcurrentTable[int, int, int]
 
 	const workers = 12
 	const each = 80
@@ -18,11 +19,10 @@ func TestConcurrentTable_ParallelPut(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(workers)
 
-	for worker := 0; worker < workers; worker++ {
-		worker := worker
+	for worker := range workers {
 		go func() {
 			defer wg.Done()
-			for i := 0; i < each; i++ {
+			for i := range each {
 				tb.Put(worker, i, i)
 			}
 		}()
@@ -36,7 +36,7 @@ func TestConcurrentTable_ParallelPut(t *testing.T) {
 func TestConcurrentTable_OptionDeleteAndSnapshot(t *testing.T) {
 	t.Parallel()
 
-	var tb ConcurrentTable[string, string, int]
+	var tb mapping.ConcurrentTable[string, string, int]
 	tb.Put("u1", "score", 10)
 	tb.Put("u1", "level", 2)
 	tb.Put("u2", "score", 20)

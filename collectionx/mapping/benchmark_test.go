@@ -1,6 +1,10 @@
-package mapping
+package mapping_test
 
-import "testing"
+import (
+	"testing"
+
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+)
 
 const (
 	benchMapKeySpace       = 1 << 12
@@ -9,12 +13,12 @@ const (
 )
 
 func BenchmarkMapSetGet(b *testing.B) {
-	m := NewMap[int, int]()
+	m := mapping.NewMap[int, int]()
 	mask := benchMapKeySpace - 1
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		k := i & mask
 		m.Set(k, i)
 		_, _ = m.Get(k)
@@ -22,14 +26,14 @@ func BenchmarkMapSetGet(b *testing.B) {
 }
 
 func BenchmarkMapClone(b *testing.B) {
-	m := NewMapWithCapacity[int, int](benchMapKeySpace)
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewMapWithCapacity[int, int](benchMapKeySpace)
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		clone := m.Clone()
 		if clone.Len() != benchMapKeySpace {
 			b.Fatalf("unexpected clone length: %d", clone.Len())
@@ -38,12 +42,12 @@ func BenchmarkMapClone(b *testing.B) {
 }
 
 func BenchmarkOrderedMapSetGet(b *testing.B) {
-	m := NewOrderedMapWithCapacity[int, int](benchMapKeySpace)
+	m := mapping.NewOrderedMapWithCapacity[int, int](benchMapKeySpace)
 	mask := benchMapKeySpace - 1
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		k := i & mask
 		m.Set(k, i)
 		_, _ = m.Get(k)
@@ -51,25 +55,25 @@ func BenchmarkOrderedMapSetGet(b *testing.B) {
 }
 
 func BenchmarkOrderedMapValues(b *testing.B) {
-	m := NewOrderedMapWithCapacity[int, int](benchMapKeySpace)
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewOrderedMapWithCapacity[int, int](benchMapKeySpace)
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = m.Values()
 	}
 }
 
 func BenchmarkBiMapPutGetByValue(b *testing.B) {
-	m := NewBiMap[int, int]()
+	m := mapping.NewBiMap[int, int]()
 	mask := benchMapKeySpace - 1
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		v := i & mask
 		m.Put(v, v)
 		_, _ = m.GetByKey(v)
@@ -78,8 +82,8 @@ func BenchmarkBiMapPutGetByValue(b *testing.B) {
 }
 
 func BenchmarkConcurrentMapGetParallel(b *testing.B) {
-	m := NewConcurrentMap[int, int]()
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewConcurrentMap[int, int]()
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 
@@ -96,7 +100,7 @@ func BenchmarkConcurrentMapGetParallel(b *testing.B) {
 }
 
 func BenchmarkConcurrentMapGetOrStoreParallel(b *testing.B) {
-	m := NewConcurrentMap[int, int]()
+	m := mapping.NewConcurrentMap[int, int]()
 	mask := benchMapKeySpace - 1
 
 	b.ReportAllocs()
@@ -111,12 +115,12 @@ func BenchmarkConcurrentMapGetOrStoreParallel(b *testing.B) {
 }
 
 func BenchmarkMultiMapPutGet(b *testing.B) {
-	m := NewMultiMap[int, int]()
+	m := mapping.NewMultiMap[int, int]()
 	mask := benchMapKeySpace - 1
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		k := i & mask
 		m.Put(k, i)
 		_ = m.Get(k)
@@ -124,9 +128,9 @@ func BenchmarkMultiMapPutGet(b *testing.B) {
 }
 
 func BenchmarkMultiMapDeleteValueIf(b *testing.B) {
-	m := NewMultiMapWithCapacity[int, int](benchMapKeySpace)
-	for key := 0; key < benchMapKeySpace; key++ {
-		for value := 0; value < benchMultiMapValueSeed; value++ {
+	m := mapping.NewMultiMapWithCapacity[int, int](benchMapKeySpace)
+	for key := range benchMapKeySpace {
+		for value := range benchMultiMapValueSeed {
 			m.Put(key, value)
 		}
 	}
@@ -134,7 +138,7 @@ func BenchmarkMultiMapDeleteValueIf(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		key := i & mask
 		removed := m.DeleteValueIf(key, func(value int) bool { return value%2 == 0 })
 		if removed > 0 {
@@ -144,9 +148,9 @@ func BenchmarkMultiMapDeleteValueIf(b *testing.B) {
 }
 
 func BenchmarkConcurrentMultiMapGetParallel(b *testing.B) {
-	m := NewConcurrentMultiMapWithCapacity[int, int](benchMapKeySpace)
-	for key := 0; key < benchMapKeySpace; key++ {
-		for value := 0; value < benchMultiMapValueSeed; value++ {
+	m := mapping.NewConcurrentMultiMapWithCapacity[int, int](benchMapKeySpace)
+	for key := range benchMapKeySpace {
+		for value := range benchMultiMapValueSeed {
 			m.Put(key, value)
 		}
 	}
@@ -164,13 +168,13 @@ func BenchmarkConcurrentMultiMapGetParallel(b *testing.B) {
 }
 
 func BenchmarkTablePutGet(b *testing.B) {
-	t := NewTable[int, int, int]()
+	t := mapping.NewTable[int, int, int]()
 	rowMask := benchTableDim - 1
 	colMask := benchTableDim - 1
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		row := i & rowMask
 		col := (i >> 6) & colMask
 		t.Put(row, col, i)
@@ -179,9 +183,9 @@ func BenchmarkTablePutGet(b *testing.B) {
 }
 
 func BenchmarkTableRow(b *testing.B) {
-	t := NewTable[int, int, int]()
-	for row := 0; row < benchTableDim; row++ {
-		for col := 0; col < benchTableDim; col++ {
+	t := mapping.NewTable[int, int, int]()
+	for row := range benchTableDim {
+		for col := range benchTableDim {
 			t.Put(row, col, row+col)
 		}
 	}
@@ -189,15 +193,15 @@ func BenchmarkTableRow(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		_ = t.Row(i & rowMask)
 	}
 }
 
 func BenchmarkConcurrentTableGetParallel(b *testing.B) {
-	t := NewConcurrentTable[int, int, int]()
-	for row := 0; row < benchTableDim; row++ {
-		for col := 0; col < benchTableDim; col++ {
+	t := mapping.NewConcurrentTable[int, int, int]()
+	for row := range benchTableDim {
+		for col := range benchTableDim {
 			t.Put(row, col, row+col)
 		}
 	}
@@ -218,15 +222,15 @@ func BenchmarkConcurrentTableGetParallel(b *testing.B) {
 }
 
 func BenchmarkMapDelete(b *testing.B) {
-	m := NewMapWithCapacity[int, int](benchMapKeySpace)
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewMapWithCapacity[int, int](benchMapKeySpace)
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 	mask := benchMapKeySpace - 1
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		k := i & mask
 		m.Delete(k)
 		m.Set(k, i)
@@ -234,46 +238,46 @@ func BenchmarkMapDelete(b *testing.B) {
 }
 
 func BenchmarkMapKeys(b *testing.B) {
-	m := NewMapWithCapacity[int, int](benchMapKeySpace)
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewMapWithCapacity[int, int](benchMapKeySpace)
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = m.Keys()
 	}
 }
 
 func BenchmarkMapValues(b *testing.B) {
-	m := NewMapWithCapacity[int, int](benchMapKeySpace)
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewMapWithCapacity[int, int](benchMapKeySpace)
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = m.Values()
 	}
 }
 
 func BenchmarkMapAll(b *testing.B) {
-	m := NewMapWithCapacity[int, int](benchMapKeySpace)
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewMapWithCapacity[int, int](benchMapKeySpace)
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = m.All()
 	}
 }
 
 func BenchmarkConcurrentMapSetParallel(b *testing.B) {
-	m := NewConcurrentMap[int, int]()
+	m := mapping.NewConcurrentMap[int, int]()
 	mask := benchMapKeySpace - 1
 
 	b.ReportAllocs()
@@ -288,8 +292,8 @@ func BenchmarkConcurrentMapSetParallel(b *testing.B) {
 }
 
 func BenchmarkConcurrentMapDeleteParallel(b *testing.B) {
-	m := NewConcurrentMap[int, int]()
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewConcurrentMap[int, int]()
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 	mask := benchMapKeySpace - 1
@@ -308,9 +312,9 @@ func BenchmarkConcurrentMapDeleteParallel(b *testing.B) {
 }
 
 func BenchmarkTableColumn(b *testing.B) {
-	t := NewTable[int, int, int]()
-	for row := 0; row < benchTableDim; row++ {
-		for col := 0; col < benchTableDim; col++ {
+	t := mapping.NewTable[int, int, int]()
+	for row := range benchTableDim {
+		for col := range benchTableDim {
 			t.Put(row, col, row+col)
 		}
 	}
@@ -318,15 +322,15 @@ func BenchmarkTableColumn(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		_ = t.Column(i & colMask)
 	}
 }
 
 func BenchmarkTableDeleteRow(b *testing.B) {
-	t := NewTable[int, int, int]()
-	for row := 0; row < benchTableDim; row++ {
-		for col := 0; col < benchTableDim; col++ {
+	t := mapping.NewTable[int, int, int]()
+	for row := range benchTableDim {
+		for col := range benchTableDim {
 			t.Put(row, col, row+col)
 		}
 	}
@@ -334,19 +338,19 @@ func BenchmarkTableDeleteRow(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		row := i & rowMask
 		t.DeleteRow(row)
-		for col := 0; col < benchTableDim; col++ {
+		for col := range benchTableDim {
 			t.Put(row, col, row+col)
 		}
 	}
 }
 
 func BenchmarkTableDeleteColumn(b *testing.B) {
-	t := NewTable[int, int, int]()
-	for row := 0; row < benchTableDim; row++ {
-		for col := 0; col < benchTableDim; col++ {
+	t := mapping.NewTable[int, int, int]()
+	for row := range benchTableDim {
+		for col := range benchTableDim {
 			t.Put(row, col, row+col)
 		}
 	}
@@ -354,31 +358,31 @@ func BenchmarkTableDeleteColumn(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		col := i & colMask
 		t.DeleteColumn(col)
-		for row := 0; row < benchTableDim; row++ {
+		for row := range benchTableDim {
 			t.Put(row, col, row+col)
 		}
 	}
 }
 
 func BenchmarkOrderedMapKeys(b *testing.B) {
-	m := NewOrderedMapWithCapacity[int, int](benchMapKeySpace)
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewOrderedMapWithCapacity[int, int](benchMapKeySpace)
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = m.Keys()
 	}
 }
 
 func BenchmarkShardedConcurrentMapGetParallel(b *testing.B) {
-	m := NewShardedConcurrentMap[int, int](32, HashInt)
-	for i := 0; i < benchMapKeySpace; i++ {
+	m := mapping.NewShardedConcurrentMap[int, int](32, mapping.HashInt)
+	for i := range benchMapKeySpace {
 		m.Set(i, i)
 	}
 	mask := benchMapKeySpace - 1
@@ -395,7 +399,7 @@ func BenchmarkShardedConcurrentMapGetParallel(b *testing.B) {
 }
 
 func BenchmarkShardedConcurrentMapSetParallel(b *testing.B) {
-	m := NewShardedConcurrentMap[int, int](32, HashInt)
+	m := mapping.NewShardedConcurrentMap[int, int](32, mapping.HashInt)
 	mask := benchMapKeySpace - 1
 
 	b.ReportAllocs()

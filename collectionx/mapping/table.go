@@ -1,6 +1,8 @@
 package mapping
 
 import (
+	"maps"
+
 	"github.com/samber/mo"
 )
 
@@ -68,9 +70,7 @@ func (t *Table[R, C, V]) SetRow(rowKey R, rowValues map[C]V) {
 		return
 	}
 	rowCopy := make(map[C]V, len(rowValues))
-	for columnKey, value := range rowValues {
-		rowCopy[columnKey] = value
-	}
+	maps.Copy(rowCopy, rowValues)
 	t.data.Set(rowKey, rowCopy)
 	t.size += len(rowValues) - oldSize
 }
@@ -85,9 +85,7 @@ func (t *Table[R, C, V]) Row(rowKey R) map[C]V {
 		return map[C]V{}
 	}
 	out := make(map[C]V, len(row))
-	for columnKey, value := range row {
-		out[columnKey] = value
-	}
+	maps.Copy(out, row)
 	return out
 }
 
@@ -236,9 +234,7 @@ func (t *Table[R, C, V]) All() map[R]map[C]V {
 	out := make(map[R]map[C]V, t.data.Len())
 	t.data.Range(func(rowKey R, row map[C]V) bool {
 		rowCopy := make(map[C]V, len(row))
-		for columnKey, value := range row {
-			rowCopy[columnKey] = value
-		}
+		maps.Copy(rowCopy, row)
 		out[rowKey] = rowCopy
 		return true
 	})

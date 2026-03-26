@@ -1,15 +1,16 @@
-package mapping
+package mapping_test
 
 import (
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestOrderedMap_OrderStable(t *testing.T) {
 	t.Parallel()
 
-	var m OrderedMap[string, int]
+	var m mapping.OrderedMap[string, int]
 	m.Set("a", 1)
 	m.Set("b", 2)
 	m.Set("a", 9) // update should not move
@@ -22,7 +23,7 @@ func TestOrderedMap_OrderStable(t *testing.T) {
 func TestOrderedMap_DeleteAndAt(t *testing.T) {
 	t.Parallel()
 
-	m := NewOrderedMap[int, string]()
+	m := mapping.NewOrderedMap[int, string]()
 	m.Set(1, "a")
 	m.Set(2, "b")
 	m.Set(3, "c")
@@ -39,7 +40,7 @@ func TestOrderedMap_DeleteAndAt(t *testing.T) {
 func TestNewOrderedMapWithCapacity(t *testing.T) {
 	t.Parallel()
 
-	m := NewOrderedMapWithCapacity[int, string](8)
+	m := mapping.NewOrderedMapWithCapacity[int, string](8)
 	m.Set(1, "a")
 	m.Set(2, "b")
 

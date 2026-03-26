@@ -1,15 +1,16 @@
-package mapping
+package mapping_test
 
 import (
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestBiMap_BasicAndReplace(t *testing.T) {
 	t.Parallel()
 
-	var m BiMap[string, int]
+	var m mapping.BiMap[string, int]
 	m.Put("a", 1)
 	m.Put("b", 2)
 
@@ -33,7 +34,7 @@ func TestBiMap_BasicAndReplace(t *testing.T) {
 func TestBiMap_OptionAndDelete(t *testing.T) {
 	t.Parallel()
 
-	m := NewBiMap[int, string]()
+	m := mapping.NewBiMap[int, string]()
 	m.Put(10, "x")
 
 	opt := m.GetValueOption(10)

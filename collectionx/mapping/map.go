@@ -1,6 +1,8 @@
 package mapping
 
 import (
+	"maps"
+
 	"github.com/samber/mo"
 )
 
@@ -47,9 +49,7 @@ func (m *Map[K, V]) SetAll(source map[K]V) {
 		return
 	}
 	m.ensureInit()
-	for key, value := range source {
-		m.items[key] = value
-	}
+	maps.Copy(m.items, source)
 }
 
 // Get returns the value for key.
@@ -143,9 +143,7 @@ func (m *Map[K, V]) All() map[K]V {
 		return map[K]V{}
 	}
 	out := make(map[K]V, len(m.items))
-	for key, value := range m.items {
-		out[key] = value
-	}
+	maps.Copy(out, m.items)
 	return out
 }
 
@@ -168,9 +166,7 @@ func (m *Map[K, V]) Clone() *Map[K, V] {
 	}
 
 	out := NewMapWithCapacity[K, V](len(m.items))
-	for key, value := range m.items {
-		out.items[key] = value
-	}
+	maps.Copy(out.items, m.items)
 	return out
 }
 

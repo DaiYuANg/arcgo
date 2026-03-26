@@ -1,16 +1,17 @@
-package mapping
+package mapping_test
 
 import (
 	"sync"
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestShardedConcurrentMap_Basic(t *testing.T) {
 	t.Parallel()
 
-	m := NewShardedConcurrentMap[int, int](16, HashInt)
+	m := mapping.NewShardedConcurrentMap[int, int](16, mapping.HashInt)
 	m.Set(1, 10)
 	m.Set(2, 20)
 
@@ -31,17 +32,16 @@ func TestShardedConcurrentMap_Basic(t *testing.T) {
 func TestShardedConcurrentMap_Parallel(t *testing.T) {
 	t.Parallel()
 
-	m := NewShardedConcurrentMap[int, int](32, HashInt)
+	m := mapping.NewShardedConcurrentMap[int, int](32, mapping.HashInt)
 	const workers = 20
 	const each = 200
 
 	var wg sync.WaitGroup
 	wg.Add(workers)
-	for w := 0; w < workers; w++ {
-		w := w
+	for w := range workers {
 		go func() {
 			defer wg.Done()
-			for i := 0; i < each; i++ {
+			for i := range each {
 				m.Set(w*each+i, i)
 			}
 		}()
@@ -53,7 +53,7 @@ func TestShardedConcurrentMap_Parallel(t *testing.T) {
 func TestShardedConcurrentMap_StringKeys(t *testing.T) {
 	t.Parallel()
 
-	m := NewShardedConcurrentMap[string, int](8, HashString)
+	m := mapping.NewShardedConcurrentMap[string, int](8, mapping.HashString)
 	m.Set("a", 1)
 	m.Set("b", 2)
 	v, ok := m.Get("a")

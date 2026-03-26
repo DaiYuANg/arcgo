@@ -1,15 +1,16 @@
-package mapping
+package mapping_test
 
 import (
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTable_BasicOps(t *testing.T) {
 	t.Parallel()
 
-	var tb Table[string, string, int]
+	var tb mapping.Table[string, string, int]
 
 	tb.Put("u1", "score", 100)
 	tb.Put("u1", "level", 8)
@@ -30,7 +31,7 @@ func TestTable_BasicOps(t *testing.T) {
 func TestTable_RowColumnAndOption(t *testing.T) {
 	t.Parallel()
 
-	tb := NewTable[string, string, int]()
+	tb := mapping.NewTable[string, string, int]()
 	tb.Put("r1", "c1", 1)
 	tb.Put("r1", "c2", 2)
 	tb.Put("r2", "c1", 3)
@@ -55,7 +56,7 @@ func TestTable_RowColumnAndOption(t *testing.T) {
 func TestTable_DeleteColumn(t *testing.T) {
 	t.Parallel()
 
-	tb := NewTable[string, string, int]()
+	tb := mapping.NewTable[string, string, int]()
 	tb.Put("r1", "c1", 1)
 	tb.Put("r1", "c2", 2)
 	tb.Put("r2", "c2", 3)

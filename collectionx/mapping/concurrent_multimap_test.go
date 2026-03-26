@@ -1,16 +1,17 @@
-package mapping
+package mapping_test
 
 import (
 	"sync"
 	"testing"
 
+	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConcurrentMultiMap_ParallelPut(t *testing.T) {
 	t.Parallel()
 
-	var m ConcurrentMultiMap[int, int]
+	var m mapping.ConcurrentMultiMap[int, int]
 
 	const workers = 16
 	const each = 120
@@ -18,11 +19,10 @@ func TestConcurrentMultiMap_ParallelPut(t *testing.T) {
 	var wg sync.WaitGroup
 	wg.Add(workers)
 
-	for worker := 0; worker < workers; worker++ {
-		worker := worker
+	for worker := range workers {
 		go func() {
 			defer wg.Done()
-			for i := 0; i < each; i++ {
+			for i := range each {
 				m.Put(worker, i)
 			}
 		}()
@@ -36,7 +36,7 @@ func TestConcurrentMultiMap_ParallelPut(t *testing.T) {
 func TestConcurrentMultiMap_OptionAndSnapshot(t *testing.T) {
 	t.Parallel()
 
-	var m ConcurrentMultiMap[string, int]
+	var m mapping.ConcurrentMultiMap[string, int]
 	m.PutAll("a", 1, 2, 3)
 
 	view := m.Get("a")
@@ -62,7 +62,7 @@ func TestConcurrentMultiMap_OptionAndSnapshot(t *testing.T) {
 func TestNewConcurrentMultiMapWithCapacity(t *testing.T) {
 	t.Parallel()
 
-	m := NewConcurrentMultiMapWithCapacity[string, int](8)
+	m := mapping.NewConcurrentMultiMapWithCapacity[string, int](8)
 	m.PutAll("a", 1, 2)
 
 	require.Equal(t, 1, m.Len())

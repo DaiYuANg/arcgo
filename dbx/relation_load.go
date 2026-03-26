@@ -71,7 +71,7 @@ func LoadManyToMany[S any, T any](ctx context.Context, session Session, sources 
 		logRuntimeNode(session, "relation.load.many_to_many.error", "stage", "query_targets", "error", err)
 		return err
 	}
-	targetsByKey, err := indexRelationTargets(targets, targetMapper, targetColumn.Name)
+	targetsByKey, err := indexRelationTargets(targets, targetMapper, targetColumn.Name, "", false)
 	if err != nil {
 		logRuntimeNode(session, "relation.load.many_to_many.error", "stage", "index_targets", "error", err)
 		return err
@@ -122,7 +122,7 @@ func loadSingleRelation[S any, T any](ctx context.Context, session Session, sour
 		logRuntimeNode(session, "relation.load.single.error", "stage", "query_targets", "error", err)
 		return err
 	}
-	targetsByKey, err := indexRelationTargets(targets, targetMapper, targetColumn.Name)
+	targetsByKey, err := indexRelationTargets(targets, targetMapper, targetColumn.Name, meta.Name, meta.Kind == RelationHasOne)
 	if err != nil {
 		logRuntimeNode(session, "relation.load.single.error", "stage", "index_targets", "error", err)
 		return err

@@ -3,6 +3,7 @@ package dbx
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -204,6 +205,15 @@ func TestValidateSchemasReportsMissingTable(t *testing.T) {
 	if len(report.Tables) != 1 || !report.Tables[0].MissingTable {
 		t.Fatalf("unexpected report: %+v", report)
 	}
+	if report.Complete {
+		t.Fatal("expected legacy validation report to be partial")
+	}
+	if report.Backend != ValidationBackendLegacy {
+		t.Fatalf("expected legacy backend report, got: %q", report.Backend)
+	}
+	if !report.HasWarnings() {
+		t.Fatal("expected legacy validation warning")
+	}
 	if report.Tables[0].PrimaryKeyDiff == nil {
 		t.Fatal("expected primary key diff for missing table")
 	}
@@ -355,6 +365,104 @@ func TestAutoMigrateAddsMissingForeignKeyAndCheck(t *testing.T) {
 	}
 	if len(dialect.tables["users"].Checks) != 1 {
 		t.Fatalf("expected check constraint to be created: %+v", dialect.tables["users"].Checks)
+	}
+}
+
+type failingIndexDialect struct {
+}
+
+func (failingIndexDialect) Name() string         { return "failing-sqlite" }
+func (failingIndexDialect) BindVar(_ int) string { return "?" }
+func (failingIndexDialect) QuoteIdent(ident string) string {
+	return `"` + strings.ReplaceAll(ident, `"`, `""`) + `"`
+}
+func (failingIndexDialect) RenderLimitOffset(limit, offset *int) (string, error) {
+	return testSQLiteDialect{}.RenderLimitOffset(limit, offset)
+}
+func (failingIndexDialect) NormalizeType(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
+}
+func (d failingIndexDialect) BuildCreateTable(spec TableSpec) (BoundQuery, error) {
+	parts := make([]string, 0, len(spec.Columns))
+	singlePK := ""
+	if spec.PrimaryKey != nil && len(spec.PrimaryKey.Columns) == 1 {
+		singlePK = spec.PrimaryKey.Columns[0]
+	}
+	for _, column := range spec.Columns {
+		typeName := column.SQLType
+		if typeName == "" {
+			typeName = inferTypeName(column)
+		}
+		part := d.QuoteIdent(column.Name) + " " + strings.ToUpper(typeName)
+		if column.Name == singlePK {
+			part += " PRIMARY KEY"
+		} else if !column.Nullable {
+			part += " NOT NULL"
+		}
+		parts = append(parts, part)
+	}
+	return BoundQuery{SQL: "CREATE TABLE IF NOT EXISTS " + d.QuoteIdent(spec.Name) + " (" + strings.Join(parts, ", ") + ")"}, nil
+}
+func (d failingIndexDialect) BuildAddColumn(table string, column ColumnMeta) (BoundQuery, error) {
+	return BoundQuery{}, fmt.Errorf("unexpected add column for test table %s column %s", table, column.Name)
+}
+func (d failingIndexDialect) BuildCreateIndex(index IndexMeta) (BoundQuery, error) {
+	return BoundQuery{SQL: "CREATE INDEX broken syntax"}, nil
+}
+func (d failingIndexDialect) BuildAddForeignKey(table string, foreignKey ForeignKeyMeta) (BoundQuery, error) {
+	return BoundQuery{}, fmt.Errorf("unexpected add foreign key for test table %s constraint %s", table, foreignKey.Name)
+}
+func (d failingIndexDialect) BuildAddCheck(table string, check CheckMeta) (BoundQuery, error) {
+	return BoundQuery{}, fmt.Errorf("unexpected add check for test table %s check %s", table, check.Name)
+}
+func (d failingIndexDialect) InspectTable(ctx context.Context, executor Executor, table string) (TableState, error) {
+	rows, err := executor.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", table)
+	if err != nil {
+		return TableState{}, err
+	}
+	defer rows.Close()
+	if !rows.Next() {
+		return TableState{Name: table, Exists: false}, nil
+	}
+	return TableState{Name: table, Exists: true}, rows.Err()
+}
+
+func TestAutoMigrateRollsBackTransactionalDDLOnFailure(t *testing.T) {
+	ctx := context.Background()
+	raw, cleanup := OpenTestSQLite(t)
+	defer cleanup()
+
+	core := MustNewWithOptions(raw, failingIndexDialect{})
+	users := MustSchema("users", UserSchema{})
+
+	_, err := core.AutoMigrate(ctx, users)
+	if err == nil {
+		t.Fatal("expected automigrate to fail on invalid index SQL")
+	}
+
+	var exists bool
+	if scanErr := raw.QueryRow(`SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?)`, "users").Scan(&exists); scanErr != nil {
+		t.Fatalf("inspect sqlite_master: %v", scanErr)
+	}
+	if exists {
+		t.Fatal("expected users table creation to roll back after transactional automigrate failure")
+	}
+}
+
+func TestAutoMigrateWarnsWhenTransactionSupportIsUnavailable(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+	dialect := newFakeSchemaDialect()
+	session := &fakeSession{dialect: dialect}
+
+	report, err := AutoMigrate(context.Background(), session, users)
+	if err != nil {
+		t.Fatalf("AutoMigrate returned error: %v", err)
+	}
+	if !report.HasWarnings() {
+		t.Fatal("expected auto migrate warning without transaction support")
+	}
+	if !strings.Contains(strings.Join(report.Warnings, " "), "without transaction") {
+		t.Fatalf("expected non-transactional warning, got: %+v", report.Warnings)
 	}
 }
 

@@ -20,6 +20,7 @@ var (
 	ErrNilStatement              = errors.New("dbx: sql statement is nil")
 	ErrNilEntity                 = errors.New("dbx: entity is nil")
 	ErrTooManyRows               = errors.New("dbx: query returned more than one row")
+	ErrRelationCardinality       = errors.New("dbx: relation cardinality violation")
 	ErrNoPrimaryKey              = errors.New("dbx: schema does not define a primary key")
 	ErrUnknownCodec              = errors.New("dbx: codec is not registered")
 	ErrUnmappedColumn            = errors.New("dbx: result column is not mapped to entity")
@@ -93,4 +94,29 @@ func (e *NodeIDOutOfRangeError) Error() string {
 
 func (e *NodeIDOutOfRangeError) Unwrap() error {
 	return ErrInvalidNodeID
+}
+
+// RelationCardinalityError reports when a relation declared as one-to-one
+// resolves to multiple rows for the same source key.
+type RelationCardinalityError struct {
+	Relation string
+	Key      any
+	Count    int
+}
+
+func (e *RelationCardinalityError) Error() string {
+	switch {
+	case e == nil:
+		return "dbx: relation cardinality violation"
+	case e.Relation != "" && e.Count > 0:
+		return fmt.Sprintf("dbx: relation %q expected at most one row for key %v, got %d", e.Relation, e.Key, e.Count)
+	case e.Relation != "":
+		return fmt.Sprintf("dbx: relation %q violated one-to-one cardinality", e.Relation)
+	default:
+		return "dbx: relation cardinality violation"
+	}
+}
+
+func (e *RelationCardinalityError) Unwrap() error {
+	return ErrRelationCardinality
 }

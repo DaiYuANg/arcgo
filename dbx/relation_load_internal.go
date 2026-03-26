@@ -112,11 +112,22 @@ func relationTargetColumnForSchema(schema relationSchemaSource, meta RelationMet
 }
 
 func queryRelationTargets[E any](ctx context.Context, session Session, rt *relationRuntime, schema SchemaSource[E], mapper Mapper[E], targetColumn ColumnMeta, keys []any) ([]E, error) {
-	bound, err := buildRelationTargetsBoundQuery(session, rt, schema, targetColumn, keys)
-	if err != nil {
-		return nil, err
+	if len(keys) == 0 {
+		return nil, nil
 	}
-	return QueryAllBound[E](ctx, session, bound, mapper)
+	items := collectionx.NewListWithCapacity[E](len(keys))
+	for _, chunk := range chunkRelationKeys(keys, relationChunkSize(session)) {
+		bound, err := buildRelationTargetsBoundQuery(session, rt, schema, targetColumn, chunk)
+		if err != nil {
+			return nil, err
+		}
+		rows, err := QueryAllBound[E](ctx, session, bound, mapper)
+		if err != nil {
+			return nil, err
+		}
+		items.Add(rows...)
+	}
+	return items.Values(), nil
 }
 
 func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema relationSchemaSource, targetColumn ColumnMeta, keys []any) (BoundQuery, error) {
@@ -136,7 +147,8 @@ func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema
 			left:  targetColumn,
 			op:    OpIn,
 			right: keys,
-		})
+		}).
+		OrderBy(relationTargetOrders(schema, targetColumn)...)
 	bound, err := Build(session, query)
 	if err != nil {
 		return BoundQuery{}, err
@@ -151,8 +163,9 @@ func allSelectItems(def schemaDefinition) []SelectItem {
 	})
 }
 
-func indexRelationTargets[E any](targets []E, mapper Mapper[E], column string) (map[any]E, error) {
+func indexRelationTargets[E any](targets []E, mapper Mapper[E], column string, relationName string, enforceUnique bool) (map[any]E, error) {
 	indexed := make(map[any]E, len(targets))
+	counts := make(map[any]int, len(targets))
 	for index := range targets {
 		key, err := entityRelationKey(mapper, &targets[index], column)
 		if err != nil {
@@ -160,6 +173,10 @@ func indexRelationTargets[E any](targets []E, mapper Mapper[E], column string) (
 		}
 		if !key.present {
 			continue
+		}
+		counts[key.key]++
+		if enforceUnique && counts[key.key] > 1 {
+			return nil, &RelationCardinalityError{Relation: relationName, Key: key.key, Count: counts[key.key]}
 		}
 		indexed[key.key] = targets[index]
 	}
@@ -224,17 +241,24 @@ func queryManyToManyPairs(ctx context.Context, session Session, rt *relationRunt
 		return nil, fmt.Errorf("dbx: many-to-many relation %s requires join_local and join_target", meta.Name)
 	}
 
-	bound, err := buildManyToManyPairsBoundQuery(session, rt, meta, sourceKeys)
-	if err != nil {
-		return nil, err
+	pairs := collectionx.NewListWithCapacity[relationKeyPair](len(sourceKeys))
+	for _, chunk := range chunkRelationKeys(sourceKeys, relationChunkSize(session)) {
+		bound, err := buildManyToManyPairsBoundQuery(session, rt, meta, chunk)
+		if err != nil {
+			return nil, err
+		}
+		rows, err := session.QueryBoundContext(ctx, bound)
+		if err != nil {
+			return nil, err
+		}
+		scanned, scanErr := scanRelationPairs(rows, sourceType, targetType)
+		_ = rows.Close()
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		pairs.Add(scanned...)
 	}
-	rows, err := session.QueryBoundContext(ctx, bound)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return scanRelationPairs(rows, sourceType, targetType)
+	return pairs.Values(), nil
 }
 
 func buildManyToManyPairsBoundQuery(session Session, rt *relationRuntime, meta RelationMeta, sourceKeys []any) (BoundQuery, error) {
@@ -256,7 +280,10 @@ func buildManyToManyPairsBoundQuery(session Session, rt *relationRuntime, meta R
 		left:  localColumn,
 		op:    OpIn,
 		right: sourceKeys,
-	})
+	}).OrderBy(
+		NamedColumn[any](through, meta.ThroughLocalColumn).Asc(),
+		NamedColumn[any](through, meta.ThroughTargetColumn).Asc(),
+	)
 
 	bound, err := Build(session, query)
 	if err != nil {
@@ -353,6 +380,46 @@ func groupManyToManyTargets[E any](rt *relationRuntime, pairs []relationKeyPair,
 		grouped[pair.source] = append(grouped[pair.source], target)
 	}
 	return grouped
+}
+
+func relationChunkSize(session Session) int {
+	if session == nil || session.Dialect() == nil {
+		return 256
+	}
+	switch strings.ToLower(strings.TrimSpace(session.Dialect().Name())) {
+	case "sqlite":
+		return 900
+	case "postgres", "mysql":
+		return 4096
+	default:
+		return 512
+	}
+}
+
+func chunkRelationKeys(keys []any, chunkSize int) [][]any {
+	if len(keys) == 0 {
+		return nil
+	}
+	if chunkSize <= 0 || len(keys) <= chunkSize {
+		return [][]any{keys}
+	}
+	chunks := make([][]any, 0, (len(keys)+chunkSize-1)/chunkSize)
+	for start := 0; start < len(keys); start += chunkSize {
+		end := start + chunkSize
+		if end > len(keys) {
+			end = len(keys)
+		}
+		chunks = append(chunks, keys[start:end])
+	}
+	return chunks
+}
+
+func relationTargetOrders(schema relationSchemaSource, targetColumn ColumnMeta) []Order {
+	orders := []Order{NamedColumn[any](schema, targetColumn.Name).Asc()}
+	if primaryKey := derivePrimaryKey(schema.schemaRef()); primaryKey != nil && len(primaryKey.Columns) == 1 && primaryKey.Columns[0] != targetColumn.Name {
+		orders = append(orders, NamedColumn[any](schema, primaryKey.Columns[0]).Asc())
+	}
+	return orders
 }
 
 type schemaAdapter[E any] struct {

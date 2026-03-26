@@ -2,6 +2,7 @@ package dbx
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"reflect"
 	"slices"
@@ -89,8 +90,18 @@ type CheckState struct {
 }
 
 type ValidationReport struct {
-	Tables []TableDiff
+	Tables   []TableDiff
+	Backend  ValidationBackend
+	Complete bool
+	Warnings []string
 }
+
+type ValidationBackend string
+
+const (
+	ValidationBackendAtlas  ValidationBackend = "atlas"
+	ValidationBackendLegacy ValidationBackend = "legacy"
+)
 
 type TableDiff struct {
 	Table              string
@@ -176,6 +187,14 @@ func (r ValidationReport) Valid() bool {
 	return !lo.SomeBy(r.Tables, func(table TableDiff) bool {
 		return !table.Empty()
 	})
+}
+
+func (r ValidationReport) HasWarnings() bool {
+	return len(r.Warnings) > 0
+}
+
+func (r ValidationReport) IsComplete() bool {
+	return r.Complete
 }
 
 func (t TableDiff) Empty() bool {
@@ -274,7 +293,10 @@ func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...Sc
 	return MigrationPlan{
 		Actions: actions.Values(),
 		Report: ValidationReport{
-			Tables: reportTables.Values(),
+			Tables:   reportTables.Values(),
+			Backend:  ValidationBackendLegacy,
+			Complete: false,
+			Warnings: []string{"dbx: schema validation is running in legacy mode; extra drift may not be reported"},
 		},
 	}, nil
 }
@@ -302,28 +324,81 @@ func AutoMigrate(ctx context.Context, session Session, schemas ...SchemaResource
 		return plan.Report, SchemaDriftError{Report: plan.Report}
 	}
 
+	execSession, finalize, rollback, transactional, err := autoMigrateExecutionSession(ctx, session, len(plan.ExecutableActions()) > 0)
+	if err != nil {
+		logRuntimeNode(session, "schema.auto_migrate.error", "stage", "begin_tx", "error", err)
+		return ValidationReport{}, err
+	}
+	committed := false
+	if rollback != nil {
+		rollbackFn := rollback
+		defer func() {
+			if !committed {
+				_ = rollbackFn()
+			}
+		}()
+	}
+
 	for _, action := range plan.Actions {
 		if !action.Executable {
 			continue
 		}
-		logRuntimeNode(session, "schema.auto_migrate.exec_action", "kind", action.Kind, "table", action.Table, "summary", action.Summary)
-		if _, execErr := session.ExecBoundContext(ctx, action.Statement); execErr != nil {
+		logRuntimeNode(execSession, "schema.auto_migrate.exec_action", "kind", action.Kind, "table", action.Table, "summary", action.Summary)
+		if _, execErr := execSession.ExecBoundContext(ctx, action.Statement); execErr != nil {
 			logRuntimeNode(session, "schema.auto_migrate.error", "stage", "exec", "kind", action.Kind, "table", action.Table, "error", execErr)
 			return ValidationReport{}, execErr
 		}
 	}
 
-	report, err := ValidateSchemas(ctx, session, schemas...)
+	report, err := ValidateSchemas(ctx, execSession, schemas...)
 	if err != nil {
 		logRuntimeNode(session, "schema.auto_migrate.error", "stage", "validate", "error", err)
 		return ValidationReport{}, err
+	}
+	if !transactional && len(plan.ExecutableActions()) > 1 {
+		report = report.withWarning("dbx: auto migrate executed without transaction; partial application is possible on failure")
 	}
 	if !report.Valid() {
 		logRuntimeNode(session, "schema.auto_migrate.invalid_after_apply", "tables", len(report.Tables))
 		return report, SchemaDriftError{Report: report}
 	}
+	if finalize != nil {
+		if commitErr := finalize(); commitErr != nil {
+			logRuntimeNode(session, "schema.auto_migrate.error", "stage", "commit", "error", commitErr)
+			return ValidationReport{}, commitErr
+		}
+		committed = true
+	}
 	logRuntimeNode(session, "schema.auto_migrate.done", "actions", len(plan.Actions))
 	return report, nil
+}
+
+type txStarter interface {
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error)
+}
+
+func autoMigrateExecutionSession(ctx context.Context, session Session, needExec bool) (Session, func() error, func() error, bool, error) {
+	if !needExec {
+		return session, nil, nil, false, nil
+	}
+	starter, ok := session.(txStarter)
+	if !ok {
+		return session, nil, nil, false, nil
+	}
+	tx, err := starter.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, nil, nil, false, err
+	}
+	return tx, tx.Commit, tx.Rollback, true, nil
+}
+
+func (r ValidationReport) withWarning(message string) ValidationReport {
+	if strings.TrimSpace(message) == "" {
+		return r
+	}
+	next := r
+	next.Warnings = append(append([]string(nil), r.Warnings...), message)
+	return next
 }
 
 func (db *DB) PlanSchemaChanges(ctx context.Context, schemas ...SchemaResource) (MigrationPlan, error) {

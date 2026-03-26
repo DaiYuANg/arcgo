@@ -516,7 +516,11 @@ func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompile
 		reportTables.Add(*diff)
 		return true
 	})
-	return ValidationReport{Tables: reportTables.Values()}
+	return ValidationReport{
+		Tables:   reportTables.Values(),
+		Backend:  ValidationBackendAtlas,
+		Complete: true,
+	}
 }
 
 func atlasApplyTableChangeToDiff(diff *TableDiff, compiled *atlasCompiledTable, current *atlasschema.Table, change atlasschema.Change) {

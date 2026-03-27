@@ -92,7 +92,7 @@ func TestConcurrentMap_Range(t *testing.T) {
 	}
 
 	visited := 0
-	m.Range(func(key string, value int) bool {
+	m.Range(func(_ string, _ int) bool {
 		visited++
 		return visited < 3
 	})

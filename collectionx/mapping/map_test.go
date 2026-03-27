@@ -69,7 +69,7 @@ func TestMap_RangeStop(t *testing.T) {
 	})
 
 	visited := 0
-	m.Range(func(key int, value int) bool {
+	m.Range(func(_ int, _ int) bool {
 		visited++
 		return false
 	})

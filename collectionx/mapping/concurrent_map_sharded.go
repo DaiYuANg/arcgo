@@ -70,10 +70,7 @@ func HashUint64(k uint64) uint64 {
 
 // HashString returns a hash for string keys.
 func HashString(k string) uint64 {
-	var h maphash.Hash
-	h.SetSeed(hashStringSeed)
-	mustWriteHashString(&h, k)
-	return h.Sum64()
+	return maphash.String(hashStringSeed, k)
 }
 
 func (m *ShardedConcurrentMap[K, V]) shard(key K) *struct {
@@ -96,25 +93,7 @@ func shardMask(shardCount int) uint64 {
 }
 
 func hashSignedInt64(value int64) uint64 {
-	var h maphash.Hash
-	h.SetSeed(hashStringSeed)
-	buffer := strconv.AppendInt(nil, value, 10)
-	mustWriteHashBytes(&h, buffer)
-	return h.Sum64()
-}
-
-func mustWriteHashString(h *maphash.Hash, value string) {
-	written, err := h.WriteString(value)
-	if err != nil || written != len(value) {
-		panic("maphash.WriteString failed")
-	}
-}
-
-func mustWriteHashBytes(h *maphash.Hash, value []byte) {
-	written, err := h.Write(value)
-	if err != nil || written != len(value) {
-		panic("maphash.Write failed")
-	}
+	return maphash.Bytes(hashStringSeed, strconv.AppendInt(nil, value, 10))
 }
 
 // Set puts a key-value pair.

@@ -61,7 +61,9 @@ func loggerOption[L SupportedFxLoggerType]() fx.Option {
 		})
 
 	default:
-		// 理论上约束已经兜住了，这里只是防御式分支。
-		panic(fmt.Sprintf("unsupported fx logger type: %T", zero))
+		// The generic constraint already restricts supported logger types.
+		return fx.WithLogger(func() fxevent.Logger {
+			return &fxevent.ConsoleLogger{W: os.Stderr}
+		})
 	}
 }

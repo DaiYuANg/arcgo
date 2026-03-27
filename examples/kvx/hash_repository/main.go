@@ -1,3 +1,4 @@
+// Package main demonstrates kvx hash repository usage with the in-memory demo backend.
 package main
 
 import (
@@ -33,13 +34,19 @@ func main() {
 	count, err := repo.Count(ctx)
 	must(err)
 
-	fmt.Printf("loaded: %s (%s)\n", entity.Name, entity.Email)
-	fmt.Printf("indexed matches: %d\n", len(matches))
-	fmt.Printf("count: %d\n", count)
+	mustPrintf("loaded: %s (%s)\n", entity.Name, entity.Email)
+	mustPrintf("indexed matches: %d\n", len(matches))
+	mustPrintf("count: %d\n", count)
 }
 
 func must(err error) {
 	if err != nil {
+		panic(err)
+	}
+}
+
+func mustPrintf(format string, args ...any) {
+	if _, err := fmt.Printf(format, args...); err != nil {
 		panic(err)
 	}
 }

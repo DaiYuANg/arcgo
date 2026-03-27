@@ -1,3 +1,4 @@
+// Package main demonstrates kvx JSON repository usage with the in-memory demo backend.
 package main
 
 import (
@@ -30,14 +31,20 @@ func main() {
 	all, err := repo.FindAll(ctx)
 	must(err)
 
-	fmt.Printf("exists u-1: %v\n", exists)
-	fmt.Printf("loaded: %s (%s)\n", entity.ID, entity.Email)
-	fmt.Printf("updated name: %s\n", updated.Name)
-	fmt.Printf("total: %d\n", len(all))
+	mustPrintf("exists u-1: %v\n", exists)
+	mustPrintf("loaded: %s (%s)\n", entity.ID, entity.Email)
+	mustPrintf("updated name: %s\n", updated.Name)
+	mustPrintf("total: %d\n", len(all))
 }
 
 func must(err error) {
 	if err != nil {
+		panic(err)
+	}
+}
+
+func mustPrintf(format string, args ...any) {
+	if _, err := fmt.Printf(format, args...); err != nil {
 		panic(err)
 	}
 }

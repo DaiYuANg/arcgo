@@ -1,3 +1,4 @@
+// Package main demonstrates httpx authentication and documented security schemes.
 package main
 
 import (
@@ -39,15 +40,36 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer closeLogger()
 
+	server := newAuthServer()
+	registerAuthRoutes(server)
+
+	port := randomport.MustFind()
+	addr := fmt.Sprintf(":%d", port)
+	logger.Info("example server starting",
+		slog.String("example", "auth"),
+		slog.String("address", addr),
+		slog.String("openapi", fmt.Sprintf("http://localhost%s/openapi.json", addr)),
+		slog.String("docs", fmt.Sprintf("http://localhost%s/docs", addr)),
+		slog.String("curl", fmt.Sprintf("curl http://localhost%s/api/secure/profile -H \"Authorization: Bearer demo\" -H \"X-Request-Id: req-1\"", addr)),
+	)
+
+	if err := server.ListenPort(port); err != nil {
+		logger.Error("server exited with error", slog.String("error", err.Error()))
+		closeLogger()
+		os.Exit(1)
+	}
+	closeLogger()
+}
+
+func newAuthServer() httpx.ServerRuntime {
 	stdAdapter := std.New(nil, adapter.HumaOptions{
 		DocsPath:     "/docs",
 		OpenAPIPath:  "/openapi.json",
 		DocsRenderer: httpx.DocsRendererScalar,
 	})
 
-	server := httpx.New(
+	return httpx.New(
 		httpx.WithAdapter(stdAdapter),
 		httpx.WithBasePath("/api"),
 		httpx.WithOpenAPIInfo("httpx auth example", "1.0.0", "Authentication, security schemes, and custom headers"),
@@ -68,7 +90,9 @@ func main() {
 			},
 		}),
 	)
+}
 
+func registerAuthRoutes(server httpx.ServerRuntime) {
 	server.RegisterGlobalHeader(&huma.Param{
 		Name:        "X-Request-Id",
 		In:          "header",
@@ -76,7 +100,7 @@ func main() {
 		Schema:      &huma.Schema{Type: "string"},
 	})
 
-	httpx.MustGet(server, "/health", func(ctx context.Context, input *struct{}) (*healthOutput, error) {
+	httpx.MustGet(server, "/health", func(_ context.Context, _ *struct{}) (*healthOutput, error) {
 		out := &healthOutput{}
 		out.Body.Status = "ok"
 		return out, nil
@@ -93,39 +117,28 @@ func main() {
 	)
 	secure.DefaultDescription("Endpoints demonstrating documented authentication headers")
 
-	httpx.MustGroupGet(secure, "/profile", func(ctx context.Context, input *profileInput) (*profileOutput, error) {
-		out := &profileOutput{}
-		out.Body.RequestID = input.XRequestID
-
-		switch {
-		case input.Authorization != "":
-			out.Body.Authorized = true
-			out.Body.AuthMode = "bearer"
-		case input.XAPIKey != "":
-			out.Body.Authorized = true
-			out.Body.AuthMode = "api-key"
-		default:
-			out.Body.Authorized = false
-			out.Body.AuthMode = "anonymous"
-		}
-
-		return out, nil
+	httpx.MustGroupGet(secure, "/profile", func(_ context.Context, input *profileInput) (*profileOutput, error) {
+		return buildProfileOutput(input), nil
 	}, func(op *huma.Operation) {
 		op.Summary = "Get current profile"
 	})
+}
 
-	port := randomport.MustFind()
-	addr := fmt.Sprintf(":%d", port)
-	logger.Info("example server starting",
-		slog.String("example", "auth"),
-		slog.String("address", addr),
-		slog.String("openapi", fmt.Sprintf("http://localhost%s/openapi.json", addr)),
-		slog.String("docs", fmt.Sprintf("http://localhost%s/docs", addr)),
-		slog.String("curl", fmt.Sprintf("curl http://localhost%s/api/secure/profile -H \"Authorization: Bearer demo\" -H \"X-Request-Id: req-1\"", addr)),
-	)
+func buildProfileOutput(input *profileInput) *profileOutput {
+	out := &profileOutput{}
+	out.Body.RequestID = input.XRequestID
 
-	if err := server.ListenPort(port); err != nil {
-		logger.Error("server exited with error", slog.String("error", err.Error()))
-		os.Exit(1)
+	switch {
+	case input.Authorization != "":
+		out.Body.Authorized = true
+		out.Body.AuthMode = "bearer"
+	case input.XAPIKey != "":
+		out.Body.Authorized = true
+		out.Body.AuthMode = "api-key"
+	default:
+		out.Body.Authorized = false
+		out.Body.AuthMode = "anonymous"
 	}
+
+	return out
 }

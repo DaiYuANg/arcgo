@@ -1,3 +1,4 @@
+// Package main demonstrates conditional request handling with ETag policies.
 package main
 
 import (
@@ -90,7 +91,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer closeLogger()
 
 	a := std.New(nil, adapter.HumaOptions{
 		Title:       "httpx conditional requests example",
@@ -102,29 +102,29 @@ func main() {
 	s := httpx.New(httpx.WithAdapter(a))
 	st := newStore()
 
-	httpx.MustRouteWithPolicies(s, httpx.MethodGet, "/documents/{id}", func(ctx context.Context, input *getInput) (*getOutput, error) {
+	httpx.MustRouteWithPolicies(s, httpx.MethodGet, "/documents/{id}", func(_ context.Context, _ *getInput) (*getOutput, error) {
 		current := st.get()
 
 		out := &getOutput{}
-		out.ETag = fmt.Sprintf(`"%s"`, current.ETag)
+		out.ETag = fmt.Sprintf("%q", current.ETag)
 		out.LastModified = current.ModifiedAt.Format(http.TimeFormat)
 		out.Body.ID = current.ID
 		out.Body.Content = current.Content
 		return out, nil
-	}, httpx.PolicyConditionalRead[getInput, getOutput](func(ctx context.Context, input *getInput) (string, time.Time, error) {
+	}, httpx.PolicyConditionalRead[getInput, getOutput](func(_ context.Context, _ *getInput) (string, time.Time, error) {
 		current := st.get()
 		return current.ETag, current.ModifiedAt, nil
 	}))
 
-	httpx.MustRouteWithPolicies(s, httpx.MethodPut, "/documents/{id}", func(ctx context.Context, input *putInput) (*putOutput, error) {
+	httpx.MustRouteWithPolicies(s, httpx.MethodPut, "/documents/{id}", func(_ context.Context, input *putInput) (*putOutput, error) {
 		updated := st.update(input.Body.Content)
 		out := &putOutput{}
-		out.ETag = fmt.Sprintf(`"%s"`, updated.ETag)
+		out.ETag = fmt.Sprintf("%q", updated.ETag)
 		out.LastModified = updated.ModifiedAt.Format(http.TimeFormat)
 		out.Body.ID = updated.ID
 		out.Body.Content = updated.Content
 		return out, nil
-	}, httpx.PolicyConditionalWrite[putInput, putOutput](func(ctx context.Context, input *putInput) (string, time.Time, error) {
+	}, httpx.PolicyConditionalWrite[putInput, putOutput](func(_ context.Context, _ *putInput) (string, time.Time, error) {
 		current := st.get()
 		return current.ETag, current.ModifiedAt, nil
 	}))
@@ -143,6 +143,8 @@ func main() {
 
 	if err := s.ListenPort(port); err != nil {
 		logger.Error("server exited with error", slog.String("error", err.Error()))
+		closeLogger()
 		os.Exit(1)
 	}
+	closeLogger()
 }

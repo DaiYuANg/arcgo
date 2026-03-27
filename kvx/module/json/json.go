@@ -2,10 +2,11 @@
 package json
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/DaiYuANg/arcgo/kvx"
@@ -31,54 +32,54 @@ type Document struct {
 }
 
 // Set sets a JSON document at the specified key.
-func (j *JSON) Set(ctx context.Context, key string, value interface{}, expiration time.Duration) error {
-	data, err := json.Marshal(value)
+func (j *JSON) Set(ctx context.Context, key string, value any, expiration time.Duration) error {
+	data, err := marshalJSONValue("marshal JSON document", value)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
+		return err
 	}
-	return j.client.JSONSet(ctx, key, "$", data, expiration)
+	return j.setDocumentData(ctx, key, data, expiration)
 }
 
 // SetPath sets a JSON value at a specific path.
-func (j *JSON) SetPath(ctx context.Context, key, path string, value interface{}) error {
-	data, err := json.Marshal(value)
+func (j *JSON) SetPath(ctx context.Context, key, path string, value any) error {
+	data, err := marshalJSONValue("marshal JSON path value", value)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON: %w", err)
+		return err
 	}
-	return j.client.JSONSetField(ctx, key, path, data)
+	return j.setPathData(ctx, key, path, data)
 }
 
 // Get gets a JSON document by key.
-func (j *JSON) Get(ctx context.Context, key string, dest interface{}) error {
-	data, err := j.client.JSONGet(ctx, key, "$")
+func (j *JSON) Get(ctx context.Context, key string, dest any) error {
+	data, err := j.getDocumentData(ctx, key)
 	if err != nil {
 		return err
 	}
 	if len(data) == 0 {
 		return fmt.Errorf("document not found: %s", key)
 	}
-	return json.Unmarshal(data, dest)
+	return unmarshalJSONValue(data, dest, fmt.Sprintf("unmarshal JSON document %q", key))
 }
 
 // GetPath gets a JSON value at a specific path.
-func (j *JSON) GetPath(ctx context.Context, key, path string, dest interface{}) error {
-	data, err := j.client.JSONGetField(ctx, key, path)
+func (j *JSON) GetPath(ctx context.Context, key, path string, dest any) error {
+	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
 		return err
 	}
 	if len(data) == 0 {
 		return fmt.Errorf("path not found: %s.%s", key, path)
 	}
-	return json.Unmarshal(data, dest)
+	return unmarshalJSONValue(data, dest, fmt.Sprintf("unmarshal JSON path %q from %q", path, key))
 }
 
 // Delete deletes a JSON document or a path within it.
 func (j *JSON) Delete(ctx context.Context, key string, paths ...string) error {
 	if len(paths) == 0 {
-		return j.client.JSONDelete(ctx, key, "$")
+		return j.deletePath(ctx, key, "$")
 	}
 	for _, path := range paths {
-		if err := j.client.JSONDelete(ctx, key, path); err != nil {
+		if err := j.deletePath(ctx, key, path); err != nil {
 			return err
 		}
 	}
@@ -87,7 +88,7 @@ func (j *JSON) Delete(ctx context.Context, key string, paths ...string) error {
 
 // Exists checks if a JSON document exists.
 func (j *JSON) Exists(ctx context.Context, key string) (bool, error) {
-	data, err := j.client.JSONGet(ctx, key, "$")
+	data, err := j.getDocumentData(ctx, key)
 	if err != nil {
 		if errors.Is(err, kvx.ErrNil) {
 			return false, nil
@@ -101,20 +102,20 @@ func (j *JSON) Exists(ctx context.Context, key string) (bool, error) {
 func (j *JSON) Type(ctx context.Context, key, path string) (string, error) {
 	// This would require FT.TYPE or similar command
 	// For now, we'll try to get the value and infer the type
-	data, err := j.client.JSONGetField(ctx, key, path)
+	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
 		return "", err
 	}
 
-	var v interface{}
-	if err := json.Unmarshal(data, &v); err != nil {
+	var v any
+	if err := unmarshalJSONValue(data, &v, fmt.Sprintf("unmarshal JSON path %q from %q", path, key)); err != nil {
 		return "", err
 	}
 
 	switch v.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		return "object", nil
-	case []interface{}:
+	case []any:
 		return "array", nil
 	case string:
 		return "string", nil
@@ -132,20 +133,20 @@ func (j *JSON) Type(ctx context.Context, key, path string) (string, error) {
 // Length gets the length of an array or object at a path.
 func (j *JSON) Length(ctx context.Context, key, path string) (int, error) {
 	// Get the value and calculate length
-	data, err := j.client.JSONGetField(ctx, key, path)
+	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
 		return 0, err
 	}
 
-	var v interface{}
-	if err := json.Unmarshal(data, &v); err != nil {
+	var v any
+	if err := unmarshalJSONValue(data, &v, fmt.Sprintf("unmarshal JSON path %q from %q", path, key)); err != nil {
 		return 0, err
 	}
 
 	switch val := v.(type) {
-	case map[string]interface{}:
+	case map[string]any:
 		return len(val), nil
-	case []interface{}:
+	case []any:
 		return len(val), nil
 	case string:
 		return len(val), nil
@@ -155,11 +156,11 @@ func (j *JSON) Length(ctx context.Context, key, path string) (int, error) {
 }
 
 // ArrayAppend appends values to an array at a path.
-func (j *JSON) ArrayAppend(ctx context.Context, key, path string, values ...interface{}) error {
+func (j *JSON) ArrayAppend(_ context.Context, _, _ string, values ...any) error {
 	// Build the JSON.ARRAPPEND command
 	// This is a simplified version - full implementation would need adapter support
 	for _, value := range values {
-		data, err := json.Marshal(value)
+		data, err := marshalJSONValue("marshal JSON array value", value)
 		if err != nil {
 			return err
 		}
@@ -167,58 +168,64 @@ func (j *JSON) ArrayAppend(ctx context.Context, key, path string, values ...inte
 		// This is not atomic - full implementation should use JSON.ARRAPPEND
 		_ = data
 	}
-	return fmt.Errorf("ArrayAppend requires adapter support for JSON.ARRAPPEND")
+	return errors.New("ArrayAppend requires adapter support for JSON.ARRAPPEND")
 }
 
 // ArrayIndex gets the index of a value in an array.
-func (j *JSON) ArrayIndex(ctx context.Context, key, path string, value interface{}) (int, error) {
-	data, err := j.client.JSONGetField(ctx, key, path)
+func (j *JSON) ArrayIndex(ctx context.Context, key, path string, value any) (int, error) {
+	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
 		return -1, err
 	}
 
-	var arr []interface{}
-	if err := json.Unmarshal(data, &arr); err != nil {
-		return -1, err
+	var arr []any
+	if decodeErr := unmarshalJSONValue(data, &arr, fmt.Sprintf("unmarshal JSON array %q from %q", path, key)); decodeErr != nil {
+		return -1, decodeErr
 	}
 
-	valueData, err := json.Marshal(value)
+	valueData, err := marshalJSONValue("marshal JSON array lookup value", value)
 	if err != nil {
 		return -1, err
 	}
 
 	for i, item := range arr {
-		itemData, _ := json.Marshal(item)
-		if string(itemData) == string(valueData) {
+		itemData, marshalErr := marshalJSONValue("marshal JSON array item", item)
+		if marshalErr != nil {
+			return -1, marshalErr
+		}
+		if bytes.Equal(itemData, valueData) {
 			return i, nil
 		}
 	}
 
-	return -1, fmt.Errorf("value not found in array")
+	return -1, errors.New("value not found in array")
 }
 
 // ArrayPop removes and returns the last element of an array.
-func (j *JSON) ArrayPop(ctx context.Context, key, path string) (interface{}, error) {
-	data, err := j.client.JSONGetField(ctx, key, path)
+func (j *JSON) ArrayPop(ctx context.Context, key, path string) (any, error) {
+	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
 		return nil, err
 	}
 
-	var arr []interface{}
-	if err := json.Unmarshal(data, &arr); err != nil {
-		return nil, err
+	var arr []any
+	if decodeErr := unmarshalJSONValue(data, &arr, fmt.Sprintf("unmarshal JSON array %q from %q", path, key)); decodeErr != nil {
+		return nil, decodeErr
 	}
 
 	if len(arr) == 0 {
-		return nil, fmt.Errorf("array is empty")
+		return nil, errors.New("array is empty")
 	}
 
 	last := arr[len(arr)-1]
 	arr = arr[:len(arr)-1]
 
 	// Set the modified array back
-	newData, _ := json.Marshal(arr)
-	if err := j.client.JSONSetField(ctx, key, path, newData); err != nil {
+	newData, err := marshalJSONValue("marshal JSON array", arr)
+	if err != nil {
+		return nil, err
+	}
+	if err := j.setPathData(ctx, key, path, newData); err != nil {
 		return nil, err
 	}
 
@@ -227,13 +234,13 @@ func (j *JSON) ArrayPop(ctx context.Context, key, path string) (interface{}, err
 
 // ObjectKeys gets the keys of an object at a path.
 func (j *JSON) ObjectKeys(ctx context.Context, key, path string) ([]string, error) {
-	data, err := j.client.JSONGetField(ctx, key, path)
+	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
 		return nil, err
 	}
 
-	var obj map[string]interface{}
-	if err := json.Unmarshal(data, &obj); err != nil {
+	var obj map[string]any
+	if err := unmarshalJSONValue(data, &obj, fmt.Sprintf("unmarshal JSON object %q from %q", path, key)); err != nil {
 		return nil, err
 	}
 
@@ -241,105 +248,44 @@ func (j *JSON) ObjectKeys(ctx context.Context, key, path string) ([]string, erro
 }
 
 // ObjectMerge merges multiple objects into the target object.
-func (j *JSON) ObjectMerge(ctx context.Context, key, path string, objects ...map[string]interface{}) error {
+func (j *JSON) ObjectMerge(ctx context.Context, key, path string, objects ...map[string]any) error {
 	// Get current object
-	data, err := j.client.JSONGetField(ctx, key, path)
+	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
 		return err
 	}
 
-	var target map[string]interface{}
+	var target map[string]any
 	if len(data) > 0 {
-		if err := json.Unmarshal(data, &target); err != nil {
-			return err
+		if decodeErr := unmarshalJSONValue(data, &target, fmt.Sprintf("unmarshal JSON object %q from %q", path, key)); decodeErr != nil {
+			return decodeErr
 		}
 	} else {
-		target = make(map[string]interface{})
+		target = make(map[string]any)
 	}
 
 	// Merge all objects
 	for _, obj := range objects {
-		for k, v := range obj {
-			target[k] = v
-		}
+		maps.Copy(target, obj)
 	}
 
 	// Set back
-	newData, _ := json.Marshal(target)
-	return j.client.JSONSetField(ctx, key, path, newData)
+	newData, err := marshalJSONValue("marshal JSON object", target)
+	if err != nil {
+		return err
+	}
+	return j.setPathData(ctx, key, path, newData)
 }
 
 // MultiGet gets multiple JSON documents by keys.
 func (j *JSON) MultiGet(ctx context.Context, keys []string) (map[string][]byte, error) {
 	results := make(map[string][]byte, len(keys))
 	for _, key := range keys {
-		data, err := j.client.JSONGet(ctx, key, "$")
+		data, err := j.getDocumentData(ctx, key)
 		if err != nil {
 			continue
 		}
 		results[key] = data
 	}
 	return results, nil
-}
-
-// DocumentRepository provides repository-style access to JSON documents.
-type DocumentRepository[T any] struct {
-	json      *JSON
-	keyPrefix string
-}
-
-// NewDocumentRepository creates a new DocumentRepository.
-func NewDocumentRepository[T any](client kvx.JSON, keyPrefix string) *DocumentRepository[T] {
-	return &DocumentRepository[T]{
-		json:      NewJSON(client),
-		keyPrefix: keyPrefix,
-	}
-}
-
-// buildKey builds the full key for a document.
-func (r *DocumentRepository[T]) buildKey(id string) string {
-	if r.keyPrefix == "" {
-		return id
-	}
-	return fmt.Sprintf("%s:%s", r.keyPrefix, id)
-}
-
-// Save saves a document.
-func (r *DocumentRepository[T]) Save(ctx context.Context, id string, doc *T, expiration time.Duration) error {
-	key := r.buildKey(id)
-	return r.json.Set(ctx, key, doc, expiration)
-}
-
-// FindByID finds a document by ID.
-func (r *DocumentRepository[T]) FindByID(ctx context.Context, id string) (*T, error) {
-	key := r.buildKey(id)
-	var doc T
-	if err := r.json.Get(ctx, key, &doc); err != nil {
-		return nil, err
-	}
-	return &doc, nil
-}
-
-// Delete deletes a document.
-func (r *DocumentRepository[T]) Delete(ctx context.Context, id string) error {
-	key := r.buildKey(id)
-	return r.json.Delete(ctx, key)
-}
-
-// Exists checks if a document exists.
-func (r *DocumentRepository[T]) Exists(ctx context.Context, id string) (bool, error) {
-	key := r.buildKey(id)
-	return r.json.Exists(ctx, key)
-}
-
-// UpdatePath updates a specific path in a document.
-func (r *DocumentRepository[T]) UpdatePath(ctx context.Context, id, path string, value interface{}) error {
-	key := r.buildKey(id)
-	return r.json.SetPath(ctx, key, path, value)
-}
-
-// GetPath gets a specific path from a document.
-func (r *DocumentRepository[T]) GetPath(ctx context.Context, id, path string, dest interface{}) error {
-	key := r.buildKey(id)
-	return r.json.GetPath(ctx, key, path, dest)
 }

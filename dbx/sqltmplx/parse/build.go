@@ -1,11 +1,17 @@
 package parse
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/scan"
 	"github.com/expr-lang/expr"
+)
+
+var (
+	errUnexpectedEnd = errors.New("sqltmplx: unexpected end")
+	errUnclosedBlock = errors.New("sqltmplx: unclosed block")
 )
 
 type frameKind int
@@ -22,53 +28,95 @@ type frame struct {
 	out  *[]Node
 }
 
+// Build converts scanned tokens into a parse tree.
 func Build(tokens []scan.Token) ([]Node, error) {
 	var nodes []Node
 	stack := collectionx.NewListWithCapacity[frame](4, frame{kind: frameRoot, out: &nodes})
 
 	appendNode := func(n Node) {
-		current, _ := stack.Get(stack.Len() - 1)
-		out := current.out
-		*out = append(*out, n)
+		appendFrameNode(stack, n)
 	}
 
-	for _, tok := range tokens {
-		switch tok.Kind {
-		case scan.Text:
-			appendNode(TextNode{Text: tok.Value})
-		case scan.Directive:
-			d, err := parseDirective(tok.Value)
-			if err != nil {
-				return nil, err
-			}
-			switch {
-			case d.If != nil:
-				program, err := expr.Compile(d.If.Expr)
-				if err != nil {
-					return nil, fmt.Errorf("sqltmplx: compile expr %q: %w", d.If.Expr, err)
-				}
-				node := &IfNode{RawExpr: d.If.Expr, Program: program}
-				appendNode(node)
-				stack.Add(frame{kind: frameIf, out: &node.Body})
-			case d.Where != nil:
-				node := &WhereNode{}
-				appendNode(node)
-				stack.Add(frame{kind: frameWhere, out: &node.Body})
-			case d.Set != nil:
-				node := &SetNode{}
-				appendNode(node)
-				stack.Add(frame{kind: frameSet, out: &node.Body})
-			case d.End != nil:
-				if stack.Len() == 1 {
-					return nil, fmt.Errorf("sqltmplx: unexpected end")
-				}
-				_, _ = stack.RemoveAt(stack.Len() - 1)
-			}
+	for i := range tokens {
+		if err := consumeToken(tokens[i], stack, appendNode); err != nil {
+			return nil, err
 		}
 	}
 
 	if stack.Len() != 1 {
-		return nil, fmt.Errorf("sqltmplx: unclosed block")
+		return nil, errUnclosedBlock
 	}
 	return nodes, nil
+}
+
+func consumeToken(tok scan.Token, stack collectionx.List[frame], appendNode func(Node)) error {
+	switch tok.Kind {
+	case scan.Text:
+		appendNode(TextNode{Text: tok.Value})
+		return nil
+	case scan.Directive:
+		return consumeDirective(tok.Value, stack, appendNode)
+	default:
+		return nil
+	}
+}
+
+func consumeDirective(value string, stack collectionx.List[frame], appendNode func(Node)) error {
+	directive, err := parseDirective(value)
+	if err != nil {
+		return err
+	}
+
+	switch {
+	case directive.If != nil:
+		return pushIfNode(directive.If, stack, appendNode)
+	case directive.Where != nil:
+		pushWhereNode(stack, appendNode)
+		return nil
+	case directive.Set != nil:
+		pushSetNode(stack, appendNode)
+		return nil
+	case directive.End != nil:
+		return popFrame(stack)
+	default:
+		return nil
+	}
+}
+
+func pushIfNode(directive *IfDirective, stack collectionx.List[frame], appendNode func(Node)) error {
+	program, err := expr.Compile(directive.Expr)
+	if err != nil {
+		return fmt.Errorf("sqltmplx: compile expr %q: %w", directive.Expr, err)
+	}
+
+	node := &IfNode{RawExpr: directive.Expr, Program: program}
+	appendNode(node)
+	stack.Add(frame{kind: frameIf, out: &node.Body})
+	return nil
+}
+
+func pushWhereNode(stack collectionx.List[frame], appendNode func(Node)) {
+	node := &WhereNode{}
+	appendNode(node)
+	stack.Add(frame{kind: frameWhere, out: &node.Body})
+}
+
+func pushSetNode(stack collectionx.List[frame], appendNode func(Node)) {
+	node := &SetNode{}
+	appendNode(node)
+	stack.Add(frame{kind: frameSet, out: &node.Body})
+}
+
+func popFrame(stack collectionx.List[frame]) error {
+	if stack.Len() == 1 {
+		return errUnexpectedEnd
+	}
+	_, _ = stack.RemoveAt(stack.Len() - 1)
+	return nil
+}
+
+func appendFrameNode(stack collectionx.List[frame], node Node) {
+	current, _ := stack.Get(stack.Len() - 1)
+	out := current.out
+	*out = append(*out, node)
 }

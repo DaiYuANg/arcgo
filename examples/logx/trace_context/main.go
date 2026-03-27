@@ -1,3 +1,4 @@
+// Package main demonstrates logx trace context fields.
 package main
 
 import (
@@ -12,7 +13,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = logx.Close(logger) }()
+	defer func() {
+		if closeErr := logx.Close(logger); closeErr != nil {
+			panic(closeErr)
+		}
+	}()
 
 	traceID, err := trace.TraceIDFromHex("4bf92f3577b34da6a3ce929d0e0e4736")
 	if err != nil {

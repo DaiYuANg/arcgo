@@ -8,6 +8,7 @@ import (
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 )
 
+// User is the demo user model returned by the shared example service.
 type User struct {
 	ID        int       `json:"id"`
 	Name      string    `json:"name"`
@@ -17,18 +18,21 @@ type User struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
+// CreateUserBody contains the fields required to create a demo user.
 type CreateUserBody struct {
-	Name  string `json:"name" validate:"required,min=2,max=64"`
+	Name  string `json:"name"  validate:"required,min=2,max=64"`
 	Email string `json:"email" validate:"required,email"`
-	Age   int    `json:"age" validate:"gte=0,lte=130"`
+	Age   int    `json:"age"   validate:"gte=0,lte=130"`
 }
 
+// UpdateUserBody contains the fields that can be updated on a demo user.
 type UpdateUserBody struct {
-	Name  *string `json:"name,omitempty" validate:"omitempty,min=2,max=64"`
+	Name  *string `json:"name,omitempty"  validate:"omitempty,min=2,max=64"`
 	Email *string `json:"email,omitempty" validate:"omitempty,email"`
-	Age   *int    `json:"age,omitempty" validate:"omitempty,gte=0,lte=130"`
+	Age   *int    `json:"age,omitempty"   validate:"omitempty,gte=0,lte=130"`
 }
 
+// UserService defines the user operations used by the shared httpx examples.
 type UserService interface {
 	List(search string, limit, offset int) ([]User, int)
 	Get(id int) (User, bool)
@@ -37,16 +41,16 @@ type UserService interface {
 	Delete(id int) bool
 }
 
-// MockUserService is an in-memory mock service used by examples.
-type MockUserService struct {
+type mockUserService struct {
 	mu     sync.RWMutex
 	nextID int
 	users  *collectionmapping.Map[int, User]
 }
 
-func NewMockUserService() *MockUserService {
+// NewMockUserService creates an in-memory demo user service.
+func NewMockUserService() UserService {
 	now := time.Now().UTC()
-	return &MockUserService{
+	return &mockUserService{
 		nextID: 3,
 		users: collectionmapping.NewMapFrom(map[int]User{
 			1: {ID: 1, Name: "Alice", Email: "alice@example.com", Age: 26, CreatedAt: now, UpdatedAt: now},
@@ -55,7 +59,7 @@ func NewMockUserService() *MockUserService {
 	}
 }
 
-func (s *MockUserService) List(search string, limit, offset int) ([]User, int) {
+func (s *mockUserService) List(search string, limit, offset int) ([]User, int) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
@@ -74,20 +78,17 @@ func (s *MockUserService) List(search string, limit, offset int) ([]User, int) {
 		return []User{}, total
 	}
 
-	end := offset + limit
-	if end > total {
-		end = total
-	}
+	end := min(offset+limit, total)
 	return items[offset:end], total
 }
 
-func (s *MockUserService) Get(id int) (User, bool) {
+func (s *mockUserService) Get(id int) (User, bool) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.users.Get(id)
 }
 
-func (s *MockUserService) Create(in CreateUserBody) User {
+func (s *mockUserService) Create(in CreateUserBody) User {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -105,7 +106,7 @@ func (s *MockUserService) Create(in CreateUserBody) User {
 	return user
 }
 
-func (s *MockUserService) Update(id int, in UpdateUserBody) (User, bool) {
+func (s *mockUserService) Update(id int, in UpdateUserBody) (User, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -129,7 +130,7 @@ func (s *MockUserService) Update(id int, in UpdateUserBody) (User, bool) {
 	return user, true
 }
 
-func (s *MockUserService) Delete(id int) bool {
+func (s *mockUserService) Delete(id int) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.users.Delete(id)

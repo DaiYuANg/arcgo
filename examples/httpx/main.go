@@ -1,3 +1,4 @@
+// Package main demonstrates a minimal httpx server using the std adapter.
 package main
 
 import (
@@ -6,10 +7,10 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/DaiYuANg/arcgo/examples/httpx/shared"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
-	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
@@ -17,17 +18,17 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type ListUsersOutput struct {
+type listUsersOutput struct {
 	Body struct {
 		Users []string `json:"users"`
 	}
 }
 
-type GetUserInput struct {
+type getUserInput struct {
 	ID string `query:"id" validate:"omitempty,min=1,max=32"`
 }
 
-type GetUserOutput struct {
+type getUserOutput struct {
 	Body struct {
 		ID   string `json:"id"`
 		Name string `json:"name"`
@@ -35,11 +36,10 @@ type GetUserOutput struct {
 }
 
 func main() {
-	logger, err := logx.New(logx.WithConsole(true), logx.WithDebugLevel())
+	logger, closeLogger, err := shared.NewLogger()
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = logx.Close(logger) }()
 
 	slogLogger := logger
 	router := chi.NewMux()
@@ -60,19 +60,19 @@ func main() {
 		httpx.WithValidator(validator.New(validator.WithRequiredStructEnabled())),
 	)
 
-	httpx.MustGet(server, "/users", func(ctx context.Context, input *struct{}) (*ListUsersOutput, error) {
-		out := &ListUsersOutput{}
+	httpx.MustGet(server, "/users", func(_ context.Context, _ *struct{}) (*listUsersOutput, error) {
+		out := &listUsersOutput{}
 		out.Body.Users = []string{"Alice", "Bob", "Charlie"}
 		return out, nil
 	}, huma.OperationTags("users"))
 
 	api := server.Group("/api/v1")
-	httpx.MustGroupGet(api, "/user", func(ctx context.Context, input *GetUserInput) (*GetUserOutput, error) {
+	httpx.MustGroupGet(api, "/user", func(_ context.Context, input *getUserInput) (*getUserOutput, error) {
 		id := input.ID
 		if id == "" {
 			id = "1"
 		}
-		out := &GetUserOutput{}
+		out := &getUserOutput{}
 		out.Body.ID = id
 		out.Body.Name = "User" + id
 		return out, nil
@@ -89,6 +89,8 @@ func main() {
 
 	if err := server.ListenPort(port); err != nil {
 		slogLogger.Error("server exited with error", slog.String("error", err.Error()))
+		closeLogger()
 		os.Exit(1)
 	}
+	closeLogger()
 }

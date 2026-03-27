@@ -7,6 +7,7 @@ import (
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 )
 
+// NewRuntime builds a shared demo server runtime around the provided adapter.
 func NewRuntime(a adapter.Host, logger *slog.Logger) httpx.ServerRuntime {
 	return httpx.New(
 		httpx.WithAdapter(a),

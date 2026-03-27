@@ -29,7 +29,7 @@ func TestRuntimeStopWithReportAggregatesErrors(t *testing.T) {
 					dix.Invoke1(func(*failingShutdownService) {}),
 				),
 				dix.WithModuleHooks(
-					dix.OnStop(func(ctx context.Context, _ *failingShutdownService) error {
+					dix.OnStop(func(_ context.Context, _ *failingShutdownService) error {
 						return errors.New("stop hook failed")
 					}),
 				),

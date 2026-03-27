@@ -31,7 +31,7 @@ func RawInvokeWithMetadata(fn func(*Container) error, meta InvokeMetadata) Invok
 
 // Invoke0 registers an invoke callback with no dependencies.
 func Invoke0(fn func()) InvokeFunc {
-	return NewInvokeFunc(func(c *Container) error {
+	return NewInvokeFunc(func(*Container) error {
 		fn()
 		return nil
 	}, InvokeMetadata{Label: "Invoke0"})

@@ -7,8 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -86,7 +84,7 @@ func (s *Server) Start() error {
 	return nil
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+func (s *Server) Stop(_ context.Context) error {
 	return nil
 }
 
@@ -98,10 +96,10 @@ var DatabaseModule = dix.NewModule("database",
 		dix.Provider1(ProvideDatabase),
 	),
 	dix.WithModuleHooks(
-		dix.OnStart(func(ctx context.Context, db *Database) error {
+		dix.OnStart(func(_ context.Context, db *Database) error {
 			return db.Connect()
 		}),
-		dix.OnStop(func(ctx context.Context, db *Database) error {
+		dix.OnStop(func(_ context.Context, db *Database) error {
 			return db.Close()
 		}),
 	),
@@ -113,7 +111,7 @@ var ServerModule = dix.NewModule("server",
 	),
 	dix.WithModuleImports(DatabaseModule),
 	dix.WithModuleHooks(
-		dix.OnStart(func(ctx context.Context, s *Server) error {
+		dix.OnStart(func(_ context.Context, s *Server) error {
 			return s.Start()
 		}),
 		dix.OnStop(func(ctx context.Context, s *Server) error {
@@ -423,7 +421,7 @@ func TestApp_ValidateDoesNotEscapeForCoreSetup(t *testing.T) {
 	app := dix.NewApp("validate-setup",
 		dix.NewModule("health",
 			dix.WithModuleSetup(func(c *dix.Container, _ dix.Lifecycle) error {
-				c.RegisterHealthCheck("ok", func(ctx context.Context) error { return nil })
+				c.RegisterHealthCheck("ok", func(_ context.Context) error { return nil })
 				return nil
 			}),
 			dix.WithModuleProviders(
@@ -536,7 +534,7 @@ func ExampleNewModule() {
 			dix.Provider1(func(s string) int { return len(s) }),
 		),
 		dix.WithModuleSetup(func(c *dix.Container, lc dix.Lifecycle) error {
-			lc.OnStart(func(ctx context.Context) error {
+			lc.OnStart(func(_ context.Context) error {
 				s, err := dix.ResolveAs[string](c)
 				if err != nil {
 					return err
@@ -565,7 +563,7 @@ func ExampleWithModuleHooks() {
 			}),
 		),
 		dix.WithModuleHooks(
-			dix.OnStart(func(ctx context.Context, s *http.Server) error {
+			dix.OnStart(func(_ context.Context, s *http.Server) error {
 				go func() {
 					if err := s.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 						panic(err)
@@ -759,143 +757,4 @@ func TestRuntimeStartFailureRollsBackStopHooks(t *testing.T) {
 	assert.Equal(t, 1, svc.starts)
 	assert.Equal(t, 1, svc.stops)
 	assert.Equal(t, dix.AppStateStopped, rt.State())
-}
-
-func TestBuildDebugLogging(t *testing.T) {
-	logger, buf := newDebugLogger()
-	app := dix.New("debug-build",
-		dix.WithLogger(logger),
-		dix.WithModule(
-			dix.NewModule("debug",
-				dix.WithModuleProviders(
-					dix.Provider0(func() string { return "value" }),
-				),
-				dix.WithModuleHooks(
-					dix.OnStart(func(context.Context, string) error { return nil }),
-				),
-				dix.WithModuleSetups(
-					dix.SetupWithMetadata(func(*dix.Container, dix.Lifecycle) error { return nil }, dix.SetupMetadata{
-						Label:        "DebugSetup",
-						Dependencies: []dix.ServiceRef{dix.TypedService[string]()},
-					}),
-				),
-				dix.WithModuleInvokes(
-					dix.Invoke1(func(string) {}),
-				),
-			),
-		),
-	)
-
-	_, err := app.Build()
-	require.NoError(t, err)
-
-	logs := buf.String()
-	assert.True(t, strings.Contains(logs, "build plan ready"), logs)
-	assert.True(t, strings.Contains(logs, "registering provider"), logs)
-	assert.True(t, strings.Contains(logs, "binding lifecycle hook"), logs)
-	assert.True(t, strings.Contains(logs, "module setup completed"), logs)
-	assert.True(t, strings.Contains(logs, "invoke completed"), logs)
-}
-
-func TestRuntimeStartRollbackDebugLogging(t *testing.T) {
-	logger, buf := newDebugLogger()
-	app := dix.New("debug-start",
-		dix.WithLogger(logger),
-		dix.WithModule(
-			dix.NewModule("debug-start",
-				dix.WithModuleProviders(
-					dix.Provider0(func() string { return "value" }),
-				),
-				dix.WithModuleHooks(
-					dix.OnStart(func(context.Context, string) error { return nil }),
-					dix.OnStop(func(context.Context, string) error { return nil }),
-					dix.OnStart0(func(context.Context) error { return errors.New("boom") }),
-				),
-			),
-		),
-	)
-
-	rt := buildRuntime(t, app)
-	err := rt.Start(context.Background())
-	require.Error(t, err)
-
-	logs := buf.String()
-	assert.True(t, strings.Contains(logs, "runtime state transition"), logs)
-	assert.True(t, strings.Contains(logs, "executing start hook"), logs)
-	assert.True(t, strings.Contains(logs, "rolling back app start"), logs)
-	assert.True(t, strings.Contains(logs, "executing stop hook"), logs)
-	assert.True(t, strings.Contains(logs, "shutting down container"), logs)
-}
-
-func TestHealthCheckReport(t *testing.T) {
-	module := dix.NewModule("health",
-		dix.WithModuleSetup(func(c *dix.Container, lc dix.Lifecycle) error {
-			c.RegisterHealthCheck("db", func(ctx context.Context) error { return nil })
-			c.RegisterHealthCheck("cache", func(ctx context.Context) error { return errors.New("down") })
-			return nil
-		}),
-	)
-
-	rt := buildRuntime(t, dix.NewApp("test", module))
-	report := rt.CheckHealth(context.Background())
-	assert.False(t, report.Healthy())
-	require.Error(t, report.Error())
-	assert.Contains(t, report.Error().Error(), "cache")
-}
-
-func TestRuntime_HealthHandlers(t *testing.T) {
-	module := dix.NewModule("health",
-		dix.WithModuleSetup(func(c *dix.Container, lc dix.Lifecycle) error {
-			c.RegisterLivenessCheck("live", func(ctx context.Context) error { return nil })
-			c.RegisterReadinessCheck("ready", func(ctx context.Context) error { return errors.New("booting") })
-			return nil
-		}),
-	)
-
-	rt := buildRuntime(t, dix.NewApp("health", module))
-
-	liveReq := httptest.NewRequest(http.MethodGet, "/livez", http.NoBody)
-	liveRes := httptest.NewRecorder()
-	rt.LivenessHandler()(liveRes, liveReq)
-	assert.Equal(t, http.StatusOK, liveRes.Code)
-
-	readyReq := httptest.NewRequest(http.MethodGet, "/readyz", http.NoBody)
-	readyRes := httptest.NewRecorder()
-	rt.ReadinessHandler()(readyRes, readyReq)
-	assert.Equal(t, http.StatusServiceUnavailable, readyRes.Code)
-}
-
-func TestNew_WithModulesOption(t *testing.T) {
-	rt := buildRuntime(t, dix.New("test",
-		dix.WithProfile(dix.ProfileDev),
-		dix.WithModule(DatabaseModule),
-	))
-
-	logger, err := dix.ResolveAs[*slog.Logger](rt.Container())
-	require.NoError(t, err)
-	assert.NotNil(t, logger)
-}
-
-func TestHealthKinds(t *testing.T) {
-	mod := dix.NewModule("health",
-		dix.WithModuleSetup(func(c *dix.Container, lc dix.Lifecycle) error {
-			c.RegisterLivenessCheck("live", func(ctx context.Context) error { return nil })
-			c.RegisterReadinessCheck("ready", func(ctx context.Context) error { return nil })
-			return nil
-		}),
-	)
-
-	rt := buildRuntime(t, dix.New("health-app", dix.WithModule(mod)))
-	live := rt.CheckLiveness(context.Background())
-	ready := rt.CheckReadiness(context.Background())
-
-	assert.True(t, live.Healthy())
-	assert.True(t, ready.Healthy())
-	assert.Len(t, live.Checks, 1)
-	assert.Len(t, ready.Checks, 1)
-}
-
-func TestNewDefault(t *testing.T) {
-	app := dix.NewDefault()
-	assert.Equal(t, dix.DefaultAppName, app.Name())
 }

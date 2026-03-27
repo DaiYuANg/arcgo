@@ -8,7 +8,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/dix"
 	dixadvanced "github.com/DaiYuANg/arcgo/dix/advanced"
-	. "github.com/samber/do/v2"
+	"github.com/samber/do/v2"
 )
 
 type benchConfig struct {
@@ -116,8 +116,8 @@ func newBenchmarkModules() (dix.Module, dix.Module, dix.Module) {
 				return service.Stop(ctx)
 			}),
 		),
-		dix.WithModuleSetup(func(c *dix.Container, lc dix.Lifecycle) error {
-			c.RegisterReadinessCheck("service", func(ctx context.Context) error {
+		dix.WithModuleSetup(func(c *dix.Container, _ dix.Lifecycle) error {
+			c.RegisterReadinessCheck("service", func(_ context.Context) error {
 				_, err := dix.ResolveAs[*benchService](c)
 				return err
 			})
@@ -425,7 +425,7 @@ func BenchmarkResolveAsDirectDo(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
-		service, err := InvokeNamed[*benchService](raw, name)
+		service, err := do.InvokeNamed[*benchService](raw, name)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -439,7 +439,7 @@ func BenchmarkAdvancedScopeResolve(b *testing.B) {
 	for i := range b.N {
 		names[i] = "request-bench-" + strconv.Itoa(i)
 	}
-	scopePackage := func(injector Injector) {
+	scopePackage := func(injector do.Injector) {
 		dixadvanced.ProvideScopedValue(injector, benchRequestContext{RequestID: "req-42"})
 		dixadvanced.ProvideScoped2(injector, func(service *benchService, req benchRequestContext) benchScopedHandler {
 			return benchScopedHandler{service: service, req: req}

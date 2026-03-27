@@ -2,13 +2,10 @@ package dix
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log/slog"
 
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	"github.com/samber/do/v2"
-	"github.com/samber/mo"
 )
 
 // Container wraps samber/do.Injector.
@@ -69,7 +66,7 @@ func resolveInjectorAs[T any](injector do.Injector) (T, error) {
 
 // ProvideT registers a typed singleton provider with no dependencies.
 func ProvideT[T any](c *Container, fn func() T) {
-	do.ProvideNamed(c.injector, serviceNameOf[T](), func(i do.Injector) (T, error) { return fn(), nil })
+	do.ProvideNamed(c.injector, serviceNameOf[T](), func(_ do.Injector) (T, error) { return fn(), nil })
 }
 
 // Provide1T registers a typed singleton provider with one dependency.
@@ -247,79 +244,4 @@ func resolveProvide6Dependencies[D1, D2, D3, D4, D5, D6 any](injector do.Injecto
 // ProvideValueT registers a typed singleton value.
 func ProvideValueT[T any](c *Container, value T) {
 	do.ProvideNamedValue(c.injector, serviceNameOf[T](), value)
-}
-
-// ResolveAs resolves a typed value from the container.
-func ResolveAs[T any](c *Container) (T, error) { return resolveInjectorAs[T](c.injector) }
-
-// ResolveOptionalAs resolves an optional typed value from the container.
-func ResolveOptionalAs[T any](c *Container) (value T, ok bool) {
-	option := ResolveOptionAs[T](c)
-	return option.Get()
-}
-
-// ResolveOptionAs resolves an optional dependency as mo.Option.
-func ResolveOptionAs[T any](c *Container) mo.Option[T] {
-	value, err := ResolveAs[T](c)
-	if err == nil {
-		return mo.Some(value)
-	}
-	return mo.None[T]()
-}
-
-// ResolveOrElse resolves a typed value or returns the provided fallback.
-func ResolveOrElse[T any](c *Container, fallback T) T {
-	return ResolveOptionAs[T](c).OrElse(fallback)
-}
-
-// MustResolveAs resolves a typed value and panics on failure.
-func MustResolveAs[T any](c *Container) T {
-	result, err := ResolveAs[T](c)
-	if err != nil {
-		panic(fmt.Sprintf("failed to resolve dependency: %v", err))
-	}
-	return result
-}
-
-// Definition describes a backward-compatible container registration.
-type Definition struct {
-	Name       string
-	Kind       DefinitionKind
-	Value      any
-	Provider   any
-	ModuleName string
-	Lazy       bool
-	Transient  bool
-}
-
-// DefinitionKind describes the kind of backward-compatible registration.
-type DefinitionKind string
-
-const (
-	// DefinitionValue registers an already-constructed value.
-	DefinitionValue DefinitionKind = "value"
-	// DefinitionProvider registers a provider function.
-	DefinitionProvider DefinitionKind = "provider"
-)
-
-// Register registers a backward-compatible definition.
-func (c *Container) Register(def Definition) error {
-	switch def.Kind {
-	case DefinitionValue:
-		if def.Name != "" {
-			do.ProvideNamedValue(c.injector, def.Name, def.Value)
-		} else {
-			do.ProvideValue(c.injector, def.Value)
-		}
-		return nil
-	case DefinitionProvider:
-		return errors.New("provider definition registration is not implemented; use typed ProviderN helpers instead")
-	default:
-		return fmt.Errorf("unknown definition kind: %v", def.Kind)
-	}
-}
-
-// Resolve keeps backward compatibility for legacy resolve(target) calls.
-func (c *Container) Resolve(target any) error {
-	return errors.New("resolve(target) is not supported; use ResolveAs[T]() for type-safe resolution")
 }

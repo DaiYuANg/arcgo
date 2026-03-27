@@ -3,6 +3,7 @@ package mapping
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ func NewKeyBuilder(prefix string) *KeyBuilder {
 }
 
 // Build builds a key from an entity's ID field value.
-func (b *KeyBuilder) Build(entity interface{}, metadata *EntityMetadata) (string, error) {
+func (b *KeyBuilder) Build(entity any, metadata *EntityMetadata) (string, error) {
 	v := reflect.ValueOf(entity)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -45,33 +46,33 @@ func (b *KeyBuilder) BuildWithID(id string) string {
 	if b.prefix == "" {
 		return id
 	}
-	return fmt.Sprintf("%s:%s", b.prefix, id)
+	return b.prefix + ":" + id
 }
 
 // BuildIndexKey builds an index key for a given field.
 func (b *KeyBuilder) BuildIndexKey(fieldName string) string {
 	if b.prefix == "" {
-		return fmt.Sprintf("idx:%s", fieldName)
+		return "idx:" + fieldName
 	}
-	return fmt.Sprintf("%s:idx:%s", b.prefix, fieldName)
+	return b.prefix + ":idx:" + fieldName
 }
 
 // BuildFieldKey builds a key for a secondary index field.
-func (b *KeyBuilder) BuildFieldKey(fieldName string, fieldValue string) string {
-	return fmt.Sprintf("%s:%s:%s", b.BuildIndexKey(fieldName), fieldValue, fieldName)
+func (b *KeyBuilder) BuildFieldKey(fieldName, fieldValue string) string {
+	return b.BuildIndexKey(fieldName) + ":" + fieldValue + ":" + fieldName
 }
 
 func (b *KeyBuilder) formatValue(v reflect.Value) string {
-	switch v.Kind() {
-	case reflect.String:
+	if v.Kind() == reflect.String {
 		return v.String()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return fmt.Sprintf("%d", v.Int())
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return fmt.Sprintf("%d", v.Uint())
-	default:
-		return fmt.Sprintf("%v", v.Interface())
 	}
+	if isSignedIntKind(v.Kind()) {
+		return strconv.FormatInt(v.Int(), 10)
+	}
+	if isUnsignedIntKind(v.Kind()) {
+		return strconv.FormatUint(v.Uint(), 10)
+	}
+	return fmt.Sprint(v.Interface())
 }
 
 // Errors

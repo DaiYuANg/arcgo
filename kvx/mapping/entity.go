@@ -1,7 +1,6 @@
 package mapping
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 	"sync"
@@ -131,7 +130,9 @@ func (p *TagParser) Parse(t reflect.Type) (*EntityMetadata, error) {
 	}
 
 	if cached, ok := p.cache.Load(t); ok {
-		return cached.(*EntityMetadata), nil
+		if metadata, ok := cachedEntityMetadata(cached); ok {
+			return metadata, nil
+		}
 	}
 
 	metadata, err := p.parseStruct(t)
@@ -143,43 +144,15 @@ func (p *TagParser) Parse(t reflect.Type) (*EntityMetadata, error) {
 }
 
 // ParseType parses metadata from an entity instance.
-func (p *TagParser) ParseType(entity interface{}) (*EntityMetadata, error) {
+func (p *TagParser) ParseType(entity any) (*EntityMetadata, error) {
 	return p.Parse(reflect.TypeOf(entity))
 }
 
 func (p *TagParser) parseStruct(t reflect.Type) (*EntityMetadata, error) {
-	metadata := &EntityMetadata{
-		Type:        t,
-		Fields:      make(map[string]FieldTag),
-		IndexFields: make([]string, 0),
-	}
+	metadata := newEntityMetadata(t)
 
-	for i := 0; i < t.NumField(); i++ {
-		field := t.Field(i)
-		if !field.IsExported() {
-			continue
-		}
-
-		tag := field.Tag.Get("kvx")
-		if tag == "" {
-			continue
-		}
-
-		fieldTag := p.parseFieldTag(field.Name, tag)
-		if fieldTag.Ignored {
-			continue
-		}
-
-		if fieldTag.Name == "id" || fieldTag.Name == "key" {
-			metadata.KeyField = field.Name
-			metadata.Fields[field.Name] = fieldTag
-			continue
-		}
-
-		metadata.Fields[field.Name] = fieldTag
-		if fieldTag.Index {
-			metadata.IndexFields = append(metadata.IndexFields, field.Name)
-		}
+	for field := range t.Fields() {
+		p.addFieldMetadata(metadata, field)
 	}
 
 	if metadata.KeyField == "" {
@@ -230,9 +203,54 @@ func (p *TagParser) GetCached(t reflect.Type) *EntityMetadata {
 		t = t.Elem()
 	}
 	if cached, ok := p.cache.Load(t); ok {
-		return cached.(*EntityMetadata)
+		metadata, ok := cachedEntityMetadata(cached)
+		if ok {
+			return metadata
+		}
 	}
 	return nil
+}
+
+func newEntityMetadata(t reflect.Type) *EntityMetadata {
+	return &EntityMetadata{
+		Type:        t,
+		Fields:      make(map[string]FieldTag),
+		IndexFields: make([]string, 0),
+	}
+}
+
+func cachedEntityMetadata(value any) (*EntityMetadata, bool) {
+	metadata, ok := value.(*EntityMetadata)
+	return metadata, ok
+}
+
+func (p *TagParser) addFieldMetadata(metadata *EntityMetadata, field reflect.StructField) {
+	if !field.IsExported() {
+		return
+	}
+
+	tag := field.Tag.Get("kvx")
+	if tag == "" {
+		return
+	}
+
+	fieldTag := p.parseFieldTag(field.Name, tag)
+	if fieldTag.Ignored {
+		return
+	}
+
+	metadata.Fields[field.Name] = fieldTag
+	if isKeyField(fieldTag) {
+		metadata.KeyField = field.Name
+		return
+	}
+	if fieldTag.Index {
+		metadata.IndexFields = append(metadata.IndexFields, field.Name)
+	}
+}
+
+func isKeyField(fieldTag FieldTag) bool {
+	return fieldTag.Name == "id" || fieldTag.Name == "key"
 }
 
 func orderedFieldNames(m *EntityMetadata) []string {
@@ -244,45 +262,4 @@ func orderedFieldNames(m *EntityMetadata) []string {
 		fields = append(fields, fieldName)
 	}
 	return fields
-}
-
-func setFieldStringValue(field reflect.Value, value string) error {
-	switch field.Kind() {
-	case reflect.String:
-		field.SetString(value)
-		return nil
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		var parsed int64
-		_, err := fmt.Sscan(value, &parsed)
-		if err != nil {
-			return err
-		}
-		field.SetInt(parsed)
-		return nil
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		var parsed uint64
-		_, err := fmt.Sscan(value, &parsed)
-		if err != nil {
-			return err
-		}
-		field.SetUint(parsed)
-		return nil
-	default:
-		return nil
-	}
-}
-
-// Errors
-var (
-	ErrNonStructType     = &parseError{"non-struct type"}
-	ErrNonPointerValue   = &parseError{"non-pointer value"}
-	ErrNoKeyFieldDefined = &parseError{"no key field defined"}
-)
-
-type parseError struct {
-	msg string
-}
-
-func (e *parseError) Error() string {
-	return "kvx: " + e.msg
 }

@@ -37,7 +37,7 @@ func BenchmarkEngineCheckThenCan10kUsers10kPermissions(b *testing.B) {
 
 	for _, benchCase := range benchmarkDatasetCases {
 		b.Run(benchCase.name, func(b *testing.B) {
-			benchmarkDatasetCheckThenCan(b, ctx, dataset, benchCase.withHook)
+			benchmarkDatasetCheckThenCan(ctx, b, dataset, benchCase.withHook)
 		})
 	}
 }
@@ -48,7 +48,7 @@ func BenchmarkEngineCheckThenCan10kUsers10kPermissionsParallel(b *testing.B) {
 
 	for _, benchCase := range benchmarkDatasetCases {
 		b.Run(benchCase.name, func(b *testing.B) {
-			benchmarkDatasetCheckThenCanParallel(b, ctx, dataset, benchCase.withHook)
+			benchmarkDatasetCheckThenCanParallel(ctx, b, dataset, benchCase.withHook)
 		})
 	}
 }
@@ -147,8 +147,8 @@ func normalizeFakeToken(raw string) string {
 }
 
 func benchmarkDatasetCheckThenCan(
-	b *testing.B,
 	ctx context.Context,
+	b *testing.B,
 	dataset benchmarkDataset,
 	withHook bool,
 ) {
@@ -161,13 +161,13 @@ func benchmarkDatasetCheckThenCan(
 	b.ResetTimer()
 
 	for i := range b.N {
-		runBenchmarkDatasetQuery(b, ctx, engine, queries[i%len(queries)])
+		runBenchmarkDatasetQuery(ctx, b, engine, queries[i%len(queries)])
 	}
 }
 
 func benchmarkDatasetCheckThenCanParallel(
-	b *testing.B,
 	ctx context.Context,
+	b *testing.B,
 	dataset benchmarkDataset,
 	withHook bool,
 ) {
@@ -182,15 +182,15 @@ func benchmarkDatasetCheckThenCanParallel(
 	b.RunParallel(func(pb *testing.PB) {
 		queryIndex := 0
 		for pb.Next() {
-			runBenchmarkDatasetQuery(b, ctx, engine, queries[queryIndex%len(queries)])
+			runBenchmarkDatasetQuery(ctx, b, engine, queries[queryIndex%len(queries)])
 			queryIndex++
 		}
 	})
 }
 
 func runBenchmarkDatasetQuery(
-	b *testing.B,
 	ctx context.Context,
+	b *testing.B,
 	engine *authx.Engine,
 	query benchmarkDatasetQuery,
 ) {

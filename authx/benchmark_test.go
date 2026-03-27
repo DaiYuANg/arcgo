@@ -67,7 +67,7 @@ func BenchmarkEngineCheck(b *testing.B) {
 
 	for _, benchCase := range benchmarkCases {
 		b.Run(benchCase.name, func(b *testing.B) {
-			benchmarkEngineCheck(b, ctx, credential, benchCase.withHook)
+			benchmarkEngineCheck(ctx, b, credential, benchCase.withHook)
 		})
 	}
 }
@@ -85,7 +85,7 @@ func BenchmarkEngineCan(b *testing.B) {
 
 	for _, benchCase := range benchmarkCases {
 		b.Run(benchCase.name, func(b *testing.B) {
-			benchmarkEngineCan(b, ctx, model, benchCase.withHook)
+			benchmarkEngineCan(ctx, b, model, benchCase.withHook)
 		})
 	}
 }
@@ -96,14 +96,14 @@ func BenchmarkEngineCheckThenCan(b *testing.B) {
 
 	for _, benchCase := range benchmarkCases {
 		b.Run(benchCase.name, func(b *testing.B) {
-			benchmarkEngineCheckThenCan(b, ctx, credential, benchCase.withHook)
+			benchmarkEngineCheckThenCan(ctx, b, credential, benchCase.withHook)
 		})
 	}
 }
 
 func benchmarkEngineCheck(
-	b *testing.B,
 	ctx context.Context,
+	b *testing.B,
 	credential benchmarkCredential,
 	withHook bool,
 ) {
@@ -125,8 +125,8 @@ func benchmarkEngineCheck(
 }
 
 func benchmarkEngineCan(
-	b *testing.B,
 	ctx context.Context,
+	b *testing.B,
 	model authx.AuthorizationModel,
 	withHook bool,
 ) {
@@ -148,8 +148,8 @@ func benchmarkEngineCan(
 }
 
 func benchmarkEngineCheckThenCan(
-	b *testing.B,
 	ctx context.Context,
+	b *testing.B,
 	credential benchmarkCredential,
 	withHook bool,
 ) {

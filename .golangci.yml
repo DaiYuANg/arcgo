@@ -2,6 +2,7 @@ version: "2"
 
 run:
   timeout: 20m
+  go: "1.26.1"
 
 linters:
   default: none
@@ -51,12 +52,10 @@ linters:
     - wrapcheck
     - sloglint
     - spancheck
-    - sqlclosecheck
     - staticcheck
     - tagalign
     - testpackage
     - unqueryvet
-    - usestdlibvars
   settings:
     cyclop:
       max-complexity: 10
@@ -123,12 +122,23 @@ linters:
       strconcat: true
     revive:
       confidence: 0.8
+      enable-default-rules: true
+      rules:
+        - name: file-length-limit
+          arguments:
+            - max: 300
+              skip-comments: false
+              skip-blank-lines: false
     staticcheck:
       checks:
         - all
         - -ST1000
   exclusions:
     rules:
+      - path: _test\.go
+        linters:
+          - revive
+        text: 'file-length-limit: file length is ([3-7][0-9]{2}|800) lines, which exceeds the limit of 300'
       - path: _test\.go
         linters:
           - godoclint

@@ -270,7 +270,7 @@ func BenchmarkListRange(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for range b.N {
-		l.Range(func(idx int, item int) bool {
+		l.Range(func(_ int, item int) bool {
 			_ = item
 			return true
 		})

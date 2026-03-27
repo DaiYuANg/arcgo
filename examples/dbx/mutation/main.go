@@ -1,3 +1,4 @@
+// Package main demonstrates dbx mutation and returning-query patterns.
 package main
 
 import (
@@ -35,6 +36,21 @@ func main() {
 	catalog := shared.NewCatalog()
 	archive := dbx.MustSchema("user_archive", userArchiveSchema{})
 
+	core, closeDB := openMutationDB()
+	defer closeOrPanic(closeDB)
+
+	prepareMutationData(ctx, core, catalog, archive)
+
+	printStatusSummaries(queryStatusSummaries(ctx, core, catalog))
+	printUserNameRows("users resolved by subquery + exists:", queryAdminUsers(ctx, core, catalog))
+
+	archiveMapper := dbx.MustMapper[userArchive](archive)
+	printArchiveRows("insert-select returning:", insertArchiveFromSelect(ctx, core, catalog, archive, archiveMapper))
+	printArchiveRows("batch insert returning:", batchInsertArchive(ctx, core, archive, archiveMapper))
+	printArchiveRows("upsert returning:", upsertArchive(ctx, core, archive, archiveMapper))
+}
+
+func openMutationDB() (*dbx.DB, func() error) {
 	core, closeDB, err := shared.OpenSQLite(
 		"dbx-mutation",
 		dbx.WithLogger(shared.NewLogger()),
@@ -43,16 +59,23 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = closeDB() }()
 
-	if _, err := core.AutoMigrate(ctx, catalog.Roles, catalog.Users, catalog.UserRoles, archive); err != nil {
+	return core, closeDB
+}
+
+func prepareMutationData(ctx context.Context, core *dbx.DB, catalog shared.Catalog, archive userArchiveSchema) {
+	_, err := core.AutoMigrate(ctx, catalog.Roles, catalog.Users, catalog.UserRoles, archive)
+	if err != nil {
 		panic(err)
 	}
-	if err := shared.SeedDemoData(ctx, core, catalog); err != nil {
+	err = shared.SeedDemoData(ctx, core, catalog)
+	if err != nil {
 		panic(err)
 	}
+}
 
-	aggregateRows, err := dbx.QueryAll[statusSummary](
+func queryStatusSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalog) []statusSummary {
+	rows, err := dbx.QueryAll[statusSummary](
 		ctx,
 		core,
 		dbx.Select(
@@ -68,16 +91,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("aggregate status counts:")
-	for _, row := range aggregateRows {
-		fmt.Printf("- status=%d count=%d\n", row.Status, row.UserCount)
-	}
 
+	return rows
+}
+
+func queryAdminUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog) []userNameRow {
 	adminRoleIDs := dbx.Select(catalog.Roles.ID).
 		From(catalog.Roles).
 		Where(catalog.Roles.Name.Eq("admin"))
 
-	adminUsers, err := dbx.QueryAll[userNameRow](
+	rows, err := dbx.QueryAll[userNameRow](
 		ctx,
 		core,
 		dbx.Select(catalog.Users.Username).
@@ -96,14 +119,18 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("users resolved by subquery + exists:")
-	for _, row := range adminUsers {
-		fmt.Printf("- username=%s\n", row.Username)
-	}
 
-	archiveMapper := dbx.MustMapper[userArchive](archive)
+	return rows
+}
 
-	insertedFromSelect, err := dbx.QueryAll[userArchive](
+func insertArchiveFromSelect(
+	ctx context.Context,
+	core *dbx.DB,
+	catalog shared.Catalog,
+	archive userArchiveSchema,
+	archiveMapper dbx.Mapper[userArchive],
+) []userArchive {
+	rows, err := dbx.QueryAll[userArchive](
 		ctx,
 		core,
 		dbx.InsertInto(archive).
@@ -120,12 +147,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("insert-select returning:")
-	for _, row := range insertedFromSelect {
-		fmt.Printf("- id=%d username=%s status=%d\n", row.ID, row.Username, row.Status)
-	}
 
-	batchInserted, err := dbx.QueryAll[userArchive](
+	return rows
+}
+
+func batchInsertArchive(
+	ctx context.Context,
+	core *dbx.DB,
+	archive userArchiveSchema,
+	archiveMapper dbx.Mapper[userArchive],
+) []userArchive {
+	rows, err := dbx.QueryAll[userArchive](
 		ctx,
 		core,
 		dbx.InsertInto(archive).
@@ -143,12 +175,17 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("batch insert returning:")
-	for _, row := range batchInserted {
-		fmt.Printf("- id=%d username=%s status=%d\n", row.ID, row.Username, row.Status)
-	}
 
-	upserted, err := dbx.QueryAll[userArchive](
+	return rows
+}
+
+func upsertArchive(
+	ctx context.Context,
+	core *dbx.DB,
+	archive userArchiveSchema,
+	archiveMapper dbx.Mapper[userArchive],
+) []userArchive {
+	rows, err := dbx.QueryAll[userArchive](
 		ctx,
 		core,
 		dbx.InsertInto(archive).
@@ -164,8 +201,48 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("upsert returning:")
-	for _, row := range upserted {
-		fmt.Printf("- id=%d username=%s status=%d\n", row.ID, row.Username, row.Status)
+
+	return rows
+}
+
+func printStatusSummaries(rows []statusSummary) {
+	printLine("aggregate status counts:")
+	for index := range rows {
+		row := &rows[index]
+		printFormat("- status=%d count=%d\n", row.Status, row.UserCount)
+	}
+}
+
+func printUserNameRows(title string, rows []userNameRow) {
+	printLine(title)
+	for index := range rows {
+		row := &rows[index]
+		printFormat("- username=%s\n", row.Username)
+	}
+}
+
+func printArchiveRows(title string, rows []userArchive) {
+	printLine(title)
+	for index := range rows {
+		row := &rows[index]
+		printFormat("- id=%d username=%s status=%d\n", row.ID, row.Username, row.Status)
+	}
+}
+
+func closeOrPanic(closeFn func() error) {
+	if err := closeFn(); err != nil {
+		panic(err)
+	}
+}
+
+func printLine(text string) {
+	if _, err := fmt.Println(text); err != nil {
+		panic(err)
+	}
+}
+
+func printFormat(format string, args ...any) {
+	if _, err := fmt.Printf(format, args...); err != nil {
+		panic(err)
 	}
 }

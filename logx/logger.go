@@ -40,7 +40,10 @@ func (s *lifecycleState) close() error {
 				return nil, false
 			}
 			err := closer.Close()
-			return err, err != nil
+			if err == nil {
+				return nil, false
+			}
+			return fmt.Errorf("close logger resource: %w", err), true
 		})
 		s.closeErr = errors.Join(errs...)
 	})
@@ -105,7 +108,7 @@ func New(opts ...Option) (*slog.Logger, error) {
 	}
 
 	if cfg.filePath != "" {
-		if err := os.MkdirAll(filepath.Dir(cfg.filePath), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(cfg.filePath), 0o750); err != nil {
 			return nil, fmt.Errorf("failed to create log directory: %w", err)
 		}
 
@@ -193,7 +196,10 @@ func Close(logger *slog.Logger) error {
 	if !ok {
 		return nil
 	}
-	return closer.Close()
+	if err := closer.Close(); err != nil {
+		return fmt.Errorf("close logger: %w", err)
+	}
+	return nil
 }
 
 // ConfigOf returns logger build config when logger was created by logx.New.
@@ -239,8 +245,8 @@ func WithError(logger *slog.Logger, err error) *slog.Logger {
 	return logger.With("error", err)
 }
 
-// WithTraceContext adds trace/span IDs from context and returns a derived logger.
-func WithTraceContext(logger *slog.Logger, ctx context.Context) *slog.Logger {
+// WithTraceContext adds trace and span IDs from context and returns a derived logger.
+func WithTraceContext(ctx context.Context, logger *slog.Logger) *slog.Logger {
 	if logger == nil || ctx == nil {
 		return logger
 	}

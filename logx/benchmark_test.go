@@ -1,21 +1,16 @@
-package logx
+package logx_test
 
 import (
 	"log/slog"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/logx"
 )
 
 func benchmarkLogger(b *testing.B) *slog.Logger {
 	b.Helper()
 
-	logger, err := New(WithConsole(false), WithDebugLevel())
-	if err != nil {
-		b.Fatal(err)
-	}
-	b.Cleanup(func() {
-		_ = Close(logger)
-	})
-	return logger
+	return newTestLogger(b, logx.WithConsole(false), logx.WithDebugLevel())
 }
 
 func BenchmarkLoggerInfo(b *testing.B) {
@@ -24,14 +19,14 @@ func BenchmarkLoggerInfo(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		logger.Info("benchmark message", "key", "value", "count", i)
 	}
 }
 
 func BenchmarkLoggerWithFieldsInfo(b *testing.B) {
 	logger := benchmarkLogger(b)
-	fields := map[string]interface{}{
+	fields := map[string]any{
 		"service": "arcgo",
 		"env":     "bench",
 	}
@@ -39,8 +34,8 @@ func BenchmarkLoggerWithFieldsInfo(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		WithFields(logger, fields).Info("with-fields")
+	for range b.N {
+		logx.WithFields(logger, fields).Info("with-fields")
 	}
 }
 
@@ -50,7 +45,7 @@ func BenchmarkSlogInfo(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		slogLogger.Info("slog benchmark", "key", "value", "count", i)
 	}
 }

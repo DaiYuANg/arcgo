@@ -2,6 +2,7 @@ package fx
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"go.uber.org/fx"
@@ -31,7 +32,7 @@ type LogResult struct {
 func NewLogger(params LogParams) (LogResult, error) {
 	logger, err := logx.New(params.Options...)
 	if err != nil {
-		return LogResult{}, err
+		return LogResult{}, fmt.Errorf("create logx logger: %w", err)
 	}
 	params.Lifecycle.Append(fx.Hook{
 		OnStop: func(context.Context) error {

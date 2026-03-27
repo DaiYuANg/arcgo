@@ -42,7 +42,7 @@ func main() {
 	})
 	ctx := trace.ContextWithSpanContext(context.Background(), spanContext)
 
-	logx.WithTraceContext(logger, ctx).Info("request accepted", "endpoint", "/api/orders")
+	logx.WithTraceContext(ctx, logger).Info("request accepted", "endpoint", "/api/orders")
 }
 ```
 

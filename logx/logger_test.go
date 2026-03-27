@@ -1,25 +1,17 @@
-package logx
+package logx_test
 
 import (
 	"context"
 	"errors"
-	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/logx"
 	"go.opentelemetry.io/otel/trace"
 )
-
-type failingCloser struct {
-	err error
-}
-
-func (c *failingCloser) Close() error {
-	return c.err
-}
 
 func TestParseLevel(t *testing.T) {
 	t.Parallel()
@@ -32,14 +24,14 @@ func TestParseLevel(t *testing.T) {
 		{"info", slog.LevelInfo},
 		{"warn", slog.LevelWarn},
 		{"error", slog.LevelError},
-		{"trace", LevelTrace},
-		{"fatal", LevelFatal},
-		{"panic", LevelPanic},
-		{"disabled", LevelDisabled},
+		{"trace", logx.LevelTrace},
+		{"fatal", logx.LevelFatal},
+		{"panic", logx.LevelPanic},
+		{"disabled", logx.LevelDisabled},
 	}
 
 	for _, tt := range tests {
-		got, err := ParseLevel(tt.input)
+		got, err := logx.ParseLevel(tt.input)
 		if err != nil {
 			t.Fatalf("ParseLevel(%q) error = %v", tt.input, err)
 		}
@@ -57,23 +49,19 @@ func TestMustParseLevel_PanicOnInvalid(t *testing.T) {
 			t.Fatal("expected panic")
 		}
 	}()
-	_ = MustParseLevel("invalid-level")
+	_ = logx.MustParseLevel("invalid-level")
 }
 
 func TestNew_ConfigOfAndClose(t *testing.T) {
 	t.Parallel()
 
-	logger, err := New(
-		WithConsole(true),
-		WithLevel(slog.LevelDebug),
-		WithCaller(true),
+	logger := newTestLogger(t,
+		logx.WithConsole(true),
+		logx.WithLevel(slog.LevelDebug),
+		logx.WithCaller(true),
 	)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = Close(logger) }()
 
-	cfg, ok := ConfigOf(logger)
+	cfg, ok := logx.ConfigOf(logger)
 	if !ok {
 		t.Fatal("expected config to be available")
 	}
@@ -88,7 +76,7 @@ func TestNew_ConfigOfAndClose(t *testing.T) {
 func TestNew_InvalidRotationConfig(t *testing.T) {
 	t.Parallel()
 
-	_, err := New(WithFileRotation(0, 7, 10))
+	_, err := logx.New(logx.WithFileRotation(0, 7, 10))
 	if err == nil {
 		t.Fatal("expected validation error")
 	}
@@ -98,12 +86,13 @@ func TestProductionConfig_WritesFile(t *testing.T) {
 	t.Parallel()
 
 	logPath := filepath.Join(t.TempDir(), "app.log")
-	logger, err := New(ProductionConfig(logPath)...)
+	logger, err := logx.New(logx.ProductionConfig(logPath)...)
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	logger.Info("production file test", "key", "value")
-	if err := Close(logger); err != nil {
+	if err := logx.Close(logger); err != nil {
 		t.Fatal(err)
 	}
 	if _, statErr := os.Stat(logPath); statErr != nil {
@@ -116,18 +105,16 @@ func TestClose_JoinedErrorAndIdempotent(t *testing.T) {
 
 	errA := errors.New("close-a")
 	errB := errors.New("close-b")
-	logger := slog.New(&managedHandler{
-		Handler: slog.NewTextHandler(io.Discard, nil),
-		state: &lifecycleState{
-			closers: []io.Closer{
-				&failingCloser{err: errA},
-				nil,
-				&failingCloser{err: errB},
-			},
+	logger := slog.New(&closableHandler{
+		Handler: slog.DiscardHandler,
+		closers: []simpleCloser{
+			&failingCloser{err: errA},
+			nil,
+			&failingCloser{err: errB},
 		},
 	})
 
-	err := Close(logger)
+	err := logx.Close(logger)
 	if err == nil {
 		t.Fatal("expected non-nil close error")
 	}
@@ -135,8 +122,7 @@ func TestClose_JoinedErrorAndIdempotent(t *testing.T) {
 		t.Fatal("expected joined close errors")
 	}
 
-	// idempotent: second close should not panic and should return same join result.
-	err2 := Close(logger)
+	err2 := logx.Close(logger)
 	if err2 == nil {
 		t.Fatal("expected non-nil close error on second call")
 	}
@@ -148,18 +134,20 @@ func TestClose_JoinedErrorAndIdempotent(t *testing.T) {
 func TestWithTraceContext(t *testing.T) {
 	t.Parallel()
 
-	logger, err := New(WithConsole(false))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = Close(logger) }()
+	logger := newTestLogger(t, logx.WithConsole(false))
 
-	if got := WithTraceContext(logger, context.Background()); got != logger {
+	if got := logx.WithTraceContext(context.Background(), logger); got != logger {
 		t.Fatal("expected original logger when context has no span")
 	}
 
-	traceID, _ := trace.TraceIDFromHex("4bf92f3577b34da6a3ce929d0e0e4736")
-	spanID, _ := trace.SpanIDFromHex("00f067aa0ba902b7")
+	traceID, err := trace.TraceIDFromHex("4bf92f3577b34da6a3ce929d0e0e4736")
+	if err != nil {
+		t.Fatal(err)
+	}
+	spanID, err := trace.SpanIDFromHex("00f067aa0ba902b7")
+	if err != nil {
+		t.Fatal(err)
+	}
 	sc := trace.NewSpanContext(trace.SpanContextConfig{
 		TraceID:    traceID,
 		SpanID:     spanID,
@@ -167,7 +155,7 @@ func TestWithTraceContext(t *testing.T) {
 	})
 	ctx := trace.ContextWithSpanContext(context.Background(), sc)
 
-	derived := WithTraceContext(logger, ctx)
+	derived := logx.WithTraceContext(ctx, logger)
 	if derived == logger {
 		t.Fatal("expected derived logger when span context exists")
 	}
@@ -176,25 +164,21 @@ func TestWithTraceContext(t *testing.T) {
 func TestFieldHelpers(t *testing.T) {
 	t.Parallel()
 
-	logger, err := New(WithConsole(false), WithDebugLevel())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = Close(logger) }()
+	logger := newTestLogger(t, logx.WithConsole(false), logx.WithDebugLevel())
 
-	if got := WithField(logger, "retry", 3); got == nil {
+	if got := logx.WithField(logger, "retry", 3); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
-	if got := WithFields(logger, map[string]any{"batch": 7}); got == nil {
+	if got := logx.WithFields(logger, map[string]any{"batch": 7}); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
-	if got := WithFieldT(logger, "tenant", "acme"); got == nil {
+	if got := logx.WithFieldT(logger, "tenant", "acme"); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
-	if got := WithFieldsT(logger, map[string]int{"attempt": 2}); got == nil {
+	if got := logx.WithFieldsT(logger, map[string]int{"attempt": 2}); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
-	if got := WithError(logger, errors.New("boom")); got == nil {
+	if got := logx.WithError(logger, errors.New("boom")); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
 }
@@ -202,22 +186,18 @@ func TestFieldHelpers(t *testing.T) {
 func TestOopsHelpers(t *testing.T) {
 	t.Parallel()
 
-	logger, err := New(WithConsole(false))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = Close(logger) }()
+	logger := newTestLogger(t, logx.WithConsole(false))
 
-	LogOops(logger, errors.New("boom"))
-	LogOopsWithStack(logger, errors.New("boom"))
+	logx.LogOops(logger, errors.New("boom"))
+	logx.LogOopsWithStack(logger, errors.New("boom"))
 
-	if Oops() == nil {
+	if logx.Oops() == nil {
 		t.Fatal("expected non-nil oops error")
 	}
-	if got := Oopsf("user.%s", "not_found"); got == nil || !strings.Contains(got.Error(), "user.not_found") {
+	if got := logx.Oopsf("user.%s", "not_found"); got == nil || !strings.Contains(got.Error(), "user.not_found") {
 		t.Fatal("expected formatted oops error")
 	}
-	if OopsWith(context.Background()) == nil {
+	if logx.OopsWith(context.Background()) == nil {
 		t.Fatal("expected non-nil context oops error")
 	}
 }
@@ -225,13 +205,9 @@ func TestOopsHelpers(t *testing.T) {
 func TestLevelOfAndEnabled(t *testing.T) {
 	t.Parallel()
 
-	logger, err := New(WithLevel(slog.LevelWarn), WithConsole(false))
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = Close(logger) }()
+	logger := newTestLogger(t, logx.WithLevel(slog.LevelWarn), logx.WithConsole(false))
 
-	level, ok := LevelOf(logger)
+	level, ok := logx.LevelOf(logger)
 	if !ok {
 		t.Fatal("expected level metadata")
 	}
@@ -239,10 +215,10 @@ func TestLevelOfAndEnabled(t *testing.T) {
 		t.Fatalf("expected warn level, got %v", level)
 	}
 
-	if IsEnabled(logger, slog.LevelDebug) {
+	if logx.IsEnabled(logger, slog.LevelDebug) {
 		t.Fatal("debug should be disabled at warn level")
 	}
-	if !IsEnabled(logger, slog.LevelError) {
+	if !logx.IsEnabled(logger, slog.LevelError) {
 		t.Fatal("error should be enabled at warn level")
 	}
 }

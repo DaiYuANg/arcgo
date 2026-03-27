@@ -2,24 +2,27 @@ package shared
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/DaiYuANg/arcgo/dbx"
 )
 
+// InsertAll inserts multiple items for a schema using dbx mapper assignments.
 func InsertAll[E any, S dbx.SchemaSource[E]](ctx context.Context, session dbx.Session, schema S, items ...E) error {
 	mapper := dbx.MustMapper[E](schema)
 	for _, item := range items {
 		assignments, err := mapper.InsertAssignments(session, schema, new(item))
 		if err != nil {
-			return err
+			return fmt.Errorf("build insert assignments: %w", err)
 		}
 		if _, err := dbx.Exec(ctx, session, dbx.InsertInto(schema).Values(assignments...)); err != nil {
-			return err
+			return fmt.Errorf("execute insert: %w", err)
 		}
 	}
 	return nil
 }
 
+// SeedDemoData loads the shared demo dataset used by dbx examples.
 func SeedDemoData(ctx context.Context, session dbx.Session, catalog Catalog) error {
 	if err := InsertAll(ctx, session, catalog.Roles,
 		Role{Name: "admin"},

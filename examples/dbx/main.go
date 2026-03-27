@@ -1,14 +1,21 @@
+// Package main lists the available dbx example entry points.
 package main
 
 import "fmt"
 
 func main() {
-	fmt.Println("dbx examples:")
-	fmt.Println("  go run ./examples/dbx/basic")
-	fmt.Println("  go run ./examples/dbx/codec")
-	fmt.Println("  go run ./examples/dbx/mutation")
-	fmt.Println("  go run ./examples/dbx/query_advanced")
-	fmt.Println("  go run ./examples/dbx/relations")
-	fmt.Println("  go run ./examples/dbx/migration")
-	fmt.Println("  go run ./examples/dbx/pure_sql")
+	printLine("dbx examples:")
+	printLine("  go run ./examples/dbx/basic")
+	printLine("  go run ./examples/dbx/codec")
+	printLine("  go run ./examples/dbx/mutation")
+	printLine("  go run ./examples/dbx/query_advanced")
+	printLine("  go run ./examples/dbx/relations")
+	printLine("  go run ./examples/dbx/migration")
+	printLine("  go run ./examples/dbx/pure_sql")
+}
+
+func printLine(text string) {
+	if _, err := fmt.Println(text); err != nil {
+		panic(err)
+	}
 }

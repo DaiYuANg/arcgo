@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/kvx"
-	"github.com/samber/lo"
 )
 
 // ConsumerGroup provides high-level consumer group operations.
@@ -29,31 +28,44 @@ func NewConsumerGroup(client kvx.Stream, streamKey, groupName, consumerName stri
 
 // Create creates the consumer group.
 func (cg *ConsumerGroup) Create(ctx context.Context, startID string) error {
-	return cg.client.XGroupCreate(ctx, cg.streamKey, cg.groupName, startID)
+	return wrapError(
+		cg.client.XGroupCreate(ctx, cg.streamKey, cg.groupName, startID),
+		cg.groupAction("create consumer group"),
+	)
 }
 
 // CreateFromBeginning creates the consumer group reading from the beginning.
 func (cg *ConsumerGroup) CreateFromBeginning(ctx context.Context) error {
-	return cg.client.XGroupCreate(ctx, cg.streamKey, cg.groupName, "0")
+	return wrapError(
+		cg.client.XGroupCreate(ctx, cg.streamKey, cg.groupName, "0"),
+		cg.groupAction("create consumer group from beginning"),
+	)
 }
 
 // CreateFromLatest creates the consumer group reading from new messages only.
 func (cg *ConsumerGroup) CreateFromLatest(ctx context.Context) error {
-	return cg.client.XGroupCreate(ctx, cg.streamKey, cg.groupName, "$")
+	return wrapError(
+		cg.client.XGroupCreate(ctx, cg.streamKey, cg.groupName, "$"),
+		cg.groupAction("create consumer group from latest"),
+	)
 }
 
 // Destroy destroys the consumer group.
 func (cg *ConsumerGroup) Destroy(ctx context.Context) error {
-	return cg.client.XGroupDestroy(ctx, cg.streamKey, cg.groupName)
+	return wrapError(
+		cg.client.XGroupDestroy(ctx, cg.streamKey, cg.groupName),
+		cg.groupAction("destroy consumer group"),
+	)
 }
 
 // Read reads messages from the consumer group.
 func (cg *ConsumerGroup) Read(ctx context.Context, count int64, block time.Duration) ([]kvx.StreamEntry, error) {
 	streams := map[string]string{
-		cg.streamKey: ">", // Read only new messages for this consumer
+		cg.streamKey: ">",
 	}
 
-	results, err := cg.client.XReadGroup(ctx, cg.groupName, cg.consumerName, streams, count, block)
+	results, readErr := cg.client.XReadGroup(ctx, cg.groupName, cg.consumerName, streams, count, block)
+	results, err := wrapResult(results, readErr, cg.consumerAction("read consumer group entries"))
 	if err != nil {
 		return nil, err
 	}
@@ -64,10 +76,11 @@ func (cg *ConsumerGroup) Read(ctx context.Context, count int64, block time.Durat
 // ReadPending reads pending messages (previously delivered but not acknowledged).
 func (cg *ConsumerGroup) ReadPending(ctx context.Context, count int64) ([]kvx.StreamEntry, error) {
 	streams := map[string]string{
-		cg.streamKey: "0", // Read pending messages
+		cg.streamKey: "0",
 	}
 
-	results, err := cg.client.XReadGroup(ctx, cg.groupName, cg.consumerName, streams, count, 0)
+	results, readErr := cg.client.XReadGroup(ctx, cg.groupName, cg.consumerName, streams, count, 0)
+	results, err := wrapResult(results, readErr, cg.consumerAction("read pending consumer group entries"))
 	if err != nil {
 		return nil, err
 	}
@@ -77,37 +90,60 @@ func (cg *ConsumerGroup) ReadPending(ctx context.Context, count int64) ([]kvx.St
 
 // Ack acknowledges processing of messages.
 func (cg *ConsumerGroup) Ack(ctx context.Context, ids []string) error {
-	return cg.client.XAck(ctx, cg.streamKey, cg.groupName, ids)
+	return wrapError(
+		cg.client.XAck(ctx, cg.streamKey, cg.groupName, ids),
+		cg.groupAction("ack consumer group entries"),
+	)
 }
 
 // AckEntry acknowledges a single entry.
 func (cg *ConsumerGroup) AckEntry(ctx context.Context, id string) error {
-	return cg.client.XAck(ctx, cg.streamKey, cg.groupName, []string{id})
+	return wrapError(
+		cg.client.XAck(ctx, cg.streamKey, cg.groupName, []string{id}),
+		cg.groupAction("ack consumer group entry"),
+	)
 }
 
 // Pending gets pending entries information.
 func (cg *ConsumerGroup) Pending(ctx context.Context) (*kvx.PendingInfo, error) {
-	return cg.client.XPending(ctx, cg.streamKey, cg.groupName)
+	info, err := cg.client.XPending(ctx, cg.streamKey, cg.groupName)
+	return wrapResult(info, err, cg.groupAction("read pending info"))
 }
 
 // PendingRange gets pending entries in a range.
-func (cg *ConsumerGroup) PendingRange(ctx context.Context, start string, stop string, count int64) ([]kvx.PendingEntry, error) {
-	return cg.client.XPendingRange(ctx, cg.streamKey, cg.groupName, start, stop, count)
+func (cg *ConsumerGroup) PendingRange(ctx context.Context, start, stop string, count int64) ([]kvx.PendingEntry, error) {
+	entries, err := cg.client.XPendingRange(ctx, cg.streamKey, cg.groupName, start, stop, count)
+	return wrapResult(entries, err, cg.groupAction("read pending entry range"))
 }
 
 // Claim claims pending entries from other consumers.
 func (cg *ConsumerGroup) Claim(ctx context.Context, ids []string, minIdleTime time.Duration) ([]kvx.StreamEntry, error) {
-	return cg.client.XClaim(ctx, cg.streamKey, cg.groupName, cg.consumerName, minIdleTime, ids)
+	entries, err := cg.client.XClaim(ctx, cg.streamKey, cg.groupName, cg.consumerName, minIdleTime, ids)
+	return wrapResult(entries, err, cg.consumerAction("claim pending entries"))
 }
 
 // AutoClaim auto-claims pending entries that have been idle for minIdleTime.
 func (cg *ConsumerGroup) AutoClaim(ctx context.Context, minIdleTime time.Duration, count int64) (string, []kvx.StreamEntry, error) {
-	return cg.client.XAutoClaim(ctx, cg.streamKey, cg.groupName, cg.consumerName, minIdleTime, "0", count)
+	nextID, entries, err := cg.client.XAutoClaim(
+		ctx,
+		cg.streamKey,
+		cg.groupName,
+		cg.consumerName,
+		minIdleTime,
+		"0",
+		count,
+	)
+	if err != nil {
+		return "", nil, fmt.Errorf("%s: %w", cg.consumerAction("auto claim pending entries"), err)
+	}
+
+	return nextID, entries, nil
 }
 
 // Info gets information about the consumer group.
 func (cg *ConsumerGroup) Info(ctx context.Context) (*kvx.GroupInfo, error) {
-	groups, err := cg.client.XInfoGroups(ctx, cg.streamKey)
+	groups, groupsErr := cg.client.XInfoGroups(ctx, cg.streamKey)
+	groups, err := wrapResult(groups, groupsErr, cg.groupAction("read consumer group info"))
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +159,8 @@ func (cg *ConsumerGroup) Info(ctx context.Context) (*kvx.GroupInfo, error) {
 
 // ConsumerInfo gets information about this consumer.
 func (cg *ConsumerGroup) ConsumerInfo(ctx context.Context) (*kvx.ConsumerInfo, error) {
-	consumers, err := cg.client.XInfoConsumers(ctx, cg.streamKey, cg.groupName)
+	consumers, consumersErr := cg.client.XInfoConsumers(ctx, cg.streamKey, cg.groupName)
+	consumers, err := wrapResult(consumers, consumersErr, cg.consumerAction("read consumer info"))
 	if err != nil {
 		return nil, err
 	}
@@ -139,12 +176,16 @@ func (cg *ConsumerGroup) ConsumerInfo(ctx context.Context) (*kvx.ConsumerInfo, e
 
 // DeleteConsumer deletes this consumer from the group.
 func (cg *ConsumerGroup) DeleteConsumer(ctx context.Context) error {
-	return cg.client.XGroupDelConsumer(ctx, cg.streamKey, cg.groupName, cg.consumerName)
+	return wrapError(
+		cg.client.XGroupDelConsumer(ctx, cg.streamKey, cg.groupName, cg.consumerName),
+		cg.consumerAction("delete consumer"),
+	)
 }
 
 // StreamInfo gets information about the stream.
 func (cg *ConsumerGroup) StreamInfo(ctx context.Context) (*kvx.StreamInfo, error) {
-	return cg.client.XInfoStream(ctx, cg.streamKey)
+	info, err := cg.client.XInfoStream(ctx, cg.streamKey)
+	return wrapResult(info, err, cg.groupAction("read stream info"))
 }
 
 // ConsumerGroupManager manages multiple consumer groups for a stream.
@@ -163,27 +204,40 @@ func NewConsumerGroupManager(client kvx.Stream, streamKey string) *ConsumerGroup
 
 // CreateGroup creates a new consumer group.
 func (m *ConsumerGroupManager) CreateGroup(ctx context.Context, groupName, startID string) error {
-	return m.client.XGroupCreate(ctx, m.streamKey, groupName, startID)
+	return wrapError(
+		m.client.XGroupCreate(ctx, m.streamKey, groupName, startID),
+		m.groupAction("create consumer group", groupName),
+	)
 }
 
 // CreateGroupFromBeginning creates a new consumer group reading from the beginning.
 func (m *ConsumerGroupManager) CreateGroupFromBeginning(ctx context.Context, groupName string) error {
-	return m.client.XGroupCreate(ctx, m.streamKey, groupName, "0")
+	return wrapError(
+		m.client.XGroupCreate(ctx, m.streamKey, groupName, "0"),
+		m.groupAction("create consumer group from beginning", groupName),
+	)
 }
 
 // CreateGroupFromLatest creates a new consumer group reading from new messages.
 func (m *ConsumerGroupManager) CreateGroupFromLatest(ctx context.Context, groupName string) error {
-	return m.client.XGroupCreate(ctx, m.streamKey, groupName, "$")
+	return wrapError(
+		m.client.XGroupCreate(ctx, m.streamKey, groupName, "$"),
+		m.groupAction("create consumer group from latest", groupName),
+	)
 }
 
 // DestroyGroup destroys a consumer group.
 func (m *ConsumerGroupManager) DestroyGroup(ctx context.Context, groupName string) error {
-	return m.client.XGroupDestroy(ctx, m.streamKey, groupName)
+	return wrapError(
+		m.client.XGroupDestroy(ctx, m.streamKey, groupName),
+		m.groupAction("destroy consumer group", groupName),
+	)
 }
 
 // ListGroups lists all consumer groups for the stream.
 func (m *ConsumerGroupManager) ListGroups(ctx context.Context) ([]kvx.GroupInfo, error) {
-	return m.client.XInfoGroups(ctx, m.streamKey)
+	groups, err := m.client.XInfoGroups(ctx, m.streamKey)
+	return wrapResult(groups, err, m.streamAction("list consumer groups"))
 }
 
 // GetConsumer creates a ConsumerGroup instance for a specific consumer.
@@ -193,228 +247,22 @@ func (m *ConsumerGroupManager) GetConsumer(groupName, consumerName string) *Cons
 
 // StreamInfo gets information about the stream.
 func (m *ConsumerGroupManager) StreamInfo(ctx context.Context) (*kvx.StreamInfo, error) {
-	return m.client.XInfoStream(ctx, m.streamKey)
+	info, err := m.client.XInfoStream(ctx, m.streamKey)
+	return wrapResult(info, err, m.streamAction("read stream info"))
 }
 
-// Consumer handles message processing with automatic acknowledgment.
-type Consumer struct {
-	group        *ConsumerGroup
-	handler      MessageHandler
-	autoAck      bool
-	batchSize    int64
-	blockTimeout time.Duration
+func (cg *ConsumerGroup) groupAction(action string) string {
+	return action + " for group " + cg.groupName + " on stream " + cg.streamKey
 }
 
-// MessageHandler is the callback function for processing messages.
-type MessageHandler func(ctx context.Context, entry kvx.StreamEntry) error
-
-// BatchMessageHandler is the callback function for processing messages in batch.
-type BatchMessageHandler func(ctx context.Context, entries []kvx.StreamEntry) error
-
-// ConsumerOptions contains options for creating a Consumer.
-type ConsumerOptions struct {
-	AutoAck      bool
-	BatchSize    int64
-	BlockTimeout time.Duration
+func (cg *ConsumerGroup) consumerAction(action string) string {
+	return action + " for consumer " + cg.consumerName + " in group " + cg.groupName + " on stream " + cg.streamKey
 }
 
-// DefaultConsumerOptions returns default consumer options.
-func DefaultConsumerOptions() ConsumerOptions {
-	return ConsumerOptions{
-		AutoAck:      true,
-		BatchSize:    10,
-		BlockTimeout: 5 * time.Second,
-	}
+func (m *ConsumerGroupManager) groupAction(action, groupName string) string {
+	return action + " for group " + groupName + " on stream " + m.streamKey
 }
 
-// NewConsumer creates a new Consumer.
-func NewConsumer(group *ConsumerGroup, handler MessageHandler, opts ConsumerOptions) *Consumer {
-	return &Consumer{
-		group:        group,
-		handler:      handler,
-		autoAck:      opts.AutoAck,
-		batchSize:    opts.BatchSize,
-		blockTimeout: opts.BlockTimeout,
-	}
-}
-
-// Run starts the consumer loop.
-func (c *Consumer) Run(ctx context.Context) error {
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		entries, err := c.group.Read(ctx, c.batchSize, c.blockTimeout)
-		if err != nil {
-			return err
-		}
-
-		if len(entries) == 0 {
-			continue
-		}
-
-		idsToAck := make([]string, 0, len(entries))
-
-		for _, entry := range entries {
-			if err := c.handler(ctx, entry); err != nil {
-				// Handle error - could log, retry, or continue based on strategy
-				continue
-			}
-
-			if c.autoAck {
-				idsToAck = append(idsToAck, entry.ID)
-			}
-		}
-
-		if c.autoAck && len(idsToAck) > 0 {
-			_ = c.group.Ack(ctx, idsToAck)
-		}
-	}
-}
-
-// BatchConsumer handles message processing in batches.
-type BatchConsumer struct {
-	group        *ConsumerGroup
-	handler      BatchMessageHandler
-	autoAck      bool
-	batchSize    int64
-	blockTimeout time.Duration
-	maxWaitTime  time.Duration
-}
-
-// NewBatchConsumer creates a new BatchConsumer.
-func NewBatchConsumer(group *ConsumerGroup, handler BatchMessageHandler, opts ConsumerOptions) *BatchConsumer {
-	return &BatchConsumer{
-		group:        group,
-		handler:      handler,
-		autoAck:      opts.AutoAck,
-		batchSize:    opts.BatchSize,
-		blockTimeout: opts.BlockTimeout,
-		maxWaitTime:  time.Second,
-	}
-}
-
-// Run starts the batch consumer loop.
-func (c *BatchConsumer) Run(ctx context.Context) error {
-	buffer := make([]kvx.StreamEntry, 0, c.batchSize)
-	timer := time.NewTimer(c.maxWaitTime)
-	defer timer.Stop()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-timer.C:
-			if len(buffer) > 0 {
-				if err := c.processBatch(ctx, buffer); err != nil {
-					return err
-				}
-				buffer = buffer[:0]
-			}
-			timer.Reset(c.maxWaitTime)
-		default:
-		}
-
-		entries, err := c.group.Read(ctx, c.batchSize-int64(len(buffer)), c.blockTimeout)
-		if err != nil {
-			return err
-		}
-
-		buffer = append(buffer, entries...)
-
-		if int64(len(buffer)) >= c.batchSize {
-			if err := c.processBatch(ctx, buffer); err != nil {
-				return err
-			}
-			buffer = buffer[:0]
-			timer.Reset(c.maxWaitTime)
-		}
-	}
-}
-
-func (c *BatchConsumer) processBatch(ctx context.Context, entries []kvx.StreamEntry) error {
-	if err := c.handler(ctx, entries); err != nil {
-		return err
-	}
-
-	if c.autoAck {
-		ids := lo.Map(entries, func(entry kvx.StreamEntry, _ int) string {
-			return entry.ID
-		})
-		return c.group.Ack(ctx, ids)
-	}
-
-	return nil
-}
-
-// Claimer handles claiming stale messages from other consumers.
-type Claimer struct {
-	group       *ConsumerGroup
-	handler     MessageHandler
-	minIdleTime time.Duration
-	batchSize   int64
-	interval    time.Duration
-}
-
-// NewClaimer creates a new Claimer.
-func NewClaimer(group *ConsumerGroup, handler MessageHandler, minIdleTime time.Duration, batchSize int64) *Claimer {
-	return &Claimer{
-		group:       group,
-		handler:     handler,
-		minIdleTime: minIdleTime,
-		batchSize:   batchSize,
-		interval:    time.Minute,
-	}
-}
-
-// Run starts the claimer loop.
-func (c *Claimer) Run(ctx context.Context) error {
-	ticker := time.NewTicker(c.interval)
-	defer ticker.Stop()
-
-	// Run immediately on start
-	if err := c.claimAndProcess(ctx); err != nil {
-		return err
-	}
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-			if err := c.claimAndProcess(ctx); err != nil {
-				return err
-			}
-		}
-	}
-}
-
-func (c *Claimer) claimAndProcess(ctx context.Context) error {
-	for {
-		_, entries, err := c.group.AutoClaim(ctx, c.minIdleTime, c.batchSize)
-		if err != nil {
-			return err
-		}
-
-		if len(entries) == 0 {
-			break
-		}
-
-		idsToAck := make([]string, 0, len(entries))
-		for _, entry := range entries {
-			if err := c.handler(ctx, entry); err != nil {
-				continue
-			}
-			idsToAck = append(idsToAck, entry.ID)
-		}
-
-		if len(idsToAck) > 0 {
-			_ = c.group.Ack(ctx, idsToAck)
-		}
-	}
-
-	return nil
+func (m *ConsumerGroupManager) streamAction(action string) string {
+	return action + " on stream " + m.streamKey
 }

@@ -3,9 +3,11 @@ package sqlite
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
@@ -14,16 +16,45 @@ import (
 	"github.com/samber/lo"
 )
 
+const (
+	sqliteTableExistsQuery = "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?"
+	sqliteCreateSQLQuery   = "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?"
+)
+
+var (
+	sqliteIntegerKinds = []reflect.Kind{
+		reflect.Int,
+		reflect.Int8,
+		reflect.Int16,
+		reflect.Int32,
+		reflect.Int64,
+		reflect.Uint,
+		reflect.Uint8,
+		reflect.Uint16,
+		reflect.Uint32,
+		reflect.Uint64,
+	}
+	sqliteRealKinds = []reflect.Kind{reflect.Float32, reflect.Float64}
+)
+
+// Dialect implements SQLite rendering and schema inspection.
 type Dialect struct{}
 
+// New returns a SQLite dialect implementation.
 func New() Dialect { return Dialect{} }
 
-func (Dialect) Name() string         { return "sqlite" }
+// Name returns the dialect name.
+func (Dialect) Name() string { return "sqlite" }
+
+// BindVar returns the bind placeholder for a parameter index.
 func (Dialect) BindVar(_ int) string { return "?" }
+
+// QuoteIdent quotes an identifier for SQLite.
 func (Dialect) QuoteIdent(ident string) string {
 	return `"` + strings.ReplaceAll(ident, `"`, `""`) + `"`
 }
 
+// RenderLimitOffset renders a LIMIT/OFFSET clause for SQLite.
 func (Dialect) RenderLimitOffset(limit, offset *int) (string, error) {
 	if limit == nil && offset == nil {
 		return "", nil
@@ -37,43 +68,61 @@ func (Dialect) RenderLimitOffset(limit, offset *int) (string, error) {
 	return fmt.Sprintf("LIMIT -1 OFFSET %d", *offset), nil
 }
 
+// QueryFeatures returns the supported query feature set.
 func (Dialect) QueryFeatures() dialect.QueryFeatures {
 	return dialect.DefaultQueryFeatures("sqlite")
 }
 
+// BuildCreateTable builds a CREATE TABLE statement.
 func (d Dialect) BuildCreateTable(spec dbx.TableSpec) (dbx.BoundQuery, error) {
 	parts := collectionx.NewListWithCapacity[string](len(spec.Columns) + len(spec.ForeignKeys) + len(spec.Checks) + 1)
 	inlinePrimaryKey := singlePrimaryKeyColumn(spec.PrimaryKey)
-	for _, column := range spec.Columns {
-		ddl, err := d.columnDDL(column, columnDDLConfig{AllowAutoIncrement: true, InlinePrimaryKey: inlinePrimaryKey == column.Name})
+
+	for i := range spec.Columns {
+		column := spec.Columns[i]
+		ddl, err := d.columnDDL(column, columnDDLConfig{
+			AllowAutoIncrement: true,
+			InlinePrimaryKey:   inlinePrimaryKey == column.Name,
+		})
 		if err != nil {
-			return dbx.BoundQuery{}, err
+			return dbx.BoundQuery{}, fmt.Errorf("build sqlite column ddl: %w", err)
 		}
 		parts.Add(ddl)
 	}
+
 	if spec.PrimaryKey != nil && len(spec.PrimaryKey.Columns) > 1 {
 		parts.Add(d.primaryKeyDDL(*spec.PrimaryKey))
 	}
-	for _, foreignKey := range spec.ForeignKeys {
-		parts.Add(d.foreignKeyDDL(foreignKey))
+
+	for i := range spec.ForeignKeys {
+		parts.Add(d.foreignKeyDDL(spec.ForeignKeys[i]))
 	}
-	for _, check := range spec.Checks {
-		parts.Add(d.checkDDL(check))
+	for i := range spec.Checks {
+		parts.Add(d.checkDDL(spec.Checks[i]))
 	}
-	return dbx.BoundQuery{SQL: "CREATE TABLE IF NOT EXISTS " + d.QuoteIdent(spec.Name) + " (" + strings.Join(parts.Values(), ", ") + ")"}, nil
+
+	return dbx.BoundQuery{
+		SQL: "CREATE TABLE IF NOT EXISTS " + d.QuoteIdent(spec.Name) + " (" + strings.Join(parts.Values(), ", ") + ")",
+	}, nil
 }
 
+// BuildAddColumn builds an ALTER TABLE ADD COLUMN statement.
 func (d Dialect) BuildAddColumn(table string, column dbx.ColumnMeta) (dbx.BoundQuery, error) {
 	if column.PrimaryKey {
 		return dbx.BoundQuery{}, fmt.Errorf("dbx/sqlite: cannot add primary key column %s with ALTER TABLE", column.Name)
 	}
+
 	ddl, err := d.columnDDL(column, columnDDLConfig{IncludeReference: true})
 	if err != nil {
-		return dbx.BoundQuery{}, err
+		return dbx.BoundQuery{}, fmt.Errorf("build sqlite column ddl: %w", err)
 	}
-	return dbx.BoundQuery{SQL: "ALTER TABLE " + d.QuoteIdent(table) + " ADD COLUMN " + ddl}, nil
+
+	return dbx.BoundQuery{
+		SQL: "ALTER TABLE " + d.QuoteIdent(table) + " ADD COLUMN " + ddl,
+	}, nil
 }
 
+// BuildCreateIndex builds a CREATE INDEX statement.
 func (d Dialect) BuildCreateIndex(index dbx.IndexMeta) (dbx.BoundQuery, error) {
 	columns := lo.Map(index.Columns, func(column string, _ int) string {
 		return d.QuoteIdent(column)
@@ -82,164 +131,63 @@ func (d Dialect) BuildCreateIndex(index dbx.IndexMeta) (dbx.BoundQuery, error) {
 	if index.Unique {
 		prefix = "CREATE UNIQUE INDEX IF NOT EXISTS "
 	}
-	return dbx.BoundQuery{SQL: prefix + d.QuoteIdent(index.Name) + " ON " + d.QuoteIdent(index.Table) + " (" + strings.Join(columns, ", ") + ")"}, nil
+	return dbx.BoundQuery{
+		SQL: prefix + d.QuoteIdent(index.Name) + " ON " + d.QuoteIdent(index.Table) + " (" + strings.Join(columns, ", ") + ")",
+	}, nil
 }
 
+// BuildAddForeignKey reports that SQLite foreign keys require a table rebuild.
 func (Dialect) BuildAddForeignKey(string, dbx.ForeignKeyMeta) (dbx.BoundQuery, error) {
-	return dbx.BoundQuery{}, fmt.Errorf("dbx/sqlite: adding foreign keys requires table rebuild")
+	return dbx.BoundQuery{}, errors.New("dbx/sqlite: adding foreign keys requires table rebuild")
 }
 
+// BuildAddCheck reports that SQLite check constraints require a table rebuild.
 func (Dialect) BuildAddCheck(string, dbx.CheckMeta) (dbx.BoundQuery, error) {
-	return dbx.BoundQuery{}, fmt.Errorf("dbx/sqlite: adding check constraints requires table rebuild")
+	return dbx.BoundQuery{}, errors.New("dbx/sqlite: adding check constraints requires table rebuild")
 }
 
+// InspectTable inspects a SQLite table definition from PRAGMA metadata.
 func (d Dialect) InspectTable(ctx context.Context, executor dbx.Executor, table string) (dbx.TableState, error) {
-	existsRows, err := executor.QueryContext(ctx, "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?", table)
+	exists, err := inspectSQLiteTableExists(ctx, executor, table)
 	if err != nil {
 		return dbx.TableState{}, err
 	}
-	exists := existsRows.Next()
-	_ = existsRows.Close()
 	if !exists {
 		return dbx.TableState{Name: table, Exists: false}, nil
 	}
 
-	columnsRows, err := executor.QueryContext(ctx, "PRAGMA table_info("+d.QuoteIdent(table)+")")
+	columns, primaryKey, err := d.inspectColumns(ctx, executor, table)
 	if err != nil {
 		return dbx.TableState{}, err
 	}
-	defer columnsRows.Close()
 
-	columns := collectionx.NewList[dbx.ColumnState]()
-	primaryPositions := collectionx.NewOrderedMap[int, string]()
-	for columnsRows.Next() {
-		var cid, notNull, pk int
-		var name, typeName string
-		var defaultVal sql.NullString
-		if scanErr := columnsRows.Scan(&cid, &name, &typeName, &notNull, &defaultVal, &pk); scanErr != nil {
-			return dbx.TableState{}, scanErr
-		}
-		columns.Add(dbx.ColumnState{Name: name, Type: typeName, Nullable: notNull == 0, PrimaryKey: pk > 0, DefaultValue: defaultVal.String})
-		if pk > 0 {
-			primaryPositions.Set(pk, name)
-		}
-	}
-	if err := columnsRows.Err(); err != nil {
-		return dbx.TableState{}, err
-	}
-
-	var primaryKey *dbx.PrimaryKeyState
-	if primaryPositions.Len() > 0 {
-		primaryColumns := collectionx.NewListWithCapacity[string](primaryPositions.Len())
-		primaryPositions.Range(func(_ int, value string) bool {
-			primaryColumns.Add(value)
-			return true
-		})
-		primaryKey = &dbx.PrimaryKeyState{Columns: primaryColumns.Values()}
-	}
-
-	indexListRows, err := executor.QueryContext(ctx, "PRAGMA index_list("+d.QuoteIdent(table)+")")
+	indexes, err := d.inspectIndexes(ctx, executor, table)
 	if err != nil {
 		return dbx.TableState{}, err
 	}
-	defer indexListRows.Close()
 
-	indexes := collectionx.NewList[dbx.IndexState]()
-	for indexListRows.Next() {
-		var seq, unique, partial int
-		var name, origin string
-		if scanErr := indexListRows.Scan(&seq, &name, &unique, &origin, &partial); scanErr != nil {
-			return dbx.TableState{}, scanErr
-		}
-		if origin == "pk" {
-			continue
-		}
-		indexInfoRows, infoErr := executor.QueryContext(ctx, "PRAGMA index_info("+d.QuoteIdent(name)+")")
-		if infoErr != nil {
-			return dbx.TableState{}, infoErr
-		}
-		cols := collectionx.NewList[string]()
-		for indexInfoRows.Next() {
-			var seqno, cid int
-			var column string
-			if scanErr := indexInfoRows.Scan(&seqno, &cid, &column); scanErr != nil {
-				_ = indexInfoRows.Close()
-				return dbx.TableState{}, scanErr
-			}
-			cols.Add(column)
-		}
-		if err := indexInfoRows.Close(); err != nil {
-			return dbx.TableState{}, err
-		}
-		indexes.Add(dbx.IndexState{Name: name, Columns: cols.Values(), Unique: unique == 1})
-	}
-	if err := indexListRows.Err(); err != nil {
-		return dbx.TableState{}, err
-	}
-
-	foreignKeyRows, err := executor.QueryContext(ctx, "PRAGMA foreign_key_list("+d.QuoteIdent(table)+")")
+	foreignKeys, err := d.inspectForeignKeys(ctx, executor, table)
 	if err != nil {
 		return dbx.TableState{}, err
 	}
-	defer foreignKeyRows.Close()
 
-	foreignKeysByID := collectionx.NewOrderedMap[int, dbx.ForeignKeyState]()
-	for foreignKeyRows.Next() {
-		var id, seq int
-		var targetTable, from, to, onUpdate, onDelete, match string
-		if scanErr := foreignKeyRows.Scan(&id, &seq, &targetTable, &from, &to, &onUpdate, &onDelete, &match); scanErr != nil {
-			return dbx.TableState{}, scanErr
-		}
-		state, ok := foreignKeysByID.Get(id)
-		if !ok {
-			state = dbx.ForeignKeyState{TargetTable: targetTable, Columns: make([]string, 0, 1), TargetColumns: make([]string, 0, 1), OnDelete: referentialAction(onDelete), OnUpdate: referentialAction(onUpdate)}
-		}
-		state.Columns = append(state.Columns, from)
-		state.TargetColumns = append(state.TargetColumns, to)
-		foreignKeysByID.Set(id, state)
-	}
-	if err := foreignKeyRows.Err(); err != nil {
-		return dbx.TableState{}, err
-	}
-	foreignKeys := collectionx.NewListWithCapacity[dbx.ForeignKeyState](foreignKeysByID.Len())
-	foreignKeysByID.Range(func(_ int, value dbx.ForeignKeyState) bool {
-		foreignKeys.Add(value)
-		return true
-	})
-
-	createRows, err := executor.QueryContext(ctx, "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?", table)
+	checks, autoincrementColumns, err := inspectSQLiteCreateMetadata(ctx, executor, table)
 	if err != nil {
 		return dbx.TableState{}, err
 	}
-	defer createRows.Close()
-	checks := collectionx.NewList[dbx.CheckState]()
-	autoincrementColumns := collectionx.NewSet[string]()
-	for createRows.Next() {
-		var createSQL sql.NullString
-		if scanErr := createRows.Scan(&createSQL); scanErr != nil {
-			return dbx.TableState{}, scanErr
-		}
-		for _, column := range parseCreateTableAutoincrementColumns(createSQL.String) {
-			autoincrementColumns.Add(column)
-		}
-		for _, check := range parseCreateTableChecks(createSQL.String) {
-			checks.Add(check)
-		}
-	}
-	if err := createRows.Err(); err != nil {
-		return dbx.TableState{}, err
-	}
 
-	items := columns.Values()
-	for i := range items {
-		if autoincrementColumns.Contains(items[i].Name) {
-			items[i].AutoIncrement = true
-		}
-	}
-
-	return dbx.TableState{Exists: true, Name: table, Columns: items, Indexes: indexes.Values(), PrimaryKey: primaryKey, ForeignKeys: foreignKeys.Values(), Checks: checks.Values()}, nil
+	return dbx.TableState{
+		Exists:      true,
+		Name:        table,
+		Columns:     markSQLiteAutoincrementColumns(columns, autoincrementColumns),
+		Indexes:     indexes,
+		PrimaryKey:  primaryKey,
+		ForeignKeys: foreignKeys,
+		Checks:      checks,
+	}, nil
 }
 
+// NormalizeType normalizes database type names into dbx logical types.
 func (Dialect) NormalizeType(value string) string {
 	typeName := strings.ToUpper(strings.TrimSpace(value))
 	switch {
@@ -249,7 +197,7 @@ func (Dialect) NormalizeType(value string) string {
 		return "TEXT"
 	case strings.Contains(typeName, "BLOB"):
 		return "BLOB"
-	case strings.Contains(typeName, "REAL"), strings.Contains(typeName, "FLOA"), strings.Contains(typeName, "DOUB"):
+	case strings.Contains(typeName, "REAL"), strings.Contains(typeName, "FLOA"), strings.Contains(typeName, "DOUBLE"):
 		return "REAL"
 	case strings.Contains(typeName, "BOOL"):
 		return "BOOLEAN"
@@ -266,42 +214,422 @@ type columnDDLConfig struct {
 	IncludeReference   bool
 }
 
-func (d Dialect) columnDDL(column dbx.ColumnMeta, config columnDDLConfig) (string, error) {
-	parts := collectionx.NewList[string]()
-	parts.Add(d.QuoteIdent(column.Name))
+func inspectSQLiteTableExists(ctx context.Context, executor dbx.Executor, table string) (exists bool, resultErr error) {
+	const action = "inspect sqlite table existence"
 
-	typeName := column.SQLType
-	if typeName == "" {
-		typeName = sqliteType(column)
+	rows, err := querySQLiteRows(ctx, executor, action, sqliteTableExistsQuery, table)
+	if err != nil {
+		return false, err
 	}
-	if config.InlinePrimaryKey && column.AutoIncrement && config.AllowAutoIncrement {
-		if d.NormalizeType(typeName) != "INTEGER" {
-			return "", fmt.Errorf("dbx/sqlite: autoincrement requires INTEGER primary key for column %s", column.Name)
+	defer func() {
+		if closeErr := closeSQLiteRows(action, rows); closeErr != nil && resultErr == nil {
+			resultErr = closeErr
 		}
-		parts.Add("INTEGER PRIMARY KEY AUTOINCREMENT")
-		return strings.Join(parts.Values(), " "), nil
+	}()
+
+	exists = rows.Next()
+	if rowsErr := sqliteRowsError(action, rows); rowsErr != nil {
+		return false, rowsErr
 	}
 
-	parts.Add(typeName)
+	return exists, nil
+}
+
+func (d Dialect) inspectColumns(ctx context.Context, executor dbx.Executor, table string) (_ []dbx.ColumnState, _ *dbx.PrimaryKeyState, resultErr error) {
+	const action = "inspect sqlite columns"
+
+	rows, err := querySQLiteRows(ctx, executor, action, "PRAGMA table_info("+d.QuoteIdent(table)+")")
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() {
+		if closeErr := closeSQLiteRows(action, rows); closeErr != nil && resultErr == nil {
+			resultErr = closeErr
+		}
+	}()
+
+	columns := make([]dbx.ColumnState, 0, 8)
+	primaryPositions := make(map[int]string, 2)
+	for rows.Next() {
+		column, primaryPosition, scanErr := scanSQLiteColumn(rows)
+		if scanErr != nil {
+			return nil, nil, scanErr
+		}
+		columns = append(columns, column)
+		if primaryPosition > 0 {
+			primaryPositions[primaryPosition] = column.Name
+		}
+	}
+
+	if rowsErr := sqliteRowsError(action, rows); rowsErr != nil {
+		return nil, nil, rowsErr
+	}
+
+	return columns, sqlitePrimaryKeyState(primaryPositions), nil
+}
+
+func (d Dialect) inspectIndexes(ctx context.Context, executor dbx.Executor, table string) (_ []dbx.IndexState, resultErr error) {
+	const action = "inspect sqlite indexes"
+
+	rows, err := querySQLiteRows(ctx, executor, action, "PRAGMA index_list("+d.QuoteIdent(table)+")")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := closeSQLiteRows(action, rows); closeErr != nil && resultErr == nil {
+			resultErr = closeErr
+		}
+	}()
+
+	indexes := make([]dbx.IndexState, 0, 4)
+	for rows.Next() {
+		index, skip, indexErr := d.loadSQLiteIndex(ctx, executor, rows)
+		if indexErr != nil {
+			return nil, indexErr
+		}
+		if !skip {
+			indexes = append(indexes, index)
+		}
+	}
+
+	if rowsErr := sqliteRowsError(action, rows); rowsErr != nil {
+		return nil, rowsErr
+	}
+
+	return indexes, nil
+}
+
+func (d Dialect) loadSQLiteIndex(ctx context.Context, executor dbx.Executor, rows *sql.Rows) (dbx.IndexState, bool, error) {
+	name, unique, origin, err := scanSQLiteIndexList(rows)
+	if err != nil {
+		return dbx.IndexState{}, false, err
+	}
+	if origin == "pk" {
+		return dbx.IndexState{}, true, nil
+	}
+
+	index, err := d.inspectIndex(ctx, executor, name, unique)
+	if err != nil {
+		return dbx.IndexState{}, false, err
+	}
+	return index, false, nil
+}
+
+func (d Dialect) inspectIndex(ctx context.Context, executor dbx.Executor, name string, unique bool) (dbx.IndexState, error) {
+	columns, err := d.inspectIndexColumns(ctx, executor, name)
+	if err != nil {
+		return dbx.IndexState{}, err
+	}
+	return dbx.IndexState{Name: name, Columns: columns, Unique: unique}, nil
+}
+
+func (d Dialect) inspectIndexColumns(ctx context.Context, executor dbx.Executor, name string) (_ []string, resultErr error) {
+	const action = "inspect sqlite index columns"
+
+	rows, err := querySQLiteRows(ctx, executor, action, "PRAGMA index_info("+d.QuoteIdent(name)+")")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := closeSQLiteRows(action, rows); closeErr != nil && resultErr == nil {
+			resultErr = closeErr
+		}
+	}()
+
+	columns := make([]string, 0, 2)
+	for rows.Next() {
+		column, scanErr := scanSQLiteIndexColumn(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		columns = append(columns, column)
+	}
+
+	if rowsErr := sqliteRowsError(action, rows); rowsErr != nil {
+		return nil, rowsErr
+	}
+
+	return columns, nil
+}
+
+func (d Dialect) inspectForeignKeys(ctx context.Context, executor dbx.Executor, table string) (_ []dbx.ForeignKeyState, resultErr error) {
+	const action = "inspect sqlite foreign keys"
+
+	rows, err := querySQLiteRows(ctx, executor, action, "PRAGMA foreign_key_list("+d.QuoteIdent(table)+")")
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if closeErr := closeSQLiteRows(action, rows); closeErr != nil && resultErr == nil {
+			resultErr = closeErr
+		}
+	}()
+
+	groups := collectionx.NewOrderedMap[int, dbx.ForeignKeyState]()
+	for rows.Next() {
+		id, state, scanErr := scanSQLiteForeignKey(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		appendSQLiteForeignKey(groups, id, state)
+	}
+
+	if rowsErr := sqliteRowsError(action, rows); rowsErr != nil {
+		return nil, rowsErr
+	}
+
+	foreignKeys := make([]dbx.ForeignKeyState, 0, groups.Len())
+	groups.Range(func(_ int, value dbx.ForeignKeyState) bool {
+		foreignKeys = append(foreignKeys, value)
+		return true
+	})
+	return foreignKeys, nil
+}
+
+func inspectSQLiteCreateMetadata(ctx context.Context, executor dbx.Executor, table string) (_ []dbx.CheckState, _ map[string]struct{}, resultErr error) {
+	const action = "inspect sqlite create metadata"
+
+	rows, err := querySQLiteRows(ctx, executor, action, sqliteCreateSQLQuery, table)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() {
+		if closeErr := closeSQLiteRows(action, rows); closeErr != nil && resultErr == nil {
+			resultErr = closeErr
+		}
+	}()
+
+	checks := make([]dbx.CheckState, 0, 2)
+	autoincrementColumns := make(map[string]struct{}, 1)
+	for rows.Next() {
+		createSQL, scanErr := scanSQLiteCreateSQL(rows)
+		if scanErr != nil {
+			return nil, nil, scanErr
+		}
+
+		for _, column := range parseCreateTableAutoincrementColumns(createSQL) {
+			autoincrementColumns[column] = struct{}{}
+		}
+		checks = append(checks, parseCreateTableChecks(createSQL)...)
+	}
+
+	if rowsErr := sqliteRowsError(action, rows); rowsErr != nil {
+		return nil, nil, rowsErr
+	}
+
+	return checks, autoincrementColumns, nil
+}
+
+func scanSQLiteColumn(rows *sql.Rows) (dbx.ColumnState, int, error) {
+	var cid int
+	var name string
+	var typeName string
+	var notNull int
+	var defaultValue sql.NullString
+	var primaryPosition int
+
+	if err := rows.Scan(&cid, &name, &typeName, &notNull, &defaultValue, &primaryPosition); err != nil {
+		return dbx.ColumnState{}, 0, fmt.Errorf("scan sqlite column: %w", err)
+	}
+
+	return dbx.ColumnState{
+		Name:         name,
+		Type:         typeName,
+		Nullable:     notNull == 0,
+		PrimaryKey:   primaryPosition > 0,
+		DefaultValue: defaultValue.String,
+	}, primaryPosition, nil
+}
+
+func scanSQLiteIndexList(rows *sql.Rows) (string, bool, string, error) {
+	var seq int
+	var name string
+	var unique int
+	var origin string
+	var partial int
+
+	if err := rows.Scan(&seq, &name, &unique, &origin, &partial); err != nil {
+		return "", false, "", fmt.Errorf("scan sqlite index list: %w", err)
+	}
+
+	return name, unique == 1, origin, nil
+}
+
+func scanSQLiteIndexColumn(rows *sql.Rows) (string, error) {
+	var seqno int
+	var cid int
+	var column string
+
+	if err := rows.Scan(&seqno, &cid, &column); err != nil {
+		return "", fmt.Errorf("scan sqlite index column: %w", err)
+	}
+
+	return column, nil
+}
+
+func scanSQLiteForeignKey(rows *sql.Rows) (int, dbx.ForeignKeyState, error) {
+	var id int
+	var seq int
+	var targetTable string
+	var from string
+	var to string
+	var onUpdate string
+	var onDelete string
+	var match string
+
+	if err := rows.Scan(&id, &seq, &targetTable, &from, &to, &onUpdate, &onDelete, &match); err != nil {
+		return 0, dbx.ForeignKeyState{}, fmt.Errorf("scan sqlite foreign key: %w", err)
+	}
+
+	return id, dbx.ForeignKeyState{
+		TargetTable:   targetTable,
+		Columns:       []string{from},
+		TargetColumns: []string{to},
+		OnDelete:      referentialAction(onDelete),
+		OnUpdate:      referentialAction(onUpdate),
+	}, nil
+}
+
+func scanSQLiteCreateSQL(rows *sql.Rows) (string, error) {
+	var createSQL sql.NullString
+
+	if err := rows.Scan(&createSQL); err != nil {
+		return "", fmt.Errorf("scan sqlite create sql: %w", err)
+	}
+	return createSQL.String, nil
+}
+
+func sqlitePrimaryKeyState(positions map[int]string) *dbx.PrimaryKeyState {
+	if len(positions) == 0 {
+		return nil
+	}
+
+	keys := make([]int, 0, len(positions))
+	for position := range positions {
+		keys = append(keys, position)
+	}
+	slices.Sort(keys)
+
+	columns := make([]string, 0, len(keys))
+	for _, position := range keys {
+		columns = append(columns, positions[position])
+	}
+
+	return &dbx.PrimaryKeyState{Columns: columns}
+}
+
+func appendSQLiteForeignKey(groups collectionx.OrderedMap[int, dbx.ForeignKeyState], id int, state dbx.ForeignKeyState) {
+	current, ok := groups.Get(id)
+	if !ok {
+		groups.Set(id, state)
+		return
+	}
+	current.Columns = append(current.Columns, state.Columns...)
+	current.TargetColumns = append(current.TargetColumns, state.TargetColumns...)
+	groups.Set(id, current)
+}
+
+func querySQLiteRows(ctx context.Context, executor dbx.Executor, action, query string, args ...any) (*sql.Rows, error) {
+	rows, err := executor.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", action, err)
+	}
+	return rows, nil
+}
+
+func closeSQLiteRows(action string, rows *sql.Rows) error {
+	if rows == nil {
+		return nil
+	}
+	if closeErr := rows.Close(); closeErr != nil {
+		return fmt.Errorf("%s: close rows: %w", action, closeErr)
+	}
+	return nil
+}
+
+func sqliteRowsError(action string, rows *sql.Rows) error {
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("%s: rows err: %w", action, err)
+	}
+	return nil
+}
+
+func markSQLiteAutoincrementColumns(columns []dbx.ColumnState, autoincrementColumns map[string]struct{}) []dbx.ColumnState {
+	for i := range columns {
+		if _, ok := autoincrementColumns[columns[i].Name]; ok {
+			columns[i].AutoIncrement = true
+		}
+	}
+	return columns
+}
+
+func (d Dialect) columnDDL(column dbx.ColumnMeta, config columnDDLConfig) (string, error) {
+	parts := make([]string, 0, 5)
+	parts = append(parts, d.QuoteIdent(column.Name))
+
+	autoIncrementDDL, ok, err := d.sqliteAutoIncrementDDL(column, config)
+	if err != nil {
+		return "", err
+	}
+	if ok {
+		return strings.Join(append(parts, autoIncrementDDL), " "), nil
+	}
+
+	parts = append(parts, resolvedSQLiteType(column))
+	parts = append(parts, sqliteColumnConstraintParts(column, config)...)
+	parts = append(parts, d.sqliteReferenceParts(column, config.IncludeReference)...)
+	return strings.Join(parts, " "), nil
+}
+
+func (d Dialect) sqliteAutoIncrementDDL(column dbx.ColumnMeta, config columnDDLConfig) (string, bool, error) {
+	if !config.InlinePrimaryKey || !column.AutoIncrement || !config.AllowAutoIncrement {
+		return "", false, nil
+	}
+
+	typeName := resolvedSQLiteType(column)
+	if d.NormalizeType(typeName) != "INTEGER" {
+		return "", false, fmt.Errorf("dbx/sqlite: autoincrement requires INTEGER primary key for column %s", column.Name)
+	}
+
+	return "INTEGER PRIMARY KEY AUTOINCREMENT", true, nil
+}
+
+func sqliteColumnConstraintParts(column dbx.ColumnMeta, config columnDDLConfig) []string {
+	parts := make([]string, 0, 3)
 	if config.InlinePrimaryKey {
-		parts.Add("PRIMARY KEY")
+		parts = append(parts, "PRIMARY KEY")
 	}
 	if !column.Nullable && !config.InlinePrimaryKey {
-		parts.Add("NOT NULL")
+		parts = append(parts, "NOT NULL")
 	}
 	if column.DefaultValue != "" {
-		parts.Add("DEFAULT " + column.DefaultValue)
+		parts = append(parts, "DEFAULT "+column.DefaultValue)
 	}
-	if config.IncludeReference && column.References != nil {
-		parts.Add("REFERENCES " + d.QuoteIdent(column.References.TargetTable) + " (" + d.QuoteIdent(column.References.TargetColumn) + ")")
-		if column.References.OnDelete != "" {
-			parts.Add("ON DELETE " + string(column.References.OnDelete))
-		}
-		if column.References.OnUpdate != "" {
-			parts.Add("ON UPDATE " + string(column.References.OnUpdate))
-		}
+	return parts
+}
+
+func (d Dialect) sqliteReferenceParts(column dbx.ColumnMeta, includeReference bool) []string {
+	if !includeReference || column.References == nil {
+		return nil
 	}
-	return strings.Join(parts.Values(), " "), nil
+
+	parts := []string{
+		"REFERENCES " + d.QuoteIdent(column.References.TargetTable) + " (" + d.QuoteIdent(column.References.TargetColumn) + ")",
+	}
+	if column.References.OnDelete != "" {
+		parts = append(parts, "ON DELETE "+string(column.References.OnDelete))
+	}
+	if column.References.OnUpdate != "" {
+		parts = append(parts, "ON UPDATE "+string(column.References.OnUpdate))
+	}
+	return parts
+}
+
+func resolvedSQLiteType(column dbx.ColumnMeta) string {
+	if column.SQLType != "" {
+		return column.SQLType
+	}
+	return sqliteType(column)
 }
 
 func (d Dialect) primaryKeyDDL(primaryKey dbx.PrimaryKeyMeta) string {
@@ -336,33 +664,61 @@ func (d Dialect) checkDDL(check dbx.CheckMeta) string {
 }
 
 func sqliteType(column dbx.ColumnMeta) string {
+	if column.SQLType != "" {
+		return column.SQLType
+	}
 	if column.GoType == nil {
 		return "TEXT"
 	}
-	typ := column.GoType
+
+	typ := dereferenceSQLiteType(column.GoType)
+	if isSQLiteTimeType(typ) {
+		return "TIMESTAMP"
+	}
+	if isSQLiteBlobType(typ) {
+		return "BLOB"
+	}
+	if mapped, ok := sqliteKindType(typ.Kind()); ok {
+		return mapped
+	}
+	return fallbackSQLiteType(typ)
+}
+
+func sqliteKindType(kind reflect.Kind) (string, bool) {
+	switch {
+	case kind == reflect.Bool:
+		return "BOOLEAN", true
+	case slices.Contains(sqliteIntegerKinds, kind):
+		return "INTEGER", true
+	case slices.Contains(sqliteRealKinds, kind):
+		return "REAL", true
+	case kind == reflect.String:
+		return "TEXT", true
+	default:
+		return "", false
+	}
+}
+
+func dereferenceSQLiteType(typ reflect.Type) reflect.Type {
 	for typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
 	}
-	if typ.PkgPath() == "time" && typ.Name() == "Time" {
-		return "TIMESTAMP"
+	return typ
+}
+
+func isSQLiteTimeType(typ reflect.Type) bool {
+	return typ.PkgPath() == "time" && typ.Name() == "Time"
+}
+
+func isSQLiteBlobType(typ reflect.Type) bool {
+	return typ.Kind() == reflect.Slice && typ.Elem().Kind() == reflect.Uint8
+}
+
+func fallbackSQLiteType(typ reflect.Type) string {
+	if name := typ.Name(); name != "" {
+		return strings.ToUpper(name)
 	}
-	switch typ.Kind() {
-	case reflect.Bool:
-		return "BOOLEAN"
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return "INTEGER"
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return "INTEGER"
-	case reflect.Float32, reflect.Float64:
-		return "REAL"
-	case reflect.String:
-		return "TEXT"
-	case reflect.Slice:
-		if typ.Elem().Kind() == reflect.Uint8 {
-			return "BLOB"
-		}
-	}
-	return strings.ToUpper(typ.Name())
+	return "TEXT"
 }
 
 func singlePrimaryKeyColumn(primaryKey *dbx.PrimaryKeyMeta) string {
@@ -374,52 +730,67 @@ func singlePrimaryKeyColumn(primaryKey *dbx.PrimaryKeyMeta) string {
 
 func parseCreateTableChecks(createSQL string) []dbx.CheckState {
 	upper := strings.ToUpper(createSQL)
-	checks := collectionx.NewList[dbx.CheckState]()
+	checks := make([]dbx.CheckState, 0, 2)
+
 	for offset := 0; ; {
-		index := strings.Index(upper[offset:], "CHECK")
-		if index < 0 {
-			break
+		expression, nextOffset, found := nextSQLiteCheckExpression(createSQL, upper, offset)
+		if !found {
+			return checks
 		}
-		index += offset
-		start := strings.Index(createSQL[index:], "(")
-		if start < 0 {
-			offset = index + len("CHECK")
-			continue
+		if expression != "" {
+			checks = append(checks, dbx.CheckState{Expression: expression})
 		}
-		start += index
-		depth := 0
-		end := -1
-	scanLoop:
-		for i := start; i < len(createSQL); i++ {
-			switch createSQL[i] {
-			case '(':
-				depth++
-			case ')':
-				depth--
-				if depth == 0 {
-					end = i
-					break scanLoop
-				}
+		offset = nextOffset
+	}
+}
+
+func nextSQLiteCheckExpression(createSQL, upper string, offset int) (string, int, bool) {
+	index := strings.Index(upper[offset:], "CHECK")
+	if index < 0 {
+		return "", 0, false
+	}
+
+	index += offset
+	start := strings.Index(createSQL[index:], "(")
+	if start < 0 {
+		return "", index + len("CHECK"), true
+	}
+	start += index
+
+	end := sqliteMatchingParen(createSQL, start)
+	if end < 0 {
+		return "", len(createSQL), false
+	}
+
+	return strings.TrimSpace(createSQL[start+1 : end]), end + 1, true
+}
+
+func sqliteMatchingParen(input string, start int) int {
+	depth := 0
+	for i := start; i < len(input); i++ {
+		switch input[i] {
+		case '(':
+			depth++
+		case ')':
+			depth--
+			if depth == 0 {
+				return i
 			}
 		}
-		if end < 0 {
-			break
-		}
-		checks.Add(dbx.CheckState{Expression: strings.TrimSpace(createSQL[start+1 : end])})
-		offset = end + 1
 	}
-	return checks.Values()
+	return -1
 }
 
 func parseCreateTableAutoincrementColumns(createSQL string) []string {
 	matches := sqliteAutoincrementPattern.FindAllStringSubmatch(createSQL, -1)
-	columns := collectionx.NewListWithCapacity[string](len(matches))
-	for _, match := range matches {
+	columns := make([]string, 0, len(matches))
+	for i := range matches {
+		match := matches[i]
 		if len(match) >= 2 {
-			columns.Add(strings.TrimSpace(match[1]))
+			columns = append(columns, strings.TrimSpace(match[1]))
 		}
 	}
-	return columns.Values()
+	return columns
 }
 
 func referentialAction(value string) dbx.ReferentialAction {

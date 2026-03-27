@@ -2,14 +2,13 @@ package valkey
 
 import (
 	"context"
-	"fmt"
+	"strconv"
+
 	"github.com/DaiYuANg/arcgo/kvx"
 )
 
-// ============== Search Interface ==============
-
 // CreateIndex creates a secondary index.
-func (a *Adapter) CreateIndex(ctx context.Context, indexName string, prefix string, schema []kvx.SchemaField) error {
+func (a *Adapter) CreateIndex(ctx context.Context, indexName, prefix string, schema []kvx.SchemaField) error {
 	args := []string{indexName, "ON", "HASH", "PREFIX", "1", prefix, "SCHEMA"}
 
 	for _, f := range schema {
@@ -19,77 +18,49 @@ func (a *Adapter) CreateIndex(ctx context.Context, indexName string, prefix stri
 		}
 	}
 
-	return a.client.Do(ctx, a.client.B().Arbitrary("FT.CREATE").Args(args...).Build()).Error()
+	return wrapValkeyError("create search index", a.client.Do(ctx, a.client.B().Arbitrary("FT.CREATE").Args(args...).Build()).Error())
 }
 
 // DropIndex drops a secondary index.
 func (a *Adapter) DropIndex(ctx context.Context, indexName string) error {
-	return a.client.Do(ctx, a.client.B().Arbitrary("FT.DROPINDEX").Args(indexName).Build()).Error()
+	return wrapValkeyError("drop search index", a.client.Do(ctx, a.client.B().Arbitrary("FT.DROPINDEX").Args(indexName).Build()).Error())
 }
 
 // Search performs a search query.
-func (a *Adapter) Search(ctx context.Context, indexName string, query string, limit int) ([]string, error) {
-	resp := a.client.Do(ctx, a.client.B().Arbitrary("FT.SEARCH").Args(indexName, query, "LIMIT", "0", fmt.Sprintf("%d", limit)).Build())
-	if resp.Error() != nil {
-		return nil, resp.Error()
-	}
-
-	// Use AsFtSearch to parse the response
-	total, docs, err := resp.AsFtSearch()
+func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int) ([]string, error) {
+	resp := a.client.Do(ctx, a.client.B().Arbitrary("FT.SEARCH").Args(indexName, query, "LIMIT", "0", strconv.Itoa(limit)).Build())
+	docs, err := ftSearchDocsFromResult("search index", resp)
 	if err != nil {
 		return nil, err
 	}
-	_ = total // We don't need the total count here
 
-	keys := make([]string, len(docs))
-	for i, doc := range docs {
-		keys[i] = doc.Key
-	}
-	return keys, nil
+	return searchDocsToKeys(docs), nil
 }
 
 // SearchWithSort performs a search query with sorting.
-func (a *Adapter) SearchWithSort(ctx context.Context, indexName string, query string, sortBy string, ascending bool, limit int) ([]string, error) {
+func (a *Adapter) SearchWithSort(ctx context.Context, indexName, query, sortBy string, ascending bool, limit int) ([]string, error) {
 	args := []string{indexName, query, "SORTBY", sortBy}
 	if !ascending {
 		args = append(args, "DESC")
 	}
-	args = append(args, "LIMIT", "0", fmt.Sprintf("%d", limit))
+	args = append(args, "LIMIT", "0", strconv.Itoa(limit))
 
 	resp := a.client.Do(ctx, a.client.B().Arbitrary("FT.SEARCH").Args(args...).Build())
-	if resp.Error() != nil {
-		return nil, resp.Error()
-	}
-
-	_, docs, err := resp.AsFtSearch()
+	docs, err := ftSearchDocsFromResult("search index with sort", resp)
 	if err != nil {
 		return nil, err
 	}
-	keys := make([]string, len(docs))
-	for i, doc := range docs {
-		keys[i] = doc.Key
-	}
-	return keys, nil
+
+	return searchDocsToKeys(docs), nil
 }
 
 // SearchAggregate performs an aggregation query.
-func (a *Adapter) SearchAggregate(ctx context.Context, indexName string, query string, limit int) ([]map[string]interface{}, error) {
-	resp := a.client.Do(ctx, a.client.B().Arbitrary("FT.AGGREGATE").Args(indexName, query, "LIMIT", "0", fmt.Sprintf("%d", limit)).Build())
-	if resp.Error() != nil {
-		return nil, resp.Error()
-	}
-
-	_, docs, err := resp.AsFtAggregate()
+func (a *Adapter) SearchAggregate(ctx context.Context, indexName, query string, limit int) ([]map[string]any, error) {
+	resp := a.client.Do(ctx, a.client.B().Arbitrary("FT.AGGREGATE").Args(indexName, query, "LIMIT", "0", strconv.Itoa(limit)).Build())
+	docs, err := ftAggregateDocsFromResult("aggregate search index", resp)
 	if err != nil {
 		return nil, err
 	}
-	results := make([]map[string]interface{}, len(docs))
-	for i, doc := range docs {
-		row := make(map[string]interface{}, len(doc))
-		for k, v := range doc {
-			row[k] = v
-		}
-		results[i] = row
-	}
-	return results, nil
+
+	return aggregateDocsToRows(docs), nil
 }

@@ -3,10 +3,11 @@ package valkey
 import (
 	"context"
 	"fmt"
-	"github.com/DaiYuANg/arcgo/kvx"
-	"github.com/valkey-io/valkey-go"
 	"log/slog"
 	"time"
+
+	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/valkey-io/valkey-go"
 )
 
 // Adapter implements kvx.Client using valkey-go.
@@ -53,6 +54,7 @@ func New(opts kvx.ClientOptions) (*Adapter, error) {
 
 	if err := client.Do(ctx, client.B().Ping().Build()).Error(); err != nil {
 		kvx.LogError(logger, "kvx valkey adapter ping failed", "addr", opts.Addrs[0], "error", err)
+		client.Close()
 		return nil, fmt.Errorf("failed to connect to Valkey: %w", err)
 	}
 

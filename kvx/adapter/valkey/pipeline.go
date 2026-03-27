@@ -7,8 +7,6 @@ import (
 	"github.com/valkey-io/valkey-go"
 )
 
-// ============== Pipeline Interface ==============
-
 // Pipeline creates a new pipeline.
 func (a *Adapter) Pipeline() kvx.Pipeline {
 	return &valkeyPipeline{
@@ -43,18 +41,26 @@ func (p *valkeyPipeline) Exec(ctx context.Context) ([][]byte, error) {
 		return nil, nil
 	}
 
-	// Use DoMulti for pipeline execution
 	resps := p.client.DoMulti(ctx, p.cmds...)
 
 	results := make([][]byte, len(resps))
 	for i, resp := range resps {
-		if resp.Error() != nil && !valkey.IsValkeyNil(resp.Error()) {
+		if err := resp.Error(); err != nil {
+			if valkey.IsValkeyNil(err) {
+				continue
+			}
+
 			results[i] = nil
 			continue
 		}
-		b, _ := resp.AsBytes()
-		results[i] = b
+
+		value, err := bytesFromResult("read pipeline result", resp)
+		if err != nil {
+			return nil, err
+		}
+		results[i] = value
 	}
+
 	return results, nil
 }
 

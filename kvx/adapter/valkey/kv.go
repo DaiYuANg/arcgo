@@ -2,23 +2,19 @@ package valkey
 
 import (
 	"context"
+	"fmt"
+	"math"
+	"time"
+
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/valkey-io/valkey-go"
-	"time"
 )
-
-// ============== KV Interface ==============
 
 // Get retrieves the value for the given key.
 func (a *Adapter) Get(ctx context.Context, key string) ([]byte, error) {
 	resp := a.client.Do(ctx, a.client.B().Get().Key(key).Build())
-	if resp.Error() != nil {
-		if valkey.IsValkeyNil(resp.Error()) {
-			return nil, kvx.ErrNil
-		}
-		return nil, resp.Error()
-	}
-	return resp.AsBytes()
+
+	return bytesFromResult("get value", resp)
 }
 
 // MGet retrieves multiple values for the given keys.
@@ -40,9 +36,10 @@ func (a *Adapter) MGet(ctx context.Context, keys []string) (map[string][]byte, e
 // Set sets the value for the given key.
 func (a *Adapter) Set(ctx context.Context, key string, value []byte, expiration time.Duration) error {
 	if expiration > 0 {
-		return a.client.Do(ctx, a.client.B().Set().Key(key).Value(valkey.BinaryString(value)).Px(expiration).Build()).Error()
+		return wrapValkeyError("set value", a.client.Do(ctx, a.client.B().Set().Key(key).Value(valkey.BinaryString(value)).Px(expiration).Build()).Error())
 	}
-	return a.client.Do(ctx, a.client.B().Set().Key(key).Value(valkey.BinaryString(value)).Build()).Error()
+
+	return wrapValkeyError("set value", a.client.Do(ctx, a.client.B().Set().Key(key).Value(valkey.BinaryString(value)).Build()).Error())
 }
 
 // MSet sets multiple key-value pairs.
@@ -57,7 +54,7 @@ func (a *Adapter) MSet(ctx context.Context, values map[string][]byte, expiration
 
 // Delete deletes the given key.
 func (a *Adapter) Delete(ctx context.Context, key string) error {
-	return a.client.Do(ctx, a.client.B().Del().Key(key).Build()).Error()
+	return wrapValkeyError("delete key", a.client.Do(ctx, a.client.B().Del().Key(key).Build()).Error())
 }
 
 // DeleteMulti deletes multiple keys.
@@ -65,19 +62,18 @@ func (a *Adapter) DeleteMulti(ctx context.Context, keys []string) error {
 	if len(keys) == 0 {
 		return nil
 	}
-	return a.client.Do(ctx, a.client.B().Arbitrary("DEL").Args(keys...).Build()).Error()
+
+	return wrapValkeyError("delete multiple keys", a.client.Do(ctx, a.client.B().Arbitrary("DEL").Args(keys...).Build()).Error())
 }
 
 // Exists checks if the key exists.
 func (a *Adapter) Exists(ctx context.Context, key string) (bool, error) {
 	resp := a.client.Do(ctx, a.client.B().Exists().Key(key).Build())
-	if resp.Error() != nil {
-		return false, resp.Error()
-	}
-	n, err := resp.AsInt64()
+	n, err := int64FromResult("check key existence", resp)
 	if err != nil {
 		return false, err
 	}
+
 	return n > 0, nil
 }
 
@@ -96,19 +92,17 @@ func (a *Adapter) ExistsMulti(ctx context.Context, keys []string) (map[string]bo
 
 // Expire sets the expiration for the given key.
 func (a *Adapter) Expire(ctx context.Context, key string, expiration time.Duration) error {
-	return a.client.Do(ctx, a.client.B().Expire().Key(key).Seconds(int64(expiration.Seconds())).Build()).Error()
+	return wrapValkeyError("expire key", a.client.Do(ctx, a.client.B().Expire().Key(key).Seconds(int64(expiration.Seconds())).Build()).Error())
 }
 
 // TTL gets the TTL for the given key.
 func (a *Adapter) TTL(ctx context.Context, key string) (time.Duration, error) {
 	resp := a.client.Do(ctx, a.client.B().Ttl().Key(key).Build())
-	if resp.Error() != nil {
-		return 0, resp.Error()
-	}
-	seconds, err := resp.AsInt64()
+	seconds, err := int64FromResult("get key ttl", resp)
 	if err != nil {
 		return 0, err
 	}
+
 	return time.Duration(seconds) * time.Second, nil
 }
 
@@ -122,6 +116,10 @@ func (a *Adapter) Scan(ctx context.Context, pattern string, cursor uint64, count
 		return []string{}, 0, nil
 	}
 
+	if cursor > uint64(math.MaxInt) {
+		return nil, 0, fmt.Errorf("valkey scan cursor exceeds int range: %d", cursor)
+	}
+
 	start := int(cursor)
 	if count <= 0 {
 		count = int64(len(keys) - start)
@@ -130,7 +128,14 @@ func (a *Adapter) Scan(ctx context.Context, pattern string, cursor uint64, count
 	if end >= len(keys) {
 		return keys[start:], 0, nil
 	}
-	return keys[start:end], uint64(end), nil
+
+	window := keys[start:end]
+	nextCursor := cursor
+	for range window {
+		nextCursor++
+	}
+
+	return window, nextCursor, nil
 }
 
 // Keys returns all keys matching the pattern.
@@ -139,8 +144,6 @@ func (a *Adapter) Keys(ctx context.Context, pattern string) ([]string, error) {
 		pattern = "*"
 	}
 	resp := a.client.Do(ctx, a.client.B().Arbitrary("KEYS").Args(pattern).Build())
-	if resp.Error() != nil {
-		return nil, resp.Error()
-	}
-	return resp.AsStrSlice()
+
+	return stringSliceFromResult("list keys", resp)
 }

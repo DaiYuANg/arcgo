@@ -1,10 +1,12 @@
-package redis
+// Package redis_test verifies the public redis adapter behavior.
+package redis_test
 
 import (
 	"errors"
 	"testing"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	redisadapter "github.com/DaiYuANg/arcgo/kvx/adapter/redis"
 )
 
 func TestNew_ValidatesClientOptions(t *testing.T) {
@@ -32,7 +34,7 @@ func TestNew_ValidatesClientOptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := New(tt.opts)
+			_, err := redisadapter.New(tt.opts)
 			if !errors.Is(err, tt.want) {
 				t.Fatalf("expected %v, got %v", tt.want, err)
 			}

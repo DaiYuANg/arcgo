@@ -2,37 +2,43 @@ package redis
 
 import (
 	"context"
+	"errors"
+	"sync"
+
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/redis/go-redis/v9"
-	"sync"
 )
-
-// ============== PubSub Interface ==============
 
 // Publish publishes a message to a channel.
 func (a *Adapter) Publish(ctx context.Context, channel string, message []byte) error {
-	return a.client.Publish(ctx, channel, message).Err()
+	return wrapRedisError("publish message", a.client.Publish(ctx, channel, message).Err())
 }
 
 // Subscribe subscribes to a channel.
 func (a *Adapter) Subscribe(ctx context.Context, channel string) (kvx.Subscription, error) {
 	pubsub := a.client.Subscribe(ctx, channel)
-	// Verify subscription
 	_, err := pubsub.Receive(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(
+			wrapRedisError("subscribe to channel", err),
+			wrapRedisError("close failed subscription", pubsub.Close()),
+		)
 	}
+
 	return &redisSubscription{pubsub: pubsub}, nil
 }
 
 // PSubscribe subscribes to channels matching a pattern.
 func (a *Adapter) PSubscribe(ctx context.Context, pattern string) (kvx.Subscription, error) {
 	pubsub := a.client.PSubscribe(ctx, pattern)
-	// Verify subscription
 	_, err := pubsub.Receive(ctx)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(
+			wrapRedisError("psubscribe to pattern", err),
+			wrapRedisError("close failed pattern subscription", pubsub.Close()),
+		)
 	}
+
 	return &redisSubscription{pubsub: pubsub}, nil
 }
 
@@ -57,5 +63,5 @@ func (s *redisSubscription) Channel() <-chan []byte {
 }
 
 func (s *redisSubscription) Close() error {
-	return s.pubsub.Close()
+	return wrapRedisError("close subscription", s.pubsub.Close())
 }

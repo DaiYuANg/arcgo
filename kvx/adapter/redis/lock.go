@@ -2,6 +2,7 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"strconv"
 	"time"
 
@@ -22,33 +23,31 @@ end
 return 0
 `
 
-// ============== Lock Interface ==============
-
 // Acquire tries to acquire a lock.
-func (a *Adapter) Acquire(ctx context.Context, key string, token string, ttl time.Duration) (bool, error) {
-	cmd := a.client.SetArgs(ctx, key, token, goredis.SetArgs{
+func (a *Adapter) Acquire(ctx context.Context, key, token string, ttl time.Duration) (bool, error) {
+	_, err := a.client.SetArgs(ctx, key, token, goredis.SetArgs{
 		Mode: "NX",
 		TTL:  ttl,
-	})
-	val, err := cmd.Result()
-	if err == goredis.Nil {
+	}).Result()
+	if errors.Is(err, goredis.Nil) {
 		return false, nil
 	}
+
 	if err != nil {
-		return false, err
+		return false, wrapRedisError("acquire lock", err)
 	}
-	_ = val
+
 	return true, nil
 }
 
 // Release releases a lock.
-func (a *Adapter) Release(ctx context.Context, key string, token string) (bool, error) {
+func (a *Adapter) Release(ctx context.Context, key, token string) (bool, error) {
 	val, err := a.client.Eval(ctx, releaseLockScript, []string{key}, token).Int()
-	return val == 1, err
+	return val == 1, wrapRedisError("release lock", err)
 }
 
 // Extend extends the lock TTL.
-func (a *Adapter) Extend(ctx context.Context, key string, token string, ttl time.Duration) (bool, error) {
+func (a *Adapter) Extend(ctx context.Context, key, token string, ttl time.Duration) (bool, error) {
 	val, err := a.client.Eval(ctx, extendLockScript, []string{key}, token, strconv.FormatInt(ttl.Milliseconds(), 10)).Int()
-	return val == 1, err
+	return val == 1, wrapRedisError("extend lock", err)
 }

@@ -2,29 +2,24 @@ package redis
 
 import (
 	"context"
-	"errors"
-	"github.com/DaiYuANg/arcgo/kvx"
-	"github.com/redis/go-redis/v9"
 	"time"
 )
-
-// ============== KV Interface ==============
 
 // Get retrieves the value for the given key.
 func (a *Adapter) Get(ctx context.Context, key string) ([]byte, error) {
 	val, err := a.client.Get(ctx, key).Result()
+	val, err = wrapRedisNilResult("get value", val, err)
 	if err != nil {
-		if errors.Is(err, redis.Nil) {
-			return nil, kvx.ErrNil
-		}
 		return nil, err
 	}
+
 	return []byte(val), nil
 }
 
 // MGet retrieves multiple values for the given keys.
 func (a *Adapter) MGet(ctx context.Context, keys []string) (map[string][]byte, error) {
 	vals, err := a.client.MGet(ctx, keys...).Result()
+	vals, err = wrapRedisResult("get multiple values", vals, err)
 	if err != nil {
 		return nil, err
 	}
@@ -42,25 +37,18 @@ func (a *Adapter) MGet(ctx context.Context, keys []string) (map[string][]byte, e
 
 // Set sets the value for the given key.
 func (a *Adapter) Set(ctx context.Context, key string, value []byte, expiration time.Duration) error {
-	return a.client.Set(ctx, key, value, expiration).Err()
+	return wrapRedisError("set value", a.client.Set(ctx, key, value, expiration).Err())
 }
 
 // MSet sets multiple key-value pairs.
 func (a *Adapter) MSet(ctx context.Context, values map[string][]byte, expiration time.Duration) error {
-	// Use MSet for atomic operation
-	ifaceValues := make(map[string]interface{}, len(values))
-	for k, v := range values {
-		ifaceValues[k] = v
-	}
-
-	if err := a.client.MSet(ctx, ifaceValues).Err(); err != nil {
+	if err := wrapRedisError("set multiple values", a.client.MSet(ctx, convertBytesMapToAny(values)).Err()); err != nil {
 		return err
 	}
 
-	// Set expiration if needed
 	if expiration > 0 {
 		for key := range values {
-			if err := a.client.Expire(ctx, key, expiration).Err(); err != nil {
+			if err := wrapRedisError("expire key", a.client.Expire(ctx, key, expiration).Err()); err != nil {
 				return err
 			}
 		}
@@ -70,21 +58,18 @@ func (a *Adapter) MSet(ctx context.Context, values map[string][]byte, expiration
 
 // Delete deletes the given key.
 func (a *Adapter) Delete(ctx context.Context, key string) error {
-	return a.client.Del(ctx, key).Err()
+	return wrapRedisError("delete key", a.client.Del(ctx, key).Err())
 }
 
 // DeleteMulti deletes multiple keys.
 func (a *Adapter) DeleteMulti(ctx context.Context, keys []string) error {
-	return a.client.Del(ctx, keys...).Err()
+	return wrapRedisError("delete multiple keys", a.client.Del(ctx, keys...).Err())
 }
 
 // Exists checks if the key exists.
 func (a *Adapter) Exists(ctx context.Context, key string) (bool, error) {
-	n, err := a.client.Exists(ctx, key).Result()
-	if err != nil {
-		return false, err
-	}
-	return n > 0, nil
+	count, err := a.client.Exists(ctx, key).Result()
+	return wrapRedisResult("check key existence", count > 0, err)
 }
 
 // ExistsMulti checks if multiple keys exist.
@@ -102,20 +87,27 @@ func (a *Adapter) ExistsMulti(ctx context.Context, keys []string) (map[string]bo
 
 // Expire sets the expiration for the given key.
 func (a *Adapter) Expire(ctx context.Context, key string, expiration time.Duration) error {
-	return a.client.Expire(ctx, key, expiration).Err()
+	return wrapRedisError("expire key", a.client.Expire(ctx, key, expiration).Err())
 }
 
 // TTL gets the TTL for the given key.
 func (a *Adapter) TTL(ctx context.Context, key string) (time.Duration, error) {
-	return a.client.TTL(ctx, key).Result()
+	ttl, err := a.client.TTL(ctx, key).Result()
+	return wrapRedisResult("get key ttl", ttl, err)
 }
 
 // Scan iterates over keys matching the pattern.
 func (a *Adapter) Scan(ctx context.Context, pattern string, cursor uint64, count int64) ([]string, uint64, error) {
-	return a.client.Scan(ctx, cursor, pattern, count).Result()
+	keys, nextCursor, err := a.client.Scan(ctx, cursor, pattern, count).Result()
+	if err != nil {
+		return nil, 0, wrapRedisError("scan keys", err)
+	}
+
+	return keys, nextCursor, nil
 }
 
 // Keys returns all keys matching the pattern.
 func (a *Adapter) Keys(ctx context.Context, pattern string) ([]string, error) {
-	return a.client.Keys(ctx, pattern).Result()
+	keys, err := a.client.Keys(ctx, pattern).Result()
+	return wrapRedisResult("list keys", keys, err)
 }

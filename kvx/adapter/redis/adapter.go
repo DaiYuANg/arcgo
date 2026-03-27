@@ -2,11 +2,13 @@ package redis
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"github.com/DaiYuANg/arcgo/kvx"
-	"github.com/redis/go-redis/v9"
 	"log/slog"
 	"time"
+
+	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/redis/go-redis/v9"
 )
 
 // Adapter implements kvx.Client using go-redis.
@@ -53,7 +55,10 @@ func New(opts kvx.ClientOptions) (*Adapter, error) {
 
 	if err := rdb.Ping(ctx).Err(); err != nil {
 		kvx.LogError(logger, "kvx redis adapter ping failed", "addr", opts.Addrs[0], "error", err)
-		return nil, fmt.Errorf("failed to connect to Redis: %w", err)
+		return nil, errors.Join(
+			fmt.Errorf("failed to connect to Redis: %w", err),
+			wrapRedisError("close client after failed ping", rdb.Close()),
+		)
 	}
 
 	kvx.LogDebug(logger, opts.Debug, "kvx redis adapter create done", "addr", opts.Addrs[0])
@@ -67,5 +72,5 @@ func NewFromClient(client *redis.Client) *Adapter {
 
 // Close closes the client connection.
 func (a *Adapter) Close() error {
-	return a.client.Close()
+	return wrapRedisError("close client", a.client.Close())
 }

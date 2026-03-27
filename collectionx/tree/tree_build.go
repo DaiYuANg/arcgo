@@ -1,8 +1,9 @@
 package tree
 
 import (
+	"slices"
+
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
-	"github.com/samber/lo"
 )
 
 // Build constructs a tree from entries.
@@ -12,53 +13,56 @@ func Build[K comparable, V any](entries []Entry[K, V]) (*Tree[K, V], error) {
 		return tree, nil
 	}
 
-	var buildErr error
-	lo.ForEach(entries, func(entry Entry[K, V], _ int) {
-		if buildErr != nil {
-			return
-		}
-		if tree.Has(entry.ID) {
-			buildErr = ErrNodeAlreadyExists
-			return
-		}
-		tree.nodes.Set(entry.ID, newNode(entry.ID, entry.Value))
-	})
-	if buildErr != nil {
-		return nil, buildErr
+	if err := addBuildNodes(tree, entries); err != nil {
+		return nil, err
 	}
 
-	lo.ForEach(entries, func(entry Entry[K, V], _ int) {
-		if buildErr != nil {
-			return
+	if err := linkBuildNodes(tree, entries); err != nil {
+		return nil, err
+	}
+
+	if hasTreeCycle(tree.nodes.Values()) {
+		return nil, ErrCycleDetected
+	}
+
+	return tree, nil
+}
+
+func addBuildNodes[K comparable, V any](tree *Tree[K, V], entries []Entry[K, V]) error {
+	for _, entry := range entries {
+		if tree.Has(entry.ID) {
+			return ErrNodeAlreadyExists
 		}
 
+		tree.nodes.Set(entry.ID, newNode(entry.ID, entry.Value))
+	}
+
+	return nil
+}
+
+func linkBuildNodes[K comparable, V any](tree *Tree[K, V], entries []Entry[K, V]) error {
+	for _, entry := range entries {
 		node, _ := tree.nodes.Get(entry.ID)
 		if entry.ParentID.IsAbsent() {
 			tree.roots.Add(node)
-			return
+			continue
 		}
 
 		parentID := entry.ParentID.MustGet()
 		parent, ok := tree.nodes.Get(parentID)
 		if !ok {
-			buildErr = ErrParentNotFound
-			return
+			return ErrParentNotFound
 		}
 
 		node.parent = parent
 		parent.children.Add(node)
-	})
-	if buildErr != nil {
-		return nil, buildErr
 	}
 
-	if lo.SomeBy(tree.nodes.Values(), func(node *Node[K, V]) bool {
-		return hasParentCycle(node)
-	}) {
-		return nil, ErrCycleDetected
-	}
+	return nil
+}
 
-	return tree, nil
+func hasTreeCycle[K comparable, V any](nodes []*Node[K, V]) bool {
+	return slices.ContainsFunc(nodes, hasParentCycle[K, V])
 }
 
 func hasParentCycle[K comparable, V any](node *Node[K, V]) bool {

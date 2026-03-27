@@ -1,6 +1,8 @@
 package tree
 
 import (
+	"fmt"
+
 	common "github.com/DaiYuANg/arcgo/collectionx/internal"
 	"github.com/samber/lo"
 )
@@ -13,12 +15,12 @@ type jsonNode[K comparable, V any] struct {
 
 // ToJSON serializes tree roots and descendants to JSON.
 func (t *Tree[K, V]) ToJSON() ([]byte, error) {
-	return common.MarshalJSONValue(t.toJSONNodes())
+	return marshalTreeJSON("tree", t.toJSONNodes())
 }
 
 // MarshalJSON implements json.Marshaler.
 func (t *Tree[K, V]) MarshalJSON() ([]byte, error) {
-	return common.ForwardToJSON(t.ToJSON)
+	return forwardTreeJSON("tree", t.ToJSON)
 }
 
 // String implements fmt.Stringer.
@@ -33,7 +35,7 @@ func (t *ConcurrentTree[K, V]) ToJSON() ([]byte, error) {
 
 // MarshalJSON implements json.Marshaler.
 func (t *ConcurrentTree[K, V]) MarshalJSON() ([]byte, error) {
-	return common.ForwardToJSON(t.ToJSON)
+	return forwardTreeJSON("concurrent tree", t.ToJSON)
 }
 
 // String implements fmt.Stringer.
@@ -61,4 +63,22 @@ func toJSONNode[K comparable, V any](node *Node[K, V]) jsonNode[K, V] {
 			return toJSONNode(child)
 		}),
 	}
+}
+
+func marshalTreeJSON[T any](kind string, value T) ([]byte, error) {
+	data, err := common.MarshalJSONValue(value)
+	if err != nil {
+		return nil, fmt.Errorf("marshal %s JSON: %w", kind, err)
+	}
+
+	return data, nil
+}
+
+func forwardTreeJSON(kind string, fn func() ([]byte, error)) ([]byte, error) {
+	data, err := common.ForwardToJSON(fn)
+	if err != nil {
+		return nil, fmt.Errorf("marshal %s JSON: %w", kind, err)
+	}
+
+	return data, nil
 }

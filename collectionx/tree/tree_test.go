@@ -1,13 +1,14 @@
-package tree
+package tree_test
 
 import (
 	"testing"
 
+	tree "github.com/DaiYuANg/arcgo/collectionx/tree"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTree_AddAndRelationships(t *testing.T) {
-	tr := NewTree[int, string]()
+	tr := tree.NewTree[int, string]()
 
 	require.NoError(t, tr.AddRoot(1, "root"))
 	require.NoError(t, tr.AddChild(1, 2, "child-a"))
@@ -31,7 +32,7 @@ func TestTree_AddAndRelationships(t *testing.T) {
 }
 
 func TestTree_MoveAndCycleDetection(t *testing.T) {
-	tr := NewTree[int, string]()
+	tr := tree.NewTree[int, string]()
 
 	require.NoError(t, tr.AddRoot(1, "root-a"))
 	require.NoError(t, tr.AddRoot(2, "root-b"))
@@ -44,11 +45,11 @@ func TestTree_MoveAndCycleDetection(t *testing.T) {
 	require.Equal(t, 2, parent.ID())
 	require.Equal(t, []int{1, 2}, nodeIDs(tr.Roots()))
 
-	require.ErrorIs(t, tr.Move(2, 3), ErrCycleDetected)
+	require.ErrorIs(t, tr.Move(2, 3), tree.ErrCycleDetected)
 }
 
 func TestTree_RemoveSubtree(t *testing.T) {
-	tr := NewTree[int, string]()
+	tr := tree.NewTree[int, string]()
 
 	require.NoError(t, tr.AddRoot(1, "r1"))
 	require.NoError(t, tr.AddChild(1, 2, "c1"))
@@ -65,7 +66,7 @@ func TestTree_RemoveSubtree(t *testing.T) {
 }
 
 func TestTree_CloneIsolation(t *testing.T) {
-	tr := NewTree[int, string]()
+	tr := tree.NewTree[int, string]()
 	require.NoError(t, tr.AddRoot(1, "root"))
 	require.NoError(t, tr.AddChild(1, 2, "child"))
 
@@ -80,13 +81,13 @@ func TestTree_CloneIsolation(t *testing.T) {
 }
 
 func TestBuild(t *testing.T) {
-	entries := []Entry[int, string]{
-		ChildEntry(2, 1, "child-a"),
-		RootEntry(1, "root"),
-		ChildEntry(3, 2, "child-b"),
+	entries := []tree.Entry[int, string]{
+		tree.ChildEntry(2, 1, "child-a"),
+		tree.RootEntry(1, "root"),
+		tree.ChildEntry(3, 2, "child-b"),
 	}
 
-	tr, err := Build(entries)
+	tr, err := tree.Build(entries)
 	require.NoError(t, err)
 	require.Equal(t, 3, tr.Len())
 	require.Equal(t, []int{1}, nodeIDs(tr.Roots()))
@@ -94,35 +95,35 @@ func TestBuild(t *testing.T) {
 }
 
 func TestBuild_WithInvalidParent(t *testing.T) {
-	entries := []Entry[int, string]{
-		ChildEntry(1, 9, "orphan"),
+	entries := []tree.Entry[int, string]{
+		tree.ChildEntry(1, 9, "orphan"),
 	}
 
-	_, err := Build(entries)
-	require.ErrorIs(t, err, ErrParentNotFound)
+	_, err := tree.Build(entries)
+	require.ErrorIs(t, err, tree.ErrParentNotFound)
 }
 
 func TestBuild_WithCycle(t *testing.T) {
-	entries := []Entry[int, string]{
-		ChildEntry(1, 2, "a"),
-		ChildEntry(2, 1, "b"),
+	entries := []tree.Entry[int, string]{
+		tree.ChildEntry(1, 2, "a"),
+		tree.ChildEntry(2, 1, "b"),
 	}
 
-	_, err := Build(entries)
-	require.ErrorIs(t, err, ErrCycleDetected)
+	_, err := tree.Build(entries)
+	require.ErrorIs(t, err, tree.ErrCycleDetected)
 }
 
 func TestBuild_WithDuplicateNode(t *testing.T) {
-	entries := []Entry[int, string]{
-		RootEntry(1, "a"),
-		RootEntry(1, "b"),
+	entries := []tree.Entry[int, string]{
+		tree.RootEntry(1, "a"),
+		tree.RootEntry(1, "b"),
 	}
 
-	_, err := Build(entries)
-	require.ErrorIs(t, err, ErrNodeAlreadyExists)
+	_, err := tree.Build(entries)
+	require.ErrorIs(t, err, tree.ErrNodeAlreadyExists)
 }
 
-func nodeIDs(nodes []*Node[int, string]) []int {
+func nodeIDs(nodes []*tree.Node[int, string]) []int {
 	if len(nodes) == 0 {
 		return nil
 	}

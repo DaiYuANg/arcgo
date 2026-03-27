@@ -78,21 +78,14 @@ func (t *Tree[K, V]) Descendants(id K) []*Node[K, V] {
 		capacity = node.children.Len()
 	}
 	descendants := make([]*Node[K, V], 0, capacity)
-	stack := make([]*Node[K, V], 0, capacity)
-	for i := node.children.Len() - 1; i >= 0; i-- {
-		child, _ := node.children.Get(i)
-		stack = append(stack, child)
-	}
+	stack := appendChildrenReverse(make([]*Node[K, V], 0, capacity), node)
 
 	for len(stack) > 0 {
 		current := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 		descendants = append(descendants, current)
 
-		for i := current.children.Len() - 1; i >= 0; i-- {
-			child, _ := current.children.Get(i)
-			stack = append(stack, child)
-		}
+		stack = appendChildrenReverse(stack, current)
 	}
 
 	return descendants
@@ -100,26 +93,11 @@ func (t *Tree[K, V]) Descendants(id K) []*Node[K, V] {
 
 // RangeDFS iterates all nodes in DFS pre-order until fn returns false.
 func (t *Tree[K, V]) RangeDFS(fn func(node *Node[K, V]) bool) {
-	if t == nil || fn == nil || t.roots == nil {
+	if t == nil || fn == nil {
 		return
 	}
 
-	for i := 0; i < t.roots.Len(); i++ {
-		root, _ := t.roots.Get(i)
-		stack := []*Node[K, V]{root}
-		for len(stack) > 0 {
-			current := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			if !fn(current) {
-				return
-			}
-
-			for i := current.children.Len() - 1; i >= 0; i-- {
-				child, _ := current.children.Get(i)
-				stack = append(stack, child)
-			}
-		}
-	}
+	rangeDFSRoots(t.Roots(), fn)
 }
 
 // Len returns total node count.
@@ -133,4 +111,44 @@ func (t *Tree[K, V]) Len() int {
 // IsEmpty reports whether tree has no nodes.
 func (t *Tree[K, V]) IsEmpty() bool {
 	return t.Len() == 0
+}
+
+func rangeDFSRoots[K comparable, V any](roots []*Node[K, V], fn func(node *Node[K, V]) bool) {
+	for _, root := range roots {
+		if !rangeDFSFromRoot(root, fn) {
+			return
+		}
+	}
+}
+
+func rangeDFSFromRoot[K comparable, V any](root *Node[K, V], fn func(node *Node[K, V]) bool) bool {
+	if root == nil {
+		return true
+	}
+
+	stack := []*Node[K, V]{root}
+	for len(stack) > 0 {
+		current := stack[len(stack)-1]
+		stack = stack[:len(stack)-1]
+		if !fn(current) {
+			return false
+		}
+
+		stack = appendChildrenReverse(stack, current)
+	}
+
+	return true
+}
+
+func appendChildrenReverse[K comparable, V any](stack []*Node[K, V], node *Node[K, V]) []*Node[K, V] {
+	if node == nil {
+		return stack
+	}
+
+	for i := node.children.Len() - 1; i >= 0; i-- {
+		child, _ := node.children.Get(i)
+		stack = append(stack, child)
+	}
+
+	return stack
 }

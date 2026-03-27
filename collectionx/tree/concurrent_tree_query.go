@@ -65,8 +65,9 @@ func (t *ConcurrentTree[K, V]) Children(id K) []*Node[K, V] {
 		return nil
 	}
 
-	out := make([]*Node[K, V], 0, node.children.Len())
-	for i := 0; i < node.children.Len(); i++ {
+	childCount := node.children.Len()
+	out := make([]*Node[K, V], 0, childCount)
+	for i := range childCount {
 		child, _ := node.children.Get(i)
 		out = append(out, cloneSubtreeDetached(child))
 	}
@@ -86,8 +87,9 @@ func (t *ConcurrentTree[K, V]) Roots() []*Node[K, V] {
 	if t.tree.roots == nil || t.tree.roots.Len() == 0 {
 		return nil
 	}
-	out := make([]*Node[K, V], 0, t.tree.roots.Len())
-	for i := 0; i < t.tree.roots.Len(); i++ {
+	rootCount := t.tree.roots.Len()
+	out := make([]*Node[K, V], 0, rootCount)
+	for i := range rootCount {
 		root, _ := t.tree.roots.Get(i)
 		out = append(out, cloneSubtreeDetached(root))
 	}
@@ -157,37 +159,7 @@ func (t *ConcurrentTree[K, V]) RangeDFS(fn func(node *Node[K, V]) bool) {
 		return
 	}
 
-	t.mu.RLock()
-	if t.tree == nil {
-		t.mu.RUnlock()
-		return
-	}
-	rootCount := 0
-	if t.tree.roots != nil {
-		rootCount = t.tree.roots.Len()
-	}
-	clonedRoots := make([]*Node[K, V], 0, rootCount)
-	for i := 0; i < rootCount; i++ {
-		root, _ := t.tree.roots.Get(i)
-		clonedRoots = append(clonedRoots, cloneSubtreeDetached(root))
-	}
-	t.mu.RUnlock()
-
-	for _, root := range clonedRoots {
-		stack := []*Node[K, V]{root}
-		for len(stack) > 0 {
-			current := stack[len(stack)-1]
-			stack = stack[:len(stack)-1]
-			if !fn(current) {
-				return
-			}
-
-			for i := current.children.Len() - 1; i >= 0; i-- {
-				child, _ := current.children.Get(i)
-				stack = append(stack, child)
-			}
-		}
-	}
+	rangeDFSRoots(t.snapshotClonedRoots(), fn)
 }
 
 // Len returns total node count.
@@ -218,21 +190,14 @@ func descendantsFromRoot[K comparable, V any](root *Node[K, V]) []*Node[K, V] {
 	}
 
 	out := make([]*Node[K, V], 0, root.children.Len())
-	stack := make([]*Node[K, V], 0, root.children.Len())
-	for i := root.children.Len() - 1; i >= 0; i-- {
-		child, _ := root.children.Get(i)
-		stack = append(stack, child)
-	}
+	stack := appendChildrenReverse(make([]*Node[K, V], 0, root.children.Len()), root)
 
 	for len(stack) > 0 {
 		current := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 		out = append(out, current)
 
-		for i := current.children.Len() - 1; i >= 0; i-- {
-			child, _ := current.children.Get(i)
-			stack = append(stack, child)
-		}
+		stack = appendChildrenReverse(stack, current)
 	}
 
 	return out
@@ -252,4 +217,21 @@ func cloneNodeWithAncestors[K comparable, V any](node *Node[K, V]) *Node[K, V] {
 		currentClone = parentClone
 	}
 	return targetClone
+}
+
+func (t *ConcurrentTree[K, V]) snapshotClonedRoots() []*Node[K, V] {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	if t.tree == nil || t.tree.roots == nil || t.tree.roots.Len() == 0 {
+		return nil
+	}
+
+	rootCount := t.tree.roots.Len()
+	clonedRoots := make([]*Node[K, V], 0, rootCount)
+	for i := range rootCount {
+		root, _ := t.tree.roots.Get(i)
+		clonedRoots = append(clonedRoots, cloneSubtreeDetached(root))
+	}
+
+	return clonedRoots
 }

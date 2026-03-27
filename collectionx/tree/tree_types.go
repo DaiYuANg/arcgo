@@ -37,7 +37,7 @@ func RootEntry[K comparable, V any](id K, value V) Entry[K, V] {
 }
 
 // ChildEntry creates one child entry.
-func ChildEntry[K comparable, V any](id K, parentID K, value V) Entry[K, V] {
+func ChildEntry[K comparable, V any](id, parentID K, value V) Entry[K, V] {
 	return Entry[K, V]{
 		ID:       id,
 		ParentID: mo.Some(parentID),
@@ -125,7 +125,7 @@ func NewTree[K comparable, V any]() *Tree[K, V] {
 	return newTreeWithCapacity[K, V](0, 0)
 }
 
-func newTreeWithCapacity[K comparable, V any](nodeCapacity int, rootCapacity int) *Tree[K, V] {
+func newTreeWithCapacity[K comparable, V any](nodeCapacity, rootCapacity int) *Tree[K, V] {
 	nodes := collectionmapping.NewMapWithCapacity[K, *Node[K, V]](nodeCapacity)
 	roots := collectionlist.NewListWithCapacity[*Node[K, V]](rootCapacity)
 	return &Tree[K, V]{

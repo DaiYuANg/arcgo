@@ -38,7 +38,7 @@ func (t *ConcurrentTree[K, V]) AddRoot(id K, value V) error {
 }
 
 // AddChild inserts one child node under parentID.
-func (t *ConcurrentTree[K, V]) AddChild(parentID K, id K, value V) error {
+func (t *ConcurrentTree[K, V]) AddChild(parentID, id K, value V) error {
 	if t == nil {
 		return ErrNodeNotFound
 	}
@@ -49,7 +49,7 @@ func (t *ConcurrentTree[K, V]) AddChild(parentID K, id K, value V) error {
 }
 
 // Move moves node id under newParentID.
-func (t *ConcurrentTree[K, V]) Move(id K, newParentID K) error {
+func (t *ConcurrentTree[K, V]) Move(id, newParentID K) error {
 	if t == nil {
 		return ErrNodeNotFound
 	}

@@ -1,6 +1,10 @@
-package tree
+package tree_test
 
-import "testing"
+import (
+	"testing"
+
+	tree "github.com/DaiYuANg/arcgo/collectionx/tree"
+)
 
 const (
 	benchTreeNodes     = 10_000
@@ -8,9 +12,9 @@ const (
 	benchTreeLeafID    = benchTreeNodes
 )
 
-func buildBenchTree(tb testing.TB) *Tree[int, int] {
+func buildBenchTree(tb testing.TB) *tree.Tree[int, int] {
 	tb.Helper()
-	tr := NewTree[int, int]()
+	tr := tree.NewTree[int, int]()
 	if err := tr.AddRoot(0, 0); err != nil {
 		tb.Fatalf("AddRoot() error = %v", err)
 	}
@@ -23,9 +27,9 @@ func buildBenchTree(tb testing.TB) *Tree[int, int] {
 	return tr
 }
 
-func buildBenchConcurrentTree(tb testing.TB) *ConcurrentTree[int, int] {
+func buildBenchConcurrentTree(tb testing.TB) *tree.ConcurrentTree[int, int] {
 	tb.Helper()
-	tr := NewConcurrentTree[int, int]()
+	tr := tree.NewConcurrentTree[int, int]()
 	if err := tr.AddRoot(0, 0); err != nil {
 		tb.Fatalf("AddRoot() error = %v", err)
 	}
@@ -44,7 +48,7 @@ func BenchmarkTreeGet(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		_, _ = tr.Get((i & mask) + 1)
 	}
 }
@@ -54,7 +58,7 @@ func BenchmarkTreeChildren(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = tr.Children(0)
 	}
 }
@@ -64,7 +68,7 @@ func BenchmarkTreeAncestors(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = tr.Ancestors(benchTreeLeafID)
 	}
 }
@@ -74,7 +78,7 @@ func BenchmarkTreeDescendants(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = tr.Descendants(0)
 	}
 }
@@ -84,7 +88,7 @@ func BenchmarkTreeClone(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		clone := tr.Clone()
 		if clone.Len() != tr.Len() {
 			b.Fatalf("unexpected clone length: %d", clone.Len())
@@ -112,7 +116,7 @@ func BenchmarkConcurrentTreeDescendants(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = tr.Descendants(0)
 	}
 }
@@ -122,12 +126,16 @@ func BenchmarkTreeAddRootAddChild(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		tr := NewTree[int, int]()
-		_ = tr.AddRoot(0, 0)
+	for range b.N {
+		tr := tree.NewTree[int, int]()
+		if err := tr.AddRoot(0, 0); err != nil {
+			b.Fatalf("AddRoot() error = %v", err)
+		}
 		for j := 1; j <= nodesPerRun; j++ {
 			parentID := (j - 1) / benchTreeBranching
-			_ = tr.AddChild(parentID, j, j)
+			if err := tr.AddChild(parentID, j, j); err != nil {
+				b.Fatalf("AddChild(%d, %d) error = %v", parentID, j, err)
+			}
 		}
 	}
 }
@@ -138,9 +146,11 @@ func BenchmarkTreeRemove(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		tr.Remove(leafID)
-		_ = tr.AddChild((leafID-1)/benchTreeBranching, leafID, leafID)
+		if err := tr.AddChild((leafID-1)/benchTreeBranching, leafID, leafID); err != nil {
+			b.Fatalf("AddChild(%d, %d) error = %v", (leafID-1)/benchTreeBranching, leafID, err)
+		}
 	}
 }
 
@@ -153,9 +163,13 @@ func BenchmarkTreeMove(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = tr.Move(idToMove, toParent)
-		_ = tr.Move(idToMove, fromParent)
+	for range b.N {
+		if err := tr.Move(idToMove, toParent); err != nil {
+			b.Fatalf("Move(%d, %d) error = %v", idToMove, toParent, err)
+		}
+		if err := tr.Move(idToMove, fromParent); err != nil {
+			b.Fatalf("Move(%d, %d) error = %v", idToMove, fromParent, err)
+		}
 	}
 }
 
@@ -164,8 +178,8 @@ func BenchmarkTreeRangeDFS(b *testing.B) {
 
 	b.ReportAllocs()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		tr.RangeDFS(func(node *Node[int, int]) bool {
+	for range b.N {
+		tr.RangeDFS(func(node *tree.Node[int, int]) bool {
 			_ = node
 			return true
 		})
@@ -173,11 +187,15 @@ func BenchmarkTreeRangeDFS(b *testing.B) {
 }
 
 func BenchmarkConcurrentTreeAddChildParallel(b *testing.B) {
-	tr := NewConcurrentTree[int, int]()
-	_ = tr.AddRoot(0, 0)
+	tr := tree.NewConcurrentTree[int, int]()
+	if err := tr.AddRoot(0, 0); err != nil {
+		b.Fatalf("AddRoot() error = %v", err)
+	}
 	// Pre-create branch roots so parallel goroutines can add to different parents
 	for i := 1; i <= benchTreeBranching; i++ {
-		_ = tr.AddChild(0, i, i)
+		if err := tr.AddChild(0, i, i); err != nil {
+			b.Fatalf("AddChild(0, %d) error = %v", i, err)
+		}
 	}
 
 	b.ReportAllocs()
@@ -187,7 +205,9 @@ func BenchmarkConcurrentTreeAddChildParallel(b *testing.B) {
 		childID := 10000
 		for pb.Next() {
 			childID++
-			_ = tr.AddChild(parentID, childID, childID)
+			if err := tr.AddChild(parentID, childID, childID); err != nil {
+				b.Fatalf("AddChild(%d, %d) error = %v", parentID, childID, err)
+			}
 		}
 	})
 }

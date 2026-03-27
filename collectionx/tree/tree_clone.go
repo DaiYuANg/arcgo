@@ -18,7 +18,7 @@ func (t *Tree[K, V]) Clone() *Tree[K, V] {
 	}
 
 	stack := make([]pair, 0, rootCount)
-	for i := 0; i < rootCount; i++ {
+	for i := range rootCount {
 		root, _ := t.roots.Get(i)
 		rootClone := newNode(root.ID(), root.Value())
 		cloned.roots.Add(rootClone)
@@ -30,7 +30,8 @@ func (t *Tree[K, V]) Clone() *Tree[K, V] {
 		current := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		for i := 0; i < current.source.children.Len(); i++ {
+		childCount := current.source.children.Len()
+		for i := range childCount {
 			sourceChild, _ := current.source.children.Get(i)
 			targetChild := newNode(sourceChild.ID(), sourceChild.Value())
 			targetChild.parent = current.target
@@ -59,7 +60,8 @@ func cloneSubtreeDetached[K comparable, V any](root *Node[K, V]) *Node[K, V] {
 		current := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		for i := 0; i < current.source.children.Len(); i++ {
+		childCount := current.source.children.Len()
+		for i := range childCount {
 			sourceChild, _ := current.source.children.Get(i)
 			targetChild := newNode(sourceChild.ID(), sourceChild.Value())
 			targetChild.parent = current.target

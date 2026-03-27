@@ -1,14 +1,15 @@
-package tree
+package tree_test
 
 import (
 	"sync"
 	"testing"
 
+	tree "github.com/DaiYuANg/arcgo/collectionx/tree"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConcurrentTree_BasicOperations(t *testing.T) {
-	tr := NewConcurrentTree[int, string]()
+	tr := tree.NewConcurrentTree[int, string]()
 
 	require.NoError(t, tr.AddRoot(1, "root"))
 	require.NoError(t, tr.AddChild(1, 2, "child-a"))
@@ -30,7 +31,7 @@ func TestConcurrentTree_BasicOperations(t *testing.T) {
 }
 
 func TestConcurrentTree_SnapshotIsolation(t *testing.T) {
-	tr := NewConcurrentTree[int, string]()
+	tr := tree.NewConcurrentTree[int, string]()
 	require.NoError(t, tr.AddRoot(1, "root"))
 	require.NoError(t, tr.AddChild(1, 2, "child-a"))
 
@@ -47,7 +48,7 @@ func TestConcurrentTree_SnapshotIsolation(t *testing.T) {
 }
 
 func TestConcurrentTree_ParallelAddChildren(t *testing.T) {
-	tr := NewConcurrentTree[int, int]()
+	tr := tree.NewConcurrentTree[int, int]()
 	require.NoError(t, tr.AddRoot(0, 0))
 
 	const workers = 12
@@ -55,43 +56,49 @@ func TestConcurrentTree_ParallelAddChildren(t *testing.T) {
 
 	var wg sync.WaitGroup
 	wg.Add(workers)
-	for w := 0; w < workers; w++ {
-		w := w
+	var firstErr error
+	var firstErrOnce sync.Once
+	for w := range workers {
 		go func() {
 			defer wg.Done()
 			base := w * each
-			for i := 0; i < each; i++ {
+			for i := range each {
 				id := base + i + 1
-				_ = tr.AddChild(0, id, id)
+				if err := tr.AddChild(0, id, id); err != nil {
+					firstErrOnce.Do(func() {
+						firstErr = err
+					})
+				}
 			}
 		}()
 	}
 	wg.Wait()
 
+	require.NoError(t, firstErr)
 	require.Equal(t, 1+workers*each, tr.Len())
 	require.True(t, tr.Has(workers*each))
 	require.Equal(t, workers*each, len(tr.Descendants(0)))
 }
 
 func TestBuildConcurrent(t *testing.T) {
-	entries := []Entry[int, string]{
-		RootEntry(1, "root"),
-		ChildEntry(2, 1, "a"),
-		ChildEntry(3, 2, "b"),
+	entries := []tree.Entry[int, string]{
+		tree.RootEntry(1, "root"),
+		tree.ChildEntry(2, 1, "a"),
+		tree.ChildEntry(3, 2, "b"),
 	}
 
-	tr, err := BuildConcurrent(entries)
+	tr, err := tree.BuildConcurrent(entries)
 	require.NoError(t, err)
 	require.Equal(t, 3, tr.Len())
 	require.Equal(t, []int{1}, nodeIDs(tr.Roots()))
 }
 
 func TestBuildConcurrent_WithCycle(t *testing.T) {
-	entries := []Entry[int, string]{
-		ChildEntry(1, 2, "a"),
-		ChildEntry(2, 1, "b"),
+	entries := []tree.Entry[int, string]{
+		tree.ChildEntry(1, 2, "a"),
+		tree.ChildEntry(2, 1, "b"),
 	}
 
-	_, err := BuildConcurrent(entries)
-	require.ErrorIs(t, err, ErrCycleDetected)
+	_, err := tree.BuildConcurrent(entries)
+	require.ErrorIs(t, err, tree.ErrCycleDetected)
 }

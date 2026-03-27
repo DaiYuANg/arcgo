@@ -1,4 +1,4 @@
-package std
+package std_test
 
 import (
 	"context"
@@ -6,18 +6,19 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	stdadapter "github.com/DaiYuANg/arcgo/httpx/adapter/std"
 	"github.com/danielgtaylor/huma/v2"
 )
 
-func benchmarkAdapterWithRoute(b *testing.B) *Adapter {
+func benchmarkAdapterWithRoute(b *testing.B) *stdadapter.Adapter {
 	b.Helper()
 
-	a := New(nil)
+	a := stdadapter.New(nil)
 	huma.Register(a.HumaAPI(), huma.Operation{
 		OperationID: "ping",
 		Method:      http.MethodGet,
 		Path:        "/ping",
-	}, func(ctx context.Context, input *struct{}) (*pingOutput, error) {
+	}, func(_ context.Context, _ *struct{}) (*pingOutput, error) {
 		out := &pingOutput{}
 		out.Body.Message = "pong"
 		return out, nil
@@ -31,8 +32,8 @@ func BenchmarkAdapterRouterServeHTTP(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	for range b.N {
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/ping", http.NoBody)
 		w := httptest.NewRecorder()
 		a.Router().ServeHTTP(w, req)
 		if w.Code != http.StatusOK {

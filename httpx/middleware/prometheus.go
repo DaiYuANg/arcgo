@@ -1,4 +1,3 @@
-// Package middleware provides package-level APIs.
 package middleware
 
 import (

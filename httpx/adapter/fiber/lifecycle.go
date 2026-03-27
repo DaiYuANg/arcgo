@@ -27,7 +27,7 @@ func (a *Adapter) Shutdown() error {
 // ListenContext starts related services.
 func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
 	if ctx == nil {
-		ctx = context.Background()
+		return a.Listen(addr)
 	}
 
 	errCh := make(chan error, 1)

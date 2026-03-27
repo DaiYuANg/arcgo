@@ -1,14 +1,15 @@
 //go:build !no_fiber
 
-package fiber
+package fiber_test
 
 import (
-	"io"
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
+	fiberadapter "github.com/DaiYuANg/arcgo/httpx/adapter/fiber"
 	fiberframework "github.com/gofiber/fiber/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -16,47 +17,61 @@ import (
 
 func TestNew_UsesProvidedApp(t *testing.T) {
 	external := fiberframework.New()
-	a := New(external)
+	a := fiberadapter.New(external)
 
 	assert.Same(t, external, a.Router())
 }
 
 func TestNew_AppliesDocsPaths(t *testing.T) {
-	a := New(nil, adapter.HumaOptions{
+	a := fiberadapter.New(nil, adapter.HumaOptions{
 		DocsPath:    "/reference",
 		OpenAPIPath: "/spec",
 	})
 
-	docsResp := mustTest(t, a, httptest.NewRequest(http.MethodGet, "/reference", nil))
-	assert.Equal(t, http.StatusOK, docsResp.StatusCode)
-
-	oldDocsResp := mustTest(t, a, httptest.NewRequest(http.MethodGet, "/docs", nil))
-	assert.Equal(t, http.StatusNotFound, oldDocsResp.StatusCode)
-
-	specResp := mustTest(t, a, httptest.NewRequest(http.MethodGet, "/spec.json", nil))
-	assert.Equal(t, http.StatusOK, specResp.StatusCode)
+	assertTestStatus(
+		t,
+		a,
+		httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/reference", http.NoBody),
+		http.StatusOK,
+	)
+	assertTestStatus(
+		t,
+		a,
+		httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/docs", http.NoBody),
+		http.StatusNotFound,
+	)
+	assertTestStatus(
+		t,
+		a,
+		httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/spec.json", http.NoBody),
+		http.StatusOK,
+	)
 }
 
 func TestNew_DisablesDocsRoutes(t *testing.T) {
-	a := New(nil, adapter.HumaOptions{DisableDocsRoutes: true})
+	a := fiberadapter.New(nil, adapter.HumaOptions{DisableDocsRoutes: true})
 
-	docsResp := mustTest(t, a, httptest.NewRequest(http.MethodGet, "/docs", nil))
-	assert.Equal(t, http.StatusNotFound, docsResp.StatusCode)
-
-	specResp := mustTest(t, a, httptest.NewRequest(http.MethodGet, "/openapi.json", nil))
-	assert.Equal(t, http.StatusNotFound, specResp.StatusCode)
+	assertTestStatus(
+		t,
+		a,
+		httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/docs", http.NoBody),
+		http.StatusNotFound,
+	)
+	assertTestStatus(
+		t,
+		a,
+		httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/openapi.json", http.NoBody),
+		http.StatusNotFound,
+	)
 }
 
-func mustTest(t *testing.T, a *Adapter, req *http.Request) *http.Response {
+func assertTestStatus(t *testing.T, a *fiberadapter.Adapter, req *http.Request, expected int) {
 	t.Helper()
 
 	resp, err := a.Router().Test(req, -1)
 	require.NoError(t, err)
-	t.Cleanup(func() {
-		if resp != nil && resp.Body != nil {
-			_, _ = io.Copy(io.Discard, resp.Body)
-			_ = resp.Body.Close()
-		}
-	})
-	return resp
+	defer func() {
+		require.NoError(t, resp.Body.Close())
+	}()
+	assert.Equal(t, expected, resp.StatusCode)
 }

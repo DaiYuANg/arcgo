@@ -1,22 +1,24 @@
-package middleware
+package middleware_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/httpx/middleware"
 )
 
 func BenchmarkPrometheusMiddleware(b *testing.B) {
-	handler := PrometheusMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_ = r
+	handler := middleware.PrometheusMiddleware(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	}))
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/metrics-demo", nil)
+	for range b.N {
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/metrics-demo", http.NoBody)
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		if w.Code != http.StatusNoContent {
@@ -26,13 +28,13 @@ func BenchmarkPrometheusMiddleware(b *testing.B) {
 }
 
 func BenchmarkMetricsHandlerServeHTTP(b *testing.B) {
-	handler := MetricsHandler()
+	handler := middleware.MetricsHandler()
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	for range b.N {
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/metrics", http.NoBody)
 		w := httptest.NewRecorder()
 		handler.ServeHTTP(w, req)
 		if w.Code != http.StatusOK {

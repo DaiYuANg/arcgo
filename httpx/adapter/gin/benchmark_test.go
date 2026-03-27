@@ -1,6 +1,6 @@
 //go:build !no_gin
 
-package gin
+package gin_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	ginadapter "github.com/DaiYuANg/arcgo/httpx/adapter/gin"
 	"github.com/danielgtaylor/huma/v2"
 	ginframework "github.com/gin-gonic/gin"
 )
@@ -18,16 +19,16 @@ type benchmarkOutput struct {
 	}
 }
 
-func benchmarkAdapterWithRoute(b *testing.B) *Adapter {
+func benchmarkAdapterWithRoute(b *testing.B) *ginadapter.Adapter {
 	b.Helper()
 
 	ginframework.SetMode(ginframework.TestMode)
-	a := New(nil)
+	a := ginadapter.New(nil)
 	huma.Register(a.HumaAPI(), huma.Operation{
 		OperationID: "ping",
 		Method:      http.MethodGet,
 		Path:        "/ping",
-	}, func(ctx context.Context, input *struct{}) (*benchmarkOutput, error) {
+	}, func(_ context.Context, _ *struct{}) (*benchmarkOutput, error) {
 		out := &benchmarkOutput{}
 		out.Body.Message = "pong"
 		return out, nil
@@ -41,8 +42,8 @@ func BenchmarkAdapterRouterServeHTTP(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/ping", nil)
+	for range b.N {
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/ping", http.NoBody)
 		w := httptest.NewRecorder()
 		a.Router().ServeHTTP(w, req)
 		if w.Code != http.StatusOK {

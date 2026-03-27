@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
@@ -47,11 +48,15 @@ func (a *Adapter) Listen(addr string) error {
 
 // Shutdown stops the active std server.
 func (a *Adapter) Shutdown() error {
+	return a.shutdownContext(context.Background())
+}
+
+func (a *Adapter) shutdownContext(ctx context.Context) error {
 	server := a.activeServer()
 	if server == nil {
 		return nil
 	}
-	if err := server.Shutdown(context.Background()); err != nil && !errors.Is(err, http.ErrServerClosed) {
+	if err := server.Shutdown(ctx); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		return fmt.Errorf("httpx/std: shutdown: %w", err)
 	}
 	return nil
@@ -60,7 +65,7 @@ func (a *Adapter) Shutdown() error {
 // ListenContext starts related services.
 func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
 	if ctx == nil {
-		ctx = context.Background()
+		return a.Listen(addr)
 	}
 
 	server := a.httpServer(addr)
@@ -79,7 +84,7 @@ func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
 		}
 		return fmt.Errorf("httpx/std: listen on %q: %w", addr, err)
 	case <-ctx.Done():
-		if err := a.Shutdown(); err != nil {
+		if err := a.shutdownContext(ctx); err != nil {
 			return fmt.Errorf("httpx/std: shutdown on %q: %w", addr, err)
 		}
 		err := <-errCh
@@ -97,8 +102,9 @@ func (a *Adapter) HumaAPI() huma.API {
 
 func (a *Adapter) httpServer(addr string) *http.Server {
 	return &http.Server{
-		Addr:    addr,
-		Handler: a.router,
+		Addr:              addr,
+		Handler:           a.router,
+		ReadHeaderTimeout: 30 * time.Second,
 	}
 }
 

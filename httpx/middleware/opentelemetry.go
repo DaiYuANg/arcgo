@@ -1,4 +1,3 @@
-// OpenTelemetry documents related behavior.
 package middleware
 
 import (

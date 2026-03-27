@@ -50,7 +50,7 @@ func runInProcessBench(
 
 	for i := range b.N {
 		query := dataset.Queries[i%len(dataset.Queries)]
-		req := httptest.NewRequest(http.MethodGet, "/authz/benchmark", http.NoBody)
+		req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/authz/benchmark", http.NoBody)
 		req.Header.Set(benchmarksupport.HeaderUserID, query.UserID)
 		req.Header.Set(benchmarksupport.HeaderAction, query.Action)
 		req.Header.Set(benchmarksupport.HeaderResource, query.Resource)

@@ -72,7 +72,7 @@ func TestRequireAllowed(t *testing.T) {
 	})
 
 	handler := authstd.Require(guard)(next)
-	req := httptest.NewRequest(http.MethodGet, "/orders/123", http.NoBody)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/orders/123", http.NoBody)
 	req.Header.Set("Authorization", "user-1")
 	req = req.WithContext(authhttp.WithPathParams(authhttp.WithRoutePattern(req.Context(), "/orders/:id"), map[string]string{"id": "123"}))
 
@@ -86,12 +86,12 @@ func TestRequireAllowed(t *testing.T) {
 
 func TestRequireDenied(t *testing.T) {
 	guard := newMiddlewareGuard()
-	next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	next := http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
 	handler := authstd.Require(guard)(next)
-	req := httptest.NewRequest(http.MethodDelete, "/orders/123", http.NoBody)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodDelete, "/orders/123", http.NoBody)
 	req.Header.Set("Authorization", "user-1")
 	req = req.WithContext(authhttp.WithPathParams(authhttp.WithRoutePattern(req.Context(), "/orders/:id"), map[string]string{"id": "123"}))
 

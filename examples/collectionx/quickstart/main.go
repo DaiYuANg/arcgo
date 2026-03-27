@@ -1,7 +1,9 @@
+// Package main demonstrates the collectionx quickstart examples.
 package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/DaiYuANg/arcgo/collectionx/interval"
 	"github.com/DaiYuANg/arcgo/collectionx/list"
@@ -12,72 +14,101 @@ import (
 )
 
 func main() {
-	// Set
+	showSetExample()
+	showOrderedMapExample()
+	showMultiMapExample()
+	showTableExample()
+	showListAndDequeExample()
+	showTrieExample()
+	showIntervalExample()
+	showTreeExample()
+}
+
+func showSetExample() {
 	users := set.NewSet[string]()
 	users.Add("alice", "bob", "alice")
-	fmt.Println("set:", users.Values(), "len:", users.Len())
-	fmt.Println("set string:", users.String())
+	printLine("set:", users.Values(), "len:", users.Len())
+	printLine("set string:", users.String())
+}
 
-	// OrderedMap
+func showOrderedMapExample() {
 	scores := mapping.NewOrderedMap[string, int]()
 	scores.Set("alice", 95)
 	scores.Set("bob", 88)
 	scores.Set("alice", 99)
-	fmt.Println("ordered map keys:", scores.Keys())
-	fmt.Println("ordered map values:", scores.Values())
+	printLine("ordered map keys:", scores.Keys())
+	printLine("ordered map values:", scores.Values())
+}
 
-	// MultiMap
+func showMultiMapExample() {
 	tags := mapping.NewMultiMap[string, string]()
 	tags.PutAll("backend", "go", "api", "infra")
-	fmt.Println("multimap backend:", tags.Get("backend"))
+	printLine("multimap backend:", tags.Get("backend"))
+}
 
-	// Table
+func showTableExample() {
 	matrix := mapping.NewTable[string, string, int]()
 	matrix.Put("row1", "col1", 1)
 	matrix.Put("row1", "col2", 2)
 	matrix.Put("row2", "col1", 3)
-	fmt.Println("table row1:", matrix.Row("row1"))
-	fmt.Println("table col1:", matrix.Column("col1"))
+	printLine("table row1:", matrix.Row("row1"))
+	printLine("table col1:", matrix.Column("col1"))
+}
 
-	// List + Deque
+func showListAndDequeExample() {
 	l := list.NewList[int](1, 3)
 	_ = l.AddAt(1, 2)
-	fmt.Println("list:", l.Values())
+	printLine("list:", l.Values())
 
 	dq := list.NewDeque[int]()
 	dq.PushBack(2, 3)
 	dq.PushFront(1)
-	fmt.Println("deque:", dq.Values())
+	printLine("deque:", dq.Values())
+}
 
-	// Trie
+func showTrieExample() {
 	tr := prefix.NewTrie[int]()
 	tr.Put("user:1", 1)
 	tr.Put("user:2", 2)
 	tr.Put("order:9", 9)
-	fmt.Println("trie prefix user:", tr.KeysWithPrefix("user:"))
+	printLine("trie prefix user:", tr.KeysWithPrefix("user:"))
+}
 
-	// RangeSet + RangeMap
+func showIntervalExample() {
 	rs := interval.NewRangeSet[int]()
 	rs.Add(1, 5)
 	rs.Add(5, 8)
-	fmt.Println("range set:", rs.Ranges())
+	printLine("range set:", rs.Ranges())
 
 	rm := interval.NewRangeMap[int, string]()
 	rm.Put(0, 10, "A")
 	rm.Put(3, 5, "B")
 	v, _ := rm.Get(4)
-	fmt.Println("range map get(4):", v)
+	printLine("range map get(4):", v)
+}
 
-	// Tree (parent-children)
+func showTreeExample() {
 	org := tree.NewTree[int, string]()
-	_ = org.AddRoot(1, "CEO")
-	_ = org.AddChild(1, 2, "CTO")
-	_ = org.AddChild(1, 3, "CFO")
-	_ = org.AddChild(2, 4, "Eng Manager")
-	fmt.Println("tree roots:", len(org.Roots()), "descendants of 1:", len(org.Descendants(1)))
+	must(org.AddRoot(1, "CEO"))
+	must(org.AddChild(1, 2, "CTO"))
+	must(org.AddChild(1, 3, "CFO"))
+	must(org.AddChild(2, 4, "Eng Manager"))
+	printLine("tree roots:", len(org.Roots()), "descendants of 1:", len(org.Descendants(1)))
 
 	corg := tree.NewConcurrentTree[int, string]()
-	_ = corg.AddRoot(100, "ROOT")
-	_ = corg.AddChild(100, 101, "CHILD")
-	fmt.Println("concurrent tree len:", corg.Len())
+	must(corg.AddRoot(100, "ROOT"))
+	must(corg.AddChild(100, 101, "CHILD"))
+	printLine("concurrent tree len:", corg.Len())
+}
+
+func printLine(values ...any) {
+	if _, err := fmt.Println(values...); err != nil {
+		log.Printf("print quickstart line: %v", err)
+	}
+}
+
+func must(err error) {
+	if err != nil {
+		panic(err)
+	}
 }

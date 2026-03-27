@@ -27,6 +27,7 @@ use (
 	./eventx/fx
 	./examples/authx
 	./examples/clientx
+	./examples/collectionx
 	./examples/dbx
 	./examples/dix
 	./examples/eventx

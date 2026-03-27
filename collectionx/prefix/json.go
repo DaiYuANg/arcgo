@@ -1,6 +1,8 @@
 package prefix
 
 import (
+	"fmt"
+
 	common "github.com/DaiYuANg/arcgo/collectionx/internal"
 	"github.com/samber/lo"
 )
@@ -21,12 +23,20 @@ func (t *Trie[V]) All() map[string]V {
 
 // ToJSON serializes all key-value pairs to JSON.
 func (t *Trie[V]) ToJSON() ([]byte, error) {
-	return common.MarshalJSONValue(t.All())
+	data, err := common.MarshalJSONValue(t.All())
+	if err != nil {
+		return nil, fmt.Errorf("marshal trie json: %w", err)
+	}
+	return data, nil
 }
 
 // MarshalJSON implements json.Marshaler.
 func (t *Trie[V]) MarshalJSON() ([]byte, error) {
-	return common.ForwardToJSON(t.ToJSON)
+	data, err := common.ForwardToJSON(t.ToJSON)
+	if err != nil {
+		return nil, fmt.Errorf("marshal trie: %w", err)
+	}
+	return data, nil
 }
 
 // String implements fmt.Stringer.

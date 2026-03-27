@@ -1,15 +1,16 @@
-package prefix
+package prefix_test
 
 import (
 	"testing"
 
+	prefix "github.com/DaiYuANg/arcgo/collectionx/prefix"
 	"github.com/stretchr/testify/require"
 )
 
 func TestTrie_BasicOps(t *testing.T) {
 	t.Parallel()
 
-	var tr Trie[int]
+	var tr prefix.Trie[int]
 	require.True(t, tr.Put("cat", 1))
 	require.True(t, tr.Put("car", 2))
 	require.False(t, tr.Put("cat", 9))
@@ -25,7 +26,7 @@ func TestTrie_BasicOps(t *testing.T) {
 func TestTrie_PrefixAndDelete(t *testing.T) {
 	t.Parallel()
 
-	tr := NewTrie[string]()
+	tr := prefix.NewTrie[string]()
 	tr.Put("go", "v1")
 	tr.Put("gone", "v2")
 	tr.Put("good", "v3")
@@ -39,7 +40,7 @@ func TestTrie_PrefixAndDelete(t *testing.T) {
 func TestPrefixMap_AliasConstructor(t *testing.T) {
 	t.Parallel()
 
-	pm := NewPrefixMap[int]()
+	pm := prefix.NewPrefixMap[int]()
 	pm.Put("ab", 1)
 	opt := pm.GetOption("ab")
 	require.True(t, opt.IsPresent())

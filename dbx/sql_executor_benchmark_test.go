@@ -50,7 +50,7 @@ func BenchmarkSQLList(b *testing.B) {
 	}
 
 	benchmarkSQLFetch(b, statement, dataSQL, func(ctx context.Context, session Session, query *SQLStatement, params any, mapper StructMapper[UserSummary]) error {
-		_, err := SQLList(ctx, session, query, params, mapper)
+		_, err := SQLList[UserSummary](ctx, session, query, params, mapper)
 		if err != nil {
 			return fmt.Errorf("SQLList returned error: %w", err)
 		}
@@ -68,7 +68,7 @@ func BenchmarkSQLGet(b *testing.B) {
 	}
 
 	benchmarkSQLFetch(b, statement, dataSQL, func(ctx context.Context, session Session, query *SQLStatement, params any, mapper StructMapper[UserSummary]) error {
-		_, err := SQLGet(ctx, session, query, params, mapper)
+		_, err := SQLGet[UserSummary](ctx, session, query, params, mapper)
 		if err != nil {
 			return fmt.Errorf("SQLGet returned error: %w", err)
 		}
@@ -92,7 +92,7 @@ func BenchmarkSQLFind(b *testing.B) {
 		b.ReportAllocs()
 		b.ResetTimer()
 		for range b.N {
-			result, err := SQLFind(context.Background(), db, statement, nil, mapper)
+			result, err := SQLFind[UserSummary](context.Background(), db, statement, nil, mapper)
 			if err != nil {
 				b.Fatalf("SQLFind returned error: %v", err)
 			}

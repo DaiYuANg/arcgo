@@ -1,10 +1,11 @@
 package scan
 
 import (
-	"fmt"
+	"errors"
 	"strings"
 )
 
+// Scan tokenizes a SQL template string.
 func Scan(input string) ([]Token, error) {
 	var (
 		tokens  []Token
@@ -19,19 +20,19 @@ func Scan(input string) ([]Token, error) {
 		textBuf.Reset()
 	}
 
-	for len(input) > 0 {
+	for input != "" {
 		start := strings.Index(input, "/*")
 		if start < 0 {
-			textBuf.WriteString(input)
+			writeBuilderString(&textBuf, input)
 			break
 		}
 
-		textBuf.WriteString(input[:start])
+		writeBuilderString(&textBuf, input[:start])
 		input = input[start+2:]
 
 		end := strings.Index(input, "*/")
 		if end < 0 {
-			return nil, fmt.Errorf("sqltmplx: unterminated directive comment")
+			return nil, errors.New("sqltmplx: unterminated directive comment")
 		}
 
 		rawBody := input[:end]
@@ -45,7 +46,7 @@ func Scan(input string) ([]Token, error) {
 			continue
 		}
 
-		textBuf.WriteString(fullComment)
+		writeBuilderString(&textBuf, fullComment)
 	}
 
 	flushText()
@@ -59,4 +60,10 @@ func isTemplateDirective(s string) bool {
 	}
 	s = strings.TrimSpace(strings.TrimPrefix(s, "%"))
 	return s == "where" || s == "set" || s == "end" || strings.HasPrefix(s, "if ")
+}
+
+func writeBuilderString(builder *strings.Builder, value string) {
+	if _, err := builder.WriteString(value); err != nil {
+		panic(err)
+	}
 }

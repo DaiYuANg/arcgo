@@ -64,7 +64,6 @@ func fatal(w io.Writer, err error) {
 	mustWriteString(w, fmt.Sprintf("workspace-modules: %v\n", err))
 }
 
-//nolint:gosec // CLI messages are plain local text written to stdout/stderr, not HTML output.
 func mustWriteString(w io.Writer, text string) {
 	if _, err := io.WriteString(w, text); err != nil {
 		panic(err)

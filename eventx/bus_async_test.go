@@ -1,30 +1,30 @@
-package eventx
+package eventx_test
 
 import (
 	"context"
 	"errors"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/eventx"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPublishAsyncNilContext(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithAntsPool(1))
-
+	bus := newTestBus(t, eventx.WithAntsPool(1))
 	nilCtx := make(chan bool, 1)
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+
+	_, err := eventx.Subscribe(bus, func(ctx context.Context, _ userCreated) error {
 		nilCtx <- ctx == nil
 		return nil
 	})
 	require.NoError(t, err)
 
 	require.NoError(t, bus.PublishAsync(nilContext(), userCreated{ID: 1}))
-	require.NoError(t, bus.Close())
+	closeBus(t, bus)
 
 	select {
 	case gotNil := <-nilCtx:
@@ -37,96 +37,87 @@ func TestPublishAsyncNilContext(t *testing.T) {
 func TestPublishAsyncAndCloseDrain(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithAntsPool(2))
+	bus := newTestBus(t, eventx.WithAntsPool(2))
+	var count atomic.Int64
 
-	var count int64
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
-		atomic.AddInt64(&count, 1)
+	_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
+		count.Add(1)
 		return nil
 	})
 	require.NoError(t, err)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		require.NoError(t, bus.PublishAsync(context.Background(), userCreated{ID: i}))
 	}
 
-	require.NoError(t, bus.Close())
-	require.EqualValues(t, 10, atomic.LoadInt64(&count))
+	closeBus(t, bus)
+	require.EqualValues(t, 10, count.Load())
 }
 
 func TestPublishAsyncWithDefaultAntsPool(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
+	var count atomic.Int64
 
-	var count int64
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
-		atomic.AddInt64(&count, 1)
+	_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
+		count.Add(1)
 		return nil
 	})
 	require.NoError(t, err)
 
 	require.NoError(t, bus.PublishAsync(context.Background(), userCreated{ID: 1}))
-	require.NoError(t, bus.Close())
-	require.EqualValues(t, 1, atomic.LoadInt64(&count))
+	closeBus(t, bus)
+	require.EqualValues(t, 1, count.Load())
 }
 
 func TestAsyncErrorHandler(t *testing.T) {
 	t.Parallel()
 
-	var got int64
-	bus := New(
-		WithAntsPool(1),
-		WithAsyncErrorHandler(func(ctx context.Context, event Event, err error) {
+	var got atomic.Int64
+	bus := newTestBus(t,
+		eventx.WithAntsPool(1),
+		eventx.WithAsyncErrorHandler(func(_ context.Context, _ eventx.Event, err error) {
 			if err != nil {
-				atomic.AddInt64(&got, 1)
+				got.Add(1)
 			}
 		}),
 	)
 
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
 		return errors.New("boom")
 	})
 	require.NoError(t, err)
 
 	require.NoError(t, bus.PublishAsync(context.Background(), userCreated{ID: 1}))
-	require.NoError(t, bus.Close())
-	require.EqualValues(t, 1, atomic.LoadInt64(&got))
+	closeBus(t, bus)
+	require.EqualValues(t, 1, got.Load())
 }
 
 func TestAsyncCloseWhilePublishing(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithAntsPool(1))
+	bus := newTestBus(t, eventx.WithAntsPool(1))
 
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
 		time.Sleep(2 * time.Millisecond)
 		return nil
 	})
 	require.NoError(t, err)
 
-	var wg sync.WaitGroup
 	errCh := make(chan error, 200)
-	for i := 0; i < 200; i++ {
-		wg.Add(1)
-		go func(index int) {
-			defer wg.Done()
-			errCh <- bus.PublishAsync(context.Background(), userCreated{ID: index})
-		}(i)
-	}
-
-	time.Sleep(5 * time.Millisecond)
-	require.NoError(t, bus.Close())
-
-	wg.Wait()
+	publishConcurrently(t, 200, func(id int) error {
+		err := bus.PublishAsync(context.Background(), userCreated{ID: id})
+		errCh <- err
+		return nil
+	})
 	close(errCh)
 
+	time.Sleep(5 * time.Millisecond)
+	closeBus(t, bus)
+
 	for err := range errCh {
-		if err == nil {
-			continue
-		}
-		if errors.Is(err, ErrBusClosed) {
+		if err == nil || errors.Is(err, eventx.ErrBusClosed) {
 			continue
 		}
 		require.NoError(t, err)
@@ -136,103 +127,75 @@ func TestAsyncCloseWhilePublishing(t *testing.T) {
 func TestPublishAsyncUnavailableWhenAntsPoolInitFails(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithAntsPool(0))
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t, eventx.WithAntsPool(0))
 
 	err := bus.PublishAsync(context.Background(), userCreated{ID: 1})
-	require.ErrorIs(t, err, ErrAsyncRuntimeUnavailable)
+	require.ErrorIs(t, err, eventx.ErrAsyncRuntimeUnavailable)
 }
 
 func TestSubscribeOnceStrictUnderConcurrentPublish(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithAntsPool(4))
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t, eventx.WithAntsPool(4))
+	var count atomic.Int64
 
-	var count int64
-	_, err := SubscribeOnce(bus, func(ctx context.Context, evt userCreated) error {
-		atomic.AddInt64(&count, 1)
+	_, err := eventx.SubscribeOnce(bus, func(_ context.Context, _ userCreated) error {
+		count.Add(1)
 		time.Sleep(time.Millisecond)
 		return nil
 	})
 	require.NoError(t, err)
 
-	var wg sync.WaitGroup
-	for i := 0; i < 16; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			_ = bus.PublishAsync(context.Background(), userCreated{ID: id})
-		}(i)
-	}
-	wg.Wait()
-	require.NoError(t, bus.Close())
-	require.EqualValues(t, 1, atomic.LoadInt64(&count))
+	publishConcurrently(t, 16, func(id int) error {
+		return bus.PublishAsync(context.Background(), userCreated{ID: id})
+	})
+	closeBus(t, bus)
+	require.EqualValues(t, 1, count.Load())
 }
 
 func TestSubscribeNStrictUnderConcurrentPublish(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithAntsPool(4))
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t, eventx.WithAntsPool(4))
+	var count atomic.Int64
 
-	var count int64
-	_, err := SubscribeN(bus, 2, func(ctx context.Context, evt userCreated) error {
-		atomic.AddInt64(&count, 1)
+	_, err := eventx.SubscribeN(bus, 2, func(_ context.Context, _ userCreated) error {
+		count.Add(1)
 		time.Sleep(time.Millisecond)
 		return nil
 	})
 	require.NoError(t, err)
 
-	var wg sync.WaitGroup
-	for i := 0; i < 16; i++ {
-		wg.Add(1)
-		go func(id int) {
-			defer wg.Done()
-			_ = bus.PublishAsync(context.Background(), userCreated{ID: id})
-		}(i)
-	}
-	wg.Wait()
-	require.NoError(t, bus.Close())
-	require.EqualValues(t, 2, atomic.LoadInt64(&count))
+	publishConcurrently(t, 16, func(id int) error {
+		return bus.PublishAsync(context.Background(), userCreated{ID: id})
+	})
+	closeBus(t, bus)
+	require.EqualValues(t, 2, count.Load())
 }
 
 func TestParallelDispatchUsesGlobalLimiter(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithAntsPool(2), WithParallelDispatch(true))
-	defer func() { _ = bus.Close() }()
-
-	var active int64
-	var maxActive int64
+	bus := newTestBus(t, eventx.WithAntsPool(2), eventx.WithParallelDispatch(true))
+	var active atomic.Int64
+	var maxActive atomic.Int64
 	started := make(chan struct{}, 4)
 	release := make(chan struct{})
 
-	for i := 0; i < 4; i++ {
-		_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
-			current := atomic.AddInt64(&active, 1)
+	for range 4 {
+		_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
+			current := active.Add(1)
 			started <- struct{}{}
-			for {
-				seen := atomic.LoadInt64(&maxActive)
-				if current <= seen || atomic.CompareAndSwapInt64(&maxActive, seen, current) {
-					break
-				}
-			}
+			updateMax(&maxActive, current)
 			<-release
-			atomic.AddInt64(&active, -1)
+			active.Add(-1)
 			return nil
 		})
 		require.NoError(t, err)
 	}
 
 	require.NoError(t, bus.PublishAsync(context.Background(), userCreated{ID: 1}))
-	for i := 0; i < 2; i++ {
-		select {
-		case <-started:
-		case <-time.After(time.Second):
-			t.Fatal("handler did not start in time")
-		}
-	}
+	waitForSignals(t, started, 2, time.Second, "handler did not start in time")
 
 	select {
 	case <-started:
@@ -241,6 +204,6 @@ func TestParallelDispatchUsesGlobalLimiter(t *testing.T) {
 	}
 
 	close(release)
-	require.NoError(t, bus.Close())
-	require.LessOrEqual(t, atomic.LoadInt64(&maxActive), int64(2))
+	closeBus(t, bus)
+	require.LessOrEqual(t, maxActive.Load(), int64(2))
 }

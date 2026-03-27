@@ -1,8 +1,10 @@
-package eventx
+package eventx_test
 
 import (
 	"context"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/eventx"
 )
 
 type benchmarkEvent struct {
@@ -13,14 +15,12 @@ func (e benchmarkEvent) Name() string {
 	return "benchmark.event"
 }
 
-func benchmarkBusWithSubscribers(b *testing.B, parallelDispatch bool, subscribers int) BusRuntime {
+func benchmarkBusWithSubscribers(b *testing.B, parallelDispatch bool, subscribers int) eventx.BusRuntime {
 	b.Helper()
 
-	bus := New(WithParallelDispatch(parallelDispatch))
-	for i := 0; i < subscribers; i++ {
-		_, err := Subscribe(bus, func(ctx context.Context, evt benchmarkEvent) error {
-			_ = ctx
-			_ = evt
+	bus := eventx.New(eventx.WithParallelDispatch(parallelDispatch))
+	for range subscribers {
+		_, err := eventx.Subscribe(bus, func(_ context.Context, _ benchmarkEvent) error {
 			return nil
 		})
 		if err != nil {
@@ -29,7 +29,9 @@ func benchmarkBusWithSubscribers(b *testing.B, parallelDispatch bool, subscriber
 	}
 
 	b.Cleanup(func() {
-		_ = bus.Close()
+		if err := bus.Close(); err != nil {
+			b.Errorf("close bus: %v", err)
+		}
 	})
 	return bus
 }
@@ -42,7 +44,7 @@ func BenchmarkBusPublishSerial(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if err := bus.Publish(ctx, evt); err != nil {
 			b.Fatalf("publish failed: %v", err)
 		}
@@ -57,7 +59,7 @@ func BenchmarkBusPublishParallelDispatch(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		if err := bus.Publish(ctx, evt); err != nil {
 			b.Fatalf("publish failed: %v", err)
 		}

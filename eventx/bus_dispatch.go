@@ -19,9 +19,7 @@ func (b *Bus) dispatch(ctx context.Context, event Event, handlers []HandlerFunc,
 		)
 		return nil
 	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
+	ctx = normalizeContext(ctx)
 
 	obs := b.observabilitySafe()
 	start := time.Now()

@@ -1,4 +1,4 @@
-package eventx
+package eventx_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/eventx"
 	"github.com/stretchr/testify/require"
 )
 
@@ -13,10 +14,9 @@ func TestMiddlewareOrder(t *testing.T) {
 	t.Parallel()
 
 	order := make([]string, 0, 5)
-
-	bus := New(
-		WithMiddleware(func(next HandlerFunc) HandlerFunc {
-			return func(ctx context.Context, event Event) error {
+	bus := newTestBus(t,
+		eventx.WithMiddleware(func(next eventx.HandlerFunc) eventx.HandlerFunc {
+			return func(ctx context.Context, event eventx.Event) error {
 				order = append(order, "global-before")
 				err := next(ctx, event)
 				order = append(order, "global-after")
@@ -24,15 +24,14 @@ func TestMiddlewareOrder(t *testing.T) {
 			}
 		}),
 	)
-	defer func() { _ = bus.Close() }()
 
-	_, err := Subscribe(bus,
-		func(ctx context.Context, evt userCreated) error {
+	_, err := eventx.Subscribe(bus,
+		func(_ context.Context, _ userCreated) error {
 			order = append(order, "handler")
 			return nil
 		},
-		WithSubscriberMiddleware(func(next HandlerFunc) HandlerFunc {
-			return func(ctx context.Context, event Event) error {
+		eventx.WithSubscriberMiddleware(func(next eventx.HandlerFunc) eventx.HandlerFunc {
+			return func(ctx context.Context, event eventx.Event) error {
 				order = append(order, "subscriber-before")
 				err := next(ctx, event)
 				order = append(order, "subscriber-after")
@@ -55,12 +54,9 @@ func TestMiddlewareOrder(t *testing.T) {
 func TestRecoverMiddleware(t *testing.T) {
 	t.Parallel()
 
-	bus := New(
-		WithMiddleware(RecoverMiddleware()),
-	)
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t, eventx.WithMiddleware(eventx.RecoverMiddleware()))
 
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
 		panic("boom")
 	})
 	require.NoError(t, err)
@@ -73,20 +69,18 @@ func TestRecoverMiddleware(t *testing.T) {
 func TestParallelDispatchHandlersRunConcurrently(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithParallelDispatch(true))
-	defer func() { _ = bus.Close() }()
-
+	bus := newTestBus(t, eventx.WithParallelDispatch(true))
 	started := make(chan struct{}, 2)
 	release := make(chan struct{})
 
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
 		started <- struct{}{}
 		<-release
 		return nil
 	})
 	require.NoError(t, err)
 
-	_, err = Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err = eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
 		started <- struct{}{}
 		<-release
 		return nil
@@ -98,14 +92,7 @@ func TestParallelDispatchHandlersRunConcurrently(t *testing.T) {
 		done <- bus.Publish(context.Background(), userCreated{ID: 1})
 	}()
 
-	for i := 0; i < 2; i++ {
-		select {
-		case <-started:
-		case <-time.After(time.Second):
-			t.Fatal("handlers did not start in parallel in time")
-		}
-	}
-
+	waitForSignals(t, started, 2, time.Second, "handlers did not start in parallel in time")
 	close(release)
 
 	select {
@@ -119,15 +106,14 @@ func TestParallelDispatchHandlersRunConcurrently(t *testing.T) {
 func TestParallelDispatchJoinErrors(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithParallelDispatch(true))
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t, eventx.WithParallelDispatch(true))
 
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
 		return errors.New("err-a")
 	})
 	require.NoError(t, err)
 
-	_, err = Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err = eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
 		return errors.New("err-b")
 	})
 	require.NoError(t, err)
@@ -141,12 +127,11 @@ func TestParallelDispatchJoinErrors(t *testing.T) {
 func TestCloseWaitsInFlightSyncDispatch(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-
+	bus := newTestBus(t)
 	started := make(chan struct{})
 	release := make(chan struct{})
 
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
 		close(started)
 		<-release
 		return nil

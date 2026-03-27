@@ -48,7 +48,7 @@ func WithAntsPool(size int) Option {
 
 // WithAntsPoolWithMaxBlockingCalls configures ants pool with max blocking calls limit.
 // maxBlockingCalls <= 0 means infinite.
-func WithAntsPoolWithMaxBlockingCalls(size int, maxBlockingCalls int) Option {
+func WithAntsPoolWithMaxBlockingCalls(size, maxBlockingCalls int) Option {
 	return func(o *options) {
 		o.antsPoolSize = size
 		o.antsMaxBlockingCalls = maxBlockingCalls

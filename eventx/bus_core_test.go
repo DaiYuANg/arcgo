@@ -1,24 +1,23 @@
-package eventx
+package eventx_test
 
 import (
 	"context"
 	"errors"
-	"reflect"
 	"sync/atomic"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/eventx"
 	"github.com/stretchr/testify/require"
 )
 
 func TestPublishSync(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
+	var got atomic.Int64
 
-	var got int64
-	unsubscribe, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
-		atomic.AddInt64(&got, int64(evt.ID))
+	unsubscribe, err := eventx.Subscribe(bus, func(_ context.Context, evt userCreated) error {
+		got.Add(int64(evt.ID))
 		return nil
 	})
 	require.NoError(t, err)
@@ -26,52 +25,49 @@ func TestPublishSync(t *testing.T) {
 
 	err = bus.Publish(context.Background(), userCreated{ID: 7})
 	require.NoError(t, err)
-	require.EqualValues(t, 7, atomic.LoadInt64(&got))
+	require.EqualValues(t, 7, got.Load())
 }
 
 func TestPublishNilEvent(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
 
-	var evt Event
+	var evt eventx.Event
 	err := bus.Publish(context.Background(), evt)
-	require.ErrorIs(t, err, ErrNilEvent)
+	require.ErrorIs(t, err, eventx.ErrNilEvent)
 }
 
 func TestSubscribeNilHandler(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
 
-	_, err := Subscribe[userCreated](bus, nil)
-	require.ErrorIs(t, err, ErrNilHandler)
+	_, err := eventx.Subscribe[userCreated](bus, nil)
+	require.ErrorIs(t, err, eventx.ErrNilHandler)
 }
 
 func TestNilBus(t *testing.T) {
 	t.Parallel()
 
-	var nilBus *Bus
+	var nilBus *eventx.Bus
 
-	_, err := Subscribe(nilBus, func(ctx context.Context, evt userCreated) error { return nil })
-	require.ErrorIs(t, err, ErrNilBus)
+	_, err := eventx.Subscribe(nilBus, func(_ context.Context, _ userCreated) error { return nil })
+	require.ErrorIs(t, err, eventx.ErrNilBus)
 
 	err = nilBus.Publish(context.Background(), userCreated{ID: 1})
-	require.ErrorIs(t, err, ErrNilBus)
+	require.ErrorIs(t, err, eventx.ErrNilBus)
 
 	err = nilBus.PublishAsync(context.Background(), userCreated{ID: 1})
-	require.ErrorIs(t, err, ErrNilBus)
+	require.ErrorIs(t, err, eventx.ErrNilBus)
 }
 
 func TestPublishNilContext(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
 
-	_, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
+	_, err := eventx.Subscribe(bus, func(ctx context.Context, _ userCreated) error {
 		if ctx == nil {
 			return errors.New("nil context")
 		}
@@ -86,12 +82,11 @@ func TestPublishNilContext(t *testing.T) {
 func TestUnsubscribe(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
+	var count atomic.Int64
 
-	var count int64
-	unsubscribe, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error {
-		atomic.AddInt64(&count, 1)
+	unsubscribe, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
+		count.Add(1)
 		return nil
 	})
 	require.NoError(t, err)
@@ -100,36 +95,33 @@ func TestUnsubscribe(t *testing.T) {
 	unsubscribe()
 	require.NoError(t, bus.Publish(context.Background(), userCreated{ID: 1}))
 
-	require.EqualValues(t, 1, atomic.LoadInt64(&count))
+	require.EqualValues(t, 1, count.Load())
 }
 
 func TestCloseRejectsNewRequests(t *testing.T) {
 	t.Parallel()
 
-	bus := New(WithAntsPool(1))
-	require.NoError(t, bus.Close())
+	bus := newTestBus(t, eventx.WithAntsPool(1))
+	closeBus(t, bus)
 
 	err := bus.Publish(context.Background(), userCreated{ID: 1})
-	require.ErrorIs(t, err, ErrBusClosed)
+	require.ErrorIs(t, err, eventx.ErrBusClosed)
 
 	err = bus.PublishAsync(context.Background(), userCreated{ID: 1})
-	require.ErrorIs(t, err, ErrBusClosed)
+	require.ErrorIs(t, err, eventx.ErrBusClosed)
 
-	_, err = Subscribe(bus, func(ctx context.Context, evt userCreated) error {
-		return nil
-	})
-	require.ErrorIs(t, err, ErrBusClosed)
+	_, err = eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error { return nil })
+	require.ErrorIs(t, err, eventx.ErrBusClosed)
 }
 
 func TestSubscriberCount(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
 
-	unsub1, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error { return nil })
+	unsub1, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error { return nil })
 	require.NoError(t, err)
-	unsub2, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error { return nil })
+	unsub2, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error { return nil })
 	require.NoError(t, err)
 
 	require.Equal(t, 2, bus.SubscriberCount())
@@ -142,30 +134,28 @@ func TestSubscriberCount(t *testing.T) {
 func TestSubscribeOnce(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
+	var count atomic.Int64
 
-	var count int64
-	_, err := SubscribeOnce(bus, func(ctx context.Context, evt userCreated) error {
-		atomic.AddInt64(&count, 1)
+	_, err := eventx.SubscribeOnce(bus, func(_ context.Context, _ userCreated) error {
+		count.Add(1)
 		return nil
 	})
 	require.NoError(t, err)
 
 	require.NoError(t, bus.Publish(context.Background(), userCreated{ID: 1}))
 	require.NoError(t, bus.Publish(context.Background(), userCreated{ID: 2}))
-	require.EqualValues(t, 1, atomic.LoadInt64(&count))
+	require.EqualValues(t, 1, count.Load())
 }
 
 func TestSubscribeN(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
+	var count atomic.Int64
 
-	var count int64
-	_, err := SubscribeN(bus, 2, func(ctx context.Context, evt userCreated) error {
-		atomic.AddInt64(&count, 1)
+	_, err := eventx.SubscribeN(bus, 2, func(_ context.Context, _ userCreated) error {
+		count.Add(1)
 		return nil
 	})
 	require.NoError(t, err)
@@ -173,35 +163,43 @@ func TestSubscribeN(t *testing.T) {
 	require.NoError(t, bus.Publish(context.Background(), userCreated{ID: 1}))
 	require.NoError(t, bus.Publish(context.Background(), userCreated{ID: 2}))
 	require.NoError(t, bus.Publish(context.Background(), userCreated{ID: 3}))
-	require.EqualValues(t, 2, atomic.LoadInt64(&count))
+	require.EqualValues(t, 2, count.Load())
 }
 
 func TestSubscribeNInvalidCount(t *testing.T) {
 	t.Parallel()
 
-	bus := New()
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
 
-	_, err := SubscribeN(bus, 0, func(ctx context.Context, evt userCreated) error {
-		return nil
-	})
-	require.ErrorIs(t, err, ErrInvalidSubscribeCount)
+	_, err := eventx.SubscribeN(bus, 0, func(_ context.Context, _ userCreated) error { return nil })
+	require.ErrorIs(t, err, eventx.ErrInvalidSubscribeCount)
 }
 
-func TestHandlerSnapshotInvalidatedOnUnsubscribe(t *testing.T) {
+func TestUnsubscribeInvalidatesHandlerSnapshot(t *testing.T) {
 	t.Parallel()
 
-	bus := New().(*Bus)
-	defer func() { _ = bus.Close() }()
+	bus := newTestBus(t)
+	var first atomic.Int64
+	var second atomic.Int64
 
-	unsub1, err := Subscribe(bus, func(ctx context.Context, evt userCreated) error { return nil })
+	unsub1, err := eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
+		first.Add(1)
+		return nil
+	})
 	require.NoError(t, err)
-	_, err = Subscribe(bus, func(ctx context.Context, evt userCreated) error { return nil })
+	_, err = eventx.Subscribe(bus, func(_ context.Context, _ userCreated) error {
+		second.Add(1)
+		return nil
+	})
 	require.NoError(t, err)
 
-	eventType := reflect.TypeFor[userCreated]()
-	require.Len(t, bus.snapshotHandlersByEventType(eventType), 2)
+	require.NoError(t, bus.Publish(context.Background(), userCreated{ID: 1}))
+	require.EqualValues(t, 1, first.Load())
+	require.EqualValues(t, 1, second.Load())
 
 	unsub1()
-	require.Len(t, bus.snapshotHandlersByEventType(eventType), 1)
+
+	require.NoError(t, bus.Publish(context.Background(), userCreated{ID: 1}))
+	require.EqualValues(t, 1, first.Load())
+	require.EqualValues(t, 2, second.Load())
 }

@@ -81,43 +81,15 @@ func (b *Bus) subscribe(eventType reflect.Type, base HandlerFunc, subscriberMidd
 		return nil, ErrNilBus
 	}
 
-	// Global middleware wraps subscription middleware.
-	finalHandler := chain(chain(base, subscriberMiddleware), b.middleware)
-
+	finalHandler := b.subscriptionHandler(base, subscriberMiddleware)
 	id, err := b.registerSubscription(eventType, func(id uint64) HandlerFunc {
-		if maxCalls <= 0 {
-			return finalHandler
-		}
-
-		wrapped := finalHandler
-		remaining := int64(maxCalls)
-		return func(ctx context.Context, event Event) error {
-			for {
-				current := atomic.LoadInt64(&remaining)
-				if current <= 0 {
-					return nil
-				}
-				if !atomic.CompareAndSwapInt64(&remaining, current, current-1) {
-					continue
-				}
-				if current == 1 {
-					b.deleteSubscription(eventType, id)
-				}
-				return wrapped(ctx, event)
-			}
-		}
+		return b.subscriptionDispatchHandler(eventType, id, finalHandler, maxCalls)
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	var once sync.Once
-	unsubscribe := func() {
-		once.Do(func() {
-			b.deleteSubscription(eventType, id)
-		})
-	}
-	return unsubscribe, nil
+	return b.unsubscribeFunc(eventType, id), nil
 }
 
 func (b *Bus) snapshotHandlersByEventType(eventType reflect.Type) []HandlerFunc {
@@ -142,4 +114,62 @@ func (b *Bus) snapshotHandlersByEventType(eventType reflect.Type) []HandlerFunc 
 		"handler_count", len(handlers),
 	)
 	return handlers
+}
+
+func (b *Bus) subscriptionHandler(base HandlerFunc, subscriberMiddleware []Middleware) HandlerFunc {
+	return chain(chain(base, subscriberMiddleware), b.middleware)
+}
+
+func (b *Bus) subscriptionDispatchHandler(
+	eventType reflect.Type,
+	id uint64,
+	handler HandlerFunc,
+	maxCalls int,
+) HandlerFunc {
+	if maxCalls <= 0 {
+		return handler
+	}
+	return b.limitedSubscriptionHandler(eventType, id, handler, maxCalls)
+}
+
+func (b *Bus) limitedSubscriptionHandler(
+	eventType reflect.Type,
+	id uint64,
+	handler HandlerFunc,
+	maxCalls int,
+) HandlerFunc {
+	var remaining atomic.Int64
+	remaining.Store(int64(maxCalls))
+
+	return func(ctx context.Context, event Event) error {
+		current, ok := consumeSubscriptionCall(&remaining)
+		if !ok {
+			return nil
+		}
+		if current == 1 {
+			b.deleteSubscription(eventType, id)
+		}
+		return handler(ctx, event)
+	}
+}
+
+func consumeSubscriptionCall(remaining *atomic.Int64) (int64, bool) {
+	for {
+		current := remaining.Load()
+		if current <= 0 {
+			return 0, false
+		}
+		if remaining.CompareAndSwap(current, current-1) {
+			return current, true
+		}
+	}
+}
+
+func (b *Bus) unsubscribeFunc(eventType reflect.Type, id uint64) func() {
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			b.deleteSubscription(eventType, id)
+		})
+	}
 }

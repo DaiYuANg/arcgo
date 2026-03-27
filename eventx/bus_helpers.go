@@ -1,8 +1,10 @@
 package eventx
 
 import (
+	"context"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/DaiYuANg/arcgo/observabilityx"
 )
@@ -24,4 +26,32 @@ func eventName(event Event) string {
 		return name
 	}
 	return reflect.TypeOf(event).String()
+}
+
+func backgroundContext() context.Context {
+	return context.Background()
+}
+
+func normalizeContext(ctx context.Context) context.Context {
+	if ctx != nil {
+		return ctx
+	}
+	return backgroundContext()
+}
+
+func recordAsyncEnqueueMetrics(
+	ctx context.Context,
+	obs observabilityx.Observability,
+	start time.Time,
+	event string,
+	result string,
+) {
+	obs.AddCounter(ctx, metricAsyncEnqueueTotal, 1,
+		observabilityx.String("result", result),
+		observabilityx.String("event_name", event),
+	)
+	obs.RecordHistogram(ctx, metricAsyncEnqueueDurationMS, float64(time.Since(start).Milliseconds()),
+		observabilityx.String("result", result),
+		observabilityx.String("event_name", event),
+	)
 }

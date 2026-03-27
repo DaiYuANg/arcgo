@@ -1,3 +1,4 @@
+// Package main demonstrates httpx monitoring middleware and metrics exposure.
 package main
 
 import (
@@ -6,28 +7,27 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/DaiYuANg/arcgo/examples/httpx/shared"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
 	"github.com/DaiYuANg/arcgo/httpx/middleware"
-	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 )
 
-type HealthOutput struct {
+type healthOutput struct {
 	Body struct {
 		Status string `json:"status"`
 	}
 }
 
 func main() {
-	logger, err := logx.New(logx.WithConsole(true), logx.WithDebugLevel())
+	logger, closeLogger, err := shared.NewLogger()
 	if err != nil {
 		panic(err)
 	}
-	defer func() { _ = logx.Close(logger) }()
 	slogLogger := logger
 
 	router := chi.NewMux()
@@ -49,8 +49,8 @@ func main() {
 
 	stdAdapter.Router().Handle("/metrics", middleware.MetricsHandler())
 
-	httpx.MustGet(server, "/health", func(ctx context.Context, input *struct{}) (*HealthOutput, error) {
-		out := &HealthOutput{}
+	httpx.MustGet(server, "/health", func(_ context.Context, _ *struct{}) (*healthOutput, error) {
+		out := &healthOutput{}
 		out.Body.Status = "ok"
 		return out, nil
 	}, huma.OperationTags("monitoring"))
@@ -68,6 +68,8 @@ func main() {
 
 	if err := server.ListenPort(port); err != nil {
 		slogLogger.Error("server exited with error", slog.String("error", err.Error()))
+		closeLogger()
 		os.Exit(1)
 	}
+	closeLogger()
 }

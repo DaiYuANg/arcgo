@@ -1,3 +1,4 @@
+// Package main demonstrates configuring httpx server, client, and context options.
 package main
 
 import (
@@ -7,26 +8,28 @@ import (
 	"os"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/examples/httpx/shared"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
 	"github.com/DaiYuANg/arcgo/httpx/options"
-	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type UserOutput struct {
+type userOutput struct {
 	Body struct {
 		Users []string `json:"users"`
 	}
 }
 
 func main() {
-	logger, _ := logx.New(logx.WithConsole(true))
-	defer func() { _ = logx.Close(logger) }()
+	logger, closeLogger, err := shared.NewLogger()
+	if err != nil {
+		panic(err)
+	}
 	slogLogger := logger
 
 	slogLogger.Info("config example section", slog.String("section", "server options + adapter options"))
@@ -51,8 +54,8 @@ func main() {
 	})
 
 	server := httpx.New(append(serverOpts.Build(), httpx.WithAdapter(stdAdapter))...)
-	httpx.MustGet(server, "/users", func(ctx context.Context, input *struct{}) (*UserOutput, error) {
-		out := &UserOutput{}
+	httpx.MustGet(server, "/users", func(_ context.Context, _ *struct{}) (*userOutput, error) {
+		out := &userOutput{}
 		out.Body.Users = []string{"Alice", "Bob", "Charlie"}
 		return out, nil
 	}, huma.OperationTags("users"))
@@ -66,8 +69,8 @@ func main() {
 	ctxOpts := &options.ContextOptions{Timeout: 5 * time.Second}
 	ctxOpts = options.WithContextValueOpt(ctxOpts, "request_id", "12345")
 	ctx, cancel := ctxOpts.Build()
-	defer cancel()
 	slogLogger.Info("context configured", slog.Any("request_id", ctx.Value("request_id")))
+	cancel()
 
 	port := randomport.MustFind()
 	addr := fmt.Sprintf(":%d", port)
@@ -81,6 +84,8 @@ func main() {
 
 	if err := server.ListenPort(port); err != nil {
 		slogLogger.Error("server exited with error", slog.String("error", err.Error()))
+		closeLogger()
 		os.Exit(1)
 	}
+	closeLogger()
 }

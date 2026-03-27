@@ -1,3 +1,4 @@
+// Package main demonstrates a quickstart httpx server with typed routes.
 package main
 
 import (
@@ -21,7 +22,7 @@ type healthOutput struct {
 
 type createUserInput struct {
 	Body struct {
-		Name  string `json:"name" validate:"required,min=2,max=64"`
+		Name  string `json:"name"  validate:"required,min=2,max=64"`
 		Email string `json:"email" validate:"required,email"`
 	} `json:"body"`
 }
@@ -50,7 +51,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer closeLogger()
 
 	stdAdapter := std.New(nil, adapter.HumaOptions{
 		Title:       "httpx quickstart",
@@ -67,7 +67,7 @@ func main() {
 		httpx.WithPrintRoutes(true),
 	)
 
-	httpx.MustGet(server, "/health", func(ctx context.Context, in *struct{}) (*healthOutput, error) {
+	httpx.MustGet(server, "/health", func(_ context.Context, _ *struct{}) (*healthOutput, error) {
 		out := &healthOutput{}
 		out.Body.Status = "ok"
 		return out, nil
@@ -75,7 +75,7 @@ func main() {
 
 	v1 := server.Group("/v1")
 
-	httpx.MustGroupPost(v1, "/users", func(ctx context.Context, in *createUserInput) (*createUserOutput, error) {
+	httpx.MustGroupPost(v1, "/users", func(_ context.Context, in *createUserInput) (*createUserOutput, error) {
 		out := &createUserOutput{}
 		out.Body.ID = 1001
 		out.Body.Name = in.Body.Name
@@ -83,7 +83,7 @@ func main() {
 		return out, nil
 	})
 
-	httpx.MustGroupGet(v1, "/users/{id}", func(ctx context.Context, in *getUserInput) (*getUserOutput, error) {
+	httpx.MustGroupGet(v1, "/users/{id}", func(_ context.Context, in *getUserInput) (*getUserOutput, error) {
 		out := &getUserOutput{}
 		out.Body.ID = in.ID
 		out.Body.Name = "demo-user"
@@ -101,6 +101,8 @@ func main() {
 
 	if err := server.ListenPort(port); err != nil {
 		logger.Error("server exited with error", slog.String("error", err.Error()))
+		closeLogger()
 		os.Exit(1)
 	}
+	closeLogger()
 }

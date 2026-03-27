@@ -1,6 +1,8 @@
+// Package main demonstrates using authx with the Echo adapter.
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -31,9 +33,13 @@ func main() {
 
 func handler(c echo.Context) error {
 	principal, _ := authx.PrincipalFromContextAs[authx.Principal](c.Request().Context())
-	return c.JSON(http.StatusOK, map[string]any{
+	if err := c.JSON(http.StatusOK, map[string]any{
 		"principal_id": principal.ID,
 		"roles":        principal.Roles,
 		"path":         c.Request().URL.Path,
-	})
+	}); err != nil {
+		return fmt.Errorf("write echo response: %w", err)
+	}
+
+	return nil
 }

@@ -1,5 +1,6 @@
 //go:build !no_gin
 
+// Package main demonstrates using authx with the Gin adapter.
 package main
 
 import (

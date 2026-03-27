@@ -7,6 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// CHIRouteMetaMiddleware injects chi route metadata into the authx request context.
 func CHIRouteMetaMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		routeCtx := chi.RouteContext(r.Context())

@@ -10,6 +10,7 @@ import (
 	authhttp "github.com/DaiYuANg/arcgo/authx/http"
 )
 
+// BearerCredential carries the bearer token resolved from a request.
 type BearerCredential struct {
 	Token string
 }
@@ -30,6 +31,7 @@ var (
 	)
 )
 
+// NewGuard builds the shared demo guard used by the authx HTTP examples.
 func NewGuard() *authhttp.Guard {
 	engine := authx.NewEngine(
 		authx.WithAuthenticationManager(newManager()),

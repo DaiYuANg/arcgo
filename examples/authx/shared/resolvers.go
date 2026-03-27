@@ -9,10 +9,12 @@ import (
 	"github.com/samber/lo"
 )
 
+// MethodActionResolver maps HTTP methods to auth action names.
 type MethodActionResolver struct {
 	actionByMethod collectionx.Map[string, string]
 }
 
+// NewMethodActionResolver creates a method-to-action resolver.
 func NewMethodActionResolver(actionByMethod map[string]string) MethodActionResolver {
 	normalized := make(map[string]string, len(actionByMethod))
 	lo.ForEach(lo.Entries(actionByMethod), func(entry lo.Entry[string, string], _ int) {
@@ -28,6 +30,7 @@ func NewMethodActionResolver(actionByMethod map[string]string) MethodActionResol
 	}
 }
 
+// Resolve maps an HTTP method to an action name.
 func (resolver MethodActionResolver) Resolve(method string) (string, error) {
 	normalizedMethod := strings.ToUpper(strings.TrimSpace(method))
 	if action, ok := resolver.actionByMethod.GetOption(normalizedMethod).Get(); ok {
@@ -36,11 +39,13 @@ func (resolver MethodActionResolver) Resolve(method string) (string, error) {
 	return "", errors.New("unsupported method for action mapping")
 }
 
+// RouteResourceResolver maps route patterns to auth resource names.
 type RouteResourceResolver struct {
 	resourceByExactPattern collectionx.Map[string, string]
 	resourceByPrefix       collectionx.Map[string, string]
 }
 
+// NewRouteResourceResolver creates a route-to-resource resolver.
 func NewRouteResourceResolver(
 	resourceByExactPattern map[string]string,
 	resourceByPrefix map[string]string,
@@ -51,6 +56,7 @@ func NewRouteResourceResolver(
 	}
 }
 
+// Resolve maps a route pattern to a resource name.
 func (resolver RouteResourceResolver) Resolve(routePattern string) (string, error) {
 	pattern := strings.TrimSpace(routePattern)
 	if pattern == "" {

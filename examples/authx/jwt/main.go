@@ -1,9 +1,12 @@
+// Package main demonstrates using authx with a JWT-backed net/http guard.
 package main
 
 import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -73,7 +76,12 @@ func main() {
 	logger.Info("try delete (forbidden)", "command", `curl -X DELETE -H "Authorization: Bearer `+userToken+`" http://127.0.0.1:8084/orders/1001`)
 	logger.Info("try delete (allowed)", "command", `curl -X DELETE -H "Authorization: Bearer `+adminToken+`" http://127.0.0.1:8084/orders/1001`)
 
-	if err = http.ListenAndServe(":8084", router); err != nil {
+	server := &http.Server{
+		Addr:              ":8084",
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	if err = server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 		logger.Error("server stopped", "error", err)
 		os.Exit(1)
 	}
@@ -158,11 +166,11 @@ func resolveJWTCredential(_ context.Context, req authhttp.RequestInfo) (any, err
 func resolveJWTAuthorization(_ context.Context, req authhttp.RequestInfo, principal any) (authx.AuthorizationModel, error) {
 	action, err := jwtActionResolver.Resolve(req.Method)
 	if err != nil {
-		return authx.AuthorizationModel{}, err
+		return authx.AuthorizationModel{}, fmt.Errorf("resolve action for method %q: %w", req.Method, err)
 	}
 	resource, err := jwtResourceResolver.Resolve(req.RoutePattern)
 	if err != nil {
-		return authx.AuthorizationModel{}, err
+		return authx.AuthorizationModel{}, fmt.Errorf("resolve resource for route %q: %w", req.RoutePattern, err)
 	}
 
 	return authx.AuthorizationModel{
@@ -187,15 +195,22 @@ func issueDemoJWT(subject string, roles []string, secret []byte, expiresAt time.
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(secret)
+	signed, err := token.SignedString(secret)
+	if err != nil {
+		return "", fmt.Errorf("sign demo JWT: %w", err)
+	}
+
+	return signed, nil
 }
 
 func writePrincipal(w http.ResponseWriter, r *http.Request) {
 	principal, _ := authx.PrincipalFromContextAs[authx.Principal](r.Context())
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]any{
+	if err := json.NewEncoder(w).Encode(map[string]any{
 		"principal_id": principal.ID,
 		"roles":        principal.Roles,
 		"path":         r.URL.Path,
-	})
+	}); err != nil {
+		slog.Error("encode JWT response failed", "error", err)
+	}
 }

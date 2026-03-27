@@ -1,6 +1,8 @@
+// Package main demonstrates using authx with the Fiber adapter.
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 
@@ -31,9 +33,13 @@ func main() {
 
 func handler(c *fiber.Ctx) error {
 	principal, _ := authx.PrincipalFromContextAs[authx.Principal](c.UserContext())
-	return c.Status(http.StatusOK).JSON(fiber.Map{
+	if err := c.Status(http.StatusOK).JSON(fiber.Map{
 		"principal_id": principal.ID,
 		"roles":        principal.Roles,
 		"path":         c.Path(),
-	})
+	}); err != nil {
+		return fmt.Errorf("write fiber response: %w", err)
+	}
+
+	return nil
 }

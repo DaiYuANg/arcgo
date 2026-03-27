@@ -1,10 +1,11 @@
-package migrate
+package migrate_test
 
 import (
 	"io/fs"
 	"path/filepath"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/dbx/migrate"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,11 +25,16 @@ func TestSafeJoinPath(t *testing.T) {
 		{".", "V1__init.sql", true},
 	}
 	for _, tt := range tests {
-		got, err := safeJoinPath(tt.base, tt.name)
+		source := migrate.FileSource{
+			FS:  fs.FS(fakeFSWithEntry{name: tt.name}),
+			Dir: tt.base,
+		}
+		items, err := source.List()
 		if tt.wantOk {
 			require.NoError(t, err, "base=%q name=%q", tt.base, tt.name)
 			expect := filepath.Clean(filepath.Join(tt.base, tt.name))
-			require.Equal(t, expect, got, "base=%q name=%q", tt.base, tt.name)
+			require.Len(t, items, 1, "base=%q name=%q", tt.base, tt.name)
+			require.Equal(t, filepath.ToSlash(expect), items[0].UpPath, "base=%q name=%q", tt.base, tt.name)
 		} else {
 			require.Error(t, err, "base=%q name=%q should reject path traversal", tt.base, tt.name)
 		}
@@ -39,8 +45,8 @@ func TestFileSourceList_RejectsPathTraversal(t *testing.T) {
 	t.Parallel()
 
 	// MapFS with a name that would trigger path traversal when joined
-	source := FileSource{
-		FS: fs.FS(fakeFSWithTraversal{}),
+	source := migrate.FileSource{
+		FS:  fs.FS(fakeFSWithTraversal{}),
 		Dir: "sql",
 	}
 	_, err := source.List()
@@ -48,9 +54,19 @@ func TestFileSourceList_RejectsPathTraversal(t *testing.T) {
 	require.Contains(t, err.Error(), "path traversal")
 }
 
+type fakeFSWithEntry struct {
+	name string
+}
+
+func (fakeFSWithEntry) Open(string) (fs.File, error) { return nil, fs.ErrNotExist }
+
+func (f fakeFSWithEntry) ReadDir(string) ([]fs.DirEntry, error) {
+	return []fs.DirEntry{&fakeDirEntry{name: f.name}}, nil
+}
+
 type fakeFSWithTraversal struct{}
 
-func (fakeFSWithTraversal) Open(name string) (fs.File, error) {
+func (fakeFSWithTraversal) Open(string) (fs.File, error) {
 	panic("not used")
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"io/fs"
 	"path/filepath"
 	"regexp"
@@ -16,23 +17,32 @@ import (
 	"github.com/samber/lo"
 )
 
+// Kind identifies the source type of a recorded migration.
 type Kind string
 
+// Direction identifies whether a migration file applies or rolls back changes.
 type Direction string
 
 const (
-	KindGo         Kind = "go"
-	KindSQL        Kind = "sql"
+	// KindGo records a Go migration.
+	KindGo Kind = "go"
+	// KindSQL records a versioned SQL migration.
+	KindSQL Kind = "sql"
+	// KindRepeatable records a repeatable SQL migration.
 	KindRepeatable Kind = "repeatable"
 )
 
 const (
-	DirectionUp   Direction = "up"
+	// DirectionUp applies a migration.
+	DirectionUp Direction = "up"
+	// DirectionDown rolls back a migration.
 	DirectionDown Direction = "down"
 )
 
+// ErrInvalidVersionedFilename reports an invalid versioned migration filename.
 var ErrInvalidVersionedFilename = errors.New("dbx/migrate: invalid versioned filename")
 
+// Migration is the contract implemented by executable Go migrations.
 type Migration interface {
 	Version() string
 	Description() string
@@ -40,6 +50,7 @@ type Migration interface {
 	Down(ctx context.Context, tx *sql.Tx) error
 }
 
+// GoMigration is an in-memory migration implemented with Go functions.
 type GoMigration struct {
 	version     string
 	description string
@@ -47,13 +58,18 @@ type GoMigration struct {
 	down        func(context.Context, *sql.Tx) error
 }
 
+// NewGoMigration builds a Go migration from up/down callbacks.
 func NewGoMigration(version, description string, up, down func(context.Context, *sql.Tx) error) GoMigration {
 	return GoMigration{version: version, description: description, up: up, down: down}
 }
 
-func (m GoMigration) Version() string     { return m.version }
+// Version returns the migration version.
+func (m GoMigration) Version() string { return m.version }
+
+// Description returns the migration description.
 func (m GoMigration) Description() string { return m.description }
 
+// Up applies the migration within tx.
 func (m GoMigration) Up(ctx context.Context, tx *sql.Tx) error {
 	if m.up == nil {
 		return nil
@@ -61,6 +77,7 @@ func (m GoMigration) Up(ctx context.Context, tx *sql.Tx) error {
 	return m.up(ctx, tx)
 }
 
+// Down rolls back the migration within tx.
 func (m GoMigration) Down(ctx context.Context, tx *sql.Tx) error {
 	if m.down == nil {
 		return nil
@@ -68,6 +85,7 @@ func (m GoMigration) Down(ctx context.Context, tx *sql.Tx) error {
 	return m.down(ctx, tx)
 }
 
+// VersionedFile describes a parsed migration filename.
 type VersionedFile struct {
 	Version     string
 	Description string
@@ -77,6 +95,7 @@ type VersionedFile struct {
 	Filename    string
 }
 
+// SQLMigration describes a versioned or repeatable SQL migration pair.
 type SQLMigration struct {
 	Version     string
 	Description string
@@ -85,23 +104,27 @@ type SQLMigration struct {
 	Repeatable  bool
 }
 
+// FileSource lists SQL migration files from a filesystem directory.
 type FileSource struct {
 	FS  fs.FS
 	Dir string
 }
 
+// RunnerOptions configures migration history tracking and ordering behavior.
 type RunnerOptions struct {
 	HistoryTable    string
 	AllowOutOfOrder bool
 	ValidateHash    bool
 }
 
+// Runner applies migrations and queries migration history.
 type Runner struct {
 	db      *sql.DB
 	dialect dialect.Dialect
 	options RunnerOptions
 }
 
+// AppliedRecord records a migration execution in the history table.
 type AppliedRecord struct {
 	Version     string
 	Description string
@@ -111,6 +134,7 @@ type AppliedRecord struct {
 	Success     bool
 }
 
+// NewRunner creates a migration runner for db and d.
 func NewRunner(db *sql.DB, d dialect.Dialect, opts RunnerOptions) *Runner {
 	if opts.HistoryTable == "" {
 		opts.HistoryTable = "schema_history"
@@ -118,20 +142,24 @@ func NewRunner(db *sql.DB, d dialect.Dialect, opts RunnerOptions) *Runner {
 	return &Runner{db: db, dialect: d, options: opts}
 }
 
+// DB returns the underlying database handle.
 func (r *Runner) DB() *sql.DB {
 	return r.db
 }
 
+// Dialect returns the SQL dialect used by the runner.
 func (r *Runner) Dialect() dialect.Dialect {
 	return r.dialect
 }
 
+// Options returns the runner options.
 func (r *Runner) Options() RunnerOptions {
 	return r.options
 }
 
 var versionedFilePattern = regexp.MustCompile(`^(?P<prefix>V|U|R)(?P<version>[0-9A-Za-z_.-]*)__(?P<description>.+)\.sql$`)
 
+// ParseVersionedFilename parses a migration filename into a structured record.
 func ParseVersionedFilename(name string) (VersionedFile, error) {
 	base := filepath.Base(name)
 	match := versionedFilePattern.FindStringSubmatch(base)
@@ -161,44 +189,73 @@ func ParseVersionedFilename(name string) (VersionedFile, error) {
 	return file, nil
 }
 
+// List returns the SQL migrations discovered in s.
 func (s FileSource) List() ([]SQLMigration, error) {
-	entries, err := fs.ReadDir(s.FS, s.Dir)
+	entries, err := s.readEntries()
 	if err != nil {
 		return nil, err
 	}
 
 	items := collectionx.NewMapWithCapacity[string, *SQLMigration](len(entries))
 	for _, entry := range lo.Filter(entries, func(e fs.DirEntry, _ int) bool { return !e.IsDir() }) {
-		// Validate path before parsing to reject path traversal in any filename
-		fullPath, err := safeJoinPath(s.Dir, entry.Name())
-		if err != nil {
+		if err := s.addEntry(items, entry); err != nil {
 			return nil, err
-		}
-
-		parsed, err := ParseVersionedFilename(entry.Name())
-		if err != nil {
-			continue
-		}
-
-		key := parsed.Version + ":" + parsed.Description
-		migration, exists := items.Get(key)
-		if !exists {
-			migration = &SQLMigration{
-				Version:     parsed.Version,
-				Description: parsed.Description,
-				Repeatable:  parsed.Kind == KindRepeatable,
-			}
-			items.Set(key, migration)
-		}
-
-		fullPath = filepath.ToSlash(fullPath)
-		if parsed.Direction == DirectionUp {
-			migration.UpPath = fullPath
-		} else {
-			migration.DownPath = fullPath
 		}
 	}
 
+	return sortedSQLMigrations(items), nil
+}
+
+func (s FileSource) readEntries() ([]fs.DirEntry, error) {
+	entries, err := fs.ReadDir(s.FS, s.Dir)
+	if err != nil {
+		return nil, fmt.Errorf("dbx/migrate: read migration dir %q: %w", s.Dir, err)
+	}
+	return entries, nil
+}
+
+func (s FileSource) addEntry(items collectionx.Map[string, *SQLMigration], entry fs.DirEntry) error {
+	fullPath, err := safeJoinPath(s.Dir, entry.Name())
+	if err != nil {
+		return fmt.Errorf("dbx/migrate: resolve migration path %q: %w", entry.Name(), err)
+	}
+
+	parsed, err := ParseVersionedFilename(entry.Name())
+	if err != nil {
+		if errors.Is(err, ErrInvalidVersionedFilename) {
+			return nil
+		}
+		return fmt.Errorf("dbx/migrate: parse migration filename %q: %w", entry.Name(), err)
+	}
+
+	key := sqlMigrationKey(parsed)
+	migration, exists := items.Get(key)
+	if !exists {
+		migration = &SQLMigration{
+			Version:     parsed.Version,
+			Description: parsed.Description,
+			Repeatable:  parsed.Kind == KindRepeatable,
+		}
+		items.Set(key, migration)
+	}
+
+	setSQLMigrationPath(migration, parsed.Direction, filepath.ToSlash(fullPath))
+	return nil
+}
+
+func sqlMigrationKey(file VersionedFile) string {
+	return file.Version + ":" + file.Description
+}
+
+func setSQLMigrationPath(migration *SQLMigration, direction Direction, fullPath string) {
+	if direction == DirectionUp {
+		migration.UpPath = fullPath
+		return
+	}
+	migration.DownPath = fullPath
+}
+
+func sortedSQLMigrations(items collectionx.Map[string, *SQLMigration]) []SQLMigration {
 	result := collectionx.NewListWithCapacity[SQLMigration](items.Len())
 	for _, migration := range items.Values() {
 		result.Add(*migration)
@@ -214,7 +271,7 @@ func (s FileSource) List() ([]SQLMigration, error) {
 		}
 		return itemsSlice[i].Description < itemsSlice[j].Description
 	})
-	return itemsSlice, nil
+	return itemsSlice
 }
 
 // safeJoinPath joins base and name, returning an error if the result escapes base (path traversal).
@@ -223,7 +280,7 @@ func safeJoinPath(base, name string) (string, error) {
 	path := filepath.Clean(filepath.Join(base, name))
 	rel, err := filepath.Rel(base, path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("dbx/migrate: compute relative path for %q: %w", name, err)
 	}
 	if strings.HasPrefix(rel, "..") {
 		return "", errors.New("path traversal not allowed: " + name)

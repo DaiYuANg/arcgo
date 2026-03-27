@@ -103,7 +103,7 @@ func replaceAppliedRecordOnConn(ctx context.Context, conn interface {
 		" AND " + q("kind") + " = " + d.BindVar(2) +
 		" AND " + q("description") + " = " + d.BindVar(3)
 	if _, err := conn.ExecContext(ctx, deleteSQL, record.Version, string(record.Kind), record.Description); err != nil {
-		return err
+		return fmt.Errorf("dbx/migrate: delete applied record %s/%s: %w", record.Version, record.Description, err)
 	}
 
 	insertSQL := "INSERT INTO " + q(table) +
@@ -117,7 +117,10 @@ func replaceAppliedRecordOnConn(ctx context.Context, conn interface {
 		record.Success,
 		record.AppliedAt.UTC().Format(timeLayout),
 	)
-	return err
+	if err != nil {
+		return fmt.Errorf("dbx/migrate: insert applied record %s/%s: %w", record.Version, record.Description, err)
+	}
+	return nil
 }
 
 func appliedRecordForVersion(items []AppliedRecord, record AppliedRecord) (AppliedRecord, error) {
@@ -129,4 +132,3 @@ func appliedRecordForVersion(items []AppliedRecord, record AppliedRecord) (Appli
 	}
 	return found, nil
 }
-

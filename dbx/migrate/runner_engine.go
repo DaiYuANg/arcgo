@@ -18,15 +18,16 @@ type runnerEngine struct {
 
 func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, error) {
 	if len(migrations) == 0 {
-		return nil, nil
+		return &runnerEngine{runner: r, metaByVersion: collectionx.NewMap[int64, AppliedRecord]()}, nil
 	}
 
 	gooseMigrations := collectionx.NewListWithCapacity[*goose.Migration](len(migrations))
 	metaByVersion := collectionx.NewMapWithCapacity[int64, AppliedRecord](len(migrations))
-	for _, migration := range migrations {
+	for i := range migrations {
+		migration := migrations[i]
 		version, err := parseNumericVersion(migration.Version())
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("dbx/migrate: parse go migration version %q: %w", migration.Version(), err)
 		}
 
 		gooseMigrations.Add(goose.NewGoMigration(
@@ -58,15 +59,16 @@ func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, []load
 	gooseMigrations := collectionx.NewListWithCapacity[*goose.Migration](len(loaded))
 	metaByVersion := collectionx.NewMapWithCapacity[int64, AppliedRecord](len(loaded))
 	repeatables := collectionx.NewList[loadedSQLMigration]()
-	for _, migration := range loaded {
+	for i := range loaded {
+		migration := loaded[i]
 		if migration.kind == KindRepeatable {
 			repeatables.Add(migration)
 			continue
 		}
 
-		version, err := parseNumericVersion(migration.Version)
-		if err != nil {
-			return nil, nil, err
+		version, versionErr := parseNumericVersion(migration.Version)
+		if versionErr != nil {
+			return nil, nil, fmt.Errorf("dbx/migrate: parse sql migration version %q: %w", migration.Version, versionErr)
 		}
 
 		gooseMigrations.Add(goose.NewGoMigration(
@@ -95,7 +97,10 @@ func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, []load
 
 func (r *Runner) newRunnerEngine(migrations []*goose.Migration, metaByVersion collectionx.Map[int64, AppliedRecord]) (*runnerEngine, error) {
 	if len(migrations) == 0 {
-		return nil, nil
+		return &runnerEngine{
+			runner:        r,
+			metaByVersion: metaByVersion,
+		}, nil
 	}
 
 	engine, err := goose.NewProvider(
@@ -108,7 +113,7 @@ func (r *Runner) newRunnerEngine(migrations []*goose.Migration, metaByVersion co
 		goose.WithGoMigrations(migrations...),
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: create goose provider: %w", err)
 	}
 	return &runnerEngine{
 		runner:        r,
@@ -124,7 +129,10 @@ func runTxSQL(statement string) *goose.GoFunc {
 	return &goose.GoFunc{
 		RunTx: func(ctx context.Context, tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx, statement)
-			return err
+			if err != nil {
+				return fmt.Errorf("dbx/migrate: execute sql migration statement: %w", err)
+			}
+			return nil
 		},
 	}
 }
@@ -136,4 +144,3 @@ func parseNumericVersion(version string) (int64, error) {
 	}
 	return parsed, nil
 }
-

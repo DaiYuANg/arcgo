@@ -3,8 +3,6 @@ module github.com/DaiYuANg/arcgo/dbx/migrate
 go 1.26.1
 
 require (
-	github.com/DaiYuANg/arcgo/collectionx v0.0.0
-	github.com/DaiYuANg/arcgo/dbx v0.0.0
 	github.com/pressly/goose/v3 v3.27.0
 	github.com/samber/lo v1.53.0
 	github.com/stretchr/testify v1.11.1

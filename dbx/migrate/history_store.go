@@ -33,7 +33,10 @@ func (s *historyStore) Tablename() string {
 
 func (s *historyStore) CreateVersionTable(ctx context.Context, db goosedatabase.DBTxConn) error {
 	_, err := db.ExecContext(ctx, historyTableDDL(s.dialect, s.tableName))
-	return err
+	if err != nil {
+		return fmt.Errorf("dbx/migrate: create history table %q: %w", s.tableName, err)
+	}
+	return nil
 }
 
 func (s *historyStore) TableExists(ctx context.Context, db goosedatabase.DBTxConn) (bool, error) {
@@ -43,7 +46,7 @@ func (s *historyStore) TableExists(ctx context.Context, db goosedatabase.DBTxCon
 	}
 	var exists bool
 	if err := db.QueryRowContext(ctx, query, s.tableName).Scan(&exists); err != nil {
-		return false, err
+		return false, fmt.Errorf("dbx/migrate: query history table %q existence: %w", s.tableName, err)
 	}
 	return exists, nil
 }
@@ -75,7 +78,10 @@ func (s *historyStore) Delete(ctx context.Context, db goosedatabase.DBTxConn, ve
 		" AND " + q("kind") + " = " + s.dialect.BindVar(2) +
 		" AND " + q("description") + " = " + s.dialect.BindVar(3)
 	_, err := db.ExecContext(ctx, deleteSQL, record.Version, string(record.Kind), record.Description)
-	return err
+	if err != nil {
+		return fmt.Errorf("dbx/migrate: delete history record %s/%s: %w", record.Version, record.Description, err)
+	}
+	return nil
 }
 
 func (s *historyStore) GetMigration(ctx context.Context, db goosedatabase.DBTxConn, version int64) (*goosedatabase.GetMigrationResult, error) {
@@ -96,7 +102,7 @@ func (s *historyStore) GetMigration(ctx context.Context, db goosedatabase.DBTxCo
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, goosedatabase.ErrVersionNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: query history record %s/%s: %w", record.Version, record.Description, err)
 	}
 	timestamp, err := time.Parse(timeLayout, appliedAt)
 	if err != nil {
@@ -119,45 +125,74 @@ func (s *historyStore) GetLatestVersion(ctx context.Context, db goosedatabase.DB
 	return maxItem.Version, nil
 }
 
-func (s *historyStore) ListMigrations(ctx context.Context, db goosedatabase.DBTxConn) ([]*goosedatabase.ListMigrationsResult, error) {
-	rows, err := db.QueryContext(ctx, historyRowsForStatusSQL(s.dialect, s.tableName), string(KindRepeatable))
+func (s *historyStore) ListMigrations(ctx context.Context, db goosedatabase.DBTxConn) (_ []*goosedatabase.ListMigrationsResult, resultErr error) {
+	rows, err := s.queryHistoryRows(ctx, db)
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		resultErr = closeSQLRows(rows, "history rows", resultErr)
+	}()
 
-	items := collectionx.NewList[*goosedatabase.ListMigrationsResult]()
-	for rows.Next() {
-		var (
-			version     string
-			description string
-			kind        string
-			appliedAt   string
-			success     bool
-		)
-		if err := rows.Scan(&version, &description, &kind, &appliedAt, &success); err != nil {
-			return nil, err
-		}
-		parsed, err := parseNumericVersion(version)
-		if err != nil {
-			return nil, err
-		}
-		record, ok := s.metaByVersion.Get(parsed)
-		if !ok {
-			continue
-		}
-		if record.Kind != Kind(kind) || record.Description != description {
-			continue
-		}
-		items.Add(&goosedatabase.ListMigrationsResult{Version: parsed, IsApplied: true})
-	}
-	if err := rows.Err(); err != nil {
+	items, err := s.collectListMigrations(rows)
+	if err != nil {
 		return nil, err
 	}
-	if items.Len() == 0 {
-		items.Add(&goosedatabase.ListMigrationsResult{Version: 0, IsApplied: true})
+	return ensureListMigrationsResult(items), nil
+}
+
+func (s *historyStore) listMigrationResult(rows *sql.Rows) (*goosedatabase.ListMigrationsResult, bool, error) {
+	var (
+		version     string
+		description string
+		kind        string
+		appliedAt   string
+		success     bool
+	)
+	if err := rows.Scan(&version, &description, &kind, &appliedAt, &success); err != nil {
+		return nil, false, fmt.Errorf("dbx/migrate: scan history row: %w", err)
+	}
+	parsed, err := parseNumericVersion(version)
+	if err != nil {
+		return nil, false, err
+	}
+	record, ok := s.metaByVersion.Get(parsed)
+	if !ok || record.Kind != Kind(kind) || record.Description != description {
+		return nil, false, nil
+	}
+	return &goosedatabase.ListMigrationsResult{Version: parsed, IsApplied: true}, true, nil
+}
+
+func (s *historyStore) queryHistoryRows(ctx context.Context, db goosedatabase.DBTxConn) (*sql.Rows, error) {
+	rows, err := db.QueryContext(ctx, historyRowsForStatusSQL(s.dialect, s.tableName), string(KindRepeatable))
+	if err != nil {
+		return nil, fmt.Errorf("dbx/migrate: query history rows: %w", err)
+	}
+	return rows, nil
+}
+
+func (s *historyStore) collectListMigrations(rows *sql.Rows) ([]*goosedatabase.ListMigrationsResult, error) {
+	items := collectionx.NewList[*goosedatabase.ListMigrationsResult]()
+	for rows.Next() {
+		result, ok, scanErr := s.listMigrationResult(rows)
+		if scanErr != nil {
+			return nil, scanErr
+		}
+		if ok {
+			items.Add(result)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("dbx/migrate: iterate history rows: %w", err)
 	}
 	return items.Values(), nil
+}
+
+func ensureListMigrationsResult(items []*goosedatabase.ListMigrationsResult) []*goosedatabase.ListMigrationsResult {
+	if len(items) > 0 {
+		return items
+	}
+	return []*goosedatabase.ListMigrationsResult{{Version: 0, IsApplied: true}}
 }
 
 func historyTableExistsSQL(d dialect.Dialect) (string, error) {

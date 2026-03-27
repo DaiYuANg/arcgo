@@ -1,3 +1,4 @@
+// Package main demonstrates the httpx std adapter example.
 package main
 
 import (
@@ -18,7 +19,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer closeLogger()
 
 	userService := shared.NewMockUserService()
 	router := chi.NewMux()
@@ -46,6 +46,8 @@ func main() {
 
 	if err := server.ListenPort(port); err != nil {
 		logger.Error("server exited with error", slog.String("error", err.Error()))
+		closeLogger()
 		os.Exit(1)
 	}
+	closeLogger()
 }

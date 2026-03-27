@@ -5,7 +5,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 )
@@ -35,10 +34,10 @@ func main() {
 }
 
 func printBanner() {
-	fmt.Println(separatorLine)
-	fmt.Println("   ArcGo 版本文档同步工具")
-	fmt.Println(separatorLine)
-	fmt.Println()
+	stdoutln(separatorLine)
+	stdoutln("   ArcGo 版本文档同步工具")
+	stdoutln(separatorLine)
+	stdoutln()
 }
 
 func resolvePaths() syncPaths {
@@ -56,64 +55,64 @@ func resolvePaths() syncPaths {
 }
 
 func loadTags() []string {
-	fmt.Println("[1/4] 获取 git tags...")
+	stdoutln("[1/4] 获取 git tags...")
 	tags, err := getGitTags()
 	if err != nil {
 		exitWithError(err)
 	}
 	if len(tags) == 0 {
-		fmt.Println("⚠️  未找到 git tags，使用 short commit 作为版本标识")
+		stdoutln("⚠️  未找到 git tags，使用 short commit 作为版本标识")
 		shortCommit, err := getShortCommit()
 		if err != nil {
 			exitWithError(err)
 		}
-		fmt.Printf("✅ 使用版本：%s (short commit)\n\n", shortCommit)
+		stdoutf("✅ 使用版本：%s (short commit)\n\n", shortCommit)
 		return []string{shortCommit}
 	}
 
-	fmt.Println("✅ 找到以下 tags:")
+	stdoutln("✅ 找到以下 tags:")
 	for _, tag := range tags {
-		fmt.Printf("   - %s\n", tag)
+		stdoutf("   - %s\n", tag)
 	}
-	fmt.Println()
+	stdoutln()
 	return tags
 }
 
 func printCurrentVersion(latestTag string) {
-	fmt.Printf("[2/4] 当前版本：%s\n", latestTag)
-	fmt.Println()
+	stdoutf("[2/4] 当前版本：%s\n", latestTag)
+	stdoutln()
 }
 
 func writeVersions(versionsFile string, versions []Version) {
-	fmt.Println("[3/4] 创建版本配置文件...")
+	stdoutln("[3/4] 创建版本配置文件...")
 	if err := writeVersionsFile(versionsFile, versions); err != nil {
 		exitWithError(err)
 	}
-	fmt.Printf("✅ 版本文档配置已更新到：%s\n", versionsFile)
-	fmt.Println()
+	stdoutf("✅ 版本文档配置已更新到：%s\n", versionsFile)
+	stdoutln()
 }
 
 func createVersionDirs(contentDir string, versions []Version) {
-	fmt.Println("[4/4] 创建版本文档目录...")
+	stdoutln("[4/4] 创建版本文档目录...")
 	if err := createVersionedDirs(contentDir, versions); err != nil {
 		exitWithError(err)
 	}
-	fmt.Println()
+	stdoutln()
 }
 
 func printSummary(latestTag string, total int) {
-	fmt.Println(separatorLine)
-	fmt.Println("   版本统计")
-	fmt.Println(separatorLine)
-	fmt.Printf("   当前版本：%s\n", latestTag)
-	fmt.Printf("   历史版本数：%d 个\n", total)
-	fmt.Println(separatorLine)
-	fmt.Println()
-	fmt.Println("💡 提示：运行 'go tool hugo server -D' 预览版本文档")
-	fmt.Println()
+	stdoutln(separatorLine)
+	stdoutln("   版本统计")
+	stdoutln(separatorLine)
+	stdoutf("   当前版本：%s\n", latestTag)
+	stdoutf("   历史版本数：%d 个\n", total)
+	stdoutln(separatorLine)
+	stdoutln()
+	stdoutln("💡 提示：运行 'go tool hugo server -D' 预览版本文档")
+	stdoutln()
 }
 
 func exitWithError(err error) {
-	fmt.Printf("❌ 错误：%v\n", err)
+	stderrf("❌ 错误：%v\n", err)
 	os.Exit(1)
 }

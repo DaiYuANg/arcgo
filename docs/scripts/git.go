@@ -30,7 +30,11 @@ func getProjectRoot() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("无法获取 worktree：%w", err)
 	}
-	return filepath.Abs(wt.Filesystem.Root())
+	root, err := filepath.Abs(wt.Filesystem.Root())
+	if err != nil {
+		return "", fmt.Errorf("无法解析项目根目录：%w", err)
+	}
+	return root, nil
 }
 
 // getGitTags 获取所有 git tags，按版本号降序排序
@@ -54,7 +58,7 @@ func getGitTags() ([]string, error) {
 		return nil
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("遍历 git tags 失败：%w", err)
 	}
 	sort.Slice(tags, func(i, j int) bool {
 		return compareVersions(tags[i], tags[j]) > 0

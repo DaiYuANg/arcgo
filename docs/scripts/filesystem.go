@@ -1,7 +1,9 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +14,7 @@ func safeJoinPath(base, name string) (string, error) {
 	path := filepath.Clean(filepath.Join(base, name))
 	rel, err := filepath.Rel(base, path)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("resolve relative path for %s: %w", name, err)
 	}
 	if strings.HasPrefix(rel, "..") {
 		return "", fmt.Errorf("path traversal not allowed: %s", name)
@@ -51,17 +53,17 @@ func createVersionDir(versionedDir, sourceDocsDir string, sourceRootFiles []stri
 	versionDocsDir := filepath.Join(versionDir, "docs")
 
 	if _, err := os.Stat(versionDir); err == nil {
-		fmt.Printf("   ⏭️  跳过已存在的版本目录：%s\n", version.Name)
+		stdoutf("   ⏭️  跳过已存在的版本目录：%s\n", version.Name)
 		return nil
 	}
 
-	fmt.Printf("   📁 创建版本文档目录：%s\n", version.Name)
-	if err := os.MkdirAll(versionDocsDir, 0o755); err != nil {
+	stdoutf("   📁 创建版本文档目录：%s\n", version.Name)
+	if err := os.MkdirAll(versionDocsDir, 0o750); err != nil {
 		return fmt.Errorf("无法创建目录 %s：%w", versionDir, err)
 	}
 
 	if err := copyDir(sourceDocsDir, versionDocsDir); err != nil {
-		fmt.Printf("      ⚠️  复制 docs 目录失败：%v\n", err)
+		stdoutf("      ⚠️  复制 docs 目录失败：%v\n", err)
 	}
 
 	copyRootFiles(versionDir, sourceRootFiles)
@@ -73,44 +75,30 @@ func copyRootFiles(versionDir string, sourceRootFiles []string) {
 		if _, err := os.Stat(srcFile); os.IsNotExist(err) {
 			continue
 		}
-		dstFile := filepath.Join(versionDir, filepath.Base(srcFile))
+		dstFile, err := safeJoinPath(versionDir, filepath.Base(srcFile))
+		if err != nil {
+			stdoutf("      ⚠️  解析目标文件 %s 失败：%v\n", filepath.Base(srcFile), err)
+			continue
+		}
 		if err := copyFile(srcFile, dstFile); err != nil {
-			fmt.Printf("      ⚠️  复制文件 %s 失败：%v\n", filepath.Base(srcFile), err)
+			stdoutf("      ⚠️  复制文件 %s 失败：%v\n", filepath.Base(srcFile), err)
 		}
 	}
 }
 
 // copyDir 递归复制目录
-func copyDir(src, dst string) error {
-	entries, err := os.ReadDir(src)
+func copyDir(srcDir, dstDir string) error {
+	entries, err := os.ReadDir(srcDir)
 	if err != nil {
-		return fmt.Errorf("读取目录 %s 失败：%w", src, err)
+		return fmt.Errorf("读取目录 %s 失败：%w", srcDir, err)
 	}
 
 	for _, entry := range entries {
-		if entry.Name() == "versioned" {
+		if isSkippedVersionEntry(entry) {
 			continue
 		}
 
-		srcPath, err := safeJoinPath(src, entry.Name())
-		if err != nil {
-			return fmt.Errorf("invalid source path %s: %w", entry.Name(), err)
-		}
-		dstPath, err := safeJoinPath(dst, entry.Name())
-		if err != nil {
-			return fmt.Errorf("invalid destination path %s: %w", entry.Name(), err)
-		}
-
-		if entry.IsDir() {
-			if err := os.MkdirAll(dstPath, 0o755); err != nil {
-				return fmt.Errorf("创建目录 %s 失败：%w", dstPath, err)
-			}
-			if err := copyDir(srcPath, dstPath); err != nil {
-				return err
-			}
-			continue
-		}
-		if err := copyFile(srcPath, dstPath); err != nil {
+		if err := copyDirEntry(srcDir, dstDir, entry); err != nil {
 			return err
 		}
 	}
@@ -118,14 +106,61 @@ func copyDir(src, dst string) error {
 	return nil
 }
 
-// copyFile 复制文件
-func copyFile(src, dst string) error {
-	data, err := os.ReadFile(src)
+func isSkippedVersionEntry(entry os.DirEntry) bool {
+	return entry.Name() == "versioned"
+}
+
+func copyDirEntry(srcDir, dstDir string, entry os.DirEntry) error {
+	srcPath, err := safeJoinPath(srcDir, entry.Name())
 	if err != nil {
-		return fmt.Errorf("读取文件 %s 失败：%w", src, err)
+		return fmt.Errorf("invalid source path %s: %w", entry.Name(), err)
 	}
-	if err := os.WriteFile(dst, data, 0o644); err != nil {
-		return fmt.Errorf("写入文件 %s 失败：%w", dst, err)
+	dstPath, err := safeJoinPath(dstDir, entry.Name())
+	if err != nil {
+		return fmt.Errorf("invalid destination path %s: %w", entry.Name(), err)
 	}
+
+	if entry.IsDir() {
+		if err := os.MkdirAll(dstPath, 0o750); err != nil {
+			return fmt.Errorf("创建目录 %s 失败：%w", dstPath, err)
+		}
+		return copyDir(srcPath, dstPath)
+	}
+
+	return copyFile(srcPath, dstPath)
+}
+
+// copyFile 复制文件
+func copyFile(srcPath, dstPath string) (retErr error) {
+	//nolint:gosec // srcPath is validated by safeJoinPath before copyFile is called.
+	src, err := os.Open(srcPath)
+	if err != nil {
+		return fmt.Errorf("读取文件 %s 失败：%w", srcPath, err)
+	}
+	defer func() {
+		retErr = errors.Join(retErr, closeFile(src, "源文件", srcPath))
+	}()
+
+	//nolint:gosec // dstPath is validated by safeJoinPath before copyFile is called.
+	dst, err := os.OpenFile(dstPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	if err != nil {
+		return fmt.Errorf("写入文件 %s 失败：%w", dstPath, err)
+	}
+	defer func() {
+		retErr = errors.Join(retErr, closeFile(dst, "目标文件", dstPath))
+	}()
+
+	if _, err := io.Copy(dst, src); err != nil {
+		return fmt.Errorf("复制文件 %s 到 %s 失败：%w", srcPath, dstPath, err)
+	}
+
+	return nil
+}
+
+func closeFile(file io.Closer, kind, path string) error {
+	if err := file.Close(); err != nil {
+		return fmt.Errorf("关闭%s %s 失败：%w", kind, path, err)
+	}
+
 	return nil
 }

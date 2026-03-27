@@ -75,7 +75,7 @@ func TestNewUsesSchemaAsMetadataSource(t *testing.T) {
 
 func TestBaseCreateListAndFirst(t *testing.T) {
 	repo, users, ctx := newUserRepo(t, "file:repository_crud_test?mode=memory&cache=shared")
-	seedUsers(t, ctx, repo, "alice")
+	seedUsers(ctx, t, repo, "alice")
 
 	items, err := repo.List(ctx, nil)
 	require.NoError(t, err)
@@ -160,7 +160,7 @@ func TestBaseByIDNotFoundAsErrorOption(t *testing.T) {
 	ctx := context.Background()
 	core := openRepositoryCore(t, "file:repository_not_found_option_test?mode=memory&cache=shared")
 	users := dbx.MustSchema("users", UserSchema{})
-	mustAutoMigrate(t, ctx, core, users)
+	mustAutoMigrate(ctx, t, core, users)
 
 	defaultRepo := repository.New[User](core, users)
 	_, err := defaultRepo.DeleteByID(ctx, int64(404))
@@ -315,7 +315,7 @@ func newUserRepo(t *testing.T, dsn string) (*repository.Base[User, UserSchema], 
 	ctx := context.Background()
 	core := openRepositoryCore(t, dsn)
 	users := dbx.MustSchema("users", UserSchema{})
-	mustAutoMigrate(t, ctx, core, users)
+	mustAutoMigrate(ctx, t, core, users)
 
 	return repository.New[User](core, users), users, ctx
 }
@@ -326,7 +326,7 @@ func newDeviceRepo(t *testing.T, dsn string) (*repository.Base[Device, DeviceSch
 	ctx := context.Background()
 	core := openRepositoryCore(t, dsn)
 	devices := dbx.MustSchema("devices", DeviceSchema{})
-	mustAutoMigrate(t, ctx, core, devices)
+	mustAutoMigrate(ctx, t, core, devices)
 
 	return repository.New[Device](core, devices), devices, ctx
 }
@@ -337,7 +337,7 @@ func newMembershipRepo(t *testing.T, dsn string) (*repository.Base[Membership, M
 	ctx := context.Background()
 	core := openRepositoryCore(t, dsn)
 	memberships := dbx.MustSchema("memberships", MembershipSchema{})
-	mustAutoMigrate(t, ctx, core, memberships)
+	mustAutoMigrate(ctx, t, core, memberships)
 
 	return repository.New[Membership](core, memberships), memberships, ctx
 }
@@ -348,7 +348,7 @@ func newVersionedUserRepo(t *testing.T, dsn string) (*repository.Base[VersionedU
 	ctx := context.Background()
 	core := openRepositoryCore(t, dsn)
 	users := dbx.MustSchema("versioned_users", VersionedUserSchema{})
-	mustAutoMigrate(t, ctx, core, users)
+	mustAutoMigrate(ctx, t, core, users)
 
 	return repository.New[VersionedUser](core, users), users, ctx
 }
@@ -357,7 +357,7 @@ func newSeededUserRepo(t *testing.T, dsn string, names ...string) (*repository.B
 	t.Helper()
 
 	repo, users, ctx := newUserRepo(t, dsn)
-	seedUsers(t, ctx, repo, names...)
+	seedUsers(ctx, t, repo, names...)
 
 	return repo, users, ctx
 }
@@ -377,14 +377,14 @@ func openRepositoryCore(t *testing.T, dsn string) *dbx.DB {
 	return dbx.MustNewWithOptions(raw, sqlitedialect.New())
 }
 
-func mustAutoMigrate(t *testing.T, ctx context.Context, core *dbx.DB, schemas ...dbx.SchemaResource) {
+func mustAutoMigrate(ctx context.Context, t *testing.T, core *dbx.DB, schemas ...dbx.SchemaResource) {
 	t.Helper()
 
 	_, err := core.AutoMigrate(ctx, schemas...)
 	require.NoError(t, err)
 }
 
-func seedUsers(t *testing.T, ctx context.Context, repo *repository.Base[User, UserSchema], names ...string) {
+func seedUsers(ctx context.Context, t *testing.T, repo *repository.Base[User, UserSchema], names ...string) {
 	t.Helper()
 
 	for _, name := range names {

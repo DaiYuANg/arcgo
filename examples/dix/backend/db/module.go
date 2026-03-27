@@ -10,6 +10,7 @@ import (
 	"github.com/DaiYuANg/arcgo/examples/dix/backend/schema"
 )
 
+// Module wires the backend example database and schema services.
 var Module = dix.NewModule("db",
 	dix.WithModuleImports(config.Module),
 	dix.WithModuleProviders(
@@ -30,9 +31,9 @@ var Module = dix.NewModule("db",
 			return dbx.MustSchema("users", s)
 		}),
 	),
-	dix.WithModuleSetup(func(c *dix.Container, lc dix.Lifecycle) error {
-		database, _ := dix.ResolveAs[*dbx.DB](c)
-		lc.OnStop(func(ctx context.Context) error { return database.Close() })
-		return nil
-	}),
+	dix.WithModuleHooks(
+		dix.OnStop(func(_ context.Context, database *dbx.DB) error {
+			return database.Close()
+		}),
+	),
 )

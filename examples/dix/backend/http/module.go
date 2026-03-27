@@ -1,3 +1,4 @@
+// Package http wires the backend example HTTP server.
 package http
 
 import (
@@ -16,10 +17,11 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// Module wires the backend example HTTP API server.
 var Module = dix.NewModule("http",
 	dix.WithModuleImports(config.Module, service.Module),
 	dix.WithModuleProviders(
-		dix.Provider3(func(cfg config.AppConfig, svc service.UserService, log *slog.Logger) httpx.ServerRuntime {
+		dix.Provider2(func(svc service.UserService, log *slog.Logger) httpx.ServerRuntime {
 			router := chi.NewMux()
 			router.Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
 			ad := std.New(router, adapter.HumaOptions{
@@ -40,15 +42,17 @@ var Module = dix.NewModule("http",
 			return server
 		}),
 	),
-	dix.WithModuleSetup(func(c *dix.Container, lc dix.Lifecycle) error {
-		server, _ := dix.ResolveAs[httpx.ServerRuntime](c)
-		cfg, _ := dix.ResolveAs[config.AppConfig](c)
-		p := cfg.Server.Port
-		lc.OnStart(func(ctx context.Context) error {
-			go func() { _ = server.ListenPort(p) }()
+	dix.WithModuleHooks(
+		dix.OnStart3(func(_ context.Context, server httpx.ServerRuntime, cfg config.AppConfig, log *slog.Logger) error {
+			go func(port int) {
+				if err := server.ListenPort(port); err != nil {
+					log.Error("http server stopped", slog.String("error", err.Error()))
+				}
+			}(cfg.Server.Port)
 			return nil
-		})
-		lc.OnStop(func(ctx context.Context) error { return server.Shutdown() })
-		return nil
-	}),
+		}),
+		dix.OnStop(func(_ context.Context, server httpx.ServerRuntime) error {
+			return server.Shutdown()
+		}),
+	),
 )

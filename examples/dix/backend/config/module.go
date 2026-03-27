@@ -9,6 +9,7 @@ import (
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
 )
 
+// Module loads the backend example configuration and startup logs.
 var Module = dix.NewModule("config",
 	dix.WithModuleProviders(
 		dix.Provider1(func(log *slog.Logger) AppConfig {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/DaiYuANg/arcgo/eventx"
@@ -10,6 +11,7 @@ import (
 	"github.com/DaiYuANg/arcgo/examples/dix/backend/repo"
 )
 
+// UserService implements the user operations exposed by the backend example.
 type UserService interface {
 	List(ctx context.Context, search string, limit, offset int) ([]domain.User, int, error)
 	Get(ctx context.Context, id int64) (domain.User, bool, error)
@@ -19,38 +21,60 @@ type UserService interface {
 }
 
 type userService struct {
-	repo repo.UserRepository
-	bus  eventx.BusRuntime
-	log  *slog.Logger
+	repository repo.UserRepository
+	bus        eventx.BusRuntime
+	log        *slog.Logger
 }
 
-func NewUserService(repo repo.UserRepository, bus eventx.BusRuntime, log *slog.Logger) UserService {
-	return &userService{repo: repo, bus: bus, log: log}
+// NewUserService creates a user service backed by the repository and event bus.
+func NewUserService(userRepo repo.UserRepository, bus eventx.BusRuntime, log *slog.Logger) UserService {
+	return &userService{repository: userRepo, bus: bus, log: log}
 }
 
 func (s *userService) List(ctx context.Context, search string, limit, offset int) ([]domain.User, int, error) {
-	return s.repo.List(ctx, search, limit, offset)
+	users, total, err := s.repository.List(ctx, search, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list users: %w", err)
+	}
+	return users, total, nil
 }
 
 func (s *userService) Get(ctx context.Context, id int64) (domain.User, bool, error) {
-	return s.repo.GetByID(ctx, id)
+	user, ok, err := s.repository.GetByID(ctx, id)
+	if err != nil {
+		return domain.User{}, false, fmt.Errorf("get user: %w", err)
+	}
+	return user, ok, nil
 }
 
 func (s *userService) Create(ctx context.Context, in domain.CreateUserInput) (domain.User, error) {
-	user, err := s.repo.Create(ctx, in)
+	user, err := s.repository.Create(ctx, in)
 	if err != nil {
-		return domain.User{}, err
+		return domain.User{}, fmt.Errorf("create user: %w", err)
 	}
-	_ = s.bus.PublishAsync(ctx, event.UserCreatedEvent{
+	if err := s.bus.PublishAsync(ctx, event.UserCreatedEvent{
 		UserID: user.ID, UserName: user.Name, Email: user.Email, CreatedAt: user.CreatedAt,
-	})
+	}); err != nil && s.log != nil {
+		s.log.Warn("publish user created event failed",
+			slog.String("error", err.Error()),
+			slog.Int64("user_id", user.ID),
+		)
+	}
 	return user, nil
 }
 
 func (s *userService) Update(ctx context.Context, id int64, in domain.UpdateUserInput) (domain.User, bool, error) {
-	return s.repo.Update(ctx, id, in)
+	user, ok, err := s.repository.Update(ctx, id, in)
+	if err != nil {
+		return domain.User{}, false, fmt.Errorf("update user: %w", err)
+	}
+	return user, ok, nil
 }
 
 func (s *userService) Delete(ctx context.Context, id int64) (bool, error) {
-	return s.repo.Delete(ctx, id)
+	deleted, err := s.repository.Delete(ctx, id)
+	if err != nil {
+		return false, fmt.Errorf("delete user: %w", err)
+	}
+	return deleted, nil
 }

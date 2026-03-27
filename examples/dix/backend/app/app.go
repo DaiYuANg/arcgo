@@ -1,3 +1,4 @@
+// Package app wires the backend example application entrypoint.
 package app
 
 import (
@@ -14,9 +15,9 @@ import (
 	"github.com/DaiYuANg/arcgo/logx"
 )
 
+// Run starts the backend example application.
 func Run() {
 	logger := logx.MustNew(logx.WithConsole(true), logx.WithDebugLevel())
-	defer func() { _ = logx.Close(logger) }()
 
 	a := dix.New(
 		"backend",
@@ -34,6 +35,14 @@ func Run() {
 
 	if err := a.Run(); err != nil {
 		logger.Error("backend exited", slog.String("error", err.Error()))
+		closeLogger(logger)
 		os.Exit(1)
+	}
+	closeLogger(logger)
+}
+
+func closeLogger(logger *slog.Logger) {
+	if err := logx.Close(logger); err != nil {
+		slog.Default().Error("close logger failed", slog.String("error", err.Error()))
 	}
 }

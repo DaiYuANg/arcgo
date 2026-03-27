@@ -2,13 +2,16 @@ package repo
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/examples/dix/backend/domain"
+	backendschema "github.com/DaiYuANg/arcgo/examples/dix/backend/schema"
 )
 
+// UserRepository persists backend users.
 type UserRepository interface {
 	List(ctx context.Context, search string, limit, offset int) ([]domain.User, int, error)
 	GetByID(ctx context.Context, id int64) (domain.User, bool, error)
@@ -19,16 +22,17 @@ type UserRepository interface {
 
 type userRepo struct {
 	db     *dbx.DB
-	schema UserSchema
+	schema backendschema.UserSchema
 }
 
-func NewUserRepository(db *dbx.DB, schema UserSchema) UserRepository {
-	return &userRepo{db: db, schema: schema}
+// NewUserRepository creates a user repository backed by dbx.
+func NewUserRepository(db *dbx.DB, userSchema backendschema.UserSchema) UserRepository {
+	return &userRepo{db: db, schema: userSchema}
 }
 
 func (r *userRepo) List(ctx context.Context, search string, limit, offset int) ([]domain.User, int, error) {
 	s := r.schema
-	mapper := dbx.MustMapper[UserRow](s)
+	mapper := dbx.MustMapper[backendschema.UserRow](s)
 
 	q := dbx.Select(s.AllColumns()...).From(s)
 	if search != "" {
@@ -40,7 +44,7 @@ func (r *userRepo) List(ctx context.Context, search string, limit, offset int) (
 	}
 	q = q.OrderBy(s.ID.Asc())
 
-	all, err := dbx.QueryAll[UserRow](ctx, r.db, q, mapper)
+	all, err := dbx.QueryAll[backendschema.UserRow](ctx, r.db, q, mapper)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -49,10 +53,7 @@ func (r *userRepo) List(ctx context.Context, search string, limit, offset int) (
 	if offset >= total {
 		return []domain.User{}, total, nil
 	}
-	end := offset + limit
-	if end > total {
-		end = total
-	}
+	end := min(offset+limit, total)
 	page := all[offset:end]
 
 	users := make([]domain.User, len(page))
@@ -64,9 +65,9 @@ func (r *userRepo) List(ctx context.Context, search string, limit, offset int) (
 
 func (r *userRepo) GetByID(ctx context.Context, id int64) (domain.User, bool, error) {
 	s := r.schema
-	mapper := dbx.MustMapper[UserRow](s)
+	mapper := dbx.MustMapper[backendschema.UserRow](s)
 
-	rows, err := dbx.QueryAll[UserRow](ctx, r.db,
+	rows, err := dbx.QueryAll[backendschema.UserRow](ctx, r.db,
 		dbx.Select(s.AllColumns()...).From(s).Where(s.ID.Eq(id)),
 		mapper,
 	)
@@ -81,10 +82,10 @@ func (r *userRepo) GetByID(ctx context.Context, id int64) (domain.User, bool, er
 
 func (r *userRepo) Create(ctx context.Context, in domain.CreateUserInput) (domain.User, error) {
 	s := r.schema
-	mapper := dbx.MustMapper[UserRow](s)
+	mapper := dbx.MustMapper[backendschema.UserRow](s)
 	now := time.Now().UTC()
 
-	rows, err := dbx.QueryAll[UserRow](ctx, r.db,
+	rows, err := dbx.QueryAll[backendschema.UserRow](ctx, r.db,
 		dbx.InsertInto(s).
 			Columns(s.Name, s.Email, s.Age, s.CreatedAt, s.UpdatedAt).
 			Values(
@@ -105,7 +106,7 @@ func (r *userRepo) Create(ctx context.Context, in domain.CreateUserInput) (domai
 
 func (r *userRepo) Update(ctx context.Context, id int64, in domain.UpdateUserInput) (domain.User, bool, error) {
 	s := r.schema
-	mapper := dbx.MustMapper[UserRow](s)
+	mapper := dbx.MustMapper[backendschema.UserRow](s)
 
 	assignments := []dbx.Assignment{s.UpdatedAt.Set(time.Now().UTC())}
 	if in.Name != nil {
@@ -118,7 +119,7 @@ func (r *userRepo) Update(ctx context.Context, id int64, in domain.UpdateUserInp
 		assignments = append(assignments, s.Age.Set(*in.Age))
 	}
 
-	rows, err := dbx.QueryAll[UserRow](ctx, r.db,
+	rows, err := dbx.QueryAll[backendschema.UserRow](ctx, r.db,
 		dbx.Update(s).Set(assignments...).Where(s.ID.Eq(id)).Returning(s.AllColumns()...),
 		mapper,
 	)
@@ -135,13 +136,16 @@ func (r *userRepo) Delete(ctx context.Context, id int64) (bool, error) {
 	s := r.schema
 	res, err := dbx.Exec(ctx, r.db, dbx.DeleteFrom(s).Where(s.ID.Eq(id)))
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("delete user: %w", err)
 	}
-	ra, _ := res.RowsAffected()
+	ra, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("delete user rows affected: %w", err)
+	}
 	return ra > 0, nil
 }
 
-func rowToDomain(row UserRow) domain.User {
+func rowToDomain(row backendschema.UserRow) domain.User {
 	return domain.User{
 		ID:        row.ID,
 		Name:      row.Name,

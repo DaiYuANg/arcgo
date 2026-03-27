@@ -1,3 +1,4 @@
+// Package schema defines dbx schemas for the backend example.
 package schema
 
 import (
@@ -6,6 +7,7 @@ import (
 	"github.com/DaiYuANg/arcgo/dbx"
 )
 
+// UserRow is the dbx row model for the users table.
 type UserRow struct {
 	ID        int64     `dbx:"id"`
 	Name      string    `dbx:"name"`
@@ -15,6 +17,7 @@ type UserRow struct {
 	UpdatedAt time.Time `dbx:"updated_at,codec=rfc3339_time"`
 }
 
+// UserSchema describes the users table for the backend example.
 type UserSchema struct {
 	dbx.Schema[UserRow]
 	ID        dbx.Column[UserRow, int64]     `dbx:"id,pk,auto"`

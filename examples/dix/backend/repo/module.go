@@ -1,17 +1,15 @@
+// Package repo provides persistence services for the backend example.
 package repo
 
 import (
 	"github.com/DaiYuANg/arcgo/dix"
-	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/examples/dix/backend/db"
-	"github.com/DaiYuANg/arcgo/examples/dix/backend/schema"
 )
 
+// Module wires the backend example repositories.
 var Module = dix.NewModule("repo",
 	dix.WithModuleImports(db.Module),
 	dix.WithModuleProviders(
-		dix.Provider2(func(database *dbx.DB, s schema.UserSchema) UserRepository {
-			return NewUserRepository(database, s)
-		}),
+		dix.Provider2(NewUserRepository),
 	),
 )

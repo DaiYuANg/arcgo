@@ -168,7 +168,8 @@ func (m StructMapper[E]) scanMapper(plan *scanPlan) scanlib.Mapper[E] {
 					value:        reflect.New(m.meta.entityType).Elem(),
 					codecSources: make([]any, len(plan.fields)),
 				}
-				for i, field := range plan.fields {
+				for i := range plan.fields {
+					field := plan.fields[i]
 					fieldValue, err := ensureFieldValue(state.value, field)
 					if err != nil {
 						return nil, err

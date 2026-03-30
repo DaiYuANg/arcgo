@@ -26,7 +26,8 @@ func (s *Store[E, S]) keyOf(entity *E) repository.Key {
 		return nil
 	}
 	key := make(repository.Key, len(columns))
-	for _, column := range columns {
+	for i := range columns {
+		column := columns[i]
 		field, ok := s.repository.Mapper().FieldByColumn(column)
 		if !ok {
 			return nil

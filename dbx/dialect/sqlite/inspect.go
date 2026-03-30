@@ -206,7 +206,9 @@ func inspectSQLiteCreateMetadata(ctx context.Context, executor dbx.Executor, tab
 			return nil, nil, scanErr
 		}
 
-		for _, column := range parseCreateTableAutoincrementColumns(createSQL) {
+		cols := parseCreateTableAutoincrementColumns(createSQL)
+		for i := range cols {
+			column := cols[i]
 			autoincrementColumns[column] = struct{}{}
 		}
 		checks = append(checks, parseCreateTableChecks(createSQL)...)

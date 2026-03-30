@@ -47,7 +47,9 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate
 		return nil, err
 	}
 
-	for _, column := range schema.schemaRef().columns {
+	cols := schema.schemaRef().columns
+	for i := range cols {
+		column := &cols[i]
 		if !column.PrimaryKey {
 			continue
 		}
@@ -64,7 +66,7 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate
 			return nil, err
 		}
 		return metadataComparisonPredicate{
-			left:  column,
+			left:  *column,
 			op:    OpEq,
 			right: boundValue,
 		}, nil
@@ -80,13 +82,15 @@ func (m Mapper[E]) entityAssignments(ctx context.Context, schema SchemaResource,
 	}
 
 	assignments := collectionx.NewListWithCapacity[Assignment](len(schema.schemaRef().columns))
-	for _, column := range schema.schemaRef().columns {
+	cols := schema.schemaRef().columns
+	for i := range cols {
+		column := &cols[i]
 		field, ok := m.byColumn.Get(column.Name)
-		if !ok || !include(column, field) {
+		if !ok || !include(*column, field) {
 			continue
 		}
-		if column.PrimaryKey && shouldGenerateID(column) {
-			fieldValue, generated, genErr := m.ensureGeneratedID(ctx, value, field, column, generator)
+		if column.PrimaryKey && shouldGenerateID(*column) {
+			fieldValue, generated, genErr := m.ensureGeneratedID(ctx, value, field, *column, generator)
 			if genErr != nil {
 				return nil, genErr
 			}
@@ -96,7 +100,7 @@ func (m Mapper[E]) entityAssignments(ctx context.Context, schema SchemaResource,
 					return nil, boundErr
 				}
 				assignments.Add(metadataAssignment{
-					meta:  column,
+					meta:  *column,
 					value: boundValue,
 				})
 				continue
@@ -111,7 +115,7 @@ func (m Mapper[E]) entityAssignments(ctx context.Context, schema SchemaResource,
 			return nil, err
 		}
 		assignments.Add(metadataAssignment{
-			meta:  column,
+			meta:  *column,
 			value: boundValue,
 		})
 	}

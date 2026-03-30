@@ -392,10 +392,11 @@ func (d failingIndexDialect) BuildCreateTable(spec TableSpec) (BoundQuery, error
 	if spec.PrimaryKey != nil && len(spec.PrimaryKey.Columns) == 1 {
 		singlePK = spec.PrimaryKey.Columns[0]
 	}
-	for _, column := range spec.Columns {
+	for i := range spec.Columns {
+		column := &spec.Columns[i]
 		typeName := column.SQLType
 		if typeName == "" {
-			typeName = inferTypeName(column)
+			typeName = inferTypeName(*column)
 		}
 		part := d.QuoteIdent(column.Name) + " " + strings.ToUpper(typeName)
 		if column.Name == singlePK {

@@ -117,7 +117,8 @@ func normalizeConflictColumns(columns, fallback []string) []string {
 		columns = fallback
 	}
 	ordered := collectionx.NewOrderedSet[string]()
-	for _, column := range columns {
+	for i := range columns {
+		column := columns[i]
 		if name := strings.TrimSpace(column); name != "" {
 			ordered.Add(name)
 		}

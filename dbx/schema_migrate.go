@@ -530,7 +530,9 @@ func diffSchema(ctx context.Context, schemaDialect SchemaDialect, session Sessio
 		return column.Name, column
 	})
 
-	for _, expected := range spec.Columns {
+	colsSpec := spec.Columns
+	for i := range colsSpec {
+		expected := colsSpec[i]
 		column, ok := actualColumns[expected.Name]
 		if !ok {
 			missingColumns.Add(expected)
@@ -565,7 +567,9 @@ func diffSchema(ctx context.Context, schemaDialect SchemaDialect, session Sessio
 	actualIndexes := lo.SliceToMap(actual.Indexes, func(index IndexState) (string, IndexState) {
 		return indexKey(index.Unique, index.Columns), index
 	})
-	for _, expected := range spec.Indexes {
+	idxSpec := spec.Indexes
+	for i := range idxSpec {
+		expected := idxSpec[i]
 		if _, ok := actualIndexes[indexKey(expected.Unique, expected.Columns)]; !ok {
 			missingIndexes.Add(expected)
 		}
@@ -574,7 +578,9 @@ func diffSchema(ctx context.Context, schemaDialect SchemaDialect, session Sessio
 	actualForeignKeys := lo.SliceToMap(actual.ForeignKeys, func(foreignKey ForeignKeyState) (string, ForeignKeyState) {
 		return foreignKeyKeyFromState(foreignKey), foreignKey
 	})
-	for _, expected := range spec.ForeignKeys {
+	fkSpec := spec.ForeignKeys
+	for i := range fkSpec {
+		expected := fkSpec[i]
 		if _, ok := actualForeignKeys[foreignKeyKey(expected)]; !ok {
 			missingForeignKeys.Add(expected)
 		}
@@ -583,7 +589,9 @@ func diffSchema(ctx context.Context, schemaDialect SchemaDialect, session Sessio
 	actualChecks := lo.SliceToMap(actual.Checks, func(check CheckState) (string, CheckState) {
 		return checkKey(check.Expression), check
 	})
-	for _, expected := range spec.Checks {
+	chkSpec := spec.Checks
+	for i := range chkSpec {
+		expected := chkSpec[i]
 		if _, ok := actualChecks[checkKey(expected.Expression)]; !ok {
 			missingChecks.Add(expected)
 		}
@@ -613,7 +621,9 @@ func deriveIndexes(def schemaDefinition) []IndexMeta {
 	for _, index := range def.indexes {
 		indexes.Set(indexKey(index.Unique, index.Columns), cloneIndexMeta(index))
 	}
-	for _, column := range def.columns {
+	cols := def.columns
+	for i := range cols {
+		column := &cols[i]
 		if column.PrimaryKey {
 			continue
 		}
@@ -668,7 +678,9 @@ func derivePrimaryKey(def schemaDefinition) *PrimaryKeyMeta {
 func deriveForeignKeys(def schemaDefinition) []ForeignKeyMeta {
 	foreignKeys := collectionx.NewOrderedMap[string, ForeignKeyMeta]()
 	explicitColumns := collectionx.NewSet[string]()
-	for _, column := range def.columns {
+	cols := def.columns
+	for i := range cols {
+		column := &cols[i]
 		if column.References == nil {
 			continue
 		}
@@ -684,7 +696,9 @@ func deriveForeignKeys(def schemaDefinition) []ForeignKeyMeta {
 		}
 		foreignKeys.Set(foreignKeyKey(meta), meta)
 	}
-	for _, relation := range def.relations {
+	rels := def.relations
+	for i := range rels {
+		relation := rels[i]
 		if relation.Kind != RelationBelongsTo || relation.LocalColumn == "" || relation.TargetColumn == "" || relation.TargetTable == "" {
 			continue
 		}

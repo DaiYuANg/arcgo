@@ -239,10 +239,12 @@ func compileAtlasSchema(dialectName string, driver atlasmigrate.Driver, schemaNa
 			checksByName:      collectionx.NewMapWithCapacity[string, CheckMeta](len(spec.Checks)),
 			checksByExpr:      collectionx.NewMapWithCapacity[string, CheckMeta](len(spec.Checks)),
 		}
-		for _, column := range spec.Columns {
-			atlasColumn := compileAtlasColumn(dialectName, driver, column)
+		cols := spec.Columns
+		for i := range cols {
+			column := &cols[i]
+			atlasColumn := compileAtlasColumn(dialectName, driver, *column)
 			table.AddColumns(atlasColumn)
-			compiledTable.columnsByName.Set(column.Name, column)
+			compiledTable.columnsByName.Set(column.Name, *column)
 		}
 		for _, index := range spec.Indexes {
 			compiledTable.indexesByName.Set(index.Name, index)
@@ -445,7 +447,8 @@ func (c *atlasCompiledSchema) referenceTable(schema *atlasschema.Schema, tableNa
 		return external
 	}
 	external := atlasschema.NewTable(tableName).SetSchema(schema)
-	for _, column := range targetColumns {
+	for i := range targetColumns {
+		column := targetColumns[i]
 		external.AddColumns(atlasschema.NewColumn(column))
 	}
 	c.externals.Set(tableName, external)

@@ -358,7 +358,8 @@ func renderInsertBody(state *renderState, q *InsertQuery, rows [][]Assignment) e
 	}
 	if len(columns) > 0 {
 		state.writeString(" (")
-		for i, column := range columns {
+		for i := range columns {
+			column := &columns[i]
 			if i > 0 {
 				state.writeString(", ")
 			}
@@ -869,7 +870,8 @@ func orderInsertRows(columns []ColumnMeta, rows [][]Assignment) ([][]Assignment,
 			assignmentsByColumn.Set(renderer.assignmentColumn().Name, assignment)
 		}
 		orderedRow := collectionx.NewListWithCapacity[Assignment](len(columns))
-		for _, column := range columns {
+		for i := range columns {
+			column := &columns[i]
 			assignment, ok := assignmentsByColumn.Get(column.Name)
 			if !ok {
 				return nil, fmt.Errorf("dbx: missing value for insert column %s", column.Name)

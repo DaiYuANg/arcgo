@@ -232,10 +232,39 @@ func renderSelectQuery(state *renderState, q *SelectQuery) error {
 }
 
 func renderSelectQueryWithoutTail(state *renderState, q *SelectQuery) error {
+	if err := renderSelectDistinct(state, q); err != nil {
+		return err
+	}
+	if err := renderSelectItems(state, q); err != nil {
+		return err
+	}
+	if err := renderSelectFrom(state, q); err != nil {
+		return err
+	}
+	if err := renderSelectJoins(state, q); err != nil {
+		return err
+	}
+	if err := renderSelectWhere(state, q); err != nil {
+		return err
+	}
+	if err := renderSelectGroupBy(state, q); err != nil {
+		return err
+	}
+	if err := renderSelectHaving(state, q); err != nil {
+		return err
+	}
+	return nil
+}
+
+func renderSelectDistinct(state *renderState, q *SelectQuery) error {
 	state.writeString("SELECT ")
 	if q.Distinct {
 		state.writeString("DISTINCT ")
 	}
+	return nil
+}
+
+func renderSelectItems(state *renderState, q *SelectQuery) error {
 	for i, item := range q.Items {
 		if i > 0 {
 			state.writeString(", ")
@@ -244,9 +273,16 @@ func renderSelectQueryWithoutTail(state *renderState, q *SelectQuery) error {
 			return err
 		}
 	}
+	return nil
+}
 
+func renderSelectFrom(state *renderState, q *SelectQuery) error {
 	state.writeString(" FROM ")
 	state.renderTable(q.FromItem)
+	return nil
+}
+
+func renderSelectJoins(state *renderState, q *SelectQuery) error {
 	for _, join := range q.Joins {
 		state.writeByte(' ')
 		state.writeString(string(join.Type))
@@ -259,12 +295,20 @@ func renderSelectQueryWithoutTail(state *renderState, q *SelectQuery) error {
 			}
 		}
 	}
+	return nil
+}
+
+func renderSelectWhere(state *renderState, q *SelectQuery) error {
 	if q.WhereExp != nil {
 		state.writeString(" WHERE ")
 		if err := renderPredicate(state, q.WhereExp); err != nil {
 			return err
 		}
 	}
+	return nil
+}
+
+func renderSelectGroupBy(state *renderState, q *SelectQuery) error {
 	if len(q.Groups) > 0 {
 		state.writeString(" GROUP BY ")
 		for i, group := range q.Groups {
@@ -278,6 +322,10 @@ func renderSelectQueryWithoutTail(state *renderState, q *SelectQuery) error {
 			state.writeString(operand)
 		}
 	}
+	return nil
+}
+
+func renderSelectHaving(state *renderState, q *SelectQuery) error {
 	if q.HavingExp != nil {
 		state.writeString(" HAVING ")
 		if err := renderPredicate(state, q.HavingExp); err != nil {

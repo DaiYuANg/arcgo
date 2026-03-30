@@ -95,40 +95,56 @@ func UUIDv4IDColumn[E any, T any]() ColumnOption[E, T] {
 
 func (c Column[E, T]) bindColumn(binding columnBinding) any {
 	meta := c.meta
-	meta.Name = binding.meta.Name
-	meta.Table = binding.meta.Table
-	meta.Alias = binding.meta.Alias
-	meta.FieldName = binding.meta.FieldName
+	mergeColumnBasic(&meta, binding.meta)
+	mergeColumnFlags(&meta, binding.meta)
+	mergeColumnDefaultsAndRefs(&meta, binding.meta)
+	finalizeColumnIDAndUUID(&meta, binding.meta)
+	c.meta = meta
+	return c
+}
+
+func mergeColumnBasic(meta *ColumnMeta, b ColumnMeta) {
+	meta.Name = b.Name
+	meta.Table = b.Table
+	meta.Alias = b.Alias
+	meta.FieldName = b.FieldName
 	if meta.GoType == nil {
-		meta.GoType = binding.meta.GoType
+		meta.GoType = b.GoType
 	}
 	if meta.SQLType == "" {
-		meta.SQLType = binding.meta.SQLType
+		meta.SQLType = b.SQLType
 	}
-	meta.PrimaryKey = meta.PrimaryKey || binding.meta.PrimaryKey
+}
+
+func mergeColumnFlags(meta *ColumnMeta, b ColumnMeta) {
+	meta.PrimaryKey = meta.PrimaryKey || b.PrimaryKey
 	if meta.IDStrategy == IDStrategyUnset {
-		meta.AutoIncrement = meta.AutoIncrement || binding.meta.AutoIncrement
+		meta.AutoIncrement = meta.AutoIncrement || b.AutoIncrement
 	} else {
 		meta.AutoIncrement = meta.IDStrategy == IDStrategyDBAuto
 	}
-	meta.Nullable = meta.Nullable || binding.meta.Nullable
-	meta.Unique = meta.Unique || binding.meta.Unique
-	meta.Indexed = meta.Indexed || binding.meta.Indexed
+	meta.Nullable = meta.Nullable || b.Nullable
+	meta.Unique = meta.Unique || b.Unique
+	meta.Indexed = meta.Indexed || b.Indexed
+}
+
+func mergeColumnDefaultsAndRefs(meta *ColumnMeta, b ColumnMeta) {
 	if meta.DefaultValue == "" {
-		meta.DefaultValue = binding.meta.DefaultValue
+		meta.DefaultValue = b.DefaultValue
 	}
-	if meta.References == nil && binding.meta.References != nil {
-		meta.References = new(*binding.meta.References)
+	if meta.References == nil && b.References != nil {
+		meta.References = new(*b.References)
 	}
+}
+
+func finalizeColumnIDAndUUID(meta *ColumnMeta, b ColumnMeta) {
 	if meta.IDStrategy == IDStrategyUnset {
-		meta.IDStrategy = binding.meta.IDStrategy
+		meta.IDStrategy = b.IDStrategy
 	}
 	if meta.UUIDVersion == "" {
-		meta.UUIDVersion = binding.meta.UUIDVersion
+		meta.UUIDVersion = b.UUIDVersion
 	}
 	if meta.IDStrategy == IDStrategyUUID && meta.UUIDVersion == "" {
 		meta.UUIDVersion = DefaultUUIDVersion
 	}
-	c.meta = meta
-	return c
 }

@@ -211,25 +211,32 @@ func assignDecodedValue(target, value reflect.Value) error {
 	}
 
 	if target.Kind() == reflect.Pointer {
-		if value.Type().AssignableTo(target.Type()) {
-			target.Set(value)
-			return nil
-		}
-		if value.Kind() == reflect.Pointer {
-			if value.IsNil() {
-				resetFieldValue(target)
-				return nil
-			}
-			value = value.Elem()
-		}
-		holder := reflect.New(target.Type().Elem())
-		if err := assignDecodedValue(holder.Elem(), value); err != nil {
-			return err
-		}
-		target.Set(holder)
+		return assignToPointerTarget(target, value)
+	}
+	return assignToNonPointerTarget(target, value)
+}
+
+func assignToPointerTarget(target, value reflect.Value) error {
+	if value.Type().AssignableTo(target.Type()) {
+		target.Set(value)
 		return nil
 	}
+	if value.Kind() == reflect.Pointer {
+		if value.IsNil() {
+			resetFieldValue(target)
+			return nil
+		}
+		value = value.Elem()
+	}
+	holder := reflect.New(target.Type().Elem())
+	if err := assignDecodedValue(holder.Elem(), value); err != nil {
+		return err
+	}
+	target.Set(holder)
+	return nil
+}
 
+func assignToNonPointerTarget(target, value reflect.Value) error {
 	if value.Kind() == reflect.Pointer {
 		if value.IsNil() {
 			resetFieldValue(target)

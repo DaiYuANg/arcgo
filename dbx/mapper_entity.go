@@ -89,35 +89,13 @@ func (m Mapper[E]) entityAssignments(ctx context.Context, schema SchemaResource,
 		if !ok || !include(*column, field) {
 			continue
 		}
-		if column.PrimaryKey && shouldGenerateID(*column) {
-			fieldValue, generated, genErr := m.ensureGeneratedID(ctx, value, field, *column, generator)
-			if genErr != nil {
-				return nil, genErr
-			}
-			if generated {
-				boundValue, boundErr := boundFieldValue(field, fieldValue)
-				if boundErr != nil {
-					return nil, boundErr
-				}
-				assignments.Add(metadataAssignment{
-					meta:  *column,
-					value: boundValue,
-				})
-				continue
-			}
-		}
-		fieldValue, err := fieldValueForRead(value, field)
+		assignment, ok, err := m.buildAssignment(ctx, value, *column, field, generator)
 		if err != nil {
 			return nil, err
 		}
-		boundValue, err := boundFieldValue(field, fieldValue)
-		if err != nil {
-			return nil, err
+		if ok {
+			assignments.Add(assignment)
 		}
-		assignments.Add(metadataAssignment{
-			meta:  *column,
-			value: boundValue,
-		})
 	}
 
 	return assignments.Values(), nil
@@ -154,6 +132,17 @@ func (m Mapper[E]) ensureGeneratedID(ctx context.Context, root reflect.Value, fi
 		return reflect.Value{}, false, fmt.Errorf("dbx: cannot set generated id for column %s", column.Name)
 	}
 
+	assignedField, assigned, setErr := setGeneratedValue(targetField, generated, column)
+	if setErr != nil {
+		return reflect.Value{}, false, setErr
+	}
+	if assigned {
+		return assignedField, true, nil
+	}
+	return reflect.Value{}, false, fmt.Errorf("dbx: generated id type %s cannot be assigned to %s for column %s", reflect.TypeOf(generated), targetField.Type(), column.Name)
+}
+
+func setGeneratedValue(targetField reflect.Value, generated any, column ColumnMeta) (reflect.Value, bool, error) {
 	generatedValue := reflect.ValueOf(generated)
 	if !generatedValue.IsValid() {
 		return reflect.Value{}, false, fmt.Errorf("dbx: generated id is invalid for column %s", column.Name)
@@ -166,7 +155,7 @@ func (m Mapper[E]) ensureGeneratedID(ctx context.Context, root reflect.Value, fi
 		targetField.Set(generatedValue.Convert(targetField.Type()))
 		return targetField, true, nil
 	}
-	return reflect.Value{}, false, fmt.Errorf("dbx: generated id type %s cannot be assigned to %s for column %s", generatedValue.Type(), targetField.Type(), column.Name)
+	return reflect.Value{}, false, nil
 }
 
 func (m Mapper[E]) entityValue(entity *E) (reflect.Value, error) {
@@ -174,4 +163,29 @@ func (m Mapper[E]) entityValue(entity *E) (reflect.Value, error) {
 		return reflect.Value{}, ErrNilEntity
 	}
 	return reflect.ValueOf(entity).Elem(), nil
+}
+
+func (m Mapper[E]) buildAssignment(ctx context.Context, root reflect.Value, column ColumnMeta, field MappedField, generator IDGenerator) (Assignment, bool, error) {
+	if column.PrimaryKey && shouldGenerateID(column) {
+		fieldValue, generated, genErr := m.ensureGeneratedID(ctx, root, field, column, generator)
+		if genErr != nil {
+			return nil, false, genErr
+		}
+		if generated {
+			boundValue, boundErr := boundFieldValue(field, fieldValue)
+			if boundErr != nil {
+				return nil, false, boundErr
+			}
+			return metadataAssignment{meta: column, value: boundValue}, true, nil
+		}
+	}
+	fieldValue, err := fieldValueForRead(root, field)
+	if err != nil {
+		return nil, false, err
+	}
+	boundValue, err := boundFieldValue(field, fieldValue)
+	if err != nil {
+		return nil, false, err
+	}
+	return metadataAssignment{meta: column, value: boundValue}, true, nil
 }

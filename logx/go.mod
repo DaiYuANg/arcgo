@@ -3,7 +3,7 @@ module github.com/DaiYuANg/arcgo/logx
 go 1.26.1
 
 require (
-	github.com/rs/zerolog v1.34.0
+	github.com/rs/zerolog v1.35.0
 	github.com/samber/lo v1.53.0
 	github.com/samber/oops v1.21.0
 	github.com/samber/oops/loggers/zerolog v0.0.0-20260325233024-fdc4d78178db

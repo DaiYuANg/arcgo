@@ -616,74 +616,138 @@ func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompile
 func atlasApplyTableChangeToDiff(diff *TableDiff, compiled *atlasCompiledTable, current *atlasschema.Table, change atlasschema.Change) {
 	switch c := change.(type) {
 	case *atlasschema.AddColumn:
-		if column, ok := compiled.columnsByName.Get(c.C.Name); ok {
-			diff.MissingColumns = append(diff.MissingColumns, column)
-		}
+		atlasHandleAddColumn(diff, compiled, c)
 	case *atlasschema.ModifyColumn:
-		name := c.To.Name
-		if name == "" {
-			name = c.From.Name
-		}
-		column, ok := compiled.columnsByName.Get(name)
-		if !ok {
-			column = ColumnMeta{Name: name, Table: diff.Table}
-		}
-		diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: column, Issues: []string{atlasColumnChangeIssue(c.Change)}})
+		atlasHandleModifyColumn(diff, compiled, c)
 	case *atlasschema.RenameColumn:
-		diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.To.Name, Table: diff.Table}, Issues: []string{"manual column rename migration required"}})
+		atlasHandleRenameColumn(diff, c)
 	case *atlasschema.DropColumn:
-		diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.C.Name, Table: diff.Table}, Issues: []string{"manual column removal migration required"}})
+		atlasHandleDropColumn(diff, c)
 	case *atlasschema.AddIndex:
-		if index, ok := atlasFindIndexMeta(compiled, c.I); ok {
-			diff.MissingIndexes = append(diff.MissingIndexes, index)
-		}
+		atlasHandleAddIndex(diff, compiled, c)
 	case *atlasschema.ModifyIndex:
-		if index, ok := atlasFindIndexMeta(compiled, c.To); ok {
-			diff.MissingIndexes = append(diff.MissingIndexes, index)
-		} else {
-			diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.To.Name, Table: diff.Table}, Issues: []string{"manual index modification required"}})
-		}
+		atlasHandleModifyIndex(diff, compiled, c)
 	case *atlasschema.RenameIndex:
-		diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.To.Name, Table: diff.Table}, Issues: []string{"manual index rename migration required"}})
+		atlasHandleRenameIndex(diff, c)
 	case *atlasschema.DropIndex:
-		diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.I.Name, Table: diff.Table}, Issues: []string{"manual index removal migration required"}})
+		atlasHandleDropIndex(diff, c)
 	case *atlasschema.AddForeignKey:
-		if foreignKey, ok := atlasFindForeignKeyMeta(compiled, c.F); ok {
-			diff.MissingForeignKeys = append(diff.MissingForeignKeys, foreignKey)
-		}
+		atlasHandleAddForeignKey(diff, compiled, c)
 	case *atlasschema.ModifyForeignKey:
-		if foreignKey, ok := atlasFindForeignKeyMeta(compiled, c.To); ok {
-			diff.MissingForeignKeys = append(diff.MissingForeignKeys, foreignKey)
-		}
+		atlasHandleModifyForeignKey(diff, compiled, c)
 	case *atlasschema.DropForeignKey:
-		diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.F.Symbol, Table: diff.Table}, Issues: []string{"manual foreign key removal migration required"}})
+		atlasHandleDropForeignKey(diff, c)
 	case *atlasschema.AddCheck:
-		if check, ok := atlasFindCheckMeta(compiled, c.C); ok {
-			diff.MissingChecks = append(diff.MissingChecks, check)
-		}
+		atlasHandleAddCheck(diff, compiled, c)
 	case *atlasschema.ModifyCheck:
-		if check, ok := atlasFindCheckMeta(compiled, c.To); ok {
-			diff.MissingChecks = append(diff.MissingChecks, check)
-		}
+		atlasHandleModifyCheck(diff, compiled, c)
 	case *atlasschema.DropCheck:
-		diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.C.Name, Table: diff.Table}, Issues: []string{"manual check removal migration required"}})
+		atlasHandleDropCheck(diff, c)
 	case *atlasschema.AddPrimaryKey:
-		diff.PrimaryKeyDiff = &PrimaryKeyDiff{
-			Expected: compiled.spec.PrimaryKey,
-			Actual:   atlasPrimaryKeyState(current),
-			Issues:   []string{"missing primary key"},
-		}
+		atlasHandleAddPrimaryKey(diff, compiled)
 	case *atlasschema.ModifyPrimaryKey, *atlasschema.DropPrimaryKey:
-		var actual *PrimaryKeyState
-		if current != nil {
-			actual = atlasPrimaryKeyState(current)
-		}
-		var expected *PrimaryKeyMeta
-		if compiled.spec.PrimaryKey != nil {
-			expected = new(clonePrimaryKeyMeta(*compiled.spec.PrimaryKey))
-		}
-		diff.PrimaryKeyDiff = &PrimaryKeyDiff{Expected: expected, Actual: actual, Issues: []string{"primary key migration required"}}
+		atlasHandleModifyOrDropPrimaryKey(diff, compiled, current)
 	}
+}
+
+func atlasHandleAddColumn(diff *TableDiff, compiled *atlasCompiledTable, c *atlasschema.AddColumn) {
+	if column, ok := compiled.columnsByName.Get(c.C.Name); ok {
+		diff.MissingColumns = append(diff.MissingColumns, column)
+	}
+}
+
+func atlasHandleModifyColumn(diff *TableDiff, compiled *atlasCompiledTable, c *atlasschema.ModifyColumn) {
+	name := c.To.Name
+	if name == "" {
+		name = c.From.Name
+	}
+	column, ok := compiled.columnsByName.Get(name)
+	if !ok {
+		column = ColumnMeta{Name: name, Table: diff.Table}
+	}
+	diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: column, Issues: []string{atlasColumnChangeIssue(c.Change)}})
+}
+
+func atlasHandleRenameColumn(diff *TableDiff, c *atlasschema.RenameColumn) {
+	diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.To.Name, Table: diff.Table}, Issues: []string{"manual column rename migration required"}})
+}
+
+func atlasHandleDropColumn(diff *TableDiff, c *atlasschema.DropColumn) {
+	diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.C.Name, Table: diff.Table}, Issues: []string{"manual column removal migration required"}})
+}
+
+func atlasHandleAddIndex(diff *TableDiff, compiled *atlasCompiledTable, c *atlasschema.AddIndex) {
+	if index, ok := atlasFindIndexMeta(compiled, c.I); ok {
+		diff.MissingIndexes = append(diff.MissingIndexes, index)
+	}
+}
+
+func atlasHandleModifyIndex(diff *TableDiff, compiled *atlasCompiledTable, c *atlasschema.ModifyIndex) {
+	if index, ok := atlasFindIndexMeta(compiled, c.To); ok {
+		diff.MissingIndexes = append(diff.MissingIndexes, index)
+	} else {
+		diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.To.Name, Table: diff.Table}, Issues: []string{"manual index modification required"}})
+	}
+}
+
+func atlasHandleRenameIndex(diff *TableDiff, c *atlasschema.RenameIndex) {
+	diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.To.Name, Table: diff.Table}, Issues: []string{"manual index rename migration required"}})
+}
+
+func atlasHandleDropIndex(diff *TableDiff, c *atlasschema.DropIndex) {
+	diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.I.Name, Table: diff.Table}, Issues: []string{"manual index removal migration required"}})
+}
+
+func atlasHandleAddForeignKey(diff *TableDiff, compiled *atlasCompiledTable, c *atlasschema.AddForeignKey) {
+	if foreignKey, ok := atlasFindForeignKeyMeta(compiled, c.F); ok {
+		diff.MissingForeignKeys = append(diff.MissingForeignKeys, foreignKey)
+	}
+}
+
+func atlasHandleModifyForeignKey(diff *TableDiff, compiled *atlasCompiledTable, c *atlasschema.ModifyForeignKey) {
+	if foreignKey, ok := atlasFindForeignKeyMeta(compiled, c.To); ok {
+		diff.MissingForeignKeys = append(diff.MissingForeignKeys, foreignKey)
+	}
+}
+
+func atlasHandleDropForeignKey(diff *TableDiff, c *atlasschema.DropForeignKey) {
+	diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.F.Symbol, Table: diff.Table}, Issues: []string{"manual foreign key removal migration required"}})
+}
+
+func atlasHandleAddCheck(diff *TableDiff, compiled *atlasCompiledTable, c *atlasschema.AddCheck) {
+	if check, ok := atlasFindCheckMeta(compiled, c.C); ok {
+		diff.MissingChecks = append(diff.MissingChecks, check)
+	}
+}
+
+func atlasHandleModifyCheck(diff *TableDiff, compiled *atlasCompiledTable, c *atlasschema.ModifyCheck) {
+	if check, ok := atlasFindCheckMeta(compiled, c.To); ok {
+		diff.MissingChecks = append(diff.MissingChecks, check)
+	}
+}
+
+func atlasHandleDropCheck(diff *TableDiff, c *atlasschema.DropCheck) {
+	diff.ColumnDiffs = append(diff.ColumnDiffs, ColumnDiff{Column: ColumnMeta{Name: c.C.Name, Table: diff.Table}, Issues: []string{"manual check removal migration required"}})
+}
+
+func atlasHandleAddPrimaryKey(diff *TableDiff, compiled *atlasCompiledTable) {
+	diff.PrimaryKeyDiff = &PrimaryKeyDiff{
+		Expected: compiled.spec.PrimaryKey,
+		Actual:   atlasPrimaryKeyState(nil), // current is nil for add
+		Issues:   []string{"missing primary key"},
+	}
+}
+
+func atlasHandleModifyOrDropPrimaryKey(diff *TableDiff, compiled *atlasCompiledTable, current *atlasschema.Table) {
+	var actual *PrimaryKeyState
+	if current != nil {
+		actual = atlasPrimaryKeyState(current)
+	}
+	var expected *PrimaryKeyMeta
+	if compiled.spec.PrimaryKey != nil {
+		expected = new(clonePrimaryKeyMeta(*compiled.spec.PrimaryKey))
+	}
+	diff.PrimaryKeyDiff = &PrimaryKeyDiff{Expected: expected, Actual: actual, Issues: []string{"primary key migration required"}}
 }
 
 func atlasSplitChanges(changes []atlasschema.Change) ([]atlasschema.Change, []MigrationAction) {

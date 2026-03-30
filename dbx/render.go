@@ -890,65 +890,69 @@ func renderUpsert(state *renderState, q *InsertQuery) error {
 	f := dialectFeatures(state.dialect)
 	switch f.UpsertVariant {
 	case "on_conflict":
-		state.writeString(" ON CONFLICT")
-		if len(q.Upsert.Targets) > 0 {
-			state.writeString(" (")
-			for i, target := range q.Upsert.Targets {
-				if i > 0 {
-					state.writeString(", ")
-				}
-				if column, ok := target.(columnAccessor); ok {
-					state.writeQuotedIdent(column.columnRef().Name)
-					continue
-				}
-				operand, err := renderOperandValue(state, target)
-				if err != nil {
-					return err
-				}
-				state.writeString(operand)
-			}
-			state.writeByte(')')
-		}
-		if q.Upsert.DoNothing {
-			state.writeString(" DO NOTHING")
-			return nil
-		}
-		if len(q.Upsert.Assignments) == 0 {
-			return errors.New("dbx: upsert update requires assignments")
-		}
-		if len(q.Upsert.Targets) == 0 {
-			return errors.New("dbx: upsert update requires conflict targets")
-		}
-		state.writeString(" DO UPDATE SET ")
-		for i, assignment := range q.Upsert.Assignments {
-			if i > 0 {
-				state.writeString(", ")
-			}
-			if err := renderAssignment(state, assignment); err != nil {
-				return err
-			}
-		}
-		return nil
+		return renderUpsertOnConflict(state, q)
 	case "on_duplicate_key":
-		if q.Upsert.DoNothing {
-			return nil
-		}
-		if len(q.Upsert.Assignments) == 0 {
-			return errors.New("dbx: upsert update requires assignments")
-		}
-		state.writeString(" ON DUPLICATE KEY UPDATE ")
-		for i, assignment := range q.Upsert.Assignments {
-			if i > 0 {
-				state.writeString(", ")
-			}
-			if err := renderAssignment(state, assignment); err != nil {
-				return err
-			}
-		}
-		return nil
+		return renderUpsertOnDuplicateKey(state, q)
 	default:
 		return fmt.Errorf("dbx: upsert is not supported for dialect %s", state.dialect.Name())
 	}
+}
+
+func renderUpsertOnConflict(state *renderState, q *InsertQuery) error {
+	state.writeString(" ON CONFLICT")
+	if len(q.Upsert.Targets) > 0 {
+		state.writeString(" (")
+		for i, target := range q.Upsert.Targets {
+			if i > 0 {
+				state.writeString(", ")
+			}
+			if column, ok := target.(columnAccessor); ok {
+				state.writeQuotedIdent(column.columnRef().Name)
+				continue
+			}
+			operand, err := renderOperandValue(state, target)
+			if err != nil {
+				return err
+			}
+			state.writeString(operand)
+		}
+		state.writeByte(')')
+	}
+	if q.Upsert.DoNothing {
+		state.writeString(" DO NOTHING")
+		return nil
+	}
+	if len(q.Upsert.Assignments) == 0 {
+		return errors.New("dbx: upsert update requires assignments")
+	}
+	if len(q.Upsert.Targets) == 0 {
+		return errors.New("dbx: upsert update requires conflict targets")
+	}
+	state.writeString(" DO UPDATE SET ")
+	return renderUpsertAssignments(state, q.Upsert.Assignments)
+}
+
+func renderUpsertOnDuplicateKey(state *renderState, q *InsertQuery) error {
+	if q.Upsert.DoNothing {
+		return nil
+	}
+	if len(q.Upsert.Assignments) == 0 {
+		return errors.New("dbx: upsert update requires assignments")
+	}
+	state.writeString(" ON DUPLICATE KEY UPDATE ")
+	return renderUpsertAssignments(state, q.Upsert.Assignments)
+}
+
+func renderUpsertAssignments(state *renderState, assignments []Assignment) error {
+	for i, assignment := range assignments {
+		if i > 0 {
+			state.writeString(", ")
+		}
+		if err := renderAssignment(state, assignment); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func dialectFeatures(d dialect.Dialect) dialect.QueryFeatures {

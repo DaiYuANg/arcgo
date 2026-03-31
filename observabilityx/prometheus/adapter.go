@@ -7,6 +7,7 @@ import (
 
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/arcgo/pkg/option"
 	prom "github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -36,7 +37,7 @@ type histInstrument struct {
 // New creates a Prometheus adapter.
 func New(opts ...Option) *Adapter {
 	cfg := defaultConfig()
-	applyOptions(&cfg, opts)
+	option.Apply(&cfg, opts...)
 
 	return &Adapter{
 		logger:     observabilityx.NormalizeLogger(cfg.logger),

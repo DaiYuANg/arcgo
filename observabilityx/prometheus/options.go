@@ -4,7 +4,6 @@ import (
 	"log/slog"
 	"strings"
 
-	"github.com/DaiYuANg/arcgo/pkg/option"
 	prom "github.com/prometheus/client_golang/prometheus"
 )
 
@@ -29,10 +28,6 @@ func defaultConfig() config {
 		gatherer:  prom.DefaultGatherer,
 		buckets:   prom.DefBuckets,
 	}
-}
-
-func applyOptions(cfg *config, opts []Option) {
-	option.Apply(cfg, opts...)
 }
 
 // WithLogger sets logger used by this adapter.

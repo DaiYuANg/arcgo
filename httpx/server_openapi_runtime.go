@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
-	"github.com/samber/mo"
 )
 
 func (s *Server) applyPendingHumaConfig() {
@@ -56,9 +55,9 @@ func (s *Server) accessLogMiddleware() func(huma.Context, func(huma.Context)) {
 			"duration", time.Since(start),
 		}
 
-		mo.TupleToOption(s.matchRoute(ctx.Method(), url.Path)).ForEach(func(route RouteInfo) {
+		if route, ok := s.matchRoute(ctx.Method(), url.Path); ok {
 			attrs = append(attrs, "route", route.Path, "handler", route.HandlerName)
-		})
+		}
 
 		s.logger.Info("httpx request", attrs...)
 	}

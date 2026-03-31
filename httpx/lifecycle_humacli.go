@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/danielgtaylor/huma/v2/humacli"
-	"github.com/samber/mo"
 )
 
 // BindGracefulShutdownHooks wires the server lifecycle to Huma CLI hooks.
@@ -18,7 +17,10 @@ func BindGracefulShutdownHooks(hooks humacli.Hooks, server ServerRuntime, addr s
 
 	hooks.OnStart(func() {
 		if err := server.ListenAndServeContext(runCtx, addr); err != nil {
-			logger := mo.TupleToOption(server.Logger(), server.Logger() != nil).OrElse(slog.Default())
+			logger := server.Logger()
+			if logger == nil {
+				logger = slog.Default()
+			}
 			logger.Error("httpx server exited", slog.String("address", addr), slog.String("error", err.Error()))
 		}
 	})

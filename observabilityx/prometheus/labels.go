@@ -8,7 +8,6 @@ import (
 
 	"github.com/DaiYuANg/arcgo/observabilityx"
 	prom "github.com/prometheus/client_golang/prometheus"
-	"github.com/samber/lo"
 )
 
 func (a *Adapter) normalizeMetricName(name string) string {
@@ -45,19 +44,14 @@ func attrsToLabelMap(attrs []observabilityx.Attribute) map[string]string {
 		return nil
 	}
 
-	entries := lo.FilterMap(attrs, func(attr observabilityx.Attribute, _ int) (lo.Entry[string, string], bool) {
+	labels := make(map[string]string, len(attrs))
+	for _, attr := range attrs {
 		labelKey := normalizeLabelKey(attr.Key)
 		if labelKey == "" {
-			return lo.Entry[string, string]{}, false
+			continue
 		}
-		return lo.Entry[string, string]{
-			Key:   labelKey,
-			Value: fmt.Sprint(attr.Value),
-		}, true
-	})
-	labels := lo.Associate(entries, func(entry lo.Entry[string, string]) (string, string) {
-		return entry.Key, entry.Value
-	})
+		labels[labelKey] = fmt.Sprint(attr.Value)
+	}
 	if len(labels) == 0 {
 		return nil
 	}
@@ -68,7 +62,10 @@ func sortedLabelKeys(values map[string]string) []string {
 	if len(values) == 0 {
 		return nil
 	}
-	keys := lo.Keys(values)
+	keys := make([]string, 0, len(values))
+	for key := range values {
+		keys = append(keys, key)
+	}
 	slices.Sort(keys)
 	return keys
 }
@@ -77,9 +74,11 @@ func toPromLabels(labelNames []string, values map[string]string) prom.Labels {
 	if len(labelNames) == 0 {
 		return prom.Labels{}
 	}
-	return prom.Labels(lo.Associate(labelNames, func(labelName string) (string, string) {
-		return labelName, values[labelName]
-	}))
+	labels := make(prom.Labels, len(labelNames))
+	for _, labelName := range labelNames {
+		labels[labelName] = values[labelName]
+	}
+	return labels
 }
 
 func normalizeLabelKey(raw string) string {

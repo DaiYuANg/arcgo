@@ -1,6 +1,6 @@
 package dix
 
-import "github.com/samber/lo"
+import "github.com/DaiYuANg/arcgo/pkg/option"
 
 // ModuleOption configures a Module during construction.
 type ModuleOption func(*moduleSpec)
@@ -8,11 +8,7 @@ type ModuleOption func(*moduleSpec)
 // NewModule creates an immutable module specification.
 func NewModule(name string, opts ...ModuleOption) Module {
 	spec := &moduleSpec{name: name}
-	lo.ForEach(lo.Filter(opts, func(opt ModuleOption, _ int) bool {
-		return opt != nil
-	}), func(opt ModuleOption, _ int) {
-		opt(spec)
-	})
+	option.Apply(spec, opts...)
 	return Module{spec: spec}
 }
 

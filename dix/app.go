@@ -9,7 +9,7 @@ import (
 	"syscall"
 
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
-	"github.com/samber/lo"
+	"github.com/DaiYuANg/arcgo/pkg/option"
 )
 
 // AppOption configures an App specification during construction.
@@ -31,11 +31,7 @@ func New(name string, opts ...AppOption) *App {
 		logger:  defaultLogger(),
 	}
 
-	lo.ForEach(lo.Filter(opts, func(opt AppOption, _ int) bool {
-		return opt != nil
-	}), func(opt AppOption, _ int) {
-		opt(spec)
-	})
+	option.Apply(spec, opts...)
 
 	return &App{spec: spec}
 }

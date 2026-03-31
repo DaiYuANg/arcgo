@@ -78,13 +78,7 @@ type Watcher struct {
 //
 // Call [Watcher.Start] (typically in a goroutine) to begin watching.
 func NewWatcher(opts ...Option) (*Watcher, error) {
-	options := NewOptions()
-	for _, opt := range opts {
-		if opt != nil {
-			opt(options)
-		}
-	}
-	return newWatcherFromOptions(context.Background(), options)
+	return newWatcherFromOptions(context.Background(), buildOptions(opts...))
 }
 
 // newWatcherFromOptions is the internal constructor shared by NewWatcher and

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -33,13 +32,7 @@ type Loader struct {
 //	    configx.WithEnvPrefix("APP"),
 //	)
 func New(opts ...Option) *Loader {
-	options := NewOptions()
-	lo.ForEach(opts, func(opt Option, _ int) {
-		if opt != nil {
-			opt(options)
-		}
-	})
-	return &Loader{opts: options}
+	return &Loader{opts: buildOptions(opts...)}
 }
 
 // Load reads all configured sources, unmarshals the result into out, and runs
@@ -110,13 +103,7 @@ type LoaderT[T any] struct {
 //	    configx.WithValidateLevel(configx.ValidateLevelStruct),
 //	)
 func NewT[T any](opts ...Option) *LoaderT[T] {
-	options := NewOptions()
-	lo.ForEach(opts, func(opt Option, _ int) {
-		if opt != nil {
-			opt(options)
-		}
-	})
-	return &LoaderT[T]{opts: options}
+	return &LoaderT[T]{opts: buildOptions(opts...)}
 }
 
 // Load reads all configured sources, unmarshals the result into a new T, runs

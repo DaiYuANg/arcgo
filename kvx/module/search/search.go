@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/DaiYuANg/arcgo/kvx"
-	"github.com/samber/mo"
 )
 
 // Search provides high-level search operations.
@@ -103,5 +102,8 @@ type Result struct {
 }
 
 func resolveOptions(opts *Options) *Options {
-	return mo.TupleToOption(opts, opts != nil).OrElse(DefaultOptions())
+	if opts != nil {
+		return opts
+	}
+	return DefaultOptions()
 }

@@ -19,21 +19,8 @@ func Subscribe[T Event](b BusRuntime, handler func(context.Context, T) error, op
 		return nil, ErrNilHandler
 	}
 
-	cfg := defaultSubscribeOptions()
-	lo.ForEach(opts, func(opt SubscribeOption, _ int) {
-		if opt != nil {
-			opt(&cfg)
-		}
-	})
-
-	eventType := reflect.TypeFor[T]()
-	base := func(ctx context.Context, event Event) error {
-		typed, ok := any(event).(T)
-		if !ok {
-			return fmt.Errorf("eventx: event type mismatch, expect %v, got %T", eventType, event)
-		}
-		return handler(ctx, typed)
-	}
+	cfg := buildSubscribeOptions(opts...)
+	eventType, base := typedEventHandler(handler)
 
 	return b.subscribe(eventType, base, cfg.middleware, 0)
 }
@@ -57,23 +44,21 @@ func SubscribeN[T Event](b BusRuntime, n int, handler func(context.Context, T) e
 		return nil, ErrNilHandler
 	}
 
-	cfg := defaultSubscribeOptions()
-	lo.ForEach(opts, func(opt SubscribeOption, _ int) {
-		if opt != nil {
-			opt(&cfg)
-		}
-	})
+	cfg := buildSubscribeOptions(opts...)
+	eventType, base := typedEventHandler(handler)
 
+	return b.subscribe(eventType, base, cfg.middleware, n)
+}
+
+func typedEventHandler[T Event](handler func(context.Context, T) error) (reflect.Type, HandlerFunc) {
 	eventType := reflect.TypeFor[T]()
-	base := func(ctx context.Context, event Event) error {
+	return eventType, func(ctx context.Context, event Event) error {
 		typed, ok := any(event).(T)
 		if !ok {
 			return fmt.Errorf("eventx: event type mismatch, expect %v, got %T", eventType, event)
 		}
 		return handler(ctx, typed)
 	}
-
-	return b.subscribe(eventType, base, cfg.middleware, n)
 }
 
 func (b *Bus) subscribe(eventType reflect.Type, base HandlerFunc, subscriberMiddleware []Middleware, maxCalls int) (func(), error) {

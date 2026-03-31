@@ -40,11 +40,7 @@ const (
 // New creates a new Bus runtime.
 func New(opts ...Option) BusRuntime {
 	cfg := defaultOptions()
-	lo.ForEach(opts, func(opt Option, _ int) {
-		if opt != nil {
-			opt(&cfg)
-		}
-	})
+	applyOptions(&cfg, opts...)
 
 	b := &Bus{
 		subsByType:    collectionx.NewConcurrentTable[reflect.Type, uint64, *subscription](),

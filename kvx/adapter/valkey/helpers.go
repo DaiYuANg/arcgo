@@ -4,16 +4,14 @@ import (
 	"strconv"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 	"github.com/valkey-io/valkey-go"
 )
 
 func binaryArgs(args [][]byte) []string {
-	values := make([]string, len(args))
-	for i, arg := range args {
-		values[i] = valkey.BinaryString(arg)
-	}
-
-	return values
+	return lo.Map(args, func(arg []byte, _ int) string {
+		return valkey.BinaryString(arg)
+	})
 }
 
 func newHSetCommand(client valkey.Client, key string, values map[string][]byte) valkey.Completed {
@@ -63,15 +61,12 @@ func convertStringMapToBytes(values map[string]string) map[string][]byte {
 }
 
 func convertXRangeEntries(entries []valkey.XRangeEntry) []kvx.StreamEntry {
-	result := make([]kvx.StreamEntry, len(entries))
-	for i, entry := range entries {
-		result[i] = kvx.StreamEntry{
+	return lo.Map(entries, func(entry valkey.XRangeEntry, _ int) kvx.StreamEntry {
+		return kvx.StreamEntry{
 			ID:     entry.ID,
 			Values: convertStringMapToBytes(entry.FieldValues),
 		}
-	}
-
-	return result
+	})
 }
 
 func convertXReadEntries(entries map[string][]valkey.XRangeEntry) map[string][]kvx.StreamEntry {
@@ -84,25 +79,17 @@ func convertXReadEntries(entries map[string][]valkey.XRangeEntry) map[string][]k
 }
 
 func searchDocsToKeys(docs []valkey.FtSearchDoc) []string {
-	keys := make([]string, len(docs))
-	for i, doc := range docs {
-		keys[i] = doc.Key
-	}
-
-	return keys
+	return lo.Map(docs, func(doc valkey.FtSearchDoc, _ int) string {
+		return doc.Key
+	})
 }
 
 func aggregateDocsToRows(docs []map[string]string) []map[string]any {
-	rows := make([]map[string]any, len(docs))
-	for i, doc := range docs {
-		row := make(map[string]any, len(doc))
-		for key, value := range doc {
-			row[key] = value
-		}
-		rows[i] = row
-	}
-
-	return rows
+	return lo.Map(docs, func(doc map[string]string, _ int) map[string]any {
+		return lo.MapValues(doc, func(value string, _ string) any {
+			return value
+		})
+	})
 }
 
 func formatInt64(value int64) string {

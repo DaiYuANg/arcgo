@@ -2,6 +2,8 @@ package kvx
 
 import (
 	"errors"
+
+	"github.com/samber/lo"
 )
 
 // Common errors that adapters should convert to.
@@ -34,16 +36,14 @@ const (
 
 // ConvertSchemaFields converts kvx schema fields to adapter schema fields.
 func ConvertSchemaFields(fields []SchemaField) []SchemaField {
-	result := make([]SchemaField, len(fields))
-	for i, f := range fields {
-		result[i] = SchemaField{
+	return lo.Map(fields, func(f SchemaField, _ int) SchemaField {
+		return SchemaField{
 			Name:     f.Name,
 			Type:     f.Type,
 			Indexing: f.Indexing,
 			Sortable: f.Sortable,
 		}
-	}
-	return result
+	})
 }
 
 // SchemaField represents a search schema field for adapters.

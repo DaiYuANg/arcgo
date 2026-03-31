@@ -25,12 +25,7 @@ func (p *valkeyPipeline) Enqueue(command string, args ...[]byte) error {
 		return kvx.ErrTooManyArgs
 	}
 
-	argStrs := make([]string, len(args))
-	for i, v := range args {
-		argStrs[i] = valkey.BinaryString(v)
-	}
-
-	cmd := p.client.B().Arbitrary(command).Args(argStrs...).Build()
+	cmd := p.client.B().Arbitrary(command).Args(binaryArgs(args)...).Build()
 	p.cmds = append(p.cmds, cmd)
 	return nil
 }

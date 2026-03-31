@@ -3,6 +3,7 @@ package redis
 import (
 	"github.com/DaiYuANg/arcgo/kvx"
 	goredis "github.com/redis/go-redis/v9"
+	"github.com/samber/lo"
 )
 
 func buildStreamPairs(streams map[string]string) []string {
@@ -27,15 +28,12 @@ func newXAddArgs(key, id string, values map[string][]byte) *goredis.XAddArgs {
 }
 
 func convertStreamMessages(messages []goredis.XMessage) []kvx.StreamEntry {
-	entries := make([]kvx.StreamEntry, len(messages))
-	for i, msg := range messages {
-		entries[i] = kvx.StreamEntry{
+	return lo.Map(messages, func(msg goredis.XMessage, _ int) kvx.StreamEntry {
+		return kvx.StreamEntry{
 			ID:     msg.ID,
 			Values: convertInterfaceMapToBytes(msg.Values),
 		}
-	}
-
-	return entries
+	})
 }
 
 func convertStreams(streams []goredis.XStream) map[string][]kvx.StreamEntry {
@@ -48,44 +46,35 @@ func convertStreams(streams []goredis.XStream) map[string][]kvx.StreamEntry {
 }
 
 func convertPendingEntries(pending []goredis.XPendingExt) []kvx.PendingEntry {
-	entries := make([]kvx.PendingEntry, len(pending))
-	for i, item := range pending {
-		entries[i] = kvx.PendingEntry{
+	return lo.Map(pending, func(item goredis.XPendingExt, _ int) kvx.PendingEntry {
+		return kvx.PendingEntry{
 			ID:         item.ID,
 			Consumer:   item.Consumer,
 			IdleTime:   item.Idle,
 			Deliveries: item.RetryCount,
 		}
-	}
-
-	return entries
+	})
 }
 
 func convertGroupInfos(groups []goredis.XInfoGroup) []kvx.GroupInfo {
-	result := make([]kvx.GroupInfo, len(groups))
-	for i, group := range groups {
-		result[i] = kvx.GroupInfo{
+	return lo.Map(groups, func(group goredis.XInfoGroup, _ int) kvx.GroupInfo {
+		return kvx.GroupInfo{
 			Name:            group.Name,
 			Consumers:       group.Consumers,
 			Pending:         group.Pending,
 			LastDeliveredID: group.LastDeliveredID,
 		}
-	}
-
-	return result
+	})
 }
 
 func convertConsumerInfos(consumers []goredis.XInfoConsumer) []kvx.ConsumerInfo {
-	result := make([]kvx.ConsumerInfo, len(consumers))
-	for i, consumer := range consumers {
-		result[i] = kvx.ConsumerInfo{
+	return lo.Map(consumers, func(consumer goredis.XInfoConsumer, _ int) kvx.ConsumerInfo {
+		return kvx.ConsumerInfo{
 			Name:    consumer.Name,
 			Pending: consumer.Pending,
 			Idle:    consumer.Idle,
 		}
-	}
-
-	return result
+	})
 }
 
 func convertStreamInfo(info *goredis.XInfoStream) *kvx.StreamInfo {

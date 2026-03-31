@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/httpx"
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/go-playground/validator/v10"
 	"github.com/samber/lo"
-	"github.com/samber/mo"
 )
 
 // ServerOptions collects higher-level server construction settings.
@@ -120,27 +120,25 @@ func WithAccessLog(enabled bool) ServerOption {
 
 // Build converts `ServerOptions` into `httpx.ServerOption` values.
 func (o *ServerOptions) Build() []httpx.ServerOption {
-	opts := []httpx.ServerOption{
+	opts := collectionx.NewList[httpx.ServerOption](
 		httpx.WithLogger(o.Logger),
 		httpx.WithPrintRoutes(o.PrintRoutes),
-	}
+	)
 
-	conditionalOpts := []mo.Option[httpx.ServerOption]{
-		someWhen(o.Adapter != nil, httpx.WithAdapter(o.Adapter)),
-		someWhen(o.BasePath != "", httpx.WithBasePath(o.BasePath)),
-		validationBuildOption(o),
+	if o.Adapter != nil {
+		opts.Add(httpx.WithAdapter(o.Adapter))
 	}
-	opts = append(opts, lo.FilterMap(conditionalOpts, func(opt mo.Option[httpx.ServerOption], _ int) (httpx.ServerOption, bool) {
-		return opt.Get()
-	})...)
-
-	opts = append(opts,
+	if o.BasePath != "" {
+		opts.Add(httpx.WithBasePath(o.BasePath))
+	}
+	appendValidationBuildOption(opts, o)
+	opts.Add(
 		httpx.WithOpenAPIInfo(o.HumaTitle, o.HumaVersion, o.HumaDescription),
 		httpx.WithPanicRecover(o.EnablePanicRecover),
 		httpx.WithAccessLog(o.EnableAccessLog),
 	)
 
-	return opts
+	return opts.Values()
 }
 
 // HTTPClientOptions collects standard `http.Client` construction settings.
@@ -238,21 +236,14 @@ func WithContextValueOpt(o *ContextOptions, key string, value any) *ContextOptio
 	return o
 }
 
-func validationBuildOption(o *ServerOptions) mo.Option[httpx.ServerOption] {
+func appendValidationBuildOption(opts collectionx.List[httpx.ServerOption], o *ServerOptions) {
 	if o.Validator != nil {
-		return mo.Some(httpx.WithValidator(o.Validator))
+		opts.Add(httpx.WithValidator(o.Validator))
+		return
 	}
 	if o.EnableValidation {
-		return mo.Some(httpx.WithValidation())
+		opts.Add(httpx.WithValidation())
 	}
-	return mo.None[httpx.ServerOption]()
-}
-
-func someWhen[T any](enabled bool, value T) mo.Option[T] {
-	if enabled {
-		return mo.Some(value)
-	}
-	return mo.None[T]()
 }
 
 func ensureContextValues(o *ContextOptions) map[contextValueKey]any {

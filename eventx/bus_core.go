@@ -7,6 +7,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/panjf2000/ants/v2"
 	"github.com/samber/lo"
 )
@@ -40,7 +41,7 @@ const (
 // New creates a new Bus runtime.
 func New(opts ...Option) BusRuntime {
 	cfg := defaultOptions()
-	applyOptions(&cfg, opts...)
+	option.Apply(&cfg, opts...)
 
 	b := &Bus{
 		subsByType:    collectionx.NewConcurrentTable[reflect.Type, uint64, *subscription](),

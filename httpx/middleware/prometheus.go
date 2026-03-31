@@ -57,15 +57,13 @@ func PrometheusMiddleware(next http.Handler) http.Handler {
 		httpRequestsInFlight.Inc()
 		defer httpRequestsInFlight.Dec()
 
-		// Note.
-		wrapped := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-
+		wrapped := newResponseWriter(w)
 		next.ServeHTTP(wrapped, r)
 
-		// Note.
 		status := strconv.Itoa(wrapped.statusCode)
-		httpRequestsTotal.WithLabelValues(r.Method, r.URL.Path, status).Inc()
-		httpRequestDuration.WithLabelValues(r.Method, r.URL.Path).
+		path := requestPath(r)
+		httpRequestsTotal.WithLabelValues(r.Method, path, status).Inc()
+		httpRequestDuration.WithLabelValues(r.Method, path).
 			Observe(time.Since(start).Seconds())
 	})
 }

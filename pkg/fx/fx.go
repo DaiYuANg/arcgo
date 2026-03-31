@@ -19,6 +19,30 @@ type SupportedFxLoggerType interface {
 	*slog.Logger | *zap.Logger | *fxevent.ConsoleLogger
 }
 
+// ProvideOptionGroup provides non-nil function options into an Fx value group.
+func ProvideOptionGroup[T any, O ~func(*T)](group string, opts ...O) fx.Option {
+	if group == "" || len(opts) == 0 {
+		return fx.Options()
+	}
+
+	providers := collectionx.NewListWithCapacity[fx.Option](len(opts))
+	tag := fmt.Sprintf(`group:%q`, group)
+	for _, opt := range opts {
+		if opt == nil {
+			continue
+		}
+
+		providers.Add(fx.Provide(
+			fx.Annotate(
+				func() O { return opt },
+				fx.ResultTags(tag),
+			),
+		))
+	}
+
+	return fx.Options(providers.Values()...)
+}
+
 // CreateApplicationContainer 会：
 // 1. 根据泛型类型 L 自动附加对应的 Fx logger option
 // 2. 拼上调用方传入的所有 fx.Option

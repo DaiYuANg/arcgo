@@ -51,5 +51,6 @@ use (
 	./logx/fx
 	./observabilityx
 	./pkg/fx
+	./pkg/option
 	./pkg/randomport
 )

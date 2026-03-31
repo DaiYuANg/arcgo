@@ -7,12 +7,9 @@ import (
 )
 
 func buildStreamPairs(streams map[string]string) []string {
-	pairs := make([]string, 0, len(streams)*2)
-	for key, start := range streams {
-		pairs = append(pairs, key, start)
-	}
-
-	return pairs
+	return lo.FlatMap(lo.Entries(streams), func(entry lo.Entry[string, string], _ int) []string {
+		return []string{entry.Key, entry.Value}
+	})
 }
 
 func newXAddArgs(key, id string, values map[string][]byte) *goredis.XAddArgs {
@@ -37,12 +34,9 @@ func convertStreamMessages(messages []goredis.XMessage) []kvx.StreamEntry {
 }
 
 func convertStreams(streams []goredis.XStream) map[string][]kvx.StreamEntry {
-	entries := make(map[string][]kvx.StreamEntry, len(streams))
-	for _, stream := range streams {
-		entries[stream.Stream] = convertStreamMessages(stream.Messages)
-	}
-
-	return entries
+	return lo.Associate(streams, func(stream goredis.XStream) (string, []kvx.StreamEntry) {
+		return stream.Stream, convertStreamMessages(stream.Messages)
+	})
 }
 
 func convertPendingEntries(pending []goredis.XPendingExt) []kvx.PendingEntry {

@@ -41,23 +41,19 @@ func newXReadCommand(client valkey.Client, key, start string, count int64) valke
 }
 
 func streamNamesAndIDs(streams map[string]string) ([]string, []string) {
-	names := make([]string, 0, len(streams))
-	ids := make([]string, 0, len(streams))
-	for name, id := range streams {
-		names = append(names, name)
-		ids = append(ids, id)
-	}
-
-	return names, ids
+	entries := lo.Entries(streams)
+	return lo.Map(entries, func(entry lo.Entry[string, string], _ int) string {
+			return entry.Key
+		}),
+		lo.Map(entries, func(entry lo.Entry[string, string], _ int) string {
+			return entry.Value
+		})
 }
 
 func convertStringMapToBytes(values map[string]string) map[string][]byte {
-	result := make(map[string][]byte, len(values))
-	for key, value := range values {
-		result[key] = []byte(value)
-	}
-
-	return result
+	return lo.MapValues(values, func(value string, _ string) []byte {
+		return []byte(value)
+	})
 }
 
 func convertXRangeEntries(entries []valkey.XRangeEntry) []kvx.StreamEntry {
@@ -70,12 +66,9 @@ func convertXRangeEntries(entries []valkey.XRangeEntry) []kvx.StreamEntry {
 }
 
 func convertXReadEntries(entries map[string][]valkey.XRangeEntry) map[string][]kvx.StreamEntry {
-	result := make(map[string][]kvx.StreamEntry, len(entries))
-	for stream, items := range entries {
-		result[stream] = convertXRangeEntries(items)
-	}
-
-	return result
+	return lo.MapValues(entries, func(items []valkey.XRangeEntry, _ string) []kvx.StreamEntry {
+		return convertXRangeEntries(items)
+	})
 }
 
 func searchDocsToKeys(docs []valkey.FtSearchDoc) []string {

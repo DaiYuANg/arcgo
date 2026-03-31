@@ -2,6 +2,8 @@ package redis
 
 import (
 	"fmt"
+
+	"github.com/samber/lo"
 )
 
 func convertBytesMapToAny(values map[string][]byte) map[string]any {
@@ -72,15 +74,10 @@ func parseFTAggregateResponse(val any) []map[string]any {
 		return nil
 	}
 
-	results := make([]map[string]any, 0, len(arr)-1)
-	for _, row := range arr[1:] {
+	return lo.FilterMap(arr[1:], func(row any, _ int) (map[string]any, bool) {
 		parsed := parseFTAggregateRow(row)
-		if parsed != nil {
-			results = append(results, parsed)
-		}
-	}
-
-	return results
+		return parsed, parsed != nil
+	})
 }
 
 func parseFTAggregateRow(row any) map[string]any {

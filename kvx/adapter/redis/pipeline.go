@@ -7,6 +7,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/redis/go-redis/v9"
+	"github.com/samber/lo"
 )
 
 // Pipeline creates a new pipeline.
@@ -26,11 +27,7 @@ func (p *redisPipeline) Enqueue(command string, args ...[]byte) error {
 		return kvx.ErrTooManyArgs
 	}
 
-	ifaceArgs := make([]any, len(args)+1)
-	ifaceArgs[0] = command
-	for i, v := range args {
-		ifaceArgs[i+1] = v
-	}
+	ifaceArgs := append([]any{command}, lo.Map(args, func(v []byte, _ int) any { return v })...)
 
 	p.pipe.Do(context.Background(), ifaceArgs...)
 	return nil

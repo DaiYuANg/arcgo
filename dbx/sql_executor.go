@@ -169,7 +169,10 @@ func SQLFind[E any](ctx context.Context, session Session, statement SQLStatement
 			return mo.None[E](), scanErr
 		}
 		logRuntimeNode(session, "sql.find.done", "found", found)
-		return mo.TupleToOption(value, found), nil
+		if found {
+			return mo.Some(value), nil
+		}
+		return mo.None[E](), nil
 	}
 
 	items, err := SQLList(ctx, session, statement, params, mapper)

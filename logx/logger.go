@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/samber/lo"
@@ -86,11 +87,7 @@ func (h *managedHandler) Close() error {
 // New creates a slog.Logger using logx options.
 func New(opts ...Option) (*slog.Logger, error) {
 	cfg := defaultConfig()
-	for _, opt := range opts {
-		if opt != nil {
-			opt(&cfg)
-		}
-	}
+	option.Apply(&cfg, opts...)
 
 	if err := cfg.validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)

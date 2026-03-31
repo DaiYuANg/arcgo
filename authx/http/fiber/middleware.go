@@ -80,16 +80,11 @@ func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) fiber.Han
 }
 
 func requestInfoFromFiberFast(c *fiber.Ctx) authhttp.RequestInfo {
-	pattern := c.Path()
-	if route := c.Route(); route != nil {
-		if route.Path != "" {
-			pattern = route.Path
-		}
-	}
+	method, path, pattern := requestMetaFromFiber(c)
 
 	return authhttp.RequestInfo{
-		Method:       c.Method(),
-		Path:         c.Path(),
+		Method:       method,
+		Path:         path,
 		RoutePattern: pattern,
 		Headers:      nil,
 		Query:        nil,
@@ -100,41 +95,57 @@ func requestInfoFromFiberFast(c *fiber.Ctx) authhttp.RequestInfo {
 }
 
 func requestInfoFromFiber(c *fiber.Ctx) authhttp.RequestInfo {
-	pattern := c.Path()
-	if route := c.Route(); route != nil {
-		if route.Path != "" {
-			pattern = route.Path
-		}
-	}
+	method, path, pattern := requestMetaFromFiber(c)
 
+	return authhttp.RequestInfo{
+		Method:       method,
+		Path:         path,
+		RoutePattern: pattern,
+		Headers:      headersFromFiber(c),
+		Query:        queryFromFiber(c),
+		PathParams:   pathParamsFromFiber(c),
+		Request:      nil,
+		Native:       c,
+	}
+}
+
+func requestMetaFromFiber(c *fiber.Ctx) (method, path, pattern string) {
+	method = c.Method()
+	path = c.Path()
+	pattern = path
+	if route := c.Route(); route != nil && route.Path != "" {
+		pattern = route.Path
+	}
+	return method, path, pattern
+}
+
+func headersFromFiber(c *fiber.Ctx) http.Header {
 	headers := make(http.Header)
 	for key, value := range c.Request().Header.All() {
 		headers.Add(string(key), string(value))
 	}
+	return headers
+}
 
-	var query url.Values
-	if len(c.Request().URI().QueryString()) > 0 {
-		query = make(url.Values)
-		for key, value := range c.Request().URI().QueryArgs().All() {
-			query.Add(string(key), string(value))
-		}
+func queryFromFiber(c *fiber.Ctx) url.Values {
+	if len(c.Request().URI().QueryString()) == 0 {
+		return nil
 	}
 
-	var pathParams map[string]string
-	if route := c.Route(); route != nil && len(route.Params) > 0 {
-		pathParams = lo.Associate(route.Params, func(key string) (string, string) {
-			return key, c.Params(key)
-		})
+	query := make(url.Values)
+	for key, value := range c.Request().URI().QueryArgs().All() {
+		query.Add(string(key), string(value))
+	}
+	return query
+}
+
+func pathParamsFromFiber(c *fiber.Ctx) map[string]string {
+	route := c.Route()
+	if route == nil || len(route.Params) == 0 {
+		return nil
 	}
 
-	return authhttp.RequestInfo{
-		Method:       c.Method(),
-		Path:         c.Path(),
-		RoutePattern: pattern,
-		Headers:      headers,
-		Query:        query,
-		PathParams:   pathParams,
-		Request:      nil,
-		Native:       c,
-	}
+	return lo.Associate(route.Params, func(key string) (string, string) {
+		return key, c.Params(key)
+	})
 }

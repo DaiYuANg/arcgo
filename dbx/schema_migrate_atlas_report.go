@@ -5,6 +5,7 @@ import (
 
 	atlasschema "ariga.io/atlas/sql/schema"
 	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/samber/lo"
 )
 
 func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompiledSchema, current *atlasschema.Schema) ValidationReport {
@@ -17,7 +18,7 @@ func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompile
 }
 
 func atlasReportDiffMap(order []string) collectionx.OrderedMap[string, *TableDiff] {
-	diffs := collectionx.NewOrderedMap[string, *TableDiff]()
+	diffs := collectionx.NewOrderedMapWithCapacity[string, *TableDiff](len(order))
 	for _, name := range order {
 		diffs.Set(name, &TableDiff{Table: name})
 	}
@@ -25,10 +26,10 @@ func atlasReportDiffMap(order []string) collectionx.OrderedMap[string, *TableDif
 }
 
 func atlasCurrentTablesByName(current *atlasschema.Schema) collectionx.Map[string, *atlasschema.Table] {
-	currentTables := collectionx.NewMap[string, *atlasschema.Table]()
 	if current == nil {
-		return currentTables
+		return collectionx.NewMap[string, *atlasschema.Table]()
 	}
+	currentTables := collectionx.NewMapWithCapacity[string, *atlasschema.Table](len(current.Tables))
 	for _, table := range current.Tables {
 		currentTables.Set(table.Name, table)
 	}
@@ -76,13 +77,10 @@ func atlasApplyModifyTableChange(diffs collectionx.OrderedMap[string, *TableDiff
 }
 
 func atlasValidationReport(diffs collectionx.OrderedMap[string, *TableDiff]) ValidationReport {
-	reportTables := collectionx.NewListWithCapacity[TableDiff](diffs.Len())
-	diffs.Range(func(_ string, diff *TableDiff) bool {
-		reportTables.Add(*diff)
-		return true
-	})
 	return ValidationReport{
-		Tables:   reportTables.Values(),
+		Tables: lo.Map(diffs.Values(), func(diff *TableDiff, _ int) TableDiff {
+			return *diff
+		}),
 		Backend:  ValidationBackendAtlas,
 		Complete: true,
 	}

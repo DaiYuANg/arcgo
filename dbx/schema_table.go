@@ -2,6 +2,7 @@ package dbx
 
 import (
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/samber/lo"
@@ -97,15 +98,11 @@ func (s Schema[E]) EntityType() reflect.Type {
 }
 
 func (s Schema[E]) Columns() []ColumnMeta {
-	items := make([]ColumnMeta, len(s.def.columns))
-	copy(items, s.def.columns)
-	return items
+	return slices.Clone(s.def.columns)
 }
 
 func (s Schema[E]) Relations() []RelationMeta {
-	items := make([]RelationMeta, len(s.def.relations))
-	copy(items, s.def.relations)
-	return items
+	return slices.Clone(s.def.relations)
 }
 
 func (s Schema[E]) Indexes() []IndexMeta {

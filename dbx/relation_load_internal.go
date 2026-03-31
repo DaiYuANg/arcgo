@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
@@ -156,9 +157,7 @@ func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema
 	}
 	if ok {
 		logRuntimeNode(session, "relation.targets.bound.cache_hit", "table", tableName, "target_column", targetColumn.Name, "keys", len(keys))
-		args := make([]any, len(keys))
-		copy(args, keys)
-		return BoundQuery{SQL: cachedSQL, Args: args}, nil
+		return BoundQuery{SQL: cachedSQL, Args: slices.Clone(keys)}, nil
 	}
 	logRuntimeNode(session, "relation.targets.bound.cache_miss", "table", tableName, "target_column", targetColumn.Name, "keys", len(keys))
 	query := Select(allSelectItems(def)...).

@@ -3,6 +3,7 @@ package dbx
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 
 	atlasmigrate "ariga.io/atlas/sql/migrate"
@@ -90,18 +91,9 @@ func atlasPlannedAction(change atlasschema.Change, planned *atlasmigrate.Change)
 		Kind:       atlasActionKind(change),
 		Table:      atlasChangeTableName(change),
 		Summary:    summary,
-		Statement:  BoundQuery{SQL: planned.Cmd, Args: cloneArgs(planned.Args)},
+		Statement:  BoundQuery{SQL: planned.Cmd, Args: slices.Clone(planned.Args)},
 		Executable: true,
 	}
-}
-
-func cloneArgs(args []any) []any {
-	if len(args) == 0 {
-		return nil
-	}
-	clone := make([]any, len(args))
-	copy(clone, args)
-	return clone
 }
 
 func atlasActionKind(change atlasschema.Change) MigrationActionKind {

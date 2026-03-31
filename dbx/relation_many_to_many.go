@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"slices"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 )
@@ -59,9 +60,7 @@ func buildManyToManyPairsBoundQuery(session Session, rt *relationRuntime, meta R
 	}
 	if ok {
 		logRuntimeNode(session, "relation.m2m.bound.cache_hit", "relation", meta.Name, "through", meta.ThroughTable, "keys", len(sourceKeys))
-		args := make([]any, len(sourceKeys))
-		copy(args, sourceKeys)
-		return BoundQuery{SQL: cachedSQL, Args: args}, nil
+		return BoundQuery{SQL: cachedSQL, Args: slices.Clone(sourceKeys)}, nil
 	}
 	logRuntimeNode(session, "relation.m2m.bound.cache_miss", "relation", meta.Name, "through", meta.ThroughTable, "keys", len(sourceKeys))
 

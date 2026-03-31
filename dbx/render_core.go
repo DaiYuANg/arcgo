@@ -3,6 +3,7 @@ package dbx
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
@@ -124,9 +125,7 @@ func (s *renderState) renderTable(table Table) {
 }
 
 func (s *renderState) BoundQuery() BoundQuery {
-	args := make([]any, len(s.args))
-	copy(args, s.args)
-	return BoundQuery{SQL: s.buf.String(), Args: args}
+	return BoundQuery{SQL: s.buf.String(), Args: slices.Clone(s.args)}
 }
 
 func renderSelectItem(state *renderState, item SelectItem) error {

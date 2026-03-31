@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
@@ -80,19 +81,15 @@ type runtimeObserver struct {
 }
 
 func newRuntimeObserver(opts options) runtimeObserver {
-	hooks := make([]Hook, len(opts.hooks))
-	copy(hooks, opts.hooks)
 	return runtimeObserver{
 		logger: opts.logger,
-		hooks:  hooks,
+		hooks:  slices.Clone(opts.hooks),
 		debug:  opts.debug,
 	}
 }
 
 func (o runtimeObserver) before(ctx context.Context, event HookEvent) (context.Context, *HookEvent, error) {
-	copiedArgs := make([]any, len(event.Args))
-	copy(copiedArgs, event.Args)
-	event.Args = copiedArgs
+	event.Args = slices.Clone(event.Args)
 	event.StartedAt = time.Now()
 
 	ctx, err := o.applyBeforeHooks(ctx, &event, 0)

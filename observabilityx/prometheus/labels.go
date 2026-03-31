@@ -45,13 +45,18 @@ func attrsToLabelMap(attrs []observabilityx.Attribute) map[string]string {
 		return nil
 	}
 
-	labels := make(map[string]string, len(attrs))
-	lo.ForEach(attrs, func(attr observabilityx.Attribute, _ int) {
+	entries := lo.FilterMap(attrs, func(attr observabilityx.Attribute, _ int) (lo.Entry[string, string], bool) {
 		labelKey := normalizeLabelKey(attr.Key)
 		if labelKey == "" {
-			return
+			return lo.Entry[string, string]{}, false
 		}
-		labels[labelKey] = fmt.Sprint(attr.Value)
+		return lo.Entry[string, string]{
+			Key:   labelKey,
+			Value: fmt.Sprint(attr.Value),
+		}, true
+	})
+	labels := lo.Associate(entries, func(entry lo.Entry[string, string]) (string, string) {
+		return entry.Key, entry.Value
 	})
 	if len(labels) == 0 {
 		return nil
@@ -72,11 +77,9 @@ func toPromLabels(labelNames []string, values map[string]string) prom.Labels {
 	if len(labelNames) == 0 {
 		return prom.Labels{}
 	}
-	labels := make(prom.Labels, len(labelNames))
-	lo.ForEach(labelNames, func(labelName string, _ int) {
-		labels[labelName] = values[labelName]
-	})
-	return labels
+	return prom.Labels(lo.Associate(labelNames, func(labelName string) (string, string) {
+		return labelName, values[labelName]
+	}))
 }
 
 func normalizeLabelKey(raw string) string {

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/samber/lo"
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 // Subscribe registers a strongly typed handler and returns an unsubscribe function.
@@ -87,18 +87,20 @@ func (b *Bus) snapshotHandlersByEventType(eventType reflect.Type) []HandlerFunc 
 		return nil
 	}
 
-	handlers := lo.FilterMap(lo.Values(row), func(sub *subscription, _ int) (HandlerFunc, bool) {
+	handlers := collectionx.NewListWithCapacity[HandlerFunc](len(row))
+	for _, sub := range row {
 		if sub == nil || sub.handler == nil {
-			return nil, false
+			continue
 		}
-		return sub.handler, true
-	})
-	b.handlerCache.Set(eventType, handlers)
+		handlers.Add(sub.handler)
+	}
+	snapshot := handlers.Values()
+	b.handlerCache.Set(eventType, snapshot)
 	b.logger.Debug("handler snapshot rebuilt",
 		"event_type", eventType.String(),
-		"handler_count", len(handlers),
+		"handler_count", len(snapshot),
 	)
-	return handlers
+	return snapshot
 }
 
 func (b *Bus) subscriptionHandler(base HandlerFunc, subscriberMiddleware []Middleware) HandlerFunc {

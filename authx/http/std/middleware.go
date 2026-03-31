@@ -57,10 +57,7 @@ func RequireFast(guard *authhttp.Guard, opts ...Option) func(http.Handler) http.
 func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) func(http.Handler) http.Handler {
 	cfg := defaultConfig()
 	authhttp.ApplyOptions(&cfg, opts...)
-	extract := authhttp.RequestInfoFromHTTPRequest
-	if fast {
-		extract = authhttp.RequestInfoFromHTTPRequestFast
-	}
+	extract := requestInfoExtractor(fast)
 
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -82,4 +79,11 @@ func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) func(http
 			next.ServeHTTP(w, r.WithContext(authx.WithPrincipal(r.Context(), result.Principal)))
 		})
 	}
+}
+
+func requestInfoExtractor(fast bool) func(*http.Request) authhttp.RequestInfo {
+	if fast {
+		return authhttp.RequestInfoFromHTTPRequestFast
+	}
+	return authhttp.RequestInfoFromHTTPRequest
 }

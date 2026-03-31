@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
-	"go.uber.org/fx"
-
 	"github.com/DaiYuANg/arcgo/logx"
+	pkgfx "github.com/DaiYuANg/arcgo/pkg/fx"
+	"go.uber.org/fx"
 )
 
 // LogParams defines parameters for logx module.
@@ -17,7 +17,7 @@ type LogParams struct {
 	Lifecycle fx.Lifecycle
 
 	// Options for creating logger.
-	Options []logx.Option `optional:"true"`
+	Options []logx.Option `group:"logx_options,soft"`
 }
 
 // LogResult defines result for logx module.
@@ -45,10 +45,8 @@ func NewLogger(params LogParams) (LogResult, error) {
 // NewLogxModule creates a logx module.
 func NewLogxModule(opts ...logx.Option) fx.Option {
 	return fx.Module("logx",
-		fx.Provide(
-			func() []logx.Option { return opts },
-			NewLogger,
-		),
+		pkgfx.ProvideOptionGroup[logx.BuildOptions, logx.Option]("logx_options", opts...),
+		fx.Provide(NewLogger),
 	)
 }
 

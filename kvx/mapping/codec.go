@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-
-	"github.com/samber/mo"
 )
 
 // Serializer defines the interface for serializing/deserializing values.
@@ -48,8 +46,12 @@ type HashCodec struct {
 
 // NewHashCodec creates a new HashCodec.
 func NewHashCodec(serializer Serializer) *HashCodec {
+	if serializer == nil {
+		serializer = NewJSONSerializer()
+	}
+
 	return &HashCodec{
-		serializer: mo.TupleToOption(serializer, serializer != nil).OrElse(NewJSONSerializer()),
+		serializer: serializer,
 	}
 }
 

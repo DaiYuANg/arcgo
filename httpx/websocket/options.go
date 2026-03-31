@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/DaiYuANg/arcgo/pkg/option"
 )
 
 // Context aliases context.Context for WebSocket handlers and connections.
@@ -23,11 +25,16 @@ type Options struct {
 // Option mutates WebSocket options before upgrade.
 type Option func(*Options)
 
+const (
+	defaultHandshakeTimeout = 5 * time.Second
+	defaultMaxMessageSize   = 16 * 1024 * 1024
+)
+
 // DefaultOptions returns the default WebSocket server options.
 func DefaultOptions() Options {
 	return Options{
-		HandshakeTimeout: 5 * time.Second,
-		MaxMessageSize:   16 * 1024 * 1024,
+		HandshakeTimeout: defaultHandshakeTimeout,
+		MaxMessageSize:   defaultMaxMessageSize,
 	}
 }
 
@@ -76,16 +83,12 @@ func WithCheckOrigin(fn func(*http.Request) bool) Option {
 
 func applyOptions(options []Option) Options {
 	cfg := DefaultOptions()
-	for _, opt := range options {
-		if opt != nil {
-			opt(&cfg)
-		}
-	}
+	option.Apply(&cfg, options...)
 	if cfg.MaxMessageSize <= 0 {
-		cfg.MaxMessageSize = 16 * 1024 * 1024
+		cfg.MaxMessageSize = defaultMaxMessageSize
 	}
 	if cfg.HandshakeTimeout <= 0 {
-		cfg.HandshakeTimeout = 5 * time.Second
+		cfg.HandshakeTimeout = defaultHandshakeTimeout
 	}
 	return cfg
 }

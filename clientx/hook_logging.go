@@ -1,6 +1,10 @@
 package clientx
 
-import "log/slog"
+import (
+	"log/slog"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
+)
 
 // LoggingHookOption configures NewLoggingHook behavior.
 type LoggingHookOption func(*loggingHookConfig)
@@ -35,40 +39,40 @@ func (h *loggingHook) OnDial(event DialEvent) {
 	if h == nil || h.logger == nil {
 		return
 	}
-	attrs := []any{
+	attrs := collectionx.NewListWithCapacity[any](10,
 		"protocol", event.Protocol,
 		"op", event.Op,
 		"network", event.Network,
 		"duration", event.Duration,
-	}
+	)
 	if h.cfg.includeAddress && event.Addr != "" {
-		attrs = append(attrs, "addr", event.Addr)
+		attrs.Add("addr", event.Addr)
 	}
 	if event.Err != nil {
-		attrs = append(attrs, "error", event.Err, "error_kind", KindOf(event.Err))
-		h.logger.Error("clientx dial", attrs...)
+		attrs.Add("error", event.Err, "error_kind", KindOf(event.Err))
+		h.logger.Error("clientx dial", attrs.Values()...)
 		return
 	}
-	h.logger.Debug("clientx dial", attrs...)
+	h.logger.Debug("clientx dial", attrs.Values()...)
 }
 
 func (h *loggingHook) OnIO(event IOEvent) {
 	if h == nil || h.logger == nil {
 		return
 	}
-	attrs := []any{
+	attrs := collectionx.NewListWithCapacity[any](10,
 		"protocol", event.Protocol,
 		"op", event.Op,
 		"bytes", event.Bytes,
 		"duration", event.Duration,
-	}
+	)
 	if h.cfg.includeAddress && event.Addr != "" {
-		attrs = append(attrs, "addr", event.Addr)
+		attrs.Add("addr", event.Addr)
 	}
 	if event.Err != nil {
-		attrs = append(attrs, "error", event.Err, "error_kind", KindOf(event.Err))
-		h.logger.Error("clientx io", attrs...)
+		attrs.Add("error", event.Err, "error_kind", KindOf(event.Err))
+		h.logger.Error("clientx io", attrs.Values()...)
 		return
 	}
-	h.logger.Debug("clientx io", attrs...)
+	h.logger.Debug("clientx io", attrs.Values()...)
 }

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/clientx"
-	"github.com/samber/lo"
 	"resty.dev/v3"
 )
 
@@ -46,8 +45,9 @@ func New(cfg Config, opts ...Option) (Client, error) {
 		c.SetHeader("User-Agent", normalized.UserAgent)
 	}
 	if normalized.Headers != nil {
-		lo.ForEach(lo.Entries(normalized.Headers.All()), func(entry lo.Entry[string, string], _ int) {
-			c.SetHeader(entry.Key, entry.Value)
+		normalized.Headers.Range(func(key, value string) bool {
+			c.SetHeader(key, value)
+			return true
 		})
 	}
 

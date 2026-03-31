@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"time"
-
-	"github.com/samber/lo"
 )
 
 var backgroundContext = context.Background()
@@ -81,9 +79,7 @@ func InvokeWithPolicies[T any](
 	}
 	operation = normalizeOperation(operation)
 
-	activePolicies := lo.Filter(policies, func(policy Policy, _ int) bool {
-		return policy != nil
-	})
+	activePolicies := filterPolicies(policies)
 
 	for attempt := 1; ; attempt++ {
 		attemptCtx, applied, err := applyBeforePolicies(ctx, activePolicies, operation)
@@ -131,26 +127,40 @@ func decideRetry(
 		wait  time.Duration
 	}
 
-	decision := lo.Reduce(policies, func(agg retryDecision, policy Policy, _ int) retryDecision {
+	decision := retryDecision{}
+	for _, policy := range policies {
 		decider, ok := policy.(RetryDecider)
 		if !ok {
-			return agg
+			continue
 		}
 		shouldRetry, delay, retryOK := callShouldRetry(ctx, decider, operation, attempt, err)
 		if !retryOK || !shouldRetry {
-			return agg
+			continue
 		}
 
-		agg.retry = true
-		if delay > agg.wait {
-			agg.wait = delay
+		decision.retry = true
+		if delay > decision.wait {
+			decision.wait = delay
 		}
-		return agg
-	}, retryDecision{})
+	}
 
 	retry = decision.retry
 	wait = max(decision.wait, 0)
 	return retry, wait
+}
+
+func filterPolicies(policies []Policy) []Policy {
+	if len(policies) == 0 {
+		return nil
+	}
+
+	active := make([]Policy, 0, len(policies))
+	for _, policy := range policies {
+		if policy != nil {
+			active = append(active, policy)
+		}
+	}
+	return active
 }
 
 func normalizeContext(ctx context.Context) context.Context {

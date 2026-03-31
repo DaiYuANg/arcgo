@@ -13,7 +13,8 @@ const (
 
 type asyncErrorHandler func(ctx context.Context, event Event, err error)
 
-type options struct {
+// Options configures bus construction.
+type Options struct {
 	antsPoolSize         int
 	antsMaxBlockingCalls int
 
@@ -23,8 +24,10 @@ type options struct {
 	observability observabilityx.Observability
 }
 
-func defaultOptions() options {
-	return options{
+type options = Options
+
+func defaultOptions() Options {
+	return Options{
 		antsPoolSize:         defaultAsyncWorkers,
 		antsMaxBlockingCalls: -1, // -1 means infinite blocking calls
 
@@ -36,7 +39,7 @@ func defaultOptions() options {
 }
 
 // Option configures Bus.
-type Option func(*options)
+type Option func(*Options)
 
 // WithAntsPool enables ants goroutine pool with the given size.
 // This is the recommended way for async event dispatch.
@@ -87,18 +90,21 @@ func WithObservability(obs observabilityx.Observability) Option {
 	}
 }
 
-type subscribeOptions struct {
+// SubscribeOptions configures per-subscription behavior.
+type SubscribeOptions struct {
 	middleware []Middleware
 }
 
-func defaultSubscribeOptions() subscribeOptions {
-	return subscribeOptions{
+type subscribeOptions = SubscribeOptions
+
+func defaultSubscribeOptions() SubscribeOptions {
+	return SubscribeOptions{
 		middleware: nil,
 	}
 }
 
 // SubscribeOption configures per-subscription behavior.
-type SubscribeOption func(*subscribeOptions)
+type SubscribeOption func(*SubscribeOptions)
 
 // WithSubscriberMiddleware appends subscription-level middleware.
 func WithSubscriberMiddleware(mw ...Middleware) SubscribeOption {

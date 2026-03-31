@@ -41,7 +41,7 @@ func (a *Adapter) Listen(addr string) error {
 	defer release()
 
 	if err := server.ListenAndServe(); err != nil {
-		return fmt.Errorf("httpx/std: listen on %q: %w", addr, err)
+		return wrapListenError(addr, err)
 	}
 	return nil
 }
@@ -82,7 +82,7 @@ func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
-		return fmt.Errorf("httpx/std: listen on %q: %w", addr, err)
+		return wrapListenError(addr, err)
 	case <-ctx.Done():
 		if err := a.shutdownContext(ctx); err != nil {
 			return fmt.Errorf("httpx/std: shutdown on %q: %w", addr, err)
@@ -91,7 +91,7 @@ func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
-		return fmt.Errorf("httpx/std: listen on %q: %w", addr, err)
+		return wrapListenError(addr, err)
 	}
 }
 
@@ -134,4 +134,8 @@ func (a *Adapter) activeServer() *http.Server {
 	a.lifecycle.mu.Lock()
 	defer a.lifecycle.mu.Unlock()
 	return a.lifecycle.server
+}
+
+func wrapListenError(addr string, err error) error {
+	return fmt.Errorf("httpx/std: listen on %q: %w", addr, err)
 }

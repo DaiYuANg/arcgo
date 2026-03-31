@@ -28,13 +28,7 @@ type Adapter struct {
 
 // New constructs an echo adapter backed by an echo server and Huma API.
 func New(engine *echo.Echo, opts ...adapter.HumaOptions) *Adapter {
-	var eng *echo.Echo
-	if engine != nil {
-		eng = engine
-	} else {
-		eng = echo.New()
-	}
-
+	eng := orDefaultEngine(engine)
 	humaOpts := adapter.MergeHumaOptions(opts...)
 	cfg := huma.DefaultConfig(humaOpts.Title, humaOpts.Version)
 	adapter.ApplyHumaConfig(&cfg, humaOpts)
@@ -45,6 +39,13 @@ func New(engine *echo.Echo, opts ...adapter.HumaOptions) *Adapter {
 		huma:      api,
 		lifecycle: &lifecycleState{},
 	}
+}
+
+func orDefaultEngine(engine *echo.Echo) *echo.Echo {
+	if engine != nil {
+		return engine
+	}
+	return echo.New()
 }
 
 // Name returns the adapter name.
@@ -64,7 +65,7 @@ func (a *Adapter) Listen(addr string) error {
 	defer release()
 
 	if err := a.engine.StartServer(server); err != nil {
-		return fmt.Errorf("httpx/echo: listen on %q: %w", addr, err)
+		return wrapEchoListenError(addr, err)
 	}
 	return nil
 }
@@ -105,7 +106,7 @@ func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
-		return fmt.Errorf("httpx/echo: listen on %q: %w", addr, err)
+		return wrapEchoListenError(addr, err)
 	case <-ctx.Done():
 		if err := a.shutdownContext(ctx); err != nil {
 			return fmt.Errorf("httpx/echo: shutdown on %q: %w", addr, err)
@@ -114,7 +115,7 @@ func (a *Adapter) ListenContext(ctx context.Context, addr string) error {
 		if errors.Is(err, http.ErrServerClosed) {
 			return nil
 		}
-		return fmt.Errorf("httpx/echo: listen on %q: %w", addr, err)
+		return wrapEchoListenError(addr, err)
 	}
 }
 
@@ -157,4 +158,8 @@ func (a *Adapter) activeServer() *http.Server {
 	a.lifecycle.mu.Lock()
 	defer a.lifecycle.mu.Unlock()
 	return a.lifecycle.server
+}
+
+func wrapEchoListenError(addr string, err error) error {
+	return fmt.Errorf("httpx/echo: listen on %q: %w", addr, err)
 }

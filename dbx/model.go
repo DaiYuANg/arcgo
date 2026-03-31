@@ -111,10 +111,9 @@ func NewMapperWithOptions[E any](schema SchemaResource, opts ...MapperOption) (M
 	mappedFields := lo.FilterMap(schema.schemaRef().columns, func(column ColumnMeta, _ int) (MappedField, bool) {
 		return structMapper.meta.byColumn.Get(column.Name)
 	})
-	fields := collectionx.NewListWithCapacity[MappedField](len(mappedFields))
+	fields := collectionx.NewListWithCapacity[MappedField](len(mappedFields), mappedFields...)
 	byColumn := collectionx.NewMapWithCapacity[string, MappedField](len(mappedFields))
 	lo.ForEach(mappedFields, func(field MappedField, _ int) {
-		fields.Add(field)
 		byColumn.Set(field.Column, field)
 	})
 

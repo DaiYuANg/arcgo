@@ -21,11 +21,12 @@ func ApplyErr[T any, O ~func(*T) error](target *T, opts ...O) error {
 		return nil
 	}
 
-	for _, opt := range lo.Filter(opts, func(opt O, _ int) bool { return opt != nil }) {
-		if err := opt(target); err != nil {
-			return err
+	applyErr := error(nil)
+	lo.ForEach(lo.Filter(opts, func(opt O, _ int) bool { return opt != nil }), func(opt O, _ int) {
+		if applyErr != nil {
+			return
 		}
-	}
-
-	return nil
+		applyErr = opt(target)
+	})
+	return applyErr
 }

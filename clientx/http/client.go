@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/clientx"
+	"github.com/samber/lo"
 	"resty.dev/v3"
 )
 
@@ -53,11 +54,11 @@ func New(cfg Config, opts ...Option) (Client, error) {
 
 	client := &DefaultClient{raw: c, baseURL: normalized.BaseURL}
 	if normalized.Retry.Enabled {
-		client.policies = append(client.policies, clientx.NewRetryPolicy(clientx.RetryPolicyConfig{
+		client.policies = lo.Concat(client.policies, []clientx.Policy{clientx.NewRetryPolicy(clientx.RetryPolicyConfig{
 			MaxAttempts: max(1, normalized.Retry.MaxRetries+1),
 			BaseDelay:   normalized.Retry.WaitMin,
 			MaxDelay:    normalized.Retry.WaitMax,
-		}))
+		})})
 	}
 
 	clientx.Apply(client, opts...)

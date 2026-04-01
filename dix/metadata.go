@@ -6,6 +6,7 @@ import (
 
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	collectionset "github.com/DaiYuANg/arcgo/collectionx/set"
+	"github.com/samber/lo"
 )
 
 func validateTypedGraph(plan *buildPlan) error {
@@ -22,14 +23,14 @@ func validateTypedGraphReport(plan *buildPlan) ValidationReport {
 	validateDeclaredDependencies(plan.modules, state)
 
 	return ValidationReport{
-		Errors:   state.errs.Values(),
+		Errors:   state.err.Values(),
 		Warnings: state.warnings.Values(),
 	}
 }
 
 type validationState struct {
 	known    *collectionset.Set[string]
-	errs     *collectionlist.List[error]
+	err      *collectionlist.List[error]
 	warnings *collectionlist.List[ValidationWarning]
 }
 
@@ -40,7 +41,7 @@ func newValidationState() *validationState {
 			serviceNameOf[AppMeta](),
 			serviceNameOf[Profile](),
 		),
-		errs:     collectionlist.NewListWithCapacity[error](4),
+		err:      collectionlist.NewListWithCapacity[error](4),
 		warnings: collectionlist.NewListWithCapacity[ValidationWarning](2),
 	}
 }
@@ -61,7 +62,7 @@ func collectProviderOutputs(mod *moduleSpec, state *validationState) {
 		meta := provider.meta
 		if meta.Output.Name != "" {
 			if state.known.Contains(meta.Output.Name) {
-				state.errs.Add(fmt.Errorf("duplicate provider output `%s` in module `%s` via %s", meta.Output.Name, mod.name, meta.Label))
+				state.err.Add(fmt.Errorf("duplicate provider output `%s` in module `%s` via %s", meta.Output.Name, mod.name, meta.Label))
 				return true
 			}
 			state.known.Add(meta.Output.Name)
@@ -82,13 +83,13 @@ func collectProviderOutputs(mod *moduleSpec, state *validationState) {
 func collectSetupOutputs(mod *moduleSpec, state *validationState) {
 	mod.setups.Range(func(_ int, setup SetupFunc) bool {
 		meta := setup.meta
-		for _, provide := range meta.Provides {
+		lo.ForEach(meta.Provides, func(provide ServiceRef, _ int) {
 			if state.known.Contains(provide.Name) {
-				state.errs.Add(fmt.Errorf("duplicate setup output `%s` in module `%s` via %s", provide.Name, mod.name, meta.Label))
-				continue
+				state.err.Add(fmt.Errorf("duplicate setup output `%s` in module `%s` via %s", provide.Name, mod.name, meta.Label))
+				return
 			}
 			state.known.Add(provide.Name)
-		}
+		})
 		if meta.Raw && len(meta.Provides) == 0 && len(meta.Overrides) == 0 && meta.GraphMutation {
 			state.addWarning(
 				ValidationWarningRawSetupUndeclaredGraph,
@@ -133,11 +134,11 @@ func validateProviderDependencies(mod *moduleSpec, state *validationState) {
 func validateSetupDependencies(mod *moduleSpec, state *validationState) {
 	mod.setups.Range(func(_ int, setup SetupFunc) bool {
 		meta := setup.meta
-		for _, override := range meta.Overrides {
+		lo.ForEach(meta.Overrides, func(override ServiceRef, _ int) {
 			if !state.known.Contains(override.Name) {
-				state.errs.Add(fmt.Errorf("override target `%s` not found in module `%s` via %s", override.Name, mod.name, meta.Label))
+				state.err.Add(fmt.Errorf("override target `%s` not found in module `%s` via %s", override.Name, mod.name, meta.Label))
 			}
-		}
+		})
 		state.validateDeps(mod.name, "setup", meta.Label, meta.Dependencies)
 		return true
 	})
@@ -185,20 +186,20 @@ func (s *validationState) addWarning(kind ValidationWarningKind, moduleName, lab
 }
 
 func (s *validationState) validateDeps(moduleName, kind, label string, deps []ServiceRef) {
-	validateDependencies(s.errs, s.known, moduleName, kind, label, deps)
+	validateDependencies(s.err, s.known, moduleName, kind, label, deps)
 }
 
 func validateDependencies(
-	errs *collectionlist.List[error],
+	err *collectionlist.List[error],
 	known *collectionset.Set[string],
 	moduleName string,
 	kind string,
 	label string,
 	deps []ServiceRef,
 ) {
-	for _, dep := range deps {
+	lo.ForEach(deps, func(dep ServiceRef, _ int) {
 		if !known.Contains(dep.Name) {
-			errs.Add(fmt.Errorf("missing dependency `%s` for %s %s in module `%s`", dep.Name, kind, label, moduleName))
+			err.Add(fmt.Errorf("missing dependency `%s` for %s %s in module `%s`", dep.Name, kind, label, moduleName))
 		}
-	}
+	})
 }

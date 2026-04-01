@@ -231,12 +231,11 @@ func nonEmptyEntries(entries ...string) []string {
 }
 
 func extractIDFromKey(key string) string {
-	for i := len(key) - 1; i >= 0; i-- {
-		if key[i] == ':' {
-			return key[i+1:]
-		}
+	index := strings.LastIndex(key, ":")
+	if index < 0 {
+		return key
 	}
-	return key
+	return key[index+1:]
 }
 
 func isSignedIndexKind(kind reflect.Kind) bool {

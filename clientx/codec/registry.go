@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/collectionx/mapping"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -31,9 +32,9 @@ type Registry struct {
 // NewRegistry creates a Registry populated with codecs.
 func NewRegistry(codecs ...Codec) *Registry {
 	r := &Registry{codecs: mapping.NewConcurrentMap[string, Codec]()}
-	for _, c := range codecs {
+	lo.ForEach(codecs, func(c Codec, _ int) {
 		mustRegisterCodec(r, c)
-	}
+	})
 	return r
 }
 

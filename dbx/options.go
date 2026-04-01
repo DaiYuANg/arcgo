@@ -57,10 +57,11 @@ func WithLogger(logger *slog.Logger) Option {
 // WithHooks appends hooks that run before/after each operation (query, exec, begin/commit/rollback, etc.).
 // Hooks are additive; pass multiple or call WithHooks multiple times to combine.
 func WithHooks(hooks ...Hook) Option {
+	filtered := lo.Filter(hooks, func(hook Hook, _ int) bool {
+		return hook != nil
+	})
 	return func(opts *options) {
-		opts.hooks = append(opts.hooks, lo.Filter(hooks, func(hook Hook, _ int) bool {
-			return hook != nil
-		})...)
+		opts.hooks = lo.Concat(opts.hooks, filtered)
 	}
 }
 

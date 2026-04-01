@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/rs/zerolog"
 	zlog "github.com/rs/zerolog/log"
@@ -93,11 +94,11 @@ func New(opts ...Option) (*slog.Logger, error) {
 		return nil, fmt.Errorf("invalid config: %w", err)
 	}
 
-	writers := make([]io.Writer, 0, 2)
-	closers := make([]io.Closer, 0, 1)
+	writers := collectionx.NewListWithCapacity[io.Writer](2)
+	closers := collectionx.NewListWithCapacity[io.Closer](1)
 
 	if cfg.console {
-		writers = append(writers, zerolog.ConsoleWriter{
+		writers.Add(zerolog.ConsoleWriter{
 			Out:        os.Stdout,
 			TimeFormat: cfg.timeFormat,
 			NoColor:    cfg.noColor,
@@ -117,12 +118,12 @@ func New(opts ...Option) (*slog.Logger, error) {
 			LocalTime:  cfg.localTime,
 			Compress:   cfg.compress,
 		}
-		writers = append(writers, fileWriter)
-		closers = append(closers, fileWriter)
+		writers.Add(fileWriter)
+		closers.Add(fileWriter)
 	}
 
-	if len(writers) == 0 {
-		writers = append(writers, os.Stdout)
+	if writers.Len() == 0 {
+		writers.Add(os.Stdout)
 	}
 
 	oopsMarshalerOnce.Do(func() {
@@ -130,7 +131,7 @@ func New(opts ...Option) (*slog.Logger, error) {
 		zerolog.ErrorMarshalFunc = oopszerolog.OopsMarshalFunc
 	})
 
-	base := zerolog.New(io.MultiWriter(writers...)).
+	base := zerolog.New(io.MultiWriter(writers.Values()...)).
 		Level(toZerologLevel(cfg.level)).
 		With().
 		Timestamp().
@@ -142,7 +143,7 @@ func New(opts ...Option) (*slog.Logger, error) {
 
 	state := &lifecycleState{
 		cfg:     cfg,
-		closers: closers,
+		closers: closers.Values(),
 	}
 	handler := slogzerolog.Option{
 		Logger:    &base,

@@ -23,11 +23,12 @@ func (r *StopReport) collectErrors() []error {
 	if r == nil {
 		return nil
 	}
-	errs := lo.Compact([]error{r.HookError})
-	if r.ShutdownReport != nil && len(r.ShutdownReport.Errors) > 0 {
-		errs = append(errs, r.ShutdownReport)
-	}
-	return errs
+	return lo.Concat(
+		lo.Compact([]error{r.HookError}),
+		lo.FilterMap([]*do.ShutdownReport{r.ShutdownReport}, func(report *do.ShutdownReport, _ int) (error, bool) {
+			return report, report != nil && len(report.Errors) > 0
+		}),
+	)
 }
 
 // Err returns the combined stop error.

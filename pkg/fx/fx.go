@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/samber/lo"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 	"go.uber.org/zap"
@@ -27,18 +28,15 @@ func ProvideOptionGroup[T any, O ~func(*T)](group string, opts ...O) fx.Option {
 
 	providers := collectionx.NewListWithCapacity[fx.Option](len(opts))
 	tag := fmt.Sprintf(`group:%q`, group)
-	for _, opt := range opts {
-		if opt == nil {
-			continue
-		}
-
+	lo.ForEach(lo.Filter(opts, func(opt O, _ int) bool { return opt != nil }), func(opt O, _ int) {
+		currentOpt := opt
 		providers.Add(fx.Provide(
 			fx.Annotate(
-				func() O { return opt },
+				func() O { return currentOpt },
 				fx.ResultTags(tag),
 			),
 		))
-	}
+	})
 
 	return fx.Options(providers.Values()...)
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/v2"
+	"github.com/samber/lo"
 )
 
 // Config documents related behavior.
@@ -137,10 +138,7 @@ type ConfigSnapshot struct {
 // Snapshot returns a copy-like diagnostic view of config values and sorted keys.
 func (c *Config) Snapshot() ConfigSnapshot {
 	values := c.All()
-	keys := make([]string, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
+	keys := lo.Keys(values)
 	sort.Strings(keys)
 	return ConfigSnapshot{
 		Values: values,

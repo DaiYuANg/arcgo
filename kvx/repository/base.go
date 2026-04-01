@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/DaiYuANg/arcgo/kvx"
@@ -90,8 +91,7 @@ func intersectStringSlices(groups ...[]string) []string {
 }
 
 func collectPresentMap[K comparable, T any](items []K, load func(K) (*T, error)) (map[K]*T, error) {
-	results := make(map[K]*T, len(items))
-	for _, item := range items {
+	results, err := lo.ReduceErr(items, func(results map[K]*T, item K, _ int) (map[K]*T, error) {
 		entityOpt, err := loadPresent(load(item))
 		if err != nil {
 			return nil, err
@@ -99,20 +99,27 @@ func collectPresentMap[K comparable, T any](items []K, load func(K) (*T, error))
 		entityOpt.ForEach(func(entity *T) {
 			results[item] = entity
 		})
+		return results, nil
+	}, make(map[K]*T, len(items)))
+	if err != nil {
+		return nil, fmt.Errorf("collect present map: %w", err)
 	}
 	return results, nil
 }
 
 func collectPresentSlice[K any, T any](items []K, load func(K) (*T, error)) ([]*T, error) {
-	results := make([]*T, 0, len(items))
-	for _, item := range items {
+	results, err := lo.ReduceErr(items, func(results []*T, item K, _ int) ([]*T, error) {
 		entityOpt, err := loadPresent(load(item))
 		if err != nil {
 			return nil, err
 		}
 		entityOpt.ForEach(func(entity *T) {
-			results = append(results, entity)
+			results = lo.Concat(results, []*T{entity})
 		})
+		return results, nil
+	}, make([]*T, 0, len(items)))
+	if err != nil {
+		return nil, fmt.Errorf("collect present slice: %w", err)
 	}
 	return results, nil
 }
@@ -135,31 +142,25 @@ func mapExistsResults(ids, keys []string, existsMap map[string]bool) map[string]
 }
 
 func loadFieldIDGroups(fields map[string]string, load func(fieldName, fieldValue string) ([]string, error)) ([][]string, error) {
-	loadErr := error(nil)
-	groups := lo.Reduce(lo.Entries(fields), func(result [][]string, entry lo.Entry[string, string], _ int) [][]string {
-		if loadErr != nil {
-			return result
-		}
-
+	groups, err := lo.ReduceErr(lo.Entries(fields), func(result [][]string, entry lo.Entry[string, string], _ int) ([][]string, error) {
 		ids, err := load(entry.Key, entry.Value)
 		if err != nil {
-			loadErr = err
-			return result
+			return nil, err
 		}
-
-		return append(result, ids)
+		return lo.Concat(result, [][]string{ids}), nil
 	}, make([][]string, 0, len(fields)))
-	if loadErr != nil {
-		return nil, loadErr
+	if err != nil {
+		return nil, fmt.Errorf("load field id groups: %w", err)
 	}
 	return groups, nil
 }
 
 func runAll[T any](items []T, fn func(T) error) error {
-	for _, item := range items {
-		if err := fn(item); err != nil {
-			return err
-		}
+	_, err := lo.ReduceErr(items, func(_ struct{}, item T, _ int) (struct{}, error) {
+		return struct{}{}, fn(item)
+	}, struct{}{})
+	if err != nil {
+		return fmt.Errorf("run all items: %w", err)
 	}
 	return nil
 }

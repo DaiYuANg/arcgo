@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
+	"github.com/samber/lo"
 )
 
 type buildPlan struct {
@@ -278,11 +279,7 @@ func countModuleInvokes(modules *collectionlist.List[*moduleSpec]) int {
 }
 
 func serviceRefNames(refs []ServiceRef) []string {
-	names := make([]string, 0, len(refs))
-	for _, ref := range refs {
-		if ref.Name != "" {
-			names = append(names, ref.Name)
-		}
-	}
-	return names
+	return lo.FilterMap(refs, func(ref ServiceRef, _ int) (string, bool) {
+		return ref.Name, ref.Name != ""
+	})
 }

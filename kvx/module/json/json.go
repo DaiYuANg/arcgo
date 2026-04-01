@@ -35,7 +35,7 @@ type Document struct {
 func (j *JSON) Set(ctx context.Context, key string, value any, expiration time.Duration) error {
 	data, err := marshalJSONValue("marshal JSON document", value)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal JSON array values: %w", err)
 	}
 	return j.setDocumentData(ctx, key, data, expiration)
 }
@@ -44,7 +44,7 @@ func (j *JSON) Set(ctx context.Context, key string, value any, expiration time.D
 func (j *JSON) SetPath(ctx context.Context, key, path string, value any) error {
 	data, err := marshalJSONValue("marshal JSON path value", value)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal JSON array values: %w", err)
 	}
 	return j.setPathData(ctx, key, path, data)
 }
@@ -53,7 +53,7 @@ func (j *JSON) SetPath(ctx context.Context, key, path string, value any) error {
 func (j *JSON) Get(ctx context.Context, key string, dest any) error {
 	data, err := j.getDocumentData(ctx, key)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal JSON array values: %w", err)
 	}
 	if len(data) == 0 {
 		return fmt.Errorf("document not found: %s", key)
@@ -65,7 +65,7 @@ func (j *JSON) Get(ctx context.Context, key string, dest any) error {
 func (j *JSON) GetPath(ctx context.Context, key, path string, dest any) error {
 	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal JSON array values: %w", err)
 	}
 	if len(data) == 0 {
 		return fmt.Errorf("path not found: %s.%s", key, path)
@@ -162,16 +162,12 @@ func (j *JSON) Length(ctx context.Context, key, path string) (int, error) {
 
 // ArrayAppend appends values to an array at a path.
 func (j *JSON) ArrayAppend(_ context.Context, _, _ string, values ...any) error {
-	// Build the JSON.ARRAPPEND command
-	// This is a simplified version - full implementation would need adapter support
-	for _, value := range values {
-		data, err := marshalJSONValue("marshal JSON array value", value)
-		if err != nil {
-			return err
-		}
-		// Try to append by getting current array, appending, and setting back
-		// This is not atomic - full implementation should use JSON.ARRAPPEND
-		_ = data
+	_, err := lo.ReduceErr(values, func(_ struct{}, value any, _ int) (struct{}, error) {
+		_, err := marshalJSONValue("marshal JSON array value", value)
+		return struct{}{}, err
+	}, struct{}{})
+	if err != nil {
+		return fmt.Errorf("marshal JSON array values: %w", err)
 	}
 	return errors.New("ArrayAppend requires adapter support for JSON.ARRAPPEND")
 }
@@ -257,7 +253,7 @@ func (j *JSON) ObjectMerge(ctx context.Context, key, path string, objects ...map
 	// Get current object
 	data, err := j.getPathData(ctx, key, path)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal JSON array values: %w", err)
 	}
 
 	var target map[string]any
@@ -277,7 +273,7 @@ func (j *JSON) ObjectMerge(ctx context.Context, key, path string, objects ...map
 	// Set back
 	newData, err := marshalJSONValue("marshal JSON object", target)
 	if err != nil {
-		return err
+		return fmt.Errorf("marshal JSON array values: %w", err)
 	}
 	return j.setPathData(ctx, key, path, newData)
 }

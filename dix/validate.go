@@ -3,6 +3,8 @@ package dix
 import (
 	"errors"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 // Validate validates the immutable app spec and current module graph.
@@ -40,8 +42,7 @@ func (r ValidationReport) WarningSummary() string {
 		return ""
 	}
 
-	lines := make([]string, 0, len(r.Warnings))
-	for _, warning := range r.Warnings {
+	return strings.Join(lo.Map(r.Warnings, func(warning ValidationWarning, _ int) string {
 		line := string(warning.Kind)
 		if warning.Module != "" {
 			line += " module=" + warning.Module
@@ -52,7 +53,6 @@ func (r ValidationReport) WarningSummary() string {
 		if warning.Details != "" {
 			line += " " + warning.Details
 		}
-		lines = append(lines, line)
-	}
-	return strings.Join(lines, "\n")
+		return line
+	}), "\n")
 }

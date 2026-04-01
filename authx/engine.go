@@ -83,9 +83,9 @@ func (engine *Engine) Check(ctx context.Context, credential any) (Authentication
 	}
 
 	result, err := authn.Authenticate(ctx, credential)
-	for _, hook := range hooks {
+	lo.ForEach(hooks, func(hook Hook, _ int) {
 		hook.AfterCheck(ctx, credential, result, err)
-	}
+	})
 	if err != nil {
 		engine.logError("authx check failed", "credential_type", reflect.TypeOf(credential), "error", err)
 		return AuthenticationResult{}, fmt.Errorf("authenticate credential: %w", err)
@@ -115,9 +115,9 @@ func (engine *Engine) Can(ctx context.Context, input AuthorizationModel) (Decisi
 	}
 
 	decision, err := authorizer.Authorize(ctx, input)
-	for _, hook := range hooks {
+	lo.ForEach(hooks, func(hook Hook, _ int) {
 		hook.AfterCan(ctx, input, decision, err)
-	}
+	})
 	if err != nil {
 		engine.logError("authx can failed", "action", input.Action, "resource", input.Resource, "error", err)
 		return Decision{}, fmt.Errorf("authorize request: %w", err)

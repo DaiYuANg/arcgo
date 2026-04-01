@@ -184,11 +184,12 @@ func applyBeforePolicies(
 	}
 
 	finalCtx, tailApplied, tailErr := applyBeforePolicies(nextCtx, policies[1:], operation)
+	applied := lo.Concat([]Policy{policies[0]}, tailApplied)
 	if tailErr != nil {
-		return finalCtx, append([]Policy{policies[0]}, tailApplied...), tailErr
+		return finalCtx, applied, tailErr
 	}
 
-	return finalCtx, append([]Policy{policies[0]}, tailApplied...), nil
+	return finalCtx, applied, nil
 }
 
 func callPolicyBefore(

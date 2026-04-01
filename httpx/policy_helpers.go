@@ -3,6 +3,7 @@ package httpx
 import (
 	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/samber/lo"
 )
 
 func buildOperationMutation(operationOptions []OperationOption) func(*huma.Operation) {
@@ -22,11 +23,10 @@ func applyOperationMutations(op *huma.Operation, mutators []func(*huma.Operation
 }
 
 func applyWrappers[T any](handler T, wrappers []func(T) T) T {
-	wrapped := handler
-	for i := len(wrappers) - 1; i >= 0; i-- {
-		if wrappers[i] != nil {
-			wrapped = wrappers[i](wrapped)
+	return lo.ReduceRight(wrappers, func(wrapped T, wrapper func(T) T, _ int) T {
+		if wrapper == nil {
+			return wrapped
 		}
-	}
-	return wrapped
+		return wrapper(wrapped)
+	}, handler)
 }

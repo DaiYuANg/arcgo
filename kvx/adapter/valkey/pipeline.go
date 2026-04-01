@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 	"github.com/valkey-io/valkey-go"
 )
 
@@ -26,7 +27,7 @@ func (p *valkeyPipeline) Enqueue(command string, args ...[]byte) error {
 	}
 
 	cmd := p.client.B().Arbitrary(command).Args(binaryArgs(args)...).Build()
-	p.cmds = append(p.cmds, cmd)
+	p.cmds = lo.Concat(p.cmds, []valkey.Completed{cmd})
 	return nil
 }
 
@@ -37,23 +38,28 @@ func (p *valkeyPipeline) Exec(ctx context.Context) ([][]byte, error) {
 	}
 
 	resps := p.client.DoMulti(ctx, p.cmds...)
-
-	results := make([][]byte, len(resps))
-	for i, resp := range resps {
+	readErr := error(nil)
+	results := lo.Reduce(resps, func(acc [][]byte, resp valkey.ValkeyResult, index int) [][]byte {
+		if readErr != nil {
+			return acc
+		}
 		if err := resp.Error(); err != nil {
-			if valkey.IsValkeyNil(err) {
-				continue
+			if !valkey.IsValkeyNil(err) {
+				acc[index] = nil
 			}
-
-			results[i] = nil
-			continue
+			return acc
 		}
 
 		value, err := bytesFromResult("read pipeline result", resp)
 		if err != nil {
-			return nil, err
+			readErr = err
+			return acc
 		}
-		results[i] = value
+		acc[index] = value
+		return acc
+	}, make([][]byte, len(resps)))
+	if readErr != nil {
+		return nil, readErr
 	}
 
 	return results, nil

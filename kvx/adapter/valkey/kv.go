@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 	"github.com/valkey-io/valkey-go"
 )
 
@@ -19,16 +20,26 @@ func (a *Adapter) Get(ctx context.Context, key string) ([]byte, error) {
 
 // MGet retrieves multiple values for the given keys.
 func (a *Adapter) MGet(ctx context.Context, keys []string) (map[string][]byte, error) {
-	result := make(map[string][]byte, len(keys))
-	for _, key := range keys {
+	loadErr := error(nil)
+	result := lo.Reduce(keys, func(acc map[string][]byte, key string, _ int) map[string][]byte {
+		if loadErr != nil {
+			return acc
+		}
+
 		value, err := a.Get(ctx, key)
 		if err != nil {
 			if kvx.IsNil(err) {
-				continue
+				return acc
 			}
-			return nil, err
+			loadErr = err
+			return acc
 		}
-		result[key] = value
+
+		acc[key] = value
+		return acc
+	}, make(map[string][]byte, len(keys)))
+	if loadErr != nil {
+		return nil, loadErr
 	}
 	return result, nil
 }
@@ -79,13 +90,23 @@ func (a *Adapter) Exists(ctx context.Context, key string) (bool, error) {
 
 // ExistsMulti checks if multiple keys exist.
 func (a *Adapter) ExistsMulti(ctx context.Context, keys []string) (map[string]bool, error) {
-	results := make(map[string]bool, len(keys))
-	for _, key := range keys {
+	loadErr := error(nil)
+	results := lo.Reduce(keys, func(acc map[string]bool, key string, _ int) map[string]bool {
+		if loadErr != nil {
+			return acc
+		}
+
 		exists, err := a.Exists(ctx, key)
 		if err != nil {
-			return nil, err
+			loadErr = err
+			return acc
 		}
-		results[key] = exists
+
+		acc[key] = exists
+		return acc
+	}, make(map[string]bool, len(keys)))
+	if loadErr != nil {
+		return nil, loadErr
 	}
 	return results, nil
 }

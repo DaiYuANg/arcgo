@@ -40,31 +40,22 @@ func valueToBytes(val any) []byte {
 
 func parseFTSearchResponse(val any) []string {
 	arr, ok := val.([]any)
-	if !ok {
+	if !ok || len(arr) < 1 {
 		return nil
 	}
 
-	if len(arr) < 1 {
-		return nil
-	}
-
-	keys := make([]string, 0, len(arr)/2)
-	for i := 1; i < len(arr); i += 2 {
-		if key, ok := arr[i].(string); ok {
-			keys = append(keys, key)
+	return lo.FilterMap(arr[1:], func(item any, index int) (string, bool) {
+		if index%2 != 0 {
+			return "", false
 		}
-	}
-
-	return keys
+		key, ok := item.(string)
+		return key, ok
+	})
 }
 
 func parseFTAggregateResponse(val any) []map[string]any {
 	arr, ok := val.([]any)
-	if !ok {
-		return nil
-	}
-
-	if len(arr) < 1 {
+	if !ok || len(arr) < 1 {
 		return nil
 	}
 
@@ -80,15 +71,11 @@ func parseFTAggregateRow(row any) map[string]any {
 		return nil
 	}
 
-	result := make(map[string]any, len(values)/2)
-	for i := 0; i < len(values)-1; i += 2 {
-		key, ok := values[i].(string)
-		if !ok {
-			continue
+	return lo.Reduce(lo.Range(len(values)/2), func(result map[string]any, pairIndex int, _ int) map[string]any {
+		key, ok := values[pairIndex*2].(string)
+		if ok {
+			result[key] = values[pairIndex*2+1]
 		}
-
-		result[key] = values[i+1]
-	}
-
-	return result
+		return result
+	}, make(map[string]any, len(values)/2))
 }

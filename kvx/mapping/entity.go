@@ -179,11 +179,11 @@ func (p *TagParser) parseFieldTag(fieldName, tag string) FieldTag {
 		}
 	}
 
-	for _, part := range parts[1:] {
+	lo.ForEach(parts[1:], func(part string, _ int) {
 		part = strings.TrimSpace(part)
 		switch {
 		case part == "omitempty":
-			continue
+			return
 		case part == "index":
 			result.Index = true
 		case strings.HasPrefix(part, "index="):
@@ -192,7 +192,7 @@ func (p *TagParser) parseFieldTag(fieldName, tag string) FieldTag {
 		case part == "ignore":
 			result.Ignored = true
 		}
-	}
+	})
 
 	return result
 }

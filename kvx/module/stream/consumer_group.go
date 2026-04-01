@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // ConsumerGroup provides high-level consumer group operations.
@@ -148,13 +149,13 @@ func (cg *ConsumerGroup) Info(ctx context.Context) (*kvx.GroupInfo, error) {
 		return nil, err
 	}
 
-	for _, group := range groups {
-		if group.Name == cg.groupName {
-			return &group, nil
-		}
+	group, ok := lo.Find(groups, func(group kvx.GroupInfo) bool {
+		return group.Name == cg.groupName
+	})
+	if !ok {
+		return nil, fmt.Errorf("consumer group %s not found", cg.groupName)
 	}
-
-	return nil, fmt.Errorf("consumer group %s not found", cg.groupName)
+	return &group, nil
 }
 
 // ConsumerInfo gets information about this consumer.
@@ -165,13 +166,13 @@ func (cg *ConsumerGroup) ConsumerInfo(ctx context.Context) (*kvx.ConsumerInfo, e
 		return nil, err
 	}
 
-	for _, consumer := range consumers {
-		if consumer.Name == cg.consumerName {
-			return &consumer, nil
-		}
+	consumer, ok := lo.Find(consumers, func(consumer kvx.ConsumerInfo) bool {
+		return consumer.Name == cg.consumerName
+	})
+	if !ok {
+		return nil, fmt.Errorf("consumer %s not found in group %s", cg.consumerName, cg.groupName)
 	}
-
-	return nil, fmt.Errorf("consumer %s not found in group %s", cg.consumerName, cg.groupName)
+	return &consumer, nil
 }
 
 // DeleteConsumer deletes this consumer from the group.

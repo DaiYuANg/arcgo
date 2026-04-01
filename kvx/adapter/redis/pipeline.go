@@ -27,7 +27,7 @@ func (p *redisPipeline) Enqueue(command string, args ...[]byte) error {
 		return kvx.ErrTooManyArgs
 	}
 
-	ifaceArgs := append([]any{command}, lo.Map(args, func(v []byte, _ int) any { return v })...)
+	ifaceArgs := lo.Concat([]any{command}, lo.Map(args, func(v []byte, _ int) any { return v }))
 
 	p.pipe.Do(context.Background(), ifaceArgs...)
 	return nil
@@ -40,23 +40,30 @@ func (p *redisPipeline) Exec(ctx context.Context) ([][]byte, error) {
 		return nil, wrapRedisError("execute pipeline", err)
 	}
 
-	results := make([][]byte, len(cmders))
-	for i, cmder := range cmders {
+	decodeErr := error(nil)
+	results := lo.Reduce(cmders, func(acc [][]byte, cmder redis.Cmder, index int) [][]byte {
+		if decodeErr != nil {
+			return acc
+		}
+
 		cmd, ok := cmder.(*redis.Cmd)
 		if !ok {
-			return nil, fmt.Errorf("redis execute pipeline: unexpected command type %T", cmder)
+			decodeErr = fmt.Errorf("redis execute pipeline: unexpected command type %T", cmder)
+			return acc
 		}
 
 		if err := cmd.Err(); err != nil {
-			if errors.Is(err, redis.Nil) {
-				continue
+			if !errors.Is(err, redis.Nil) {
+				acc[index] = nil
 			}
-
-			results[i] = nil
-			continue
+			return acc
 		}
 
-		results[i] = valueToBytes(cmd.Val())
+		acc[index] = valueToBytes(cmd.Val())
+		return acc
+	}, make([][]byte, len(cmders)))
+	if decodeErr != nil {
+		return nil, decodeErr
 	}
 
 	return results, nil

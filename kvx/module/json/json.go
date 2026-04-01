@@ -78,10 +78,15 @@ func (j *JSON) Delete(ctx context.Context, key string, paths ...string) error {
 	if len(paths) == 0 {
 		return j.deletePath(ctx, key, "$")
 	}
-	for _, path := range paths {
-		if err := j.deletePath(ctx, key, path); err != nil {
-			return err
+
+	err := lo.Reduce(paths, func(result error, path string, _ int) error {
+		if result != nil {
+			return result
 		}
+		return j.deletePath(ctx, key, path)
+	}, error(nil))
+	if err != nil {
+		return fmt.Errorf("delete JSON paths from %s: %w", key, err)
 	}
 	return nil
 }
@@ -265,9 +270,9 @@ func (j *JSON) ObjectMerge(ctx context.Context, key, path string, objects ...map
 	}
 
 	// Merge all objects
-	for _, obj := range objects {
+	lo.ForEach(objects, func(obj map[string]any, _ int) {
 		maps.Copy(target, obj)
-	}
+	})
 
 	// Set back
 	newData, err := marshalJSONValue("marshal JSON object", target)
@@ -279,13 +284,11 @@ func (j *JSON) ObjectMerge(ctx context.Context, key, path string, objects ...map
 
 // MultiGet gets multiple JSON documents by keys.
 func (j *JSON) MultiGet(ctx context.Context, keys []string) (map[string][]byte, error) {
-	results := make(map[string][]byte, len(keys))
-	for _, key := range keys {
+	return lo.Reduce(keys, func(results map[string][]byte, key string, _ int) map[string][]byte {
 		data, err := j.getDocumentData(ctx, key)
-		if err != nil {
-			continue
+		if err == nil {
+			results[key] = data
 		}
-		results[key] = data
-	}
-	return results, nil
+		return results
+	}, make(map[string][]byte, len(keys))), nil
 }

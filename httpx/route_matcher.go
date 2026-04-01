@@ -40,13 +40,13 @@ func (m *routeMatcher) Add(path string, route RouteInfo, seq uint64) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	node := m.ensureRootLocked()
-	node.recordMinSeq(seq)
-
-	for _, segment := range segments {
-		node = node.ensureChild(segment)
-		node.recordMinSeq(seq)
-	}
+	root := m.ensureRootLocked()
+	root.recordMinSeq(seq)
+	node := lo.Reduce(segments, func(current *routeMatcherNode, segment string, _ int) *routeMatcherNode {
+		next := current.ensureChild(segment)
+		next.recordMinSeq(seq)
+		return next
+	}, root)
 
 	node.routes = lo.Concat(node.routes, []routeMatchEntry{{
 		seq:   seq,

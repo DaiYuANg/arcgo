@@ -146,16 +146,14 @@ func appendBinaryContentTypes(response *huma.Response, contentTypes []string) {
 }
 
 func headerFieldIndex(outputType reflect.Type, headerName string) (int, bool) {
-	for i := range outputType.NumField() {
-		structField := outputType.Field(i)
-		if !strings.EqualFold(structField.Tag.Get("header"), headerName) {
-			continue
-		}
-		if structField.Type.Kind() == reflect.String {
-			return i, true
-		}
+	index, ok := lo.Find(lo.Range(outputType.NumField()), func(index int) bool {
+		structField := outputType.Field(index)
+		return strings.EqualFold(structField.Tag.Get("header"), headerName) && structField.Type.Kind() == reflect.String
+	})
+	if !ok {
+		return 0, false
 	}
-	return 0, false
+	return index, true
 }
 
 func setHeaderField[O any](output *O, fieldIndex int, headerValue string) {

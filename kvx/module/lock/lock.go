@@ -13,6 +13,7 @@ import (
 
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 var (
@@ -238,16 +239,14 @@ func (m *Manager) Release(ctx context.Context, key string) error {
 
 // ReleaseAll releases all managed locks.
 func (m *Manager) ReleaseAll(ctx context.Context) error {
-	errs := make([]error, 0)
-	for _, key := range m.locks.Keys() {
+	errs := lo.FilterMap(m.locks.Keys(), func(key string, _ int) (error, bool) {
 		lock, ok := m.locks.LoadAndDelete(key)
 		if !ok {
-			continue
+			return nil, false
 		}
-		if err := lock.Release(ctx); err != nil {
-			errs = append(errs, err)
-		}
-	}
+		err := lock.Release(ctx)
+		return err, err != nil
+	})
 	return errors.Join(errs...)
 }
 

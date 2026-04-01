@@ -74,13 +74,23 @@ func (a *Adapter) Exists(ctx context.Context, key string) (bool, error) {
 
 // ExistsMulti checks if multiple keys exist.
 func (a *Adapter) ExistsMulti(ctx context.Context, keys []string) (map[string]bool, error) {
-	results := make(map[string]bool, len(keys))
-	for _, key := range keys {
+	loadErr := error(nil)
+	results := lo.Reduce(keys, func(acc map[string]bool, key string, _ int) map[string]bool {
+		if loadErr != nil {
+			return acc
+		}
+
 		exists, err := a.Exists(ctx, key)
 		if err != nil {
-			return nil, err
+			loadErr = err
+			return acc
 		}
-		results[key] = exists
+
+		acc[key] = exists
+		return acc
+	}, make(map[string]bool, len(keys)))
+	if loadErr != nil {
+		return nil, loadErr
 	}
 	return results, nil
 }

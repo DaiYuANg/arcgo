@@ -29,56 +29,29 @@ func NewIndexer[T any](kv kvx.KV, keyPrefix string) *Indexer[T] {
 
 // IndexEntity adds an entity to secondary indexes.
 func (i *Indexer[T]) IndexEntity(ctx context.Context, entity *T, metadata *mapping.EntityMetadata, entityKey string) error {
-	v := reflect.Indirect(reflect.ValueOf(entity))
-	for _, fieldName := range metadata.IndexFields {
-		fieldTag, ok := metadata.Fields[fieldName]
-		if !ok {
-			continue
+	entityID := extractIDFromKey(entityKey)
+	return runAll(i.entityFieldIndexKeys(entity, metadata), func(entry lo.Entry[string, string]) error {
+		if err := i.addToIndex(ctx, entry.Value, entityID); err != nil {
+			return fmt.Errorf("failed to index field %s: %w", entry.Key, err)
 		}
-		fieldVal := v.FieldByName(fieldName)
-		if !fieldVal.IsValid() {
-			continue
-		}
-		fieldValue := formatIndexValue(fieldVal)
-		if fieldValue == "" {
-			continue
-		}
-		indexKey := i.buildIndexKey(fieldTag.IndexNameOrDefault(), fieldValue)
-		if err := i.addToIndex(ctx, indexKey, extractIDFromKey(entityKey)); err != nil {
-			return fmt.Errorf("failed to index field %s: %w", fieldName, err)
-		}
-	}
-	return nil
+		return nil
+	})
 }
 
 // RemoveEntityFromIndexes removes an entity from all secondary indexes.
 func (i *Indexer[T]) RemoveEntityFromIndexes(ctx context.Context, entity *T, metadata *mapping.EntityMetadata) error {
-	v := reflect.Indirect(reflect.ValueOf(entity))
 	entityKey, err := i.keyBuilder.Build(entity, metadata)
 	if err != nil {
 		return wrapRepositoryError(err, "build entity key for index removal")
 	}
 	entityID := extractIDFromKey(entityKey)
 
-	for _, fieldName := range metadata.IndexFields {
-		fieldTag, ok := metadata.Fields[fieldName]
-		if !ok {
-			continue
+	return runAll(i.entityFieldIndexKeys(entity, metadata), func(entry lo.Entry[string, string]) error {
+		if err := i.removeFromIndex(ctx, entry.Value, entityID); err != nil {
+			return fmt.Errorf("failed to remove index for field %s: %w", entry.Key, err)
 		}
-		fieldVal := v.FieldByName(fieldName)
-		if !fieldVal.IsValid() {
-			continue
-		}
-		fieldValue := formatIndexValue(fieldVal)
-		if fieldValue == "" {
-			continue
-		}
-		indexKey := i.buildIndexKey(fieldTag.IndexNameOrDefault(), fieldValue)
-		if err := i.removeFromIndex(ctx, indexKey, entityID); err != nil {
-			return fmt.Errorf("failed to remove index for field %s: %w", fieldName, err)
-		}
-	}
-	return nil
+		return nil
+	})
 }
 
 // EntityIndexEntries returns all concrete index entry keys for an entity.
@@ -86,23 +59,10 @@ func (i *Indexer[T]) EntityIndexEntries(entity *T, metadata *mapping.EntityMetad
 	if entity == nil {
 		return nil, nil
 	}
-	v := reflect.Indirect(reflect.ValueOf(entity))
 	entityID := extractIDFromKey(entityKey)
-	results := make([]string, 0, len(metadata.IndexFields))
-	for _, fieldName := range metadata.IndexFields {
-		fieldTag, ok := metadata.Fields[fieldName]
-		if !ok {
-			continue
-		}
-		fieldVal := v.FieldByName(fieldName)
-		if !fieldVal.IsValid() {
-			continue
-		}
-		if entry := i.indexEntryKey(fieldTag.IndexNameOrDefault(), formatIndexValue(fieldVal), entityID); entry != "" {
-			results = append(results, entry)
-		}
-	}
-	return results, nil
+	return lo.Map(i.entityFieldIndexKeys(entity, metadata), func(entry lo.Entry[string, string], _ int) string {
+		return entry.Value + ":" + entityID
+	}), nil
 }
 
 // ReplaceEntityIndexEntries calculates the index diff for replacing one entity with another.
@@ -137,30 +97,20 @@ func (i *Indexer[T]) ReplaceFieldIndexEntries(metadata *mapping.EntityMetadata, 
 		return nil, nil, nil
 	}
 
-	oldEntries := make([]string, 0, 1)
-	newEntries := make([]string, 0, 1)
-	if oldEntry != "" {
-		oldEntries = append(oldEntries, oldEntry)
-	}
-	if newEntry != "" {
-		newEntries = append(newEntries, newEntry)
-	}
-	return oldEntries, newEntries, nil
+	return nonEmptyEntries(oldEntry), nonEmptyEntries(newEntry), nil
 }
 
 // ApplyIndexDiff removes stale index entries and writes the new ones.
 func (i *Indexer[T]) ApplyIndexDiff(ctx context.Context, removeEntries, addEntries []string) error {
-	for _, entry := range removeEntries {
-		if err := i.kv.Delete(ctx, entry); err != nil {
-			return wrapRepositoryError(err, "remove stale index entry")
-		}
+	if err := runAll(removeEntries, func(entry string) error {
+		return wrapRepositoryError(i.kv.Delete(ctx, entry), "remove stale index entry")
+	}); err != nil {
+		return err
 	}
-	for _, entry := range addEntries {
-		if err := i.kv.Set(ctx, entry, []byte("1"), 0); err != nil {
-			return wrapRepositoryError(err, "write index entry")
-		}
-	}
-	return nil
+
+	return runAll(addEntries, func(entry string) error {
+		return wrapRepositoryError(i.kv.Set(ctx, entry, []byte("1"), 0), "write index entry")
+	})
 }
 
 // GetEntityIDsByField returns entity IDs that have the specified field value.
@@ -196,14 +146,47 @@ func (i *Indexer[T]) getIndexMembers(ctx context.Context, indexKey string) ([]st
 	if err != nil {
 		return nil, wrapRepositoryError(err, "list index members")
 	}
-	results := make([]string, 0, len(keys))
 	prefixLen := len(indexKey) + 1
-	for _, key := range keys {
-		if len(key) > prefixLen {
-			results = append(results, key[prefixLen:])
+	return lo.FilterMap(keys, func(key string, _ int) (string, bool) {
+		if len(key) <= prefixLen {
+			return "", false
 		}
+		return key[prefixLen:], true
+	}), nil
+}
+
+func (i *Indexer[T]) entityFieldIndexKeys(entity *T, metadata *mapping.EntityMetadata) []lo.Entry[string, string] {
+	if entity == nil || metadata == nil {
+		return nil
 	}
-	return results, nil
+
+	value := reflect.ValueOf(entity)
+	if !value.IsValid() {
+		return nil
+	}
+	structValue := reflect.Indirect(value)
+
+	return lo.FilterMap(metadata.IndexFields, func(fieldName string, _ int) (lo.Entry[string, string], bool) {
+		fieldTag, ok := metadata.Fields[fieldName]
+		if !ok {
+			return lo.Entry[string, string]{}, false
+		}
+
+		fieldVal := structValue.FieldByName(fieldName)
+		if !fieldVal.IsValid() {
+			return lo.Entry[string, string]{}, false
+		}
+
+		fieldValue := formatIndexValue(fieldVal)
+		if fieldValue == "" {
+			return lo.Entry[string, string]{}, false
+		}
+
+		return lo.Entry[string, string]{
+			Key:   fieldName,
+			Value: i.buildIndexKey(fieldTag.IndexNameOrDefault(), fieldValue),
+		}, true
+	})
 }
 
 func formatIndexValue(v reflect.Value) string {
@@ -238,6 +221,12 @@ func diffIndexEntries(left, right []string) []string {
 	rightSet := set.NewSet[string](right...)
 	return lo.Filter(left, func(entry string, _ int) bool {
 		return !rightSet.Contains(entry)
+	})
+}
+
+func nonEmptyEntries(entries ...string) []string {
+	return lo.Filter(entries, func(entry string, _ int) bool {
+		return entry != ""
 	})
 }
 

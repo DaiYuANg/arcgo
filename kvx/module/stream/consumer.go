@@ -127,7 +127,7 @@ func (c *BatchConsumer) Run(ctx context.Context) error {
 			return err
 		}
 
-		buffer = append(buffer, entries...)
+		buffer = lo.Concat(buffer, entries)
 		if err := c.flushIfReady(ctx, timer, &buffer); err != nil {
 			return err
 		}

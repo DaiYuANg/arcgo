@@ -17,16 +17,26 @@ func (a *Adapter) HGet(ctx context.Context, key, field string) ([]byte, error) {
 
 // HMGet gets multiple fields from a hash.
 func (a *Adapter) HMGet(ctx context.Context, key string, fields []string) (map[string][]byte, error) {
-	result := make(map[string][]byte, len(fields))
-	for _, field := range fields {
+	loadErr := error(nil)
+	result := lo.Reduce(fields, func(acc map[string][]byte, field string, _ int) map[string][]byte {
+		if loadErr != nil {
+			return acc
+		}
+
 		value, err := a.HGet(ctx, key, field)
 		if err != nil {
 			if kvx.IsNil(err) {
-				continue
+				return acc
 			}
-			return nil, err
+			loadErr = err
+			return acc
 		}
-		result[field] = value
+
+		acc[field] = value
+		return acc
+	}, make(map[string][]byte, len(fields)))
+	if loadErr != nil {
+		return nil, loadErr
 	}
 	return result, nil
 }

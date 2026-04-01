@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/samber/lo"
 )
 
 // ConditionalStateGetter resolves a resource state used by conditional request checks.
@@ -121,16 +122,15 @@ func conditionalParamsField(inputType reflect.Type) (int, bool, bool) {
 	paramsType := reflect.TypeFor[ConditionalParams]()
 	paramsPtrType := reflect.PointerTo(paramsType)
 
-	for i := range inputType.NumField() {
-		fieldType := inputType.Field(i).Type
-		switch fieldType {
-		case paramsType:
-			return i, false, true
-		case paramsPtrType:
-			return i, true, true
-		}
+	index, ok := lo.Find(lo.Range(inputType.NumField()), func(index int) bool {
+		fieldType := inputType.Field(index).Type
+		return fieldType == paramsType || fieldType == paramsPtrType
+	})
+	if !ok {
+		return 0, false, false
 	}
-	return 0, false, false
+
+	return index, inputType.Field(index).Type == paramsPtrType, true
 }
 
 func extractConditionalParams[I any](input *I, fieldIndex int, isPointerField bool) *ConditionalParams {

@@ -79,13 +79,12 @@ func intersectStringSlices(groups ...[]string) []string {
 		return nil
 	}
 
-	intersection := set.NewSet[string](groups[0]...)
-	for _, group := range groups[1:] {
-		if intersection.IsEmpty() {
-			return nil
+	intersection := lo.Reduce(groups[1:], func(result *set.Set[string], group []string, _ int) *set.Set[string] {
+		if result.IsEmpty() {
+			return set.NewSet[string]()
 		}
-		intersection = intersection.Intersect(set.NewSet[string](group...))
-	}
+		return result.Intersect(set.NewSet[string](group...))
+	}, set.NewSet[string](groups[0]...))
 
 	return intersection.Values()
 }
@@ -129,11 +128,31 @@ func loadPresent[T any](entity *T, err error) (mo.Option[*T], error) {
 }
 
 func mapExistsResults(ids, keys []string, existsMap map[string]bool) map[string]bool {
-	results := make(map[string]bool, len(ids))
-	for i, id := range ids {
-		results[id] = existsMap[keys[i]]
+	return lo.Reduce(ids, func(results map[string]bool, id string, index int) map[string]bool {
+		results[id] = existsMap[keys[index]]
+		return results
+	}, make(map[string]bool, len(ids)))
+}
+
+func loadFieldIDGroups(fields map[string]string, load func(fieldName, fieldValue string) ([]string, error)) ([][]string, error) {
+	loadErr := error(nil)
+	groups := lo.Reduce(lo.Entries(fields), func(result [][]string, entry lo.Entry[string, string], _ int) [][]string {
+		if loadErr != nil {
+			return result
+		}
+
+		ids, err := load(entry.Key, entry.Value)
+		if err != nil {
+			loadErr = err
+			return result
+		}
+
+		return append(result, ids)
+	}, make([][]string, 0, len(fields)))
+	if loadErr != nil {
+		return nil, loadErr
 	}
-	return results
+	return groups, nil
 }
 
 func runAll[T any](items []T, fn func(T) error) error {

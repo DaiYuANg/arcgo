@@ -1,6 +1,9 @@
 package httpx
 
-import "github.com/danielgtaylor/huma/v2"
+import (
+	"github.com/danielgtaylor/huma/v2"
+	"github.com/samber/lo"
+)
 
 // ConfigureOpenAPI mutates the underlying Huma OpenAPI document.
 func (s *Server) ConfigureOpenAPI(fn func(*huma.OpenAPI)) {
@@ -70,11 +73,12 @@ func (s *Server) AddTag(tag *huma.Tag) {
 		return
 	}
 	s.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
+		cloned := cloneTag(tag)
 		if index := findTag(doc.Tags, tag.Name); index >= 0 {
-			doc.Tags[index] = cloneTag(tag)
+			doc.Tags[index] = cloned
 			return
 		}
-		doc.Tags = append(doc.Tags, cloneTag(tag))
+		doc.Tags = lo.Concat(doc.Tags, []*huma.Tag{cloned})
 	})
 }
 

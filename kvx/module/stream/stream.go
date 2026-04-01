@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // Stream provides high-level stream operations.
@@ -171,21 +172,24 @@ func (e *EventStream[T]) Subscribe(ctx context.Context, start string, count int6
 		return nil, "", err
 	}
 
-	var events []T
-	var lastID string
-
-	for _, entry := range entries {
-		if data, ok := entry.Values["data"]; ok {
-			var event T
-			if err := json.Unmarshal(data, &event); err != nil {
-				continue
-			}
-			events = append(events, event)
-			lastID = entry.ID
+	decoded := lo.FilterMap(entries, func(entry kvx.StreamEntry, _ int) (lo.Entry[string, T], bool) {
+		data, ok := entry.Values["data"]
+		if !ok {
+			return lo.Entry[string, T]{}, false
 		}
+		var event T
+		if err := json.Unmarshal(data, &event); err != nil {
+			return lo.Entry[string, T]{}, false
+		}
+		return lo.Entry[string, T]{Key: entry.ID, Value: event}, true
+	})
+	if len(decoded) == 0 {
+		return nil, "", nil
 	}
 
-	return events, lastID, nil
+	return lo.Map(decoded, func(item lo.Entry[string, T], _ int) T {
+		return item.Value
+	}), decoded[len(decoded)-1].Key, nil
 }
 
 // EventConsumer consumes typed events from a stream.

@@ -85,15 +85,18 @@ func cloneStringSliceMap(values map[string][]string) map[string][]string {
 		if scopes == nil {
 			return []string{}
 		}
-		return append([]string(nil), scopes...)
+		return lo.Map(scopes, func(scope string, _ int) string {
+			return scope
+		})
 	})
 }
 
 func findTag(tags []*huma.Tag, name string) int {
-	for i, tag := range tags {
-		if tag != nil && tag.Name == name {
-			return i
-		}
+	_, index, ok := lo.FindIndexOf(tags, func(tag *huma.Tag) bool {
+		return tag != nil && tag.Name == name
+	})
+	if !ok {
+		return -1
 	}
-	return -1
+	return index
 }

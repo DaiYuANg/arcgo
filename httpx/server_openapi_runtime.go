@@ -60,7 +60,7 @@ func (s *Server) accessLogMiddleware() func(huma.Context, func(huma.Context)) {
 		route := mo.TupleToOption(s.matchRoute(ctx.Method(), url.Path))
 		if route.IsPresent() {
 			matched := route.MustGet()
-			attrs = append(attrs, "route", matched.Path, "handler", matched.HandlerName)
+			attrs = lo.Concat(attrs, []any{"route", matched.Path, "handler", matched.HandlerName})
 		}
 
 		s.logger.Info("httpx request", attrs...)

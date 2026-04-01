@@ -2,8 +2,6 @@ package repository_test
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"maps"
 	"time"
 
@@ -268,129 +266,8 @@ func (m *mockKV) Close() error {
 	return nil
 }
 
-type mockPipeline struct {
-	kv       *mockKV
-	commands []pipelineCmd
-}
-
-type pipelineCmd struct {
-	name string
-	args [][]byte
-}
-
-func (m *mockPipeline) Enqueue(command string, args ...[]byte) error {
-	m.commands = append(m.commands, pipelineCmd{name: command, args: args})
-	return nil
-}
-
-func (m *mockPipeline) Exec(_ context.Context) ([][]byte, error) {
-	results := make([][]byte, 0, len(m.commands))
-	for _, command := range m.commands {
-		m.execCommand(command)
-		results = append(results, []byte("OK"))
-	}
-
-	return results, nil
-}
-
-func (m *mockPipeline) execCommand(command pipelineCmd) {
-	switch command.name {
-	case "HSET":
-		m.execHSet(command.args)
-	case "EXPIRE":
-		m.execExpire(command.args)
-	}
-}
-
-func (m *mockPipeline) execHSet(args [][]byte) {
-	if len(args) < 3 {
-		return
-	}
-
-	key := string(args[0])
-	m.kv.data[key] = []byte("hash")
-}
-
-func (m *mockPipeline) execExpire(args [][]byte) {
-	if len(args) < 2 {
-		return
-	}
-
-	key := string(args[0])
-	m.kv.expiration[key] = time.Hour
-}
-
-func (m *mockPipeline) Close() error {
-	return nil
-}
-
 type mockJSON struct {
 	data map[string][]byte
-}
-
-func newMockJSON() *mockJSON {
-	return &mockJSON{
-		data: make(map[string][]byte),
-	}
-}
-
-func (m *mockJSON) JSONSet(_ context.Context, key, _ string, value []byte, _ time.Duration) error {
-	m.data[key] = append([]byte(nil), value...)
-	return nil
-}
-
-func (m *mockJSON) JSONGet(_ context.Context, key, _ string) ([]byte, error) {
-	if value, ok := m.data[key]; ok {
-		return append([]byte(nil), value...), nil
-	}
-
-	return nil, nil
-}
-
-func (m *mockJSON) JSONSetField(_ context.Context, key, path string, value []byte) error {
-	current, ok := m.data[key]
-	if !ok {
-		return kvx.ErrNil
-	}
-
-	var document map[string]any
-	if err := json.Unmarshal(current, &document); err != nil {
-		return fmt.Errorf("unmarshal JSON document: %w", err)
-	}
-
-	var fieldValue any
-	if err := json.Unmarshal(value, &fieldValue); err != nil {
-		return fmt.Errorf("unmarshal JSON field value: %w", err)
-	}
-
-	document[fieldNameFromPath(path)] = fieldValue
-
-	encoded, err := json.Marshal(document)
-	if err != nil {
-		return fmt.Errorf("marshal JSON document: %w", err)
-	}
-
-	m.data[key] = encoded
-	return nil
-}
-
-func (m *mockJSON) JSONGetField(_ context.Context, key, path string) ([]byte, error) {
-	current, ok := m.data[key]
-	if !ok {
-		return nil, nil
-	}
-
-	var document map[string]json.RawMessage
-	if err := json.Unmarshal(current, &document); err != nil {
-		return nil, fmt.Errorf("unmarshal JSON field map: %w", err)
-	}
-
-	return document[fieldNameFromPath(path)], nil
-}
-
-func (m *mockJSON) JSONDelete(_ context.Context, key, _ string) error {
-	delete(m.data, key)
-	return nil
 }
 
 type TestUser struct {

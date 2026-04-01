@@ -57,7 +57,7 @@ func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, er
 		metaByVersion:   collectionx.NewMapWithCapacity[int64, AppliedRecord](len(migrations)),
 	})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: build go migration engine state: %w", err)
 	}
 
 	return r.newRunnerEngine(state.gooseMigrations, state.metaByVersion)
@@ -102,7 +102,7 @@ func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, []load
 		repeatables:     make([]loadedSQLMigration, 0, len(loaded)),
 	})
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf("dbx/migrate: build sql migration engine state: %w", err)
 	}
 
 	if len(state.gooseMigrations) == 0 {

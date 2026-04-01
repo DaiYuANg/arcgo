@@ -38,31 +38,33 @@ func (p *valkeyPipeline) Exec(ctx context.Context) ([][]byte, error) {
 	}
 
 	resps := p.client.DoMulti(ctx, p.cmds...)
-	readErr := error(nil)
-	results := lo.Reduce(resps, func(acc [][]byte, resp valkey.ValkeyResult, index int) [][]byte {
+	results := make([][]byte, len(resps))
+	for index, resp := range resps {
+		value, shouldSet, readErr := decodePipelineResult(resp)
 		if readErr != nil {
-			return acc
+			return nil, readErr
 		}
-		if err := resp.Error(); err != nil {
-			if !valkey.IsValkeyNil(err) {
-				acc[index] = nil
-			}
-			return acc
+		if shouldSet {
+			results[index] = value
 		}
-
-		value, err := bytesFromResult("read pipeline result", resp)
-		if err != nil {
-			readErr = err
-			return acc
-		}
-		acc[index] = value
-		return acc
-	}, make([][]byte, len(resps)))
-	if readErr != nil {
-		return nil, readErr
 	}
 
 	return results, nil
+}
+
+func decodePipelineResult(resp valkey.ValkeyResult) ([]byte, bool, error) {
+	if err := resp.Error(); err != nil {
+		if valkey.IsValkeyNil(err) {
+			return nil, false, nil
+		}
+		return nil, true, nil
+	}
+
+	value, err := bytesFromResult("read pipeline result", resp)
+	if err != nil {
+		return nil, false, err
+	}
+	return value, true, nil
 }
 
 // Close closes the pipeline.

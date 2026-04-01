@@ -33,7 +33,7 @@ func loadSQLMigrations(source FileSource) ([]loadedSQLMigration, error) {
 		return lo.Concat(result, []loadedSQLMigration{item}), nil
 	}, make([]loadedSQLMigration, 0, len(items)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: load sql migrations: %w", err)
 	}
 	return loaded, nil
 }

@@ -203,7 +203,7 @@ func (s FileSource) List() ([]SQLMigration, error) {
 		return struct{}{}, s.addEntry(items, entry)
 	}, struct{}{})
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: collect sql migration entries: %w", err)
 	}
 
 	return sortedSQLMigrations(items), nil

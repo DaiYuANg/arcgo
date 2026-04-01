@@ -40,33 +40,34 @@ func (p *redisPipeline) Exec(ctx context.Context) ([][]byte, error) {
 		return nil, wrapRedisError("execute pipeline", err)
 	}
 
-	decodeErr := error(nil)
-	results := lo.Reduce(cmders, func(acc [][]byte, cmder redis.Cmder, index int) [][]byte {
+	results := make([][]byte, len(cmders))
+	for index, cmder := range cmders {
+		value, shouldSet, decodeErr := decodePipelineCommand(cmder)
 		if decodeErr != nil {
-			return acc
+			return nil, decodeErr
 		}
-
-		cmd, ok := cmder.(*redis.Cmd)
-		if !ok {
-			decodeErr = fmt.Errorf("redis execute pipeline: unexpected command type %T", cmder)
-			return acc
+		if shouldSet {
+			results[index] = value
 		}
-
-		if err := cmd.Err(); err != nil {
-			if !errors.Is(err, redis.Nil) {
-				acc[index] = nil
-			}
-			return acc
-		}
-
-		acc[index] = valueToBytes(cmd.Val())
-		return acc
-	}, make([][]byte, len(cmders)))
-	if decodeErr != nil {
-		return nil, decodeErr
 	}
 
 	return results, nil
+}
+
+func decodePipelineCommand(cmder redis.Cmder) ([]byte, bool, error) {
+	cmd, ok := cmder.(*redis.Cmd)
+	if !ok {
+		return nil, false, fmt.Errorf("redis execute pipeline: unexpected command type %T", cmder)
+	}
+
+	if err := cmd.Err(); err != nil {
+		if errors.Is(err, redis.Nil) {
+			return nil, false, nil
+		}
+		return nil, true, nil
+	}
+
+	return valueToBytes(cmd.Val()), true, nil
 }
 
 // Close closes the pipeline.

@@ -94,7 +94,7 @@ func buildRunReport(
 		return lo.Concat(items, []AppliedRecord{current}), nil
 	}, make([]AppliedRecord, 0, len(results)))
 	if err != nil {
-		return RunReport{}, err
+		return RunReport{}, fmt.Errorf("dbx/migrate: build run report: %w", err)
 	}
 	return RunReport{Applied: reportApplied}, nil
 }
@@ -115,7 +115,7 @@ func (r *Runner) applyPendingRepeatables(
 		return lo.Concat(items, []AppliedRecord{record}), nil
 	}, make([]AppliedRecord, 0, len(repeatables)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: apply pending repeatables: %w", err)
 	}
 	return applied, nil
 }

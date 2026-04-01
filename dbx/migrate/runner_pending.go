@@ -89,7 +89,7 @@ func indexGoMigrationsByVersion(migrations []Migration) (map[int64]Migration, er
 		return result, nil
 	}, make(map[int64]Migration, len(migrations)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: index sql migrations by version: %w", err)
 	}
 	return byVersion, nil
 }
@@ -115,7 +115,7 @@ func collectPendingGoMigrations(
 		return lo.Concat(result, []Migration{migration}), nil
 	}, make([]Migration, 0, len(statuses)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: collect pending go migrations: %w", err)
 	}
 	return pending, nil
 }
@@ -156,7 +156,7 @@ func indexVersionedSQLMigrations(source FileSource) (map[int64]SQLMigration, err
 		return result, nil
 	}, make(map[int64]SQLMigration, len(loaded)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: index sql migrations by version: %w", err)
 	}
 	return byVersion, nil
 }
@@ -182,7 +182,7 @@ func collectPendingSQLMigrations(
 		return lo.Concat(result, []SQLMigration{migration}), nil
 	}, make([]SQLMigration, 0, len(statuses)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("dbx/migrate: collect pending sql migrations: %w", err)
 	}
 	return pending, nil
 }

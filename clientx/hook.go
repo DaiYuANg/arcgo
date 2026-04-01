@@ -2,6 +2,8 @@ package clientx
 
 import (
 	"time"
+
+	"github.com/samber/lo"
 )
 
 // Hook observes dial and I/O events emitted by client implementations.
@@ -61,9 +63,9 @@ func EmitIO(hooks []Hook, event IOEvent) {
 }
 
 func emitHooks[T any](hooks []Hook, event T, emit func(Hook, T)) {
-	for _, h := range hooks {
+	lo.ForEach(hooks, func(h Hook, _ int) {
 		emit(h, event)
-	}
+	})
 }
 
 func emitDialSafe(h Hook, event DialEvent) {

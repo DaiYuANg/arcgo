@@ -112,10 +112,9 @@ func NewMapperWithOptions[E any](schema SchemaResource, opts ...MapperOption) (M
 		return structMapper.meta.byColumn.Get(column.Name)
 	})
 	fields := collectionx.NewListWithCapacity[MappedField](len(mappedFields), mappedFields...)
-	byColumn := collectionx.NewMapWithCapacity[string, MappedField](len(mappedFields))
-	lo.ForEach(mappedFields, func(field MappedField, _ int) {
-		byColumn.Set(field.Column, field)
-	})
+	byColumn := collectionx.NewMapFrom(lo.Associate(mappedFields, func(field MappedField) (string, MappedField) {
+		return field.Column, field
+	}))
 
 	return Mapper[E]{
 		StructMapper: structMapper,

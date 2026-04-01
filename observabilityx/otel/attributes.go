@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/samber/lo"
 	"go.opentelemetry.io/otel/attribute"
 )
 
@@ -16,15 +16,13 @@ func toOTelAttributes(attrs []observabilityx.Attribute) []attribute.KeyValue {
 		return nil
 	}
 
-	values := collectionx.NewListWithCapacity[attribute.KeyValue](len(attrs))
-	for _, attr := range attrs {
+	return lo.FilterMap(attrs, func(attr observabilityx.Attribute, _ int) (attribute.KeyValue, bool) {
 		key := strings.TrimSpace(attr.Key)
 		if key == "" {
-			continue
+			return attribute.KeyValue{}, false
 		}
-		values.Add(toOTelAttribute(key, attr.Value))
-	}
-	return values.Values()
+		return toOTelAttribute(key, attr.Value), true
+	})
 }
 
 func toOTelAttribute(key string, value any) attribute.KeyValue {

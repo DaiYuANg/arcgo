@@ -7,7 +7,6 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/hot"
-	"github.com/samber/lo"
 )
 
 type mapperMetadata struct {
@@ -53,15 +52,7 @@ func resolveEntityColumn(field reflect.StructField) (string, map[string]string) 
 	if name == "" {
 		name = toSnakeCase(field.Name)
 	}
-	pairs := lo.FilterMap(parts[1:], func(option string, _ int) (lo.Entry[string, string], bool) {
-		k, v := splitTagOption(option)
-		if k == "" {
-			return lo.Entry[string, string]{}, false
-		}
-		return lo.Entry[string, string]{Key: k, Value: v}, true
-	})
-	options := lo.Associate(pairs, func(e lo.Entry[string, string]) (string, string) { return e.Key, e.Value })
-	return name, options
+	return name, associateTagOptions(parts[1:])
 }
 
 func collectMappedFields(entityType reflect.Type, prefix []int, fields collectionx.List[MappedField], byColumn, byNormalizedColumn collectionx.Map[string, MappedField], codecs *codecRegistry) error {

@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/observabilityx"
+	"github.com/samber/lo"
 )
 
 func (b *Bus) dispatch(ctx context.Context, event Event, handlers []HandlerFunc, mode string) error {
@@ -65,25 +65,23 @@ func (b *Bus) dispatch(ctx context.Context, event Event, handlers []HandlerFunc,
 }
 
 func (b *Bus) dispatchSerial(ctx context.Context, event Event, handlers []HandlerFunc) error {
-	errs := collectionx.NewListWithCapacity[error](len(handlers))
-	for _, handler := range handlers {
+	errs := lo.FilterMap(handlers, func(handler HandlerFunc, _ int) (error, bool) {
 		if handler == nil {
-			continue
+			return nil, false
 		}
-		if err := handler(ctx, event); err != nil {
-			errs.Add(err)
-		}
-	}
-	return errors.Join(errs.Values()...)
+		err := handler(ctx, event)
+		return err, err != nil
+	})
+	return errors.Join(errs...)
 }
 
 func (b *Bus) dispatchParallel(ctx context.Context, event Event, handlers []HandlerFunc) error {
 	errCh := make(chan error, len(handlers))
 	var wg sync.WaitGroup
 
-	for _, handler := range handlers {
+	lo.ForEach(handlers, func(handler HandlerFunc, _ int) {
 		if handler == nil {
-			continue
+			return
 		}
 		wg.Add(1)
 		go func(h HandlerFunc) {
@@ -94,16 +92,16 @@ func (b *Bus) dispatchParallel(ctx context.Context, event Event, handlers []Hand
 				errCh <- err
 			}
 		}(handler)
-	}
+	})
 
 	wg.Wait()
 	close(errCh)
 
-	errs := collectionx.NewListWithCapacity[error](len(handlers))
+	var errs []error
 	for err := range errCh {
-		errs.Add(err)
+		errs = append(errs, err)
 	}
-	return errors.Join(errs.Values()...)
+	return errors.Join(errs...)
 }
 
 func (b *Bus) acquireParallelSlot() {

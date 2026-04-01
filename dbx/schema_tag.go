@@ -33,15 +33,7 @@ func resolveTagNameAndOptions(field reflect.StructField) (string, map[string]str
 		if name == "" {
 			name = toSnakeCase(field.Name)
 		}
-		pairs := lo.FilterMap(parts[1:], func(part string, _ int) (lo.Entry[string, string], bool) {
-			k, v := splitTagOption(part)
-			if k == "" {
-				return lo.Entry[string, string]{}, false
-			}
-			return lo.Entry[string, string]{Key: k, Value: v}, true
-		})
-		options := lo.Associate(pairs, func(e lo.Entry[string, string]) (string, string) { return e.Key, e.Value })
-		return name, options
+		return name, associateTagOptions(parts[1:])
 	}
 
 	return resolveColumnName(field), map[string]string{}
@@ -53,6 +45,10 @@ func parseTagOptions(raw string) map[string]string {
 		return map[string]string{}
 	}
 	parts := strings.Split(trimmed, ",")
+	return associateTagOptions(parts)
+}
+
+func associateTagOptions(parts []string) map[string]string {
 	pairs := lo.FilterMap(parts, func(part string, _ int) (lo.Entry[string, string], bool) {
 		k, v := splitTagOption(part)
 		if k == "" {

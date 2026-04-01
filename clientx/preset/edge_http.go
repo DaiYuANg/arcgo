@@ -7,6 +7,8 @@ import (
 
 	"github.com/DaiYuANg/arcgo/clientx"
 	clienthttp "github.com/DaiYuANg/arcgo/clientx/http"
+	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/samber/lo"
 )
 
 type edgeHTTPPreset struct {
@@ -69,7 +71,7 @@ func WithEdgeHTTPUserAgent(userAgent string) EdgeHTTPOption {
 func WithEdgeHTTPOption(opt clienthttp.Option) EdgeHTTPOption {
 	return func(p *edgeHTTPPreset) {
 		if opt != nil {
-			p.options = append(p.options, opt)
+			p.options = lo.Concat(p.options, []clienthttp.Option{opt})
 		}
 	}
 }
@@ -123,13 +125,13 @@ func tuneEdgeHTTPConfig(cfg clienthttp.Config, preset edgeHTTPPreset) clienthttp
 }
 
 func buildEdgeHTTPOptions(preset edgeHTTPPreset) []clienthttp.Option {
-	clientOpts := make([]clienthttp.Option, 0, 2+len(preset.options))
+	clientOpts := collectionx.NewListWithCapacity[clienthttp.Option](2 + len(preset.options))
 	if preset.timeoutGuard > 0 {
-		clientOpts = append(clientOpts, clienthttp.WithTimeoutGuard(preset.timeoutGuard))
+		clientOpts.Add(clienthttp.WithTimeoutGuard(preset.timeoutGuard))
 	}
 	if preset.concurrencyLimit > 0 {
-		clientOpts = append(clientOpts, clienthttp.WithConcurrencyLimit(preset.concurrencyLimit))
+		clientOpts.Add(clienthttp.WithConcurrencyLimit(preset.concurrencyLimit))
 	}
-	clientOpts = append(clientOpts, preset.options...)
-	return clientOpts
+	clientOpts.Add(preset.options...)
+	return clientOpts.Values()
 }

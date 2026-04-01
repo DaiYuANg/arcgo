@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // Claimer handles claiming stale messages from other consumers.
@@ -64,14 +65,12 @@ func (c *Claimer) claimAndProcess(ctx context.Context) error {
 }
 
 func (c *Claimer) processClaimedEntries(ctx context.Context, entries []kvx.StreamEntry) error {
-	idsToAck := make([]string, 0, len(entries))
-	for _, entry := range entries {
+	idsToAck := lo.FilterMap(entries, func(entry kvx.StreamEntry, _ int) (string, bool) {
 		if err := c.handler(ctx, entry); err != nil {
-			continue
+			return "", false
 		}
-		idsToAck = append(idsToAck, entry.ID)
-	}
-
+		return entry.ID, true
+	})
 	if len(idsToAck) == 0 {
 		return nil
 	}

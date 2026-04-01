@@ -7,28 +7,22 @@ import (
 )
 
 func convertBytesMapToAny(values map[string][]byte) map[string]any {
-	result := make(map[string]any, len(values))
-	for key, value := range values {
-		result[key] = value
-	}
-
-	return result
+	return lo.MapValues(values, func(value []byte, _ string) any {
+		return value
+	})
 }
 
 func convertInterfaceMapToBytes(m map[string]any) map[string][]byte {
-	result := make(map[string][]byte, len(m))
-	for k, v := range m {
-		switch val := v.(type) {
+	return lo.MapValues(m, func(value any, _ string) []byte {
+		switch val := value.(type) {
 		case []byte:
-			result[k] = val
+			return val
 		case string:
-			result[k] = []byte(val)
+			return []byte(val)
 		default:
-			result[k] = fmt.Append(nil, val)
+			return fmt.Append(nil, val)
 		}
-	}
-
-	return result
+	})
 }
 
 func valueToBytes(val any) []byte {

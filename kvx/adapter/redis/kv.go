@@ -3,6 +3,8 @@ package redis
 import (
 	"context"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 // Get retrieves the value for the given key.
@@ -24,15 +26,13 @@ func (a *Adapter) MGet(ctx context.Context, keys []string) (map[string][]byte, e
 		return nil, err
 	}
 
-	result := make(map[string][]byte)
-	for i, v := range vals {
-		if v != nil {
-			if str, ok := v.(string); ok {
-				result[keys[i]] = []byte(str)
-			}
+	return lo.Reduce(vals, func(result map[string][]byte, value any, index int) map[string][]byte {
+		str, ok := value.(string)
+		if ok {
+			result[keys[index]] = []byte(str)
 		}
-	}
-	return result, nil
+		return result
+	}, make(map[string][]byte)), nil
 }
 
 // Set sets the value for the given key.

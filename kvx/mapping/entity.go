@@ -213,9 +213,8 @@ func (p *TagParser) GetCached(t reflect.Type) *EntityMetadata {
 
 func newEntityMetadata(t reflect.Type) *EntityMetadata {
 	return &EntityMetadata{
-		Type:        t,
-		Fields:      make(map[string]FieldTag),
-		IndexFields: make([]string, 0),
+		Type:   t,
+		Fields: make(map[string]FieldTag),
 	}
 }
 
@@ -245,7 +244,7 @@ func (p *TagParser) addFieldMetadata(metadata *EntityMetadata, field reflect.Str
 		return
 	}
 	if fieldTag.Index {
-		metadata.IndexFields = append(metadata.IndexFields, field.Name)
+		metadata.IndexFields = lo.Concat(metadata.IndexFields, []string{field.Name})
 	}
 }
 
@@ -254,12 +253,10 @@ func isKeyField(fieldTag FieldTag) bool {
 }
 
 func orderedFieldNames(m *EntityMetadata) []string {
-	fields := make([]string, 0, len(m.Fields))
-	for fieldName, field := range m.Fields {
-		if field.Ignored || fieldName == m.KeyField {
-			continue
+	return lo.FilterMap(lo.Entries(m.Fields), func(entry lo.Entry[string, FieldTag], _ int) (string, bool) {
+		if entry.Value.Ignored || entry.Key == m.KeyField {
+			return "", false
 		}
-		fields = append(fields, fieldName)
-	}
-	return fields
+		return entry.Key, true
+	})
 }

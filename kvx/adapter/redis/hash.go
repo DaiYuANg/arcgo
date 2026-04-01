@@ -2,6 +2,8 @@ package redis
 
 import (
 	"context"
+
+	"github.com/samber/lo"
 )
 
 // HGet gets a field from a hash.
@@ -23,15 +25,13 @@ func (a *Adapter) HMGet(ctx context.Context, key string, fields []string) (map[s
 		return nil, err
 	}
 
-	result := make(map[string][]byte)
-	for i, v := range vals {
-		if v != nil {
-			if str, ok := v.(string); ok {
-				result[fields[i]] = []byte(str)
-			}
+	return lo.Reduce(vals, func(result map[string][]byte, value any, index int) map[string][]byte {
+		str, ok := value.(string)
+		if ok {
+			result[fields[index]] = []byte(str)
 		}
-	}
-	return result, nil
+		return result
+	}, make(map[string][]byte)), nil
 }
 
 // HSet sets fields in a hash.
@@ -52,11 +52,9 @@ func (a *Adapter) HGetAll(ctx context.Context, key string) (map[string][]byte, e
 		return nil, err
 	}
 
-	result := make(map[string][]byte, len(val))
-	for k, v := range val {
-		result[k] = []byte(v)
-	}
-	return result, nil
+	return lo.MapValues(val, func(value string, _ string) []byte {
+		return []byte(value)
+	}), nil
 }
 
 // HDel deletes fields from a hash.
@@ -84,11 +82,9 @@ func (a *Adapter) HVals(ctx context.Context, key string) ([][]byte, error) {
 		return nil, err
 	}
 
-	result := make([][]byte, len(vals))
-	for i, v := range vals {
-		result[i] = []byte(v)
-	}
-	return result, nil
+	return lo.Map(vals, func(value string, _ int) []byte {
+		return []byte(value)
+	}), nil
 }
 
 // HLen gets the number of fields in a hash.

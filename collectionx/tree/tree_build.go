@@ -4,6 +4,7 @@ import (
 	"slices"
 
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+	"github.com/samber/lo"
 )
 
 // Build constructs a tree from entries.
@@ -29,36 +30,40 @@ func Build[K comparable, V any](entries []Entry[K, V]) (*Tree[K, V], error) {
 }
 
 func addBuildNodes[K comparable, V any](tree *Tree[K, V], entries []Entry[K, V]) error {
-	for _, entry := range entries {
+	var buildErr error
+	lo.EveryBy(entries, func(entry Entry[K, V]) bool {
 		if tree.Has(entry.ID) {
-			return ErrNodeAlreadyExists
+			buildErr = ErrNodeAlreadyExists
+			return false
 		}
 
 		tree.nodes.Set(entry.ID, newNode(entry.ID, entry.Value))
-	}
-
-	return nil
+		return true
+	})
+	return buildErr
 }
 
 func linkBuildNodes[K comparable, V any](tree *Tree[K, V], entries []Entry[K, V]) error {
-	for _, entry := range entries {
+	var linkErr error
+	lo.EveryBy(entries, func(entry Entry[K, V]) bool {
 		node, _ := tree.nodes.Get(entry.ID)
 		if entry.ParentID.IsAbsent() {
 			tree.roots.Add(node)
-			continue
+			return true
 		}
 
 		parentID := entry.ParentID.MustGet()
 		parent, ok := tree.nodes.Get(parentID)
 		if !ok {
-			return ErrParentNotFound
+			linkErr = ErrParentNotFound
+			return false
 		}
 
 		node.parent = parent
 		parent.children.Add(node)
-	}
-
-	return nil
+		return true
+	})
+	return linkErr
 }
 
 func hasTreeCycle[K comparable, V any](nodes []*Node[K, V]) bool {

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+
+	"github.com/samber/lo"
 )
 
 // ProviderManager routes authentication credential to provider by credential concrete type.
@@ -28,16 +30,16 @@ func (manager *ProviderManager) Register(providers ...AuthenticationProvider) {
 
 	manager.mu.Lock()
 	defer manager.mu.Unlock()
-	for _, provider := range providers {
+	lo.ForEach(providers, func(provider AuthenticationProvider, _ int) {
 		if provider == nil {
-			continue
+			return
 		}
 		credentialType := provider.CredentialType()
 		if credentialType == nil {
-			continue
+			return
 		}
 		manager.providers[credentialType] = provider
-	}
+	})
 }
 
 // Authenticate dispatches credential to the registered provider for its concrete type.

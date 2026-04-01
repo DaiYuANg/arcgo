@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/observabilityx"
 	"github.com/samber/lo"
 )
@@ -97,11 +98,11 @@ func (b *Bus) dispatchParallel(ctx context.Context, event Event, handlers []Hand
 	wg.Wait()
 	close(errCh)
 
-	var errs []error
+	errs := collectionx.NewListWithCapacity[error](len(handlers))
 	for err := range errCh {
-		errs = append(errs, err)
+		errs.Add(err)
 	}
-	return errors.Join(errs...)
+	return errors.Join(errs.Values()...)
 }
 
 func (b *Bus) acquireParallelSlot() {

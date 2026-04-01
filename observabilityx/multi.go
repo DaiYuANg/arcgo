@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
@@ -48,21 +49,18 @@ func (m *multiObservability) StartSpan(
 	}
 
 	nextCtx, firstSpan := m.backends[0].StartSpan(ctx, name, attrs...)
-	spans := make([]Span, 0, len(m.backends))
+	spans := collectionx.NewListWithCapacity[Span](len(m.backends))
 	if firstSpan != nil {
-		spans = append(spans, firstSpan)
+		spans.Add(firstSpan)
 	}
-
-	for _, backend := range m.backends[1:] {
+	spans.MergeSlice(lo.FilterMap(m.backends[1:], func(backend Observability, _ int) (Span, bool) {
 		_, span := backend.StartSpan(nextCtx, name, attrs...)
-		if span != nil {
-			spans = append(spans, span)
-		}
-	}
-	if len(spans) == 0 {
+		return span, span != nil
+	}))
+	if spans.Len() == 0 {
 		return nextCtx, nopSpan{}
 	}
-	return nextCtx, multiSpan{spans: spans}
+	return nextCtx, multiSpan{spans: spans.Values()}
 }
 
 func (m *multiObservability) AddCounter(ctx context.Context, name string, value int64, attrs ...Attribute) {

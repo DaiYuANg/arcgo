@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
 func (s *Server) applyPendingHumaConfig() {
@@ -30,11 +32,11 @@ func (s *Server) applyStoredOpenAPIPatches() {
 	if openAPI == nil {
 		return
 	}
-	for _, patch := range s.openAPIPatches.Values() {
-		if patch != nil {
-			patch(openAPI)
-		}
-	}
+	lo.ForEach(lo.Filter(s.openAPIPatches.Values(), func(patch func(*huma.OpenAPI), _ int) bool {
+		return patch != nil
+	}), func(patch func(*huma.OpenAPI), _ int) {
+		patch(openAPI)
+	})
 }
 
 func (s *Server) accessLogMiddleware() func(huma.Context, func(huma.Context)) {
@@ -55,8 +57,10 @@ func (s *Server) accessLogMiddleware() func(huma.Context, func(huma.Context)) {
 			"duration", time.Since(start),
 		}
 
-		if route, ok := s.matchRoute(ctx.Method(), url.Path); ok {
-			attrs = append(attrs, "route", route.Path, "handler", route.HandlerName)
+		route := mo.TupleToOption(s.matchRoute(ctx.Method(), url.Path))
+		if route.IsPresent() {
+			matched := route.MustGet()
+			attrs = append(attrs, "route", matched.Path, "handler", matched.HandlerName)
 		}
 
 		s.logger.Info("httpx request", attrs...)

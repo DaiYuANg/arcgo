@@ -2,6 +2,8 @@ package set
 
 import (
 	"sync"
+
+	"github.com/samber/lo"
 )
 
 // ConcurrentSet is a goroutine-safe set.
@@ -166,11 +168,9 @@ func (s *ConcurrentSet[T]) Range(fn func(item T) bool) {
 	if s == nil || fn == nil {
 		return
 	}
-	for _, item := range s.Values() {
-		if !fn(item) {
-			return
-		}
-	}
+	lo.EveryBy(s.Values(), func(item T) bool {
+		return fn(item)
+	})
 }
 
 // Snapshot returns an immutable-style copy in a normal Set.

@@ -5,6 +5,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -45,13 +46,18 @@ func NewHashRepository[T any](client kvx.Hash, kv kvx.KV, keyPrefix string, opti
 
 // NewHashRepositoryWithClient creates a hash-backed repository using a full kvx client.
 func NewHashRepositoryWithClient[T any](client kvx.Client, keyPrefix string, options ...HashRepositoryOption[T]) *HashRepository[T] {
-	options = append([]HashRepositoryOption[T]{WithPipeline[T](client), WithScript[T](client)}, options...)
-	return NewHashRepository[T](client, client, keyPrefix, options...)
+	return NewHashRepository[T](client, client, keyPrefix, lo.Concat(
+		[]HashRepositoryOption[T]{WithPipeline[T](client), WithScript[T](client)},
+		options,
+	)...)
 }
 
 // NewHashRepositoryWithCodec creates a hash-backed repository with a custom hash codec.
 func NewHashRepositoryWithCodec[T any](client kvx.Hash, kv kvx.KV, keyPrefix string, codec *mapping.HashCodec, options ...HashRepositoryOption[T]) *HashRepository[T] {
-	return NewHashRepository[T](client, kv, keyPrefix, append([]HashRepositoryOption[T]{WithHashCodec[T](codec)}, options...)...)
+	return NewHashRepository[T](client, kv, keyPrefix, lo.Concat(
+		[]HashRepositoryOption[T]{WithHashCodec[T](codec)},
+		options,
+	)...)
 }
 
 func (r *HashRepository[T]) logDebug(msg string, attrs ...any) {

@@ -15,25 +15,23 @@ type QueryBuilder struct {
 
 // NewQueryBuilder creates a new QueryBuilder.
 func NewQueryBuilder() *QueryBuilder {
-	return &QueryBuilder{
-		parts: make([]string, 0),
-	}
+	return &QueryBuilder{}
 }
 
 // Text adds a text search condition.
 func (qb *QueryBuilder) Text(field, value string) *QueryBuilder {
 	if field == "" {
-		qb.parts = append(qb.parts, value)
+		qb.parts = lo.Concat(qb.parts, []string{value})
 		return qb
 	}
 
-	qb.parts = append(qb.parts, fmt.Sprintf("@%s:%s", field, value))
+	qb.parts = lo.Concat(qb.parts, []string{fmt.Sprintf("@%s:%s", field, value)})
 	return qb
 }
 
 // Tag adds a tag search condition (exact match).
 func (qb *QueryBuilder) Tag(field, value string) *QueryBuilder {
-	qb.parts = append(qb.parts, fmt.Sprintf("@%s:{%s}", field, escapeTag(value)))
+	qb.parts = lo.Concat(qb.parts, []string{fmt.Sprintf("@%s:{%s}", field, escapeTag(value))})
 	return qb
 }
 
@@ -42,25 +40,25 @@ func (qb *QueryBuilder) Tags(field string, values []string) *QueryBuilder {
 	escaped := lo.Map(values, func(value string, _ int) string {
 		return escapeTag(value)
 	})
-	qb.parts = append(qb.parts, fmt.Sprintf("@%s:{%s}", field, strings.Join(escaped, "|")))
+	qb.parts = lo.Concat(qb.parts, []string{fmt.Sprintf("@%s:{%s}", field, strings.Join(escaped, "|"))})
 	return qb
 }
 
 // Range adds a numeric range condition.
 func (qb *QueryBuilder) Range(field string, lower, upper float64) *QueryBuilder {
-	qb.parts = append(qb.parts, fmt.Sprintf("@%s:[%v %v]", field, formatNumber(lower), formatNumber(upper)))
+	qb.parts = lo.Concat(qb.parts, []string{fmt.Sprintf("@%s:[%v %v]", field, formatNumber(lower), formatNumber(upper))})
 	return qb
 }
 
 // GreaterThan adds a greater than condition.
 func (qb *QueryBuilder) GreaterThan(field string, value float64) *QueryBuilder {
-	qb.parts = append(qb.parts, fmt.Sprintf("@%s:[(%v +inf]", field, formatNumber(value)))
+	qb.parts = lo.Concat(qb.parts, []string{fmt.Sprintf("@%s:[(%v +inf]", field, formatNumber(value))})
 	return qb
 }
 
 // LessThan adds a less than condition.
 func (qb *QueryBuilder) LessThan(field string, value float64) *QueryBuilder {
-	qb.parts = append(qb.parts, fmt.Sprintf("@%s:[-inf (%v]", field, formatNumber(value)))
+	qb.parts = lo.Concat(qb.parts, []string{fmt.Sprintf("@%s:[-inf (%v]", field, formatNumber(value))})
 	return qb
 }
 
@@ -68,8 +66,7 @@ func (qb *QueryBuilder) LessThan(field string, value float64) *QueryBuilder {
 func (qb *QueryBuilder) And() *QueryBuilder {
 	if len(qb.parts) > 1 {
 		lastTwo := qb.parts[len(qb.parts)-2:]
-		qb.parts = qb.parts[:len(qb.parts)-2]
-		qb.parts = append(qb.parts, fmt.Sprintf("(%s) (%s)", lastTwo[0], lastTwo[1]))
+		qb.parts = lo.Concat(qb.parts[:len(qb.parts)-2], []string{fmt.Sprintf("(%s) (%s)", lastTwo[0], lastTwo[1])})
 	}
 	return qb
 }
@@ -78,8 +75,7 @@ func (qb *QueryBuilder) And() *QueryBuilder {
 func (qb *QueryBuilder) Or() *QueryBuilder {
 	if len(qb.parts) > 1 {
 		lastTwo := qb.parts[len(qb.parts)-2:]
-		qb.parts = qb.parts[:len(qb.parts)-2]
-		qb.parts = append(qb.parts, fmt.Sprintf("(%s)|(%s)", lastTwo[0], lastTwo[1]))
+		qb.parts = lo.Concat(qb.parts[:len(qb.parts)-2], []string{fmt.Sprintf("(%s)|(%s)", lastTwo[0], lastTwo[1])})
 	}
 	return qb
 }

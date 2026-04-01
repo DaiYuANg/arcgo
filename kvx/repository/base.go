@@ -97,9 +97,9 @@ func collectPresentMap[K comparable, T any](items []K, load func(K) (*T, error))
 		if err != nil {
 			return nil, err
 		}
-		if entityOpt.IsPresent() {
-			results[item] = entityOpt.MustGet()
-		}
+		entityOpt.ForEach(func(entity *T) {
+			results[item] = entity
+		})
 	}
 	return results, nil
 }
@@ -111,9 +111,9 @@ func collectPresentSlice[K any, T any](items []K, load func(K) (*T, error)) ([]*
 		if err != nil {
 			return nil, err
 		}
-		if entityOpt.IsPresent() {
-			results = append(results, entityOpt.MustGet())
-		}
+		entityOpt.ForEach(func(entity *T) {
+			results = append(results, entity)
+		})
 	}
 	return results, nil
 }

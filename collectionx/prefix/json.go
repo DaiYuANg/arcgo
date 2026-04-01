@@ -14,11 +14,9 @@ func (t *Trie[V]) All() map[string]V {
 		return map[string]V{}
 	}
 
-	out := make(map[string]V, len(pairs))
-	lo.ForEach(pairs, func(item keyValue[V], _ int) {
-		out[item.key] = item.value
+	return lo.Associate(pairs, func(item keyValue[V]) (string, V) {
+		return item.key, item.value
 	})
-	return out
 }
 
 // ToJSON serializes all key-value pairs to JSON.

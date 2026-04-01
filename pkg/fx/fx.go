@@ -62,7 +62,7 @@ func CreateApplicationContainer[L SupportedFxLoggerType](modules ...fx.Option) (
 	return app, nil
 }
 
-// loggerOption 根据类型参数自动生成对应的 fx.WithLogger(...)。
+// loggerOption 根据类型参数自动生成对应的 fx.WithLogger(...)
 func loggerOption[L SupportedFxLoggerType]() fx.Option {
 	var zero L
 

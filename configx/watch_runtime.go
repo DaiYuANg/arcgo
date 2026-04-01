@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/knadh/koanf/providers/file"
+	"github.com/samber/lo"
 )
 
 func normalizeWatcherContext(ctx context.Context) context.Context {
@@ -56,11 +57,11 @@ func (w *Watcher) watchProvider(index int, trigger func()) func(_ any, err error
 }
 
 func (w *Watcher) cleanupStartedProviders(count int) {
-	for i := range count {
-		if err := w.providers[i].Unwatch(); err != nil {
-			w.handleErr(fmt.Errorf("configx: cleanup file watcher %d: %w", i, err))
+	lo.ForEach(lo.Range(count), func(index int, _ int) {
+		if err := w.providers[index].Unwatch(); err != nil {
+			w.handleErr(fmt.Errorf("configx: cleanup file watcher %d: %w", index, err))
 		}
-	}
+	})
 }
 
 func (w *Watcher) run(ctx context.Context, debounce time.Duration, reloadCh <-chan struct{}) error {
@@ -139,9 +140,9 @@ func (w *Watcher) reload(ctx context.Context) {
 // notify calls every registered ChangeHandler in order.
 func (w *Watcher) notify(cfg *Config, err error) {
 	logDebug(w.opts, "configx watcher notifying subscribers", "subscribers", len(w.loadSubscribers()), "has_error", err != nil)
-	for _, fn := range w.loadSubscribers() {
+	lo.ForEach(w.loadSubscribers(), func(fn ChangeHandler, _ int) {
 		fn(cfg, err)
-	}
+	})
 }
 
 // handleErr forwards err to the watchErrHandler when one is configured.
@@ -164,12 +165,12 @@ func (w *Watcher) loadSubscribers() []ChangeHandler {
 // file path. These providers are used exclusively for change detection;
 // loadConfigFromOptions handles the actual reading and parsing.
 func buildWatchProviders(paths []string) []*file.File {
-	out := make([]*file.File, 0, len(paths))
-	for _, p := range paths {
-		switch filepath.Ext(p) {
+	return lo.FilterMap(paths, func(path string, _ int) (*file.File, bool) {
+		switch filepath.Ext(path) {
 		case ".yaml", ".yml", ".json", ".toml":
-			out = append(out, file.Provider(p))
+			return file.Provider(path), true
+		default:
+			return nil, false
 		}
-	}
-	return out
+	})
 }

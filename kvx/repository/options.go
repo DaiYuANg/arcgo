@@ -5,6 +5,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -74,6 +75,7 @@ func (o dualOption[T]) applyHash(cfg *hashRepositoryConfig[T]) {
 		o.hash(cfg)
 	}
 }
+
 func (o dualOption[T]) applyJSON(cfg *jsonRepositoryConfig[T]) {
 	if o.json != nil {
 		o.json(cfg)
@@ -88,14 +90,12 @@ type OptionSet[T any] struct {
 
 // HashOptions returns hash repository options plus any extra options.
 func (s OptionSet[T]) HashOptions(extra ...HashRepositoryOption[T]) []HashRepositoryOption[T] {
-	result := append([]HashRepositoryOption[T]{}, s.Hash...)
-	return append(result, extra...)
+	return lo.Concat(s.Hash, extra)
 }
 
 // JSONOptions returns JSON repository options plus any extra options.
 func (s OptionSet[T]) JSONOptions(extra ...JSONRepositoryOption[T]) []JSONRepositoryOption[T] {
-	result := append([]JSONRepositoryOption[T]{}, s.JSON...)
-	return append(result, extra...)
+	return lo.Concat(s.JSON, extra)
 }
 
 // Preset groups reusable repository options.
@@ -106,14 +106,12 @@ type Preset[T any] struct {
 
 // HashOptions returns preset hash repository options plus any extra options.
 func (p Preset[T]) HashOptions(extra ...HashRepositoryOption[T]) []HashRepositoryOption[T] {
-	result := append([]HashRepositoryOption[T]{}, p.Hash...)
-	return append(result, extra...)
+	return lo.Concat(p.Hash, extra)
 }
 
 // JSONOptions returns preset JSON repository options plus any extra options.
 func (p Preset[T]) JSONOptions(extra ...JSONRepositoryOption[T]) []JSONRepositoryOption[T] {
-	result := append([]JSONRepositoryOption[T]{}, p.JSON...)
-	return append(result, extra...)
+	return lo.Concat(p.JSON, extra)
 }
 
 func defaultHashConfig[T any](kv kvx.KV, keyPrefix string) hashRepositoryConfig[T] {
@@ -141,19 +139,19 @@ func defaultJSONConfig[T any](kv kvx.KV, keyPrefix string) jsonRepositoryConfig[
 }
 
 func applyHashOptions[T any](cfg *hashRepositoryConfig[T], options ...HashRepositoryOption[T]) {
-	for _, option := range options {
-		if option != nil {
-			option.applyHash(cfg)
-		}
-	}
+	lo.ForEach(lo.Filter(options, func(option HashRepositoryOption[T], _ int) bool {
+		return option != nil
+	}), func(option HashRepositoryOption[T], _ int) {
+		option.applyHash(cfg)
+	})
 }
 
 func applyJSONOptions[T any](cfg *jsonRepositoryConfig[T], options ...JSONRepositoryOption[T]) {
-	for _, option := range options {
-		if option != nil {
-			option.applyJSON(cfg)
-		}
-	}
+	lo.ForEach(lo.Filter(options, func(option JSONRepositoryOption[T], _ int) bool {
+		return option != nil
+	}), func(option JSONRepositoryOption[T], _ int) {
+		option.applyJSON(cfg)
+	})
 }
 
 // WithPipeline configures pipeline support for both repository backends.
@@ -248,13 +246,10 @@ func WithSerializer[T any](serializer mapping.Serializer) JSONRepositoryOption[T
 
 // NewPreset creates a reusable repository preset from shared repository options.
 func NewPreset[T any](options ...Option[T]) Preset[T] {
-	hashOptions := make([]HashRepositoryOption[T], 0, len(options))
-	jsonOptions := make([]JSONRepositoryOption[T], 0, len(options))
-	for _, option := range options {
-		hashOptions = append(hashOptions, option)
-		jsonOptions = append(jsonOptions, option)
+	return Preset[T]{
+		Hash: lo.Map(options, func(option Option[T], _ int) HashRepositoryOption[T] { return option }),
+		JSON: lo.Map(options, func(option Option[T], _ int) JSONRepositoryOption[T] { return option }),
 	}
-	return Preset[T]{Hash: hashOptions, JSON: jsonOptions}
 }
 
 // WithLogger configures structured logging for both repository backends.

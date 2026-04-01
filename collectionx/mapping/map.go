@@ -3,6 +3,7 @@ package mapping
 import (
 	"maps"
 
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -118,11 +119,7 @@ func (m *Map[K, V]) Keys() []K {
 	if m == nil || len(m.items) == 0 {
 		return nil
 	}
-	keys := make([]K, 0, len(m.items))
-	for key := range m.items {
-		keys = append(keys, key)
-	}
-	return keys
+	return lo.Keys(m.items)
 }
 
 // Values returns all values.
@@ -130,11 +127,7 @@ func (m *Map[K, V]) Values() []V {
 	if m == nil || len(m.items) == 0 {
 		return nil
 	}
-	values := make([]V, 0, len(m.items))
-	for _, value := range m.items {
-		values = append(values, value)
-	}
-	return values
+	return lo.Values(m.items)
 }
 
 // All returns a copied built-in map.

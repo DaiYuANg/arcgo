@@ -6,6 +6,7 @@ import (
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-playground/validator/v10"
+	"github.com/samber/lo"
 )
 
 // WithAdapter configures related behavior.
@@ -84,13 +85,16 @@ func WithHumaMiddleware(middlewares ...func(huma.Context, func(huma.Context))) S
 // WithSecurity registers security schemes and default top-level requirements.
 func WithSecurity(opts SecurityOptions) ServerOption {
 	return func(s *Server) {
-		forEachValidSecurityScheme(opts.Schemes, func(name string, scheme *huma.SecurityScheme) {
+		lo.ForEach(lo.Entries(opts.Schemes), func(entry lo.Entry[string, *huma.SecurityScheme], _ int) {
+			if entry.Key == "" || entry.Value == nil {
+				return
+			}
 			s.openAPIPatches.Add(func(doc *huma.OpenAPI) {
 				components := ensureComponents(doc)
 				if components.SecuritySchemes == nil {
 					components.SecuritySchemes = map[string]*huma.SecurityScheme{}
 				}
-				components.SecuritySchemes[name] = cloneSecurityScheme(scheme)
+				components.SecuritySchemes[entry.Key] = cloneSecurityScheme(entry.Value)
 			})
 		})
 
@@ -106,7 +110,9 @@ func WithSecurity(opts SecurityOptions) ServerOption {
 // WithGlobalHeaders adds header parameters to future operations.
 func WithGlobalHeaders(headers ...*huma.Param) ServerOption {
 	return func(s *Server) {
-		forEachNonNilHeader(headers, func(header *huma.Param) {
+		lo.ForEach(lo.Filter(headers, func(header *huma.Param, _ int) bool {
+			return header != nil
+		}), func(header *huma.Param, _ int) {
 			cloned := cloneParam(header)
 			cloned.In = "header"
 			s.operationModifiers.Add(func(op *huma.Operation) {
@@ -129,33 +135,6 @@ func WithValidation() ServerOption {
 func WithValidator(v *validator.Validate) ServerOption {
 	return func(s *Server) {
 		s.validator = v
-	}
-}
-
-func forEachValidSecurityScheme(
-	schemes map[string]*huma.SecurityScheme,
-	fn func(name string, scheme *huma.SecurityScheme),
-) {
-	if fn == nil {
-		return
-	}
-	for name, scheme := range schemes {
-		if name == "" || scheme == nil {
-			continue
-		}
-		fn(name, scheme)
-	}
-}
-
-func forEachNonNilHeader(headers []*huma.Param, fn func(header *huma.Param)) {
-	if fn == nil {
-		return
-	}
-	for _, header := range headers {
-		if header == nil {
-			continue
-		}
-		fn(header)
 	}
 }
 

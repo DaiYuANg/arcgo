@@ -9,6 +9,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/samber/lo"
 )
 
 // OperationBinaryResponse documents a binary payload for HTTP 200.
@@ -131,9 +132,9 @@ func ensureHTTPResponse(op *huma.Operation, status int) *huma.Response {
 }
 
 func appendBinaryContentTypes(response *huma.Response, contentTypes []string) {
-	for _, contentType := range contentTypes {
+	lo.ForEach(contentTypes, func(contentType string, _ int) {
 		if _, exists := response.Content[contentType]; exists {
-			continue
+			return
 		}
 		response.Content[contentType] = &huma.MediaType{
 			Schema: &huma.Schema{
@@ -141,7 +142,7 @@ func appendBinaryContentTypes(response *huma.Response, contentTypes []string) {
 				Format: "binary",
 			},
 		}
-	}
+	})
 }
 
 func headerFieldIndex(outputType reflect.Type, headerName string) (int, bool) {
@@ -175,12 +176,12 @@ func normalizeContentTypes(values []string, fallback string) []string {
 	}
 
 	ordered := set.NewOrderedSet[string]()
-	for _, value := range values {
+	lo.ForEach(lo.FilterMap(values, func(value string, _ int) (string, bool) {
 		trimmed := strings.TrimSpace(value)
-		if trimmed != "" {
-			ordered.Add(trimmed)
-		}
-	}
+		return trimmed, trimmed != ""
+	}), func(value string, _ int) {
+		ordered.Add(value)
+	})
 	normalized := ordered.Values()
 	if len(normalized) == 0 {
 		return []string{fallback}

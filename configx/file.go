@@ -10,6 +10,7 @@ import (
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/samber/lo"
 )
 
 // ErrUnsupportedFileFormat is returned when a config file has an extension
@@ -41,18 +42,24 @@ func parserFor(ext string) koanf.Parser {
 // Returns [ErrUnsupportedFileFormat] (wrapped) if any file has an extension
 // that is not in [supportedExtensions]. Use errors.Is to detect it.
 func loadFiles(k *koanf.Koanf, files []string) error {
-	for _, f := range files {
-		ext := filepath.Ext(f)
+	if err := lo.Reduce(files, func(result error, path string, _ int) error {
+		if result != nil {
+			return result
+		}
 
+		ext := filepath.Ext(path)
 		parser := parserFor(ext)
 		if parser == nil {
 			return fmt.Errorf("%w: %q (got %q, want one of %v)",
-				ErrUnsupportedFileFormat, f, ext, supportedExtensions)
+				ErrUnsupportedFileFormat, path, ext, supportedExtensions)
 		}
 
-		if err := k.Load(file.Provider(f), parser); err != nil {
-			return fmt.Errorf("configx: load config file %q: %w", f, err)
+		if err := k.Load(file.Provider(path), parser); err != nil {
+			return fmt.Errorf("configx: load config file %q: %w", path, err)
 		}
+		return nil
+	}, error(nil)); err != nil {
+		return fmt.Errorf("configx: load files: %w", err)
 	}
 	return nil
 }

@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 // HandlerFunc is the runtime event handler signature after type adaptation.
@@ -13,14 +15,12 @@ type HandlerFunc func(context.Context, Event) error
 type Middleware func(HandlerFunc) HandlerFunc
 
 func chain(handler HandlerFunc, mws []Middleware) HandlerFunc {
-	out := handler
-	for i := len(mws) - 1; i >= 0; i-- {
-		if mws[i] == nil {
-			continue
+	return lo.ReduceRight(mws, func(out HandlerFunc, mw Middleware, _ int) HandlerFunc {
+		if mw == nil {
+			return out
 		}
-		out = mws[i](out)
-	}
-	return out
+		return mw(out)
+	}, handler)
 }
 
 // RecoverMiddleware turns panic into normal error so dispatch can continue.

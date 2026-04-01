@@ -4,7 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // XAdd adds an entry to a stream.
@@ -31,12 +33,12 @@ func (a *Adapter) XRead(ctx context.Context, key, start string, count int64) ([]
 // XReadMultiple reads entries from multiple streams.
 func (a *Adapter) XReadMultiple(ctx context.Context, streams map[string]string, count int64, _ time.Duration) (map[string][]kvx.StreamEntry, error) {
 	result := make(map[string][]kvx.StreamEntry, len(streams))
-	for key, start := range streams {
-		entries, err := a.XRead(ctx, key, start, count)
+	for _, entry := range lo.Entries(streams) {
+		entries, err := a.XRead(ctx, entry.Key, entry.Value, count)
 		if err != nil {
 			return nil, err
 		}
-		result[key] = entries
+		result[entry.Key] = entries
 	}
 
 	return result, nil
@@ -82,9 +84,7 @@ func (a *Adapter) XDel(ctx context.Context, key string, ids []string) error {
 		return nil
 	}
 
-	args := make([]string, 0, len(ids)+1)
-	args = append(args, key)
-	args = append(args, ids...)
-
-	return wrapValkeyError("delete stream entries", a.client.Do(ctx, a.client.B().Arbitrary("XDEL").Args(args...).Build()).Error())
+	args := collectionx.NewListWithCapacity[string](len(ids)+1, key)
+	args.Add(ids...)
+	return wrapValkeyError("delete stream entries", a.client.Do(ctx, a.client.B().Arbitrary("XDEL").Args(args.Values()...).Build()).Error())
 }

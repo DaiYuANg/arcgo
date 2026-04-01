@@ -4,21 +4,23 @@ import (
 	"context"
 	"strconv"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // CreateIndex creates a secondary index.
 func (a *Adapter) CreateIndex(ctx context.Context, indexName, prefix string, schema []kvx.SchemaField) error {
-	args := []string{indexName, "ON", "HASH", "PREFIX", "1", prefix, "SCHEMA"}
-
-	for _, f := range schema {
-		args = append(args, f.Name, string(f.Type))
-		if f.Sortable {
-			args = append(args, "SORTABLE")
+	args := collectionx.NewListWithCapacity[string](len(schema)*3+7, indexName, "ON", "HASH", "PREFIX", "1", prefix, "SCHEMA")
+	args.Add(lo.FlatMap(schema, func(field kvx.SchemaField, _ int) []string {
+		parts := []string{field.Name, string(field.Type)}
+		if field.Sortable {
+			parts = lo.Concat(parts, []string{"SORTABLE"})
 		}
-	}
+		return parts
+	})...)
 
-	return wrapValkeyError("create search index", a.client.Do(ctx, a.client.B().Arbitrary("FT.CREATE").Args(args...).Build()).Error())
+	return wrapValkeyError("create search index", a.client.Do(ctx, a.client.B().Arbitrary("FT.CREATE").Args(args.Values()...).Build()).Error())
 }
 
 // DropIndex drops a secondary index.
@@ -39,13 +41,13 @@ func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int
 
 // SearchWithSort performs a search query with sorting.
 func (a *Adapter) SearchWithSort(ctx context.Context, indexName, query, sortBy string, ascending bool, limit int) ([]string, error) {
-	args := []string{indexName, query, "SORTBY", sortBy}
+	args := collectionx.NewList[string](indexName, query, "SORTBY", sortBy)
 	if !ascending {
-		args = append(args, "DESC")
+		args.Add("DESC")
 	}
-	args = append(args, "LIMIT", "0", strconv.Itoa(limit))
+	args.Add("LIMIT", "0", strconv.Itoa(limit))
 
-	resp := a.client.Do(ctx, a.client.B().Arbitrary("FT.SEARCH").Args(args...).Build())
+	resp := a.client.Do(ctx, a.client.B().Arbitrary("FT.SEARCH").Args(args.Values()...).Build())
 	docs, err := ftSearchDocsFromResult("search index with sort", resp)
 	if err != nil {
 		return nil, err

@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 type hashSaveState[T any] struct {
@@ -209,14 +211,7 @@ func (r *HashRepository[T]) prepareHashFieldUpdate(ctx context.Context, id, fiel
 }
 
 func encodeHashData(data map[string][]byte) [][]byte {
-	capacity := len(data) * 2
-	if capacity < 0 || capacity/2 != len(data) {
-		capacity = len(data)
-	}
-
-	result := make([][]byte, 0, capacity)
-	for key, value := range data {
-		result = append(result, []byte(key), value)
-	}
-	return result
+	return lo.FlatMap(lo.Entries(data), func(entry lo.Entry[string, []byte], _ int) [][]byte {
+		return [][]byte{[]byte(entry.Key), entry.Value}
+	})
 }

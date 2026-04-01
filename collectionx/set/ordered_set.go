@@ -3,6 +3,7 @@ package set
 import (
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+	"github.com/samber/lo"
 )
 
 // OrderedSet keeps insertion order of unique items.
@@ -39,14 +40,14 @@ func (s *OrderedSet[T]) Add(items ...T) {
 		return
 	}
 
-	for _, item := range items {
+	lo.ForEach(items, func(item T, _ int) {
 		if _, exists := s.items.Get(item); exists {
-			continue
+			return
 		}
 		s.order.Add(item)
 		s.items.Set(item, struct{}{})
 		s.index.Set(item, s.order.Len()-1)
-	}
+	})
 }
 
 // Remove deletes item and reports whether it existed.
@@ -137,17 +138,8 @@ func (s *OrderedSet[T]) Clone() *OrderedSet[T] {
 		return NewOrderedSet[T]()
 	}
 	out := NewOrderedSetWithCapacity[T](s.order.Len())
-	s.order.Range(func(_ int, item T) bool {
-		out.order.Add(item)
-		return true
-	})
-	s.items.Range(func(item T, _ struct{}) bool {
-		out.items.Set(item, struct{}{})
-		return true
-	})
-	s.index.Range(func(item T, index int) bool {
-		out.index.Set(item, index)
-		return true
-	})
+	out.order.MergeSlice(s.order.Values())
+	out.items.SetAll(s.items.All())
+	out.index.SetAll(s.index.All())
 	return out
 }

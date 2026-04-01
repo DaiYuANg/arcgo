@@ -5,7 +5,9 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 const hashUpsertScript = `
@@ -100,23 +102,19 @@ return 1
 `
 
 func execHashUpsertScript(ctx context.Context, script kvx.Script, key string, hashData map[string][]byte, expiration time.Duration, removeEntries, addEntries []string) error {
-	keys := append([]string{key}, removeEntries...)
-	keys = append(keys, addEntries...)
-
-	args := make([][]byte, 0, 3+len(hashData)*2)
-	args = append(args,
+	keys := lo.Concat([]string{key}, removeEntries, addEntries)
+	args := collectionx.NewListWithCapacity[[]byte](3+len(hashData)*2,
 		[]byte(strconv.Itoa(len(removeEntries))),
 		[]byte(strconv.FormatInt(expiration.Milliseconds(), 10)),
 		[]byte(strconv.Itoa(len(hashData))),
 	)
-	args = append(args, encodeHashData(hashData)...)
+	args.Add(encodeHashData(hashData)...)
 
-	return evalScript(ctx, script, hashUpsertScript, keys, args, "execute hash upsert script")
+	return evalScript(ctx, script, hashUpsertScript, keys, args.Values(), "execute hash upsert script")
 }
 
 func execJSONUpsertScript(ctx context.Context, script kvx.Script, key string, payload []byte, expiration time.Duration, removeEntries, addEntries []string) error {
-	keys := append([]string{key}, removeEntries...)
-	keys = append(keys, addEntries...)
+	keys := lo.Concat([]string{key}, removeEntries, addEntries)
 	args := [][]byte{
 		[]byte(strconv.Itoa(len(removeEntries))),
 		[]byte(strconv.FormatInt(expiration.Milliseconds(), 10)),
@@ -126,7 +124,7 @@ func execJSONUpsertScript(ctx context.Context, script kvx.Script, key string, pa
 }
 
 func execDeleteScript(ctx context.Context, script kvx.Script, key string, removeEntries []string) error {
-	keys := append([]string{key}, removeEntries...)
+	keys := lo.Concat([]string{key}, removeEntries)
 	return evalScript(ctx, script, deleteScript, keys, nil, "execute delete script")
 }
 
@@ -143,14 +141,14 @@ func execJSONFieldUpdateScript(ctx context.Context, script kvx.Script, key, path
 }
 
 func buildFieldUpdateKeys(key string, removeEntries, addEntries []string) []string {
-	keys := []string{key}
+	keys := collectionx.NewListWithCapacity[string](3, key)
 	if len(removeEntries) > 0 {
-		keys = append(keys, removeEntries[0])
+		keys.Add(removeEntries[0])
 	}
 	if len(addEntries) > 0 {
-		keys = append(keys, addEntries[0])
+		keys.Add(addEntries[0])
 	}
-	return keys
+	return keys.Values()
 }
 
 func evalScript(ctx context.Context, script kvx.Script, source string, keys []string, args [][]byte, action string) error {

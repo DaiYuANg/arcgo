@@ -5,6 +5,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/samber/lo"
 )
 
 // Group represents a route group backed by a Huma group when available.
@@ -90,13 +91,10 @@ func (g *Group) DefaultTags(tags ...string) {
 	}
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
 		existing := set.NewSet(op.Tags...)
-		for _, tag := range tags {
-			if tag == "" || existing.Contains(tag) {
-				continue
-			}
-			op.Tags = append(op.Tags, tag)
-			existing.Add(tag)
-		}
+		newTags := lo.Filter(tags, func(tag string, _ int) bool {
+			return tag != "" && !existing.Contains(tag)
+		})
+		op.Tags = lo.Concat(op.Tags, newTags)
 	})
 }
 
@@ -124,14 +122,19 @@ func (g *Group) DefaultParameters(params ...*huma.Param) {
 	if !g.server.allowConfigMutation("Group.DefaultParameters") {
 		return
 	}
-	cloned := cloneNonNilParams(params)
+	cloned := lo.FilterMap(params, func(param *huma.Param, _ int) (*huma.Param, bool) {
+		if param == nil {
+			return nil, false
+		}
+		return cloneParam(param), true
+	})
 	if len(cloned) == 0 {
 		return
 	}
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
-		for _, param := range cloned {
+		lo.ForEach(cloned, func(param *huma.Param, _ int) {
 			appendOperationParameter(op, param)
-		}
+		})
 	})
 }
 
@@ -180,11 +183,11 @@ func (g *Group) RegisterTags(tags ...*huma.Tag) {
 	if !g.server.allowConfigMutation("Group.RegisterTags") {
 		return
 	}
-	for _, tag := range tags {
+	lo.ForEach(tags, func(tag *huma.Tag, _ int) {
 		if tag != nil {
 			g.server.AddTag(tag)
 		}
-	}
+	})
 }
 
 // DefaultExternalDocs applies group-level external docs to future operations
@@ -217,24 +220,10 @@ func (g *Group) DefaultExtensions(extensions map[string]any) {
 		if op.Extensions == nil {
 			op.Extensions = map[string]any{}
 		}
-		for key, value := range cloned {
-			if _, exists := op.Extensions[key]; !exists {
-				op.Extensions[key] = value
+		lo.ForEach(lo.Entries(cloned), func(entry lo.Entry[string, any], _ int) {
+			if _, exists := op.Extensions[entry.Key]; !exists {
+				op.Extensions[entry.Key] = entry.Value
 			}
-		}
+		})
 	})
-}
-
-func cloneNonNilParams(params []*huma.Param) []*huma.Param {
-	if len(params) == 0 {
-		return nil
-	}
-
-	cloned := make([]*huma.Param, 0, len(params))
-	for _, param := range params {
-		if param != nil {
-			cloned = append(cloned, cloneParam(param))
-		}
-	}
-	return cloned
 }

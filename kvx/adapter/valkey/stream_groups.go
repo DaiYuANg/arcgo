@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 )
 
@@ -51,9 +52,7 @@ func (a *Adapter) XAck(ctx context.Context, key, group string, ids []string) err
 		return nil
 	}
 
-	args := make([]string, 0, len(ids)+2)
-	args = append(args, key, group)
-	args = append(args, ids...)
-
-	return wrapValkeyError("ack stream entries", a.client.Do(ctx, a.client.B().Arbitrary("XACK").Args(args...).Build()).Error())
+	args := collectionx.NewListWithCapacity[string](len(ids)+2, key, group)
+	args.Add(ids...)
+	return wrapValkeyError("ack stream entries", a.client.Do(ctx, a.client.B().Arbitrary("XACK").Args(args.Values()...).Build()).Error())
 }

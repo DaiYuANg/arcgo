@@ -1,5 +1,7 @@
 package tree
 
+import "github.com/samber/lo"
+
 // Get returns node by id as a detached subtree clone.
 func (t *ConcurrentTree[K, V]) Get(id K) (*Node[K, V], bool) {
 	if t == nil {
@@ -65,13 +67,10 @@ func (t *ConcurrentTree[K, V]) Children(id K) []*Node[K, V] {
 		return nil
 	}
 
-	childCount := node.children.Len()
-	out := make([]*Node[K, V], 0, childCount)
-	for i := range childCount {
-		child, _ := node.children.Get(i)
-		out = append(out, cloneSubtreeDetached(child))
-	}
-	return out
+	return lo.Map(lo.Range(node.children.Len()), func(index int, _ int) *Node[K, V] {
+		child, _ := node.children.Get(index)
+		return cloneSubtreeDetached(child)
+	})
 }
 
 // Roots returns root nodes snapshot.
@@ -87,13 +86,10 @@ func (t *ConcurrentTree[K, V]) Roots() []*Node[K, V] {
 	if t.tree.roots == nil || t.tree.roots.Len() == 0 {
 		return nil
 	}
-	rootCount := t.tree.roots.Len()
-	out := make([]*Node[K, V], 0, rootCount)
-	for i := range rootCount {
-		root, _ := t.tree.roots.Get(i)
-		out = append(out, cloneSubtreeDetached(root))
-	}
-	return out
+	return lo.Map(lo.Range(t.tree.roots.Len()), func(index int, _ int) *Node[K, V] {
+		root, _ := t.tree.roots.Get(index)
+		return cloneSubtreeDetached(root)
+	})
 }
 
 // Ancestors returns parent chain from direct parent to top root.
@@ -226,12 +222,8 @@ func (t *ConcurrentTree[K, V]) snapshotClonedRoots() []*Node[K, V] {
 		return nil
 	}
 
-	rootCount := t.tree.roots.Len()
-	clonedRoots := make([]*Node[K, V], 0, rootCount)
-	for i := range rootCount {
-		root, _ := t.tree.roots.Get(i)
-		clonedRoots = append(clonedRoots, cloneSubtreeDetached(root))
-	}
-
-	return clonedRoots
+	return lo.Map(lo.Range(t.tree.roots.Len()), func(index int, _ int) *Node[K, V] {
+		root, _ := t.tree.roots.Get(index)
+		return cloneSubtreeDetached(root)
+	})
 }

@@ -1,6 +1,9 @@
 package repository
 
-import "github.com/DaiYuANg/arcgo/dbx"
+import (
+	"github.com/DaiYuANg/arcgo/dbx"
+	"github.com/DaiYuANg/arcgo/pkg/option"
+)
 
 // Option configures repository construction behavior.
 type Option func(*baseOptions)
@@ -25,11 +28,7 @@ func New[E any, S EntitySchema[E]](db *dbx.DB, schema S) *Base[E, S] {
 // NewWithOptions constructs a repository with explicit options.
 func NewWithOptions[E any, S EntitySchema[E]](db *dbx.DB, schema S, opts ...Option) *Base[E, S] {
 	config := defaultOptions()
-	for _, opt := range opts {
-		if opt != nil {
-			opt(&config)
-		}
-	}
+	option.Apply(&config, opts...)
 	return &Base[E, S]{
 		db:                  db,
 		session:             db,

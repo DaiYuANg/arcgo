@@ -16,7 +16,7 @@ func WithHooks(hooks ...clientx.Hook) Option {
 		return h != nil
 	})
 	return func(c *DefaultClient) {
-		c.hooks = append(c.hooks, filtered...)
+		c.hooks = lo.Concat(c.hooks, filtered)
 	}
 }
 
@@ -26,20 +26,20 @@ func WithPolicies(policies ...clientx.Policy) Option {
 		return p != nil
 	})
 	return func(c *DefaultClient) {
-		c.policies = append(c.policies, filtered...)
+		c.policies = lo.Concat(c.policies, filtered)
 	}
 }
 
 // WithConcurrencyLimit adds a concurrency limit policy.
 func WithConcurrencyLimit(maxInFlight int) Option {
 	return func(c *DefaultClient) {
-		c.policies = append(c.policies, clientx.NewConcurrencyLimitPolicy(maxInFlight))
+		c.policies = lo.Concat(c.policies, []clientx.Policy{clientx.NewConcurrencyLimitPolicy(maxInFlight)})
 	}
 }
 
 // WithTimeoutGuard adds a timeout guard policy.
 func WithTimeoutGuard(timeout time.Duration) Option {
 	return func(c *DefaultClient) {
-		c.policies = append(c.policies, clientx.NewTimeoutPolicy(timeout))
+		c.policies = lo.Concat(c.policies, []clientx.Policy{clientx.NewTimeoutPolicy(timeout)})
 	}
 }

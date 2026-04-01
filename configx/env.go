@@ -8,16 +8,20 @@ import (
 	"github.com/joho/godotenv"
 	envProvider "github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/v2"
+	"github.com/samber/lo"
 )
 
 // loadDotenv loads each dotenv file in order. If ignoreErr is true, missing
 // files and parse errors are silently skipped; otherwise they are returned as
 // errors.
 func loadDotenv(files []string, ignoreErr bool) error {
-	for _, f := range files {
-		if err := loadDotenvFile(f, ignoreErr); err != nil {
-			return err
+	if err := lo.Reduce(files, func(result error, path string, _ int) error {
+		if result != nil {
+			return result
 		}
+		return loadDotenvFile(path, ignoreErr)
+	}, error(nil)); err != nil {
+		return fmt.Errorf("configx: load dotenv files: %w", err)
 	}
 	return nil
 }

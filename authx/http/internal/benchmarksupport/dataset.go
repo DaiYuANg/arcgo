@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/brianvoe/gofakeit/v7"
+	"github.com/samber/lo"
 )
 
 // Query describes one benchmark authorization lookup.
@@ -90,13 +91,11 @@ func normalizeFakeToken(raw string) string {
 }
 
 func buildPermissions(randSource *gofakeit.Faker, permissionCount int) []string {
-	permissions := make([]string, permissionCount)
-	for i := range permissionCount {
+	return lo.Map(lo.Range(permissionCount), func(i int, _ int) string {
 		action := fmt.Sprintf("%s-%03d", normalizeFakeToken(randSource.Verb()), i/100)
 		resource := fmt.Sprintf("%s-%03d", normalizeFakeToken(randSource.Noun()), i%100)
-		permissions[i] = permissionKey(action, resource)
-	}
-	return permissions
+		return permissionKey(action, resource)
+	})
 }
 
 func buildUsers(
@@ -105,13 +104,12 @@ func buildUsers(
 	permissionsPerUser int,
 	permissions []string,
 ) ([]string, map[string]map[string]struct{}) {
-	userIDs := make([]string, userCount)
-	userPermissions := make(map[string]map[string]struct{}, userCount)
-	for i := range userCount {
-		userID := fmt.Sprintf("%s-%05d", normalizeFakeToken(randSource.Username()), i)
-		userIDs[i] = userID
-		userPermissions[userID] = assignPermissions(randSource, permissionsPerUser, permissions)
-	}
+	userIDs := lo.Map(lo.Range(userCount), func(i int, _ int) string {
+		return fmt.Sprintf("%s-%05d", normalizeFakeToken(randSource.Username()), i)
+	})
+	userPermissions := lo.Associate(userIDs, func(userID string) (string, map[string]struct{}) {
+		return userID, assignPermissions(randSource, permissionsPerUser, permissions)
+	})
 	return userIDs, userPermissions
 }
 
@@ -134,11 +132,9 @@ func buildQueries(
 	permissions []string,
 	queryCount int,
 ) []Query {
-	queries := make([]Query, queryCount)
-	for i := range queryCount {
-		queries[i] = buildQuery(randSource, userIDs, userPermissions, permissions, i)
-	}
-	return queries
+	return lo.Map(lo.Range(queryCount), func(i int, _ int) Query {
+		return buildQuery(randSource, userIDs, userPermissions, permissions, i)
+	})
 }
 
 func buildQuery(

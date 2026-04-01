@@ -130,12 +130,7 @@ func (a *Adapter) Scan(ctx context.Context, pattern string, cursor uint64, count
 	}
 
 	window := keys[start:end]
-	nextCursor := cursor
-	for range window {
-		nextCursor++
-	}
-
-	return window, nextCursor, nil
+	return window, cursor + uint64(len(window)), nil
 }
 
 // Keys returns all keys matching the pattern.

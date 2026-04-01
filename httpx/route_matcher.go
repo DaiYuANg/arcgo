@@ -3,6 +3,8 @@ package httpx
 import (
 	"strings"
 	"sync"
+
+	"github.com/samber/lo"
 )
 
 type routeMatcher struct {
@@ -46,10 +48,10 @@ func (m *routeMatcher) Add(path string, route RouteInfo, seq uint64) {
 		node.recordMinSeq(seq)
 	}
 
-	node.routes = append(node.routes, routeMatchEntry{
+	node.routes = lo.Concat(node.routes, []routeMatchEntry{{
 		seq:   seq,
 		route: route,
-	})
+	}})
 }
 
 func (m *routeMatcher) Match(path string) (RouteInfo, bool) {

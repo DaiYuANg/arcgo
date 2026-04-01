@@ -26,10 +26,7 @@ func ResolveOptionAs[T any](c *Container) mo.Option[T] {
 
 // ResolveOrElse resolves a typed value or returns the provided fallback.
 func ResolveOrElse[T any](c *Container, fallback T) T {
-	if value, ok := ResolveOptionalAs[T](c); ok {
-		return value
-	}
-	return fallback
+	return ResolveOptionAs[T](c).OrElse(fallback)
 }
 
 // MustResolveAs resolves a typed value and panics on failure.

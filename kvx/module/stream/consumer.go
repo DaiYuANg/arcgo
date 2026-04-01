@@ -72,16 +72,12 @@ func (c *Consumer) Run(ctx context.Context) error {
 }
 
 func (c *Consumer) processEntries(ctx context.Context, entries []kvx.StreamEntry) error {
-	idsToAck := make([]string, 0, len(entries))
-	for _, entry := range entries {
-		if err := c.handler(ctx, entry); err != nil {
-			continue
+	idsToAck := lo.FilterMap(entries, func(entry kvx.StreamEntry, _ int) (string, bool) {
+		if err := c.handler(ctx, entry); err != nil || !c.autoAck {
+			return "", false
 		}
-		if c.autoAck {
-			idsToAck = append(idsToAck, entry.ID)
-		}
-	}
-
+		return entry.ID, true
+	})
 	if !c.autoAck || len(idsToAck) == 0 {
 		return nil
 	}

@@ -12,6 +12,7 @@ import (
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/go-playground/validator/v10"
+	"github.com/samber/lo"
 )
 
 // ServerOptions collects higher-level server construction settings.
@@ -265,22 +266,7 @@ func applyContextValues(ctx context.Context, values map[contextValueKey]any) con
 		return ctx
 	}
 
-	keys := make([]contextValueKey, 0, len(values))
-	for key := range values {
-		keys = append(keys, key)
-	}
-	return applyContextValueEntries(ctx, values, keys)
-}
-
-func applyContextValueEntries(
-	ctx context.Context,
-	values map[contextValueKey]any,
-	keys []contextValueKey,
-) context.Context {
-	if len(keys) == 0 {
-		return ctx
-	}
-
-	key := keys[0]
-	return applyContextValueEntries(context.WithValue(ctx, key, values[key]), values, keys[1:])
+	return lo.Reduce(lo.Keys(values), func(current context.Context, key contextValueKey, _ int) context.Context {
+		return context.WithValue(current, key, values[key])
+	}, ctx)
 }

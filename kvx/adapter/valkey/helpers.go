@@ -3,6 +3,7 @@ package valkey
 import (
 	"strconv"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/samber/lo"
 	"github.com/valkey-io/valkey-go"
@@ -91,17 +92,16 @@ func formatInt64(value int64) string {
 
 func buildXReadGroupArgs(group, consumer string, streams map[string]string, count, block int64) []string {
 	keys, ids := streamNamesAndIDs(streams)
-	args := make([]string, 0, len(keys)*2+7)
-	args = append(args, "GROUP", group, consumer)
+	args := collectionx.NewListWithCapacity[string](len(keys)*2+7, "GROUP", group, consumer)
 	if count > 0 {
-		args = append(args, "COUNT", strconv.FormatInt(count, 10))
+		args.Add("COUNT", strconv.FormatInt(count, 10))
 	}
 	if block > 0 {
-		args = append(args, "BLOCK", strconv.FormatInt(block, 10))
+		args.Add("BLOCK", strconv.FormatInt(block, 10))
 	}
-	args = append(args, "STREAMS")
-	args = append(args, keys...)
-	args = append(args, ids...)
+	args.Add("STREAMS")
+	args.Add(keys...)
+	args.Add(ids...)
 
-	return args
+	return args.Values()
 }

@@ -72,7 +72,7 @@ func WithMiddleware(mw ...Middleware) Option {
 		return item != nil
 	})
 	return func(o *options) {
-		o.middleware = append(o.middleware, filtered...)
+		o.middleware = lo.Concat(o.middleware, filtered)
 	}
 }
 
@@ -112,6 +112,6 @@ func WithSubscriberMiddleware(mw ...Middleware) SubscribeOption {
 		return item != nil
 	})
 	return func(o *subscribeOptions) {
-		o.middleware = append(o.middleware, filtered...)
+		o.middleware = lo.Concat(o.middleware, filtered)
 	}
 }

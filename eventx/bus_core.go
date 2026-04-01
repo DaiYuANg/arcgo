@@ -9,7 +9,7 @@ import (
 	"github.com/DaiYuANg/arcgo/observabilityx"
 	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/panjf2000/ants/v2"
-	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
 // Bus is an in-memory strongly typed event bus.
@@ -54,15 +54,15 @@ func New(opts ...Option) BusRuntime {
 	}
 	b.logger = b.observability.Logger().With("component", "eventx.bus")
 
-	poolOpts := []ants.Option{
+	poolOpts := collectionx.NewListWithCapacity[ants.Option](3,
 		ants.WithPreAlloc(true),
 		ants.WithNonblocking(false),
-	}
+	)
 	if cfg.antsMaxBlockingCalls > 0 {
-		poolOpts = append(poolOpts, ants.WithMaxBlockingTasks(cfg.antsMaxBlockingCalls))
+		poolOpts.Add(ants.WithMaxBlockingTasks(cfg.antsMaxBlockingCalls))
 	}
 
-	pool, err := ants.NewPool(cfg.antsPoolSize, poolOpts...)
+	pool, err := ants.NewPool(cfg.antsPoolSize, poolOpts.Values()...)
 	if err != nil {
 		b.initErr = err
 		b.logger.Error("failed to create ants pool", "error", err)
@@ -143,7 +143,10 @@ func (b *Bus) registerSubscription(eventType reflect.Type, buildHandler func(id 
 	}
 	b.nextID++
 	id := b.nextID
-	handler := lo.Ternary(buildHandler != nil, buildHandler(id), nil)
+	handler := HandlerFunc(nil)
+	if factory, ok := mo.TupleToOption(buildHandler, buildHandler != nil).Get(); ok {
+		handler = factory(id)
+	}
 	b.subsByType.Put(eventType, id, &subscription{
 		id:      id,
 		handler: handler,

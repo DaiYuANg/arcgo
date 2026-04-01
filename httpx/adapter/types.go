@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/danielgtaylor/huma/v2"
+	"github.com/samber/lo"
 )
 
 // Host is the minimal runtime surface required by httpx core.
@@ -70,35 +71,20 @@ func DefaultHumaOptions() HumaOptions {
 // Later options override earlier options for non-empty fields.
 func MergeHumaOptions(opts ...HumaOptions) HumaOptions {
 	result := DefaultHumaOptions()
-	for i := range opts {
-		mergeHumaOption(&result, opts[i])
-	}
-	return result
-}
-
-func mergeHumaOption(dst *HumaOptions, opt HumaOptions) {
-	if dst == nil {
-		return
-	}
-	mergeString := func(current *string, next string) {
-		if next != "" {
-			*current = next
+	lo.ForEach(opts, func(opt HumaOptions, _ int) {
+		result.Title = lo.Ternary(opt.Title != "", opt.Title, result.Title)
+		result.Version = lo.Ternary(opt.Version != "", opt.Version, result.Version)
+		result.Description = lo.Ternary(opt.Description != "", opt.Description, result.Description)
+		result.DocsPath = lo.Ternary(opt.DocsPath != "", opt.DocsPath, result.DocsPath)
+		result.OpenAPIPath = lo.Ternary(opt.OpenAPIPath != "", opt.OpenAPIPath, result.OpenAPIPath)
+		result.SchemasPath = lo.Ternary(opt.SchemasPath != "", opt.SchemasPath, result.SchemasPath)
+		result.DocsRenderer = lo.Ternary(opt.DocsRenderer != "", opt.DocsRenderer, result.DocsRenderer)
+		result.DisableDocsRoutes = lo.Ternary(opt.DisableDocsRoutes, true, result.DisableDocsRoutes)
+		if len(opt.Transformers) > 0 {
+			result.Transformers = append(result.Transformers, opt.Transformers...)
 		}
-	}
-
-	mergeString(&dst.Title, opt.Title)
-	mergeString(&dst.Version, opt.Version)
-	mergeString(&dst.Description, opt.Description)
-	mergeString(&dst.DocsPath, opt.DocsPath)
-	mergeString(&dst.OpenAPIPath, opt.OpenAPIPath)
-	mergeString(&dst.SchemasPath, opt.SchemasPath)
-	mergeString(&dst.DocsRenderer, opt.DocsRenderer)
-	if opt.DisableDocsRoutes {
-		dst.DisableDocsRoutes = true
-	}
-	if len(opt.Transformers) > 0 {
-		dst.Transformers = append(dst.Transformers, opt.Transformers...)
-	}
+	})
+	return result
 }
 
 // ApplyHumaConfig copies adapter Huma options into a Huma config.

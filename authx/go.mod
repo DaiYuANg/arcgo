@@ -5,6 +5,7 @@ go 1.26.1
 require (
 	github.com/brianvoe/gofakeit/v7 v7.14.1
 	github.com/samber/lo v1.53.0
+	github.com/samber/mo v1.16.0
 	github.com/stretchr/testify v1.11.1
 )
 

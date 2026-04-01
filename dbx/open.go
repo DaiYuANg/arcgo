@@ -2,10 +2,11 @@ package dbx
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
-	"github.com/samber/lo"
+	"github.com/DaiYuANg/arcgo/pkg/option"
 )
 
 // OpenOption configures Open. Required: WithDriver, WithDSN, WithDialect.
@@ -66,11 +67,9 @@ func ApplyOptions(opts ...Option) OpenOption {
 func Open(opts ...OpenOption) (*DB, error) {
 	config := defaultOpenConfig()
 	logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.start", "options", len(opts))
-	for _, opt := range lo.Filter(opts, func(opt OpenOption, _ int) bool { return opt != nil }) {
-		if err := opt(&config); err != nil {
-			logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "apply_option", "error", err)
-			return nil, err
-		}
+	if err := option.ApplyErr(&config, opts...); err != nil {
+		logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "apply_option", "error", err)
+		return nil, fmt.Errorf("dbx: apply open options: %w", err)
 	}
 	logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug,
 		"db.open.configured",

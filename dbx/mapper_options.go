@@ -1,6 +1,11 @@
 package dbx
 
-import "github.com/samber/lo"
+import (
+	"fmt"
+
+	"github.com/DaiYuANg/arcgo/pkg/option"
+	"github.com/samber/lo"
+)
 
 type MapperOption func(*mapperBuildOptions) error
 
@@ -36,12 +41,8 @@ func defaultMapperBuildOptions() mapperBuildOptions {
 
 func applyMapperOptions(opts ...MapperOption) (mapperBuildOptions, error) {
 	config := defaultMapperBuildOptions()
-	for _, opt := range lo.Filter(opts, func(opt MapperOption, _ int) bool {
-		return opt != nil
-	}) {
-		if err := opt(&config); err != nil {
-			return mapperBuildOptions{}, err
-		}
+	if err := option.ApplyErr(&config, opts...); err != nil {
+		return mapperBuildOptions{}, fmt.Errorf("dbx: apply mapper options: %w", err)
 	}
 	return config, nil
 }

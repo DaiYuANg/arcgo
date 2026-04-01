@@ -3,22 +3,25 @@ package redis
 import (
 	"context"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // CreateIndex creates a secondary index.
 func (a *Adapter) CreateIndex(ctx context.Context, indexName, prefix string, schema []kvx.SchemaField) error {
-	args := make([]any, 0, len(schema)*3+8)
-	args = append(args, "FT.CREATE", indexName, "ON", "HASH", "PREFIX", 1, prefix, "SCHEMA")
-
-	for _, f := range schema {
-		args = append(args, f.Name, string(f.Type))
-		if f.Sortable {
-			args = append(args, "SORTABLE")
+	args := collectionx.NewListWithCapacity[any](len(schema)*3+8,
+		"FT.CREATE", indexName, "ON", "HASH", "PREFIX", 1, prefix, "SCHEMA",
+	)
+	args.Add(lo.FlatMap(schema, func(field kvx.SchemaField, _ int) []any {
+		parts := []any{field.Name, string(field.Type)}
+		if field.Sortable {
+			parts = lo.Concat(parts, []any{"SORTABLE"})
 		}
-	}
+		return parts
+	})...)
 
-	return wrapRedisError("create search index", a.client.Do(ctx, args...).Err())
+	return wrapRedisError("create search index", a.client.Do(ctx, args.Values()...).Err())
 }
 
 // DropIndex drops a secondary index.
@@ -39,13 +42,13 @@ func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int
 
 // SearchWithSort performs a search query with sorting.
 func (a *Adapter) SearchWithSort(ctx context.Context, indexName, query, sortBy string, ascending bool, limit int) ([]string, error) {
-	args := []any{"FT.SEARCH", indexName, query, "SORTBY", sortBy}
+	args := collectionx.NewList[any]("FT.SEARCH", indexName, query, "SORTBY", sortBy)
 	if !ascending {
-		args = append(args, "DESC")
+		args.Add("DESC")
 	}
-	args = append(args, "LIMIT", 0, limit)
+	args.Add("LIMIT", 0, limit)
 
-	val, err := a.client.Do(ctx, args...).Result()
+	val, err := a.client.Do(ctx, args.Values()...).Result()
 	val, err = wrapRedisResult("search index with sort", val, err)
 	if err != nil {
 		return nil, err

@@ -3,6 +3,7 @@ package mapping
 import (
 	"maps"
 
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -157,9 +158,9 @@ func (t *Table[R, C, V]) DeleteColumn(columnKey C) int {
 		}
 		return true
 	})
-	for _, rowKey := range rowsToDelete {
+	lo.ForEach(rowsToDelete, func(rowKey R, _ int) {
 		t.data.Delete(rowKey)
-	}
+	})
 	return removed
 }
 
@@ -214,16 +215,12 @@ func (t *Table[R, C, V]) ColumnKeys() []C {
 	}
 	set := make(map[C]struct{})
 	t.data.Range(func(_ R, row map[C]V) bool {
-		for columnKey := range row {
+		lo.ForEach(lo.Keys(row), func(columnKey C, _ int) {
 			set[columnKey] = struct{}{}
-		}
+		})
 		return true
 	})
-	out := make([]C, 0, len(set))
-	for columnKey := range set {
-		out = append(out, columnKey)
-	}
-	return out
+	return lo.Keys(set)
 }
 
 // All returns a deep-copied built-in map.

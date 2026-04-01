@@ -4,6 +4,8 @@ import (
 	"context"
 	"log/slog"
 	"reflect"
+
+	"github.com/samber/lo"
 )
 
 // Endpoint is an optional route-module interface for organizing related routes.
@@ -53,13 +55,13 @@ func (s *Server) Register(endpoint Endpoint, hooks ...EndpointHooks) {
 
 // RegisterOnly registers endpoints without hook processing.
 func (s *Server) RegisterOnly(endpoints ...Endpoint) {
-	for _, e := range endpoints {
+	lo.ForEach(endpoints, func(e Endpoint, _ int) {
 		if e == nil {
 			if s.logger != nil {
 				s.logger.Warn("skipping nil endpoint")
 			}
-			continue
+			return
 		}
 		e.RegisterRoutes(s)
-	}
+	})
 }

@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // HGet gets a field from a hash.
@@ -77,11 +78,9 @@ func (a *Adapter) HVals(ctx context.Context, key string) ([][]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	result := make([][]byte, len(strs))
-	for i, v := range strs {
-		result[i] = []byte(v)
-	}
-	return result, nil
+	return lo.Map(strs, func(value string, _ int) []byte {
+		return []byte(value)
+	}), nil
 }
 
 // HLen gets the number of fields in a hash.

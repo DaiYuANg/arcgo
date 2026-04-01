@@ -8,6 +8,7 @@ import (
 
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // PubSub provides high-level pub/sub operations.
@@ -72,16 +73,17 @@ func (p *PubSub) Unsubscribe(_ context.Context, channel string) error {
 
 // Close closes all subscriptions.
 func (p *PubSub) Close() error {
-	errs := make([]error, 0)
-	for _, channel := range p.subscriptions.Keys() {
+	errs := lo.FilterMap(p.subscriptions.Keys(), func(channel string, _ int) (error, bool) {
 		sub, ok := p.subscriptions.LoadAndDelete(channel)
 		if !ok {
-			continue
+			return nil, false
 		}
-		if err := sub.Close(); err != nil {
-			errs = append(errs, fmt.Errorf("close subscription for channel %q: %w", channel, err))
+		err := sub.Close()
+		if err == nil {
+			return nil, false
 		}
-	}
+		return fmt.Errorf("close subscription for channel %q: %w", channel, err), true
+	})
 
 	return errors.Join(errs...)
 }

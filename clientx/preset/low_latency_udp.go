@@ -6,6 +6,8 @@ import (
 
 	"github.com/DaiYuANg/arcgo/clientx"
 	clientudp "github.com/DaiYuANg/arcgo/clientx/udp"
+	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/samber/lo"
 )
 
 type lowLatencyUDPPreset struct {
@@ -59,7 +61,7 @@ func WithLowLatencyUDPConcurrencyLimit(maxInFlight int) LowLatencyUDPOption {
 func WithLowLatencyUDPOption(opt clientudp.Option) LowLatencyUDPOption {
 	return func(p *lowLatencyUDPPreset) {
 		if opt != nil {
-			p.options = append(p.options, opt)
+			p.options = lo.Concat(p.options, []clientudp.Option{opt})
 		}
 	}
 }
@@ -103,13 +105,13 @@ func tuneLowLatencyUDPConfig(cfg clientudp.Config, preset lowLatencyUDPPreset) c
 }
 
 func buildLowLatencyUDPOptions(preset lowLatencyUDPPreset) []clientudp.Option {
-	clientOpts := make([]clientudp.Option, 0, 2+len(preset.options))
+	clientOpts := collectionx.NewListWithCapacity[clientudp.Option](2 + len(preset.options))
 	if preset.timeoutGuard > 0 {
-		clientOpts = append(clientOpts, clientudp.WithTimeoutGuard(preset.timeoutGuard))
+		clientOpts.Add(clientudp.WithTimeoutGuard(preset.timeoutGuard))
 	}
 	if preset.concurrencyLimit > 0 {
-		clientOpts = append(clientOpts, clientudp.WithConcurrencyLimit(preset.concurrencyLimit))
+		clientOpts.Add(clientudp.WithConcurrencyLimit(preset.concurrencyLimit))
 	}
-	clientOpts = append(clientOpts, preset.options...)
-	return clientOpts
+	clientOpts.Add(preset.options...)
+	return clientOpts.Values()
 }

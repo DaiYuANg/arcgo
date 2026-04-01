@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"time"
+
+	"github.com/samber/lo"
 )
 
 var backgroundContext = context.Background()
@@ -105,12 +107,11 @@ func InvokeWithPolicies[T any](
 
 func applyAfterPolicies(ctx context.Context, policies []Policy, operation Operation, baseErr error) error {
 	aggErr := baseErr
-	for i := len(policies) - 1; i >= 0; i-- {
-		afterOK, afterErr := callPolicyAfter(ctx, policies[i], operation, aggErr)
-		if !afterOK || afterErr == nil {
-			continue
+	for index := len(policies) - 1; index >= 0; index-- {
+		afterOK, afterErr := callPolicyAfter(ctx, policies[index], operation, aggErr)
+		if afterOK && afterErr != nil {
+			aggErr = errors.Join(aggErr, afterErr)
 		}
-		aggErr = errors.Join(aggErr, afterErr)
 	}
 	return aggErr
 }
@@ -127,40 +128,28 @@ func decideRetry(
 		wait  time.Duration
 	}
 
-	decision := retryDecision{}
-	for _, policy := range policies {
+	decision := lo.Reduce(policies, func(agg retryDecision, policy Policy, _ int) retryDecision {
 		decider, ok := policy.(RetryDecider)
 		if !ok {
-			continue
+			return agg
 		}
 		shouldRetry, delay, retryOK := callShouldRetry(ctx, decider, operation, attempt, err)
 		if !retryOK || !shouldRetry {
-			continue
+			return agg
 		}
 
-		decision.retry = true
-		if delay > decision.wait {
-			decision.wait = delay
-		}
-	}
+		agg.retry = true
+		agg.wait = max(agg.wait, delay)
+		return agg
+	}, retryDecision{})
 
-	retry = decision.retry
-	wait = max(decision.wait, 0)
-	return retry, wait
+	return decision.retry, max(decision.wait, 0)
 }
 
 func filterPolicies(policies []Policy) []Policy {
-	if len(policies) == 0 {
-		return nil
-	}
-
-	active := make([]Policy, 0, len(policies))
-	for _, policy := range policies {
-		if policy != nil {
-			active = append(active, policy)
-		}
-	}
-	return active
+	return lo.Filter(policies, func(policy Policy, _ int) bool {
+		return policy != nil
+	})
 }
 
 func normalizeContext(ctx context.Context) context.Context {

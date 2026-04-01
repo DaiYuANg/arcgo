@@ -1,6 +1,9 @@
 package set
 
-import collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+import (
+	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
+	"github.com/samber/lo"
+)
 
 // Set is a generic hash set.
 // Zero value is ready to use.
@@ -31,9 +34,9 @@ func (s *Set[T]) Add(items ...T) {
 	if s == nil || len(items) == 0 {
 		return
 	}
-	for _, item := range items {
+	lo.ForEach(items, func(item T, _ int) {
 		s.items.Set(item, struct{}{})
-	}
+	})
 }
 
 // Merge inserts all items from other into set.
@@ -44,10 +47,7 @@ func (s *Set[T]) Merge(other *Set[T]) *Set[T] {
 	if other == nil || other.items.Len() == 0 {
 		return s
 	}
-	other.items.Range(func(item T, _ struct{}) bool {
-		s.items.Set(item, struct{}{})
-		return true
-	})
+	s.Add(other.Values()...)
 	return s
 }
 
@@ -121,12 +121,7 @@ func (s *Set[T]) Clone() *Set[T] {
 	if s == nil || s.items.Len() == 0 {
 		return &Set[T]{}
 	}
-	out := NewSetWithCapacity[T](s.Len())
-	s.items.Range(func(item T, _ struct{}) bool {
-		out.items.Set(item, struct{}{})
-		return true
-	})
-	return out
+	return NewSetWithCapacity[T](s.Len(), s.Values()...)
 }
 
 // Union returns a new set that contains items from both sets.
@@ -135,10 +130,7 @@ func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 	if other == nil || other.items.Len() == 0 {
 		return out
 	}
-	other.items.Range(func(item T, _ struct{}) bool {
-		out.items.Set(item, struct{}{})
-		return true
-	})
+	out.Add(other.Values()...)
 	return out
 }
 
@@ -155,13 +147,11 @@ func (s *Set[T]) Intersect(other *Set[T]) *Set[T] {
 		left, right = right, left
 	}
 
-	left.Range(func(item T, _ struct{}) bool {
-		if _, ok := right.Get(item); ok {
-			out.items.Set(item, struct{}{})
-		}
-		return true
+	shared := lo.Filter(left.Keys(), func(item T, _ int) bool {
+		_, ok := right.Get(item)
+		return ok
 	})
-	return out
+	return NewSetWithCapacity[T](len(shared), shared...)
 }
 
 // Difference returns a new set with items in s but not in other.
@@ -170,20 +160,13 @@ func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
 	if s == nil || s.items.Len() == 0 {
 		return out
 	}
-
 	if other == nil || other.items.Len() == 0 {
-		s.items.Range(func(item T, _ struct{}) bool {
-			out.items.Set(item, struct{}{})
-			return true
-		})
-		return out
+		return s.Clone()
 	}
 
-	s.items.Range(func(item T, _ struct{}) bool {
-		if _, ok := other.items.Get(item); !ok {
-			out.items.Set(item, struct{}{})
-		}
-		return true
+	remaining := lo.Filter(s.items.Keys(), func(item T, _ int) bool {
+		_, ok := other.items.Get(item)
+		return !ok
 	})
-	return out
+	return NewSetWithCapacity[T](len(remaining), remaining...)
 }

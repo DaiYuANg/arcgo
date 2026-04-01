@@ -9,6 +9,7 @@ import (
 	"github.com/DaiYuANg/arcgo/observabilityx"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/v2"
+	"github.com/samber/lo"
 )
 
 // loadConfigFromOptions is the single authoritative code path that builds a
@@ -121,10 +122,13 @@ func loadConfiguredSources(
 	k *koanf.Koanf,
 	opts *Options,
 ) error {
-	for _, src := range opts.priority {
-		if err := loadConfiguredSource(ctx, obs, k, opts, src); err != nil {
-			return err
+	if err := lo.Reduce(opts.priority, func(result error, src Source, _ int) error {
+		if result != nil {
+			return result
 		}
+		return loadConfiguredSource(ctx, obs, k, opts, src)
+	}, error(nil)); err != nil {
+		return fmt.Errorf("configx: load configured sources: %w", err)
 	}
 	return nil
 }

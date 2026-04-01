@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/DaiYuANg/arcgo/authx"
+	"github.com/samber/mo"
 )
 
 // CredentialResolver resolves auth credential from HTTP request shape.
@@ -25,14 +26,15 @@ func (fn CredentialResolverFunc) ResolveCredential(ctx context.Context, req Requ
 }
 
 func toCredentialResolverFunc(resolver CredentialResolver) CredentialResolverFunc {
-	if resolver == nil {
+	resolverValue, ok := mo.TupleToOption(resolver, resolver != nil).Get()
+	if !ok {
 		return nil
 	}
-	if fn, ok := resolver.(CredentialResolverFunc); ok {
+	if fn, ok := resolverValue.(CredentialResolverFunc); ok {
 		return fn
 	}
 	return func(ctx context.Context, req RequestInfo) (any, error) {
-		return resolver.ResolveCredential(ctx, req)
+		return resolverValue.ResolveCredential(ctx, req)
 	}
 }
 
@@ -53,13 +55,14 @@ func (fn AuthorizationResolverFunc) ResolveAuthorization(
 }
 
 func toAuthorizationResolverFunc(resolver AuthorizationResolver) AuthorizationResolverFunc {
-	if resolver == nil {
+	resolverValue, ok := mo.TupleToOption(resolver, resolver != nil).Get()
+	if !ok {
 		return nil
 	}
-	if fn, ok := resolver.(AuthorizationResolverFunc); ok {
+	if fn, ok := resolverValue.(AuthorizationResolverFunc); ok {
 		return fn
 	}
 	return func(ctx context.Context, req RequestInfo, principal any) (authx.AuthorizationModel, error) {
-		return resolver.ResolveAuthorization(ctx, req, principal)
+		return resolverValue.ResolveAuthorization(ctx, req, principal)
 	}
 }

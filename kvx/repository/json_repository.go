@@ -5,6 +5,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -45,8 +46,10 @@ func NewJSONRepository[T any](client kvx.JSON, kv kvx.KV, keyPrefix string, opti
 
 // NewJSONRepositoryWithClient creates a JSON-backed repository using a full kvx client.
 func NewJSONRepositoryWithClient[T any](client kvx.Client, keyPrefix string, options ...JSONRepositoryOption[T]) *JSONRepository[T] {
-	options = append([]JSONRepositoryOption[T]{WithPipeline[T](client), WithScript[T](client)}, options...)
-	return NewJSONRepository[T](client, client, keyPrefix, options...)
+	return NewJSONRepository[T](client, client, keyPrefix, lo.Concat(
+		[]JSONRepositoryOption[T]{WithPipeline[T](client), WithScript[T](client)},
+		options,
+	)...)
 }
 
 func (r *JSONRepository[T]) logDebug(msg string, attrs ...any) {

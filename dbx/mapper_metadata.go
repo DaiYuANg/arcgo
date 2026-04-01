@@ -7,6 +7,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/hot"
+	"github.com/samber/lo"
 )
 
 type mapperMetadata struct {
@@ -56,10 +57,9 @@ func resolveEntityColumn(field reflect.StructField) (string, map[string]string) 
 }
 
 func collectMappedFields(entityType reflect.Type, prefix []int, fields collectionx.List[MappedField], byColumn, byNormalizedColumn collectionx.Map[string, MappedField], codecs *codecRegistry) error {
-	num := entityType.NumField()
-	for i := range num {
-		field := entityType.Field(i)
-		path := appendIndexPath(prefix, i)
+	for _, fieldIndex := range lo.Range(entityType.NumField()) {
+		field := entityType.Field(fieldIndex)
+		path := appendIndexPath(prefix, fieldIndex)
 		if err := processField(field, path, fields, byColumn, byNormalizedColumn, codecs); err != nil {
 			return err
 		}

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/DaiYuANg/arcgo/kvx"
+	"github.com/samber/lo"
 )
 
 // FindByID loads an entity by its logical ID.
@@ -52,8 +53,8 @@ func (r *JSONRepository[T]) FindByFields(ctx context.Context, fields map[string]
 	}
 
 	idGroups := make([][]string, 0, len(fields))
-	for fieldName, fieldValue := range fields {
-		ids, err := r.base.idsByField(ctx, fieldName, fieldValue)
+	for _, entry := range lo.Entries(fields) {
+		ids, err := r.base.idsByField(ctx, entry.Key, entry.Value)
 		if err != nil {
 			return nil, err
 		}

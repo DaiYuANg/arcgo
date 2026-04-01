@@ -1,5 +1,7 @@
 package prefix
 
+import "github.com/samber/lo"
+
 func (t *Trie[V]) collectPairs(node *trieNode[V], path *[]rune, out *[]keyValue[V]) {
 	if node == nil {
 		return
@@ -14,12 +16,12 @@ func (t *Trie[V]) collectPairs(node *trieNode[V], path *[]rune, out *[]keyValue[
 		return
 	}
 
-	for _, ch := range node.childKeys {
+	lo.ForEach(node.childKeys, func(ch rune, _ int) {
 		*path = append(*path, ch)
 		child, _ := node.children.Get(ch)
 		t.collectPairs(child, path, out)
 		*path = (*path)[:len(*path)-1]
-	}
+	})
 }
 
 func (t *Trie[V]) collectKeys(node *trieNode[V], path *[]rune, out *[]string) {
@@ -33,12 +35,12 @@ func (t *Trie[V]) collectKeys(node *trieNode[V], path *[]rune, out *[]string) {
 		return
 	}
 
-	for _, ch := range node.childKeys {
+	lo.ForEach(node.childKeys, func(ch rune, _ int) {
 		*path = append(*path, ch)
 		child, _ := node.children.Get(ch)
 		t.collectKeys(child, path, out)
 		*path = (*path)[:len(*path)-1]
-	}
+	})
 }
 
 func (t *Trie[V]) collectValues(node *trieNode[V], out *[]V) {
@@ -52,10 +54,10 @@ func (t *Trie[V]) collectValues(node *trieNode[V], out *[]V) {
 		return
 	}
 
-	for _, ch := range node.childKeys {
+	lo.ForEach(node.childKeys, func(ch rune, _ int) {
 		child, _ := node.children.Get(ch)
 		t.collectValues(child, out)
-	}
+	})
 }
 
 func (t *Trie[V]) rangePrefix(node *trieNode[V], path *[]rune, fn func(key string, value V) bool) bool {
@@ -69,7 +71,7 @@ func (t *Trie[V]) rangePrefix(node *trieNode[V], path *[]rune, fn func(key strin
 		return true
 	}
 
-	for _, ch := range node.childKeys {
+	return lo.EveryBy(node.childKeys, func(ch rune) bool {
 		*path = append(*path, ch)
 		child, _ := node.children.Get(ch)
 		if !t.rangePrefix(child, path, fn) {
@@ -77,8 +79,8 @@ func (t *Trie[V]) rangePrefix(node *trieNode[V], path *[]rune, fn func(key strin
 			return false
 		}
 		*path = (*path)[:len(*path)-1]
-	}
-	return true
+		return true
+	})
 }
 
 func (t *Trie[V]) pairsWithPrefix(prefix string) []keyValue[V] {

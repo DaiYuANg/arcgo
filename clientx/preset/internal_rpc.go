@@ -6,6 +6,8 @@ import (
 
 	"github.com/DaiYuANg/arcgo/clientx"
 	clienttcp "github.com/DaiYuANg/arcgo/clientx/tcp"
+	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/samber/lo"
 )
 
 type internalRPCPreset struct {
@@ -84,7 +86,7 @@ func WithInternalRPCDisableRetry() InternalRPCOption {
 func WithInternalRPCOption(opt clienttcp.Option) InternalRPCOption {
 	return func(p *internalRPCPreset) {
 		if opt != nil {
-			p.options = append(p.options, opt)
+			p.options = lo.Concat(p.options, []clienttcp.Option{opt})
 		}
 	}
 }
@@ -139,16 +141,16 @@ func tuneInternalRPCConfig(cfg clienttcp.Config, preset internalRPCPreset) clien
 }
 
 func buildInternalRPCOptions(preset internalRPCPreset) []clienttcp.Option {
-	clientOpts := make([]clienttcp.Option, 0, 3+len(preset.options))
+	clientOpts := collectionx.NewListWithCapacity[clienttcp.Option](3 + len(preset.options))
 	if preset.timeoutGuard > 0 {
-		clientOpts = append(clientOpts, clienttcp.WithTimeoutGuard(preset.timeoutGuard))
+		clientOpts.Add(clienttcp.WithTimeoutGuard(preset.timeoutGuard))
 	}
 	if preset.concurrencyLimit > 0 {
-		clientOpts = append(clientOpts, clienttcp.WithConcurrencyLimit(preset.concurrencyLimit))
+		clientOpts.Add(clienttcp.WithConcurrencyLimit(preset.concurrencyLimit))
 	}
 	if !preset.disableRetry {
-		clientOpts = append(clientOpts, clienttcp.WithPolicies(clientx.NewRetryPolicy(preset.retryPolicy)))
+		clientOpts.Add(clienttcp.WithPolicies(clientx.NewRetryPolicy(preset.retryPolicy)))
 	}
-	clientOpts = append(clientOpts, preset.options...)
-	return clientOpts
+	clientOpts.Add(preset.options...)
+	return clientOpts.Values()
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/samber/lo"
 )
 
 type Operation string
@@ -123,9 +124,9 @@ func (o runtimeObserver) after(ctx context.Context, event *HookEvent) {
 	}
 
 	o.log(*event)
-	for _, hook := range o.hooks {
+	lo.ForEach(o.hooks, func(hook Hook, _ int) {
 		hook.After(ctx, event)
-	}
+	})
 }
 
 func (o runtimeObserver) log(event HookEvent) {
@@ -163,9 +164,9 @@ func (o runtimeObserver) buildLogAttrs(event HookEvent) []any {
 	if event.HasRowsAffected {
 		attrs.Add("rows_affected", event.RowsAffected)
 	}
-	for k, v := range event.Metadata {
-		attrs.Add(k, v)
-	}
+	lo.ForEach(lo.Entries(event.Metadata), func(entry lo.Entry[string, any], _ int) {
+		attrs.Add(entry.Key, entry.Value)
+	})
 	if event.Err != nil {
 		attrs.Add("error", event.Err)
 	}

@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/knadh/koanf/providers/file"
+	"github.com/samber/lo"
 )
 
 // ChangeHandler is the signature for callbacks registered with [Watcher.OnChange].
@@ -124,9 +125,7 @@ func (w *Watcher) OnChange(fn ChangeHandler) {
 	defer w.subsMu.Unlock()
 
 	current := w.loadSubscribers()
-	next := make(changeHandlers, len(current), len(current)+1)
-	copy(next, current)
-	next = append(next, fn)
+	next := changeHandlers(lo.Concat(current, []ChangeHandler{fn}))
 	w.subs.Store(&next)
 }
 
@@ -166,12 +165,10 @@ func (w *Watcher) Close() error {
 	w.stopOnce.Do(func() { close(w.stopCh) })
 	logDebug(w.opts, "configx watcher closing", "providers", len(w.providers))
 
-	var errs []error
-	for _, fp := range w.providers {
-		if err := fp.Unwatch(); err != nil {
-			errs = append(errs, err)
-		}
-	}
+	errs := lo.FilterMap(w.providers, func(fp *file.File, _ int) (error, bool) {
+		err := fp.Unwatch()
+		return fmt.Errorf("configx: unwatch provider: %w", err), err != nil
+	})
 	if len(errs) > 0 {
 		logError(w.opts, "configx watcher close completed with errors", "errors", len(errs))
 	} else {

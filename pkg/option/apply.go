@@ -1,6 +1,10 @@
 package option
 
-import "github.com/samber/lo"
+import (
+	"fmt"
+
+	"github.com/samber/lo"
+)
 
 // Apply executes non-nil option functions against the target in order.
 func Apply[T any, O ~func(*T)](target *T, opts ...O) {
@@ -21,12 +25,13 @@ func ApplyErr[T any, O ~func(*T) error](target *T, opts ...O) error {
 		return nil
 	}
 
-	applyErr := error(nil)
-	lo.ForEach(lo.Filter(opts, func(opt O, _ int) bool { return opt != nil }), func(opt O, _ int) {
-		if applyErr != nil {
-			return
-		}
-		applyErr = opt(target)
-	})
-	return applyErr
+	_, err := lo.ReduceErr(lo.Filter(opts, func(opt O, _ int) bool {
+		return opt != nil
+	}), func(_ struct{}, opt O, _ int) (struct{}, error) {
+		return struct{}{}, opt(target)
+	}, struct{}{})
+	if err != nil {
+		return fmt.Errorf("apply options: %w", err)
+	}
+	return nil
 }

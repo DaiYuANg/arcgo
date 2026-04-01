@@ -40,13 +40,13 @@ func InsertInto(source TableSource) *InsertQuery {
 }
 
 func (q *InsertQuery) Columns(columns ...Expression) *InsertQuery {
-	q.TargetColumns = append(q.TargetColumns, compactExpressions(columns)...)
+	q.TargetColumns = lo.Concat(q.TargetColumns, compactExpressions(columns))
 	return q
 }
 
 func (q *InsertQuery) Values(assignments ...Assignment) *InsertQuery {
 	row := compactAssignments(assignments)
-	q.Rows = append(q.Rows, row)
+	q.Rows = lo.Concat(q.Rows, [][]Assignment{row})
 	if len(q.Rows) == 1 {
 		q.Assignments = row
 	} else {
@@ -61,7 +61,7 @@ func (q *InsertQuery) FromSelect(query *SelectQuery) *InsertQuery {
 }
 
 func (q *InsertQuery) Returning(items ...SelectItem) *InsertQuery {
-	q.ReturningItems = append(q.ReturningItems, compactSelectItems(items)...)
+	q.ReturningItems = lo.Concat(q.ReturningItems, compactSelectItems(items))
 	return q
 }
 
@@ -91,7 +91,7 @@ func Update(source TableSource) *UpdateQuery {
 }
 
 func (q *UpdateQuery) Set(assignments ...Assignment) *UpdateQuery {
-	q.Assignments = append(q.Assignments, compactAssignments(assignments)...)
+	q.Assignments = lo.Concat(q.Assignments, compactAssignments(assignments))
 	return q
 }
 
@@ -101,7 +101,7 @@ func (q *UpdateQuery) Where(predicate Predicate) *UpdateQuery {
 }
 
 func (q *UpdateQuery) Returning(items ...SelectItem) *UpdateQuery {
-	q.ReturningItems = append(q.ReturningItems, compactSelectItems(items)...)
+	q.ReturningItems = lo.Concat(q.ReturningItems, compactSelectItems(items))
 	return q
 }
 
@@ -115,7 +115,7 @@ func (q *DeleteQuery) Where(predicate Predicate) *DeleteQuery {
 }
 
 func (q *DeleteQuery) Returning(items ...SelectItem) *DeleteQuery {
-	q.ReturningItems = append(q.ReturningItems, compactSelectItems(items)...)
+	q.ReturningItems = lo.Concat(q.ReturningItems, compactSelectItems(items))
 	return q
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 	"github.com/DaiYuANg/arcgo/pkg/option"
 )
@@ -98,18 +99,18 @@ func Open(opts ...OpenOption) (*DB, error) {
 	}
 	logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.sql_opened", "driver", config.driver)
 
-	dbOpts := []Option{
+	dbOpts := collectionx.NewList[Option](
 		WithLogger(config.observe.logger),
 		WithHooks(config.observe.hooks...),
 		WithDebug(config.observe.debug),
-	}
+	)
 	if config.observe.hasIDGenerator {
-		dbOpts = append(dbOpts, WithIDGenerator(config.observe.idGenerator))
+		dbOpts.Add(WithIDGenerator(config.observe.idGenerator))
 	}
 	if config.observe.hasNodeID {
-		dbOpts = append(dbOpts, WithNodeID(config.observe.nodeID))
+		dbOpts.Add(WithNodeID(config.observe.nodeID))
 	}
-	db, err := NewWithOptions(raw, config.dialect, dbOpts...)
+	db, err := NewWithOptions(raw, config.dialect, dbOpts.Values()...)
 	if err != nil {
 		logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "new_with_options", "error", err)
 		return nil, err

@@ -198,19 +198,19 @@ func classifyClosedError(err error) (ErrorKind, bool) {
 }
 
 func classifyTypedNetworkError(err error) (ErrorKind, bool) {
-	for _, classify := range []func(error) (ErrorKind, bool){
+	var kind ErrorKind
+	_, ok := lo.Find([]func(error) (ErrorKind, bool){
 		classifyDNSError,
 		classifyTimeoutNetworkError,
 		classifyOpNetworkError,
 		classifyConnRefusedError,
 		classifyGenericNetworkError,
-	} {
-		if kind, ok := classify(err); ok {
-			return kind, true
-		}
-	}
-
-	return "", false
+	}, func(classify func(error) (ErrorKind, bool)) bool {
+		var matched bool
+		kind, matched = classify(err)
+		return matched
+	})
+	return kind, ok
 }
 
 func classifyDNSError(err error) (ErrorKind, bool) {

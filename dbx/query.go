@@ -69,7 +69,7 @@ func (q *SelectQuery) DistinctOn() *SelectQuery {
 }
 
 func (q *SelectQuery) With(name string, query *SelectQuery) *SelectQuery {
-	q.CTEs = append(q.CTEs, CTE{Name: name, Query: query})
+	q.CTEs = lo.Concat(q.CTEs, []CTE{{Name: name, Query: query}})
 	return q
 }
 
@@ -84,7 +84,7 @@ func (q *SelectQuery) Where(predicate Predicate) *SelectQuery {
 }
 
 func (q *SelectQuery) GroupBy(expressions ...Expression) *SelectQuery {
-	q.Groups = append(q.Groups, compactExpressions(expressions)...)
+	q.Groups = lo.Concat(q.Groups, compactExpressions(expressions))
 	return q
 }
 
@@ -94,7 +94,7 @@ func (q *SelectQuery) Having(predicate Predicate) *SelectQuery {
 }
 
 func (q *SelectQuery) OrderBy(orders ...Order) *SelectQuery {
-	q.Orders = append(q.Orders, compactOrders(orders)...)
+	q.Orders = lo.Concat(q.Orders, compactOrders(orders))
 	return q
 }
 
@@ -109,27 +109,27 @@ func (q *SelectQuery) Offset(offset int) *SelectQuery {
 }
 
 func (q *SelectQuery) Union(query *SelectQuery) *SelectQuery {
-	q.Unions = append(q.Unions, UnionClause{Query: query})
+	q.Unions = lo.Concat(q.Unions, []UnionClause{{Query: query}})
 	return q
 }
 
 func (q *SelectQuery) UnionAll(query *SelectQuery) *SelectQuery {
-	q.Unions = append(q.Unions, UnionClause{All: true, Query: query})
+	q.Unions = lo.Concat(q.Unions, []UnionClause{{All: true, Query: query}})
 	return q
 }
 
 func (q *SelectQuery) Join(source TableSource) *JoinBuilder {
-	q.Joins = append(q.Joins, Join{Type: InnerJoin, Table: source.tableRef()})
+	q.Joins = lo.Concat(q.Joins, []Join{{Type: InnerJoin, Table: source.tableRef()}})
 	return &JoinBuilder{query: q, index: len(q.Joins) - 1}
 }
 
 func (q *SelectQuery) LeftJoin(source TableSource) *JoinBuilder {
-	q.Joins = append(q.Joins, Join{Type: LeftJoin, Table: source.tableRef()})
+	q.Joins = lo.Concat(q.Joins, []Join{{Type: LeftJoin, Table: source.tableRef()}})
 	return &JoinBuilder{query: q, index: len(q.Joins) - 1}
 }
 
 func (q *SelectQuery) RightJoin(source TableSource) *JoinBuilder {
-	q.Joins = append(q.Joins, Join{Type: RightJoin, Table: source.tableRef()})
+	q.Joins = lo.Concat(q.Joins, []Join{{Type: RightJoin, Table: source.tableRef()}})
 	return &JoinBuilder{query: q, index: len(q.Joins) - 1}
 }
 

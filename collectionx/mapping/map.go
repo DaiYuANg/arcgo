@@ -163,6 +163,93 @@ func (m *Map[K, V]) Clone() *Map[K, V] {
 	return out
 }
 
+// WhereEntries returns a new map containing only entries that match predicate.
+func (m *Map[K, V]) WhereEntries(predicate func(key K, value V) bool) *Map[K, V] {
+	if m == nil || predicate == nil || len(m.items) == 0 {
+		return NewMap[K, V]()
+	}
+	filtered := NewMapWithCapacity[K, V](len(m.items))
+	m.Range(func(key K, value V) bool {
+		if predicate(key, value) {
+			filtered.Set(key, value)
+		}
+		return true
+	})
+	return filtered
+}
+
+// RejectEntries returns a new map excluding entries that match predicate.
+func (m *Map[K, V]) RejectEntries(predicate func(key K, value V) bool) *Map[K, V] {
+	if m == nil || predicate == nil || len(m.items) == 0 {
+		return NewMap[K, V]()
+	}
+	rejected := NewMapWithCapacity[K, V](len(m.items))
+	m.Range(func(key K, value V) bool {
+		if !predicate(key, value) {
+			rejected.Set(key, value)
+		}
+		return true
+	})
+	return rejected
+}
+
+// EachEntry invokes fn for every entry and returns the receiver for chaining.
+func (m *Map[K, V]) EachEntry(fn func(key K, value V)) *Map[K, V] {
+	if m == nil {
+		return NewMap[K, V]()
+	}
+	if fn == nil {
+		return m
+	}
+	m.Range(func(key K, value V) bool {
+		fn(key, value)
+		return true
+	})
+	return m
+}
+
+// FirstEntryWhere returns the first entry matching predicate.
+func (m *Map[K, V]) FirstEntryWhere(predicate func(key K, value V) bool) (K, V, bool) {
+	var zeroK K
+	var zeroV V
+	if m == nil || predicate == nil || len(m.items) == 0 {
+		return zeroK, zeroV, false
+	}
+	foundK, foundV := zeroK, zeroV
+	ok := false
+	m.Range(func(key K, value V) bool {
+		if !predicate(key, value) {
+			return true
+		}
+		foundK, foundV = key, value
+		ok = true
+		return false
+	})
+	return foundK, foundV, ok
+}
+
+// AnyEntryMatch reports whether any entry matches predicate.
+func (m *Map[K, V]) AnyEntryMatch(predicate func(key K, value V) bool) bool {
+	_, _, ok := m.FirstEntryWhere(predicate)
+	return ok
+}
+
+// AllEntryMatch reports whether all entries match predicate.
+func (m *Map[K, V]) AllEntryMatch(predicate func(key K, value V) bool) bool {
+	if m == nil || len(m.items) == 0 || predicate == nil {
+		return false
+	}
+	matched := true
+	m.Range(func(key K, value V) bool {
+		if predicate(key, value) {
+			return true
+		}
+		matched = false
+		return false
+	})
+	return matched
+}
+
 func (m *Map[K, V]) ensureInit() {
 	if m.items == nil {
 		m.items = make(map[K]V)

@@ -3,6 +3,7 @@ package set
 import (
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
 // Set is a generic hash set.
@@ -47,7 +48,10 @@ func (s *Set[T]) Merge(other *Set[T]) *Set[T] {
 	if other == nil || other.items.Len() == 0 {
 		return s
 	}
-	s.Add(other.Values()...)
+	other.Range(func(item T) bool {
+		s.items.Set(item, struct{}{})
+		return true
+	})
 	return s
 }
 
@@ -121,7 +125,100 @@ func (s *Set[T]) Clone() *Set[T] {
 	if s == nil || s.items.Len() == 0 {
 		return &Set[T]{}
 	}
-	return NewSetWithCapacity[T](s.Len(), s.Values()...)
+	out := NewSetWithCapacity[T](s.Len())
+	s.Range(func(item T) bool {
+		out.items.Set(item, struct{}{})
+		return true
+	})
+	return out
+}
+
+// Where returns a new set containing only items that match predicate.
+func (s *Set[T]) Where(predicate func(item T) bool) *Set[T] {
+	if s == nil || predicate == nil || s.items.Len() == 0 {
+		return NewSet[T]()
+	}
+	filtered := NewSetWithCapacity[T](s.Len())
+	s.Range(func(item T) bool {
+		if predicate(item) {
+			filtered.items.Set(item, struct{}{})
+		}
+		return true
+	})
+	return filtered
+}
+
+// Reject returns a new set excluding items that match predicate.
+func (s *Set[T]) Reject(predicate func(item T) bool) *Set[T] {
+	if s == nil || predicate == nil || s.items.Len() == 0 {
+		return NewSet[T]()
+	}
+	rejected := NewSetWithCapacity[T](s.Len())
+	s.Range(func(item T) bool {
+		if !predicate(item) {
+			rejected.items.Set(item, struct{}{})
+		}
+		return true
+	})
+	return rejected
+}
+
+// Each invokes fn for every item and returns the receiver for chaining.
+func (s *Set[T]) Each(fn func(item T)) *Set[T] {
+	if s == nil {
+		return NewSet[T]()
+	}
+	if fn == nil {
+		return s
+	}
+	s.Range(func(item T) bool {
+		fn(item)
+		return true
+	})
+	return s
+}
+
+// FirstWhere returns the first item matching predicate.
+func (s *Set[T]) FirstWhere(predicate func(item T) bool) mo.Option[T] {
+	if s == nil || predicate == nil || s.items.Len() == 0 {
+		return mo.None[T]()
+	}
+	var found T
+	ok := false
+	s.Range(func(item T) bool {
+		if !predicate(item) {
+			return true
+		}
+		found = item
+		ok = true
+		return false
+	})
+	if !ok {
+		return mo.None[T]()
+	}
+	return mo.Some(found)
+}
+
+// AnyMatch reports whether any item matches predicate.
+func (s *Set[T]) AnyMatch(predicate func(item T) bool) bool {
+	_, ok := s.FirstWhere(predicate).Get()
+	return ok
+}
+
+// AllMatch reports whether all items match predicate.
+func (s *Set[T]) AllMatch(predicate func(item T) bool) bool {
+	if s == nil || s.items.Len() == 0 || predicate == nil {
+		return false
+	}
+	matched := true
+	s.Range(func(item T) bool {
+		if predicate(item) {
+			return true
+		}
+		matched = false
+		return false
+	})
+	return matched
 }
 
 // Union returns a new set that contains items from both sets.
@@ -130,7 +227,10 @@ func (s *Set[T]) Union(other *Set[T]) *Set[T] {
 	if other == nil || other.items.Len() == 0 {
 		return out
 	}
-	out.Add(other.Values()...)
+	other.Range(func(item T) bool {
+		out.items.Set(item, struct{}{})
+		return true
+	})
 	return out
 }
 
@@ -147,11 +247,14 @@ func (s *Set[T]) Intersect(other *Set[T]) *Set[T] {
 		left, right = right, left
 	}
 
-	shared := lo.Filter(left.Keys(), func(item T, _ int) bool {
-		_, ok := right.Get(item)
-		return ok
+	out = NewSetWithCapacity[T](left.Len())
+	left.Range(func(item T, _ struct{}) bool {
+		if _, ok := right.Get(item); ok {
+			out.items.Set(item, struct{}{})
+		}
+		return true
 	})
-	return NewSetWithCapacity[T](len(shared), shared...)
+	return out
 }
 
 // Difference returns a new set with items in s but not in other.
@@ -164,9 +267,12 @@ func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
 		return s.Clone()
 	}
 
-	remaining := lo.Filter(s.items.Keys(), func(item T, _ int) bool {
-		_, ok := other.items.Get(item)
-		return !ok
+	out = NewSetWithCapacity[T](s.Len())
+	s.items.Range(func(item T, _ struct{}) bool {
+		if _, ok := other.items.Get(item); !ok {
+			out.items.Set(item, struct{}{})
+		}
+		return true
 	})
-	return NewSetWithCapacity[T](len(remaining), remaining...)
+	return out
 }

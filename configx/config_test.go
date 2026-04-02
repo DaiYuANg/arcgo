@@ -7,6 +7,7 @@ import (
 
 	configx "github.com/DaiYuANg/arcgo/configx"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type SimpleConfig struct {
@@ -87,9 +88,15 @@ func TestSnapshot_ReturnsSortedKeys(t *testing.T) {
 	)
 	assert.NoError(t, err)
 	snapshot := cfg.Snapshot()
-	assert.Equal(t, []string{"a.key", "b.key"}, snapshot.Keys)
-	assert.Equal(t, 1, snapshot.Values["a.key"])
-	assert.Equal(t, 2, snapshot.Values["b.key"])
+	require.NotNil(t, snapshot.Keys)
+	require.NotNil(t, snapshot.Values)
+	assert.Equal(t, []string{"a.key", "b.key"}, snapshot.Keys.Values())
+	valueA, ok := snapshot.Values.Get("a.key")
+	require.True(t, ok)
+	assert.Equal(t, 1, valueA)
+	valueB, ok := snapshot.Values.Get("b.key")
+	require.True(t, ok)
+	assert.Equal(t, 2, valueB)
 }
 
 func TestValidate_Required(t *testing.T) {

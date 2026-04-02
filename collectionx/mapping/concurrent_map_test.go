@@ -109,3 +109,29 @@ func TestNewConcurrentMapWithCapacity(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, 1, value)
 }
+
+func TestConcurrentMap_ChainMethods(t *testing.T) {
+	t.Parallel()
+
+	values := mapping.NewConcurrentMap[string, int]()
+	values.Set("a", 1)
+	values.Set("b", 2)
+	values.Set("c", 3)
+
+	filtered := values.
+		WhereEntries(func(_ string, value int) bool { return value >= 2 }).
+		RejectEntries(func(key string, _ int) bool { return key == "c" })
+	require.Equal(t, map[string]int{"b": 2}, filtered.All())
+
+	visited := mapping.NewMap[string, string]()
+	key, value, ok := values.
+		EachEntry(func(key string, value int) { visited.Set(key, strconv.Itoa(value)) }).
+		FirstEntryWhere(func(_ string, value int) bool { return value > 1 })
+	require.True(t, ok)
+	require.Contains(t, []string{"b", "c"}, key)
+	require.Contains(t, []int{2, 3}, value)
+	require.Equal(t, 3, visited.Len())
+
+	require.True(t, values.AllEntryMatch(func(_ string, value int) bool { return value > 0 }))
+	require.True(t, values.AnyEntryMatch(func(key string, _ int) bool { return key == "a" }))
+}

@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/samber/lo"
+	"github.com/samber/mo"
 )
 
 // ConcurrentSet is a goroutine-safe set.
@@ -186,6 +187,36 @@ func (s *ConcurrentSet[T]) Snapshot() *Set[T] {
 		return out
 	}
 	return s.core.Clone()
+}
+
+// Where returns a filtered snapshot set.
+func (s *ConcurrentSet[T]) Where(predicate func(item T) bool) *Set[T] {
+	return s.Snapshot().Where(predicate)
+}
+
+// Reject returns a filtered snapshot set that excludes matching items.
+func (s *ConcurrentSet[T]) Reject(predicate func(item T) bool) *Set[T] {
+	return s.Snapshot().Reject(predicate)
+}
+
+// Each iterates a stable snapshot and returns it for chaining.
+func (s *ConcurrentSet[T]) Each(fn func(item T)) *Set[T] {
+	return s.Snapshot().Each(fn)
+}
+
+// FirstWhere returns the first item matching predicate from a stable snapshot.
+func (s *ConcurrentSet[T]) FirstWhere(predicate func(item T) bool) mo.Option[T] {
+	return s.Snapshot().FirstWhere(predicate)
+}
+
+// AnyMatch reports whether any item in a stable snapshot matches predicate.
+func (s *ConcurrentSet[T]) AnyMatch(predicate func(item T) bool) bool {
+	return s.Snapshot().AnyMatch(predicate)
+}
+
+// AllMatch reports whether all items in a stable snapshot match predicate.
+func (s *ConcurrentSet[T]) AllMatch(predicate func(item T) bool) bool {
+	return s.Snapshot().AllMatch(predicate)
 }
 
 func (s *ConcurrentSet[T]) ensureInitLocked() {

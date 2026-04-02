@@ -6,6 +6,7 @@ import (
 	"sort"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/v2"
 	"github.com/samber/lo"
@@ -131,8 +132,8 @@ func (c *Config) Validate(out any) error {
 
 // ConfigSnapshot provides a deterministic, inspectable view of loaded values.
 type ConfigSnapshot struct {
-	Values map[string]any
-	Keys   []string
+	Values collectionx.Map[string, any]
+	Keys   collectionx.List[string]
 }
 
 // Snapshot returns a copy-like diagnostic view of config values and sorted keys.
@@ -141,7 +142,7 @@ func (c *Config) Snapshot() ConfigSnapshot {
 	keys := lo.Keys(values)
 	sort.Strings(keys)
 	return ConfigSnapshot{
-		Values: values,
-		Keys:   keys,
+		Values: collectionx.NewMapFrom(values),
+		Keys:   collectionx.NewListWithCapacity(len(keys), keys...),
 	}
 }

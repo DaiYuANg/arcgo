@@ -1,7 +1,7 @@
 package advanced
 
 import (
-	collectionmap "github.com/DaiYuANg/arcgo/collectionx/mapping"
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dix"
 	"github.com/samber/do/v2"
 	"github.com/samber/lo"
@@ -10,9 +10,9 @@ import (
 // Inspection summarizes advanced runtime inspection output.
 type Inspection struct {
 	ScopeTree         string
-	ProvidedServices  []do.ServiceDescription
-	InvokedServices   []do.ServiceDescription
-	NamedDependencies map[string]string
+	ProvidedServices  collectionx.List[do.ServiceDescription]
+	InvokedServices   collectionx.List[do.ServiceDescription]
+	NamedDependencies collectionx.Map[string, string]
 }
 
 // InspectOptions controls which inspection sections are populated.
@@ -44,37 +44,39 @@ func ExplainScopeTree(rt *dix.Runtime) string {
 }
 
 // ListProvidedServices returns the services provided by the runtime injector.
-func ListProvidedServices(rt *dix.Runtime) []do.ServiceDescription {
+func ListProvidedServices(rt *dix.Runtime) collectionx.List[do.ServiceDescription] {
 	if rt == nil {
 		return nil
 	}
 
-	return rt.Raw().ListProvidedServices()
+	items := rt.Raw().ListProvidedServices()
+	return collectionx.NewListWithCapacity(len(items), items...)
 }
 
 // ListInvokedServices returns the services invoked by the runtime injector.
-func ListInvokedServices(rt *dix.Runtime) []do.ServiceDescription {
+func ListInvokedServices(rt *dix.Runtime) collectionx.List[do.ServiceDescription] {
 	if rt == nil {
 		return nil
 	}
 
-	return rt.Raw().ListInvokedServices()
+	items := rt.Raw().ListInvokedServices()
+	return collectionx.NewListWithCapacity(len(items), items...)
 }
 
 // ExplainNamedDependencies returns dependency trees for the requested named services.
-func ExplainNamedDependencies(rt *dix.Runtime, namedServices ...string) map[string]string {
+func ExplainNamedDependencies(rt *dix.Runtime, namedServices ...string) collectionx.Map[string, string] {
 	if rt == nil || len(namedServices) == 0 {
 		return nil
 	}
 
-	dependencies := collectionmap.NewMapWithCapacity[string, string](len(namedServices))
+	dependencies := collectionx.NewMapWithCapacity[string, string](len(namedServices))
 	lo.ForEach(namedServices, func(name string, _ int) {
 		if desc, found := do.ExplainNamedService(rt.Raw(), name); found {
 			dependencies.Set(name, desc.String())
 		}
 	})
 
-	return dependencies.All()
+	return dependencies
 }
 
 // InspectRuntime inspects a runtime with the default options.
@@ -93,17 +95,17 @@ func InspectRuntimeWithOptions(rt *dix.Runtime, opts InspectOptions, namedServic
 		scopeTree = ExplainScopeTree(rt)
 	}
 
-	var provided []do.ServiceDescription
+	var provided collectionx.List[do.ServiceDescription]
 	if opts.IncludeProvidedServices {
 		provided = ListProvidedServices(rt)
 	}
 
-	var invoked []do.ServiceDescription
+	var invoked collectionx.List[do.ServiceDescription]
 	if opts.IncludeInvokedServices {
 		invoked = ListInvokedServices(rt)
 	}
 
-	var namedDependencies map[string]string
+	var namedDependencies collectionx.Map[string, string]
 	if opts.IncludeNamedDeps && len(namedServices) > 0 {
 		namedDependencies = ExplainNamedDependencies(rt, namedServices...)
 	}

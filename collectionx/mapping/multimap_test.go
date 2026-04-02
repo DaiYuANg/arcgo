@@ -83,3 +83,37 @@ func TestMultiMap_CloneAndFromAll(t *testing.T) {
 	require.Equal(t, 3, source.ValueCount())
 	require.Equal(t, 3, cloned.ValueCount())
 }
+
+func TestMultiMap_FluentOps(t *testing.T) {
+	t.Parallel()
+
+	values := mapping.NewMultiMap[string, int]()
+	values.PutAll("a", 1, 2)
+	values.PutAll("b", 3, 4)
+	values.Put("c", 5)
+
+	filtered := values.
+		WhereKeys(func(key string, _ []int) bool { return key != "c" }).
+		RejectValues(func(_ string, value int) bool { return value%2 == 0 })
+
+	require.Equal(t, []int{1}, filtered.Get("a"))
+	require.Equal(t, []int{3}, filtered.Get("b"))
+	require.False(t, filtered.ContainsKey("c"))
+
+	flattened := filtered.FlattenValues()
+	require.ElementsMatch(t, []int{1, 3}, flattened.Values())
+
+	visited := mapping.NewMultiMap[string, int]()
+	foundKey, foundValue, ok := values.
+		EachKey(func(key string, entries []int) { visited.Set(key, entries...) }).
+		EachValue(func(key string, value int) { visited.Put(key, value*10) }).
+		FirstValueWhere(func(_ string, value int) bool { return value > 3 })
+
+	require.True(t, ok)
+	require.True(t, foundKey == "b" || foundKey == "c")
+	require.True(t, foundValue > 3)
+	require.Equal(t, []int{1, 2, 10, 20}, visited.Get("a"))
+	require.True(t, values.AnyValueMatch(func(_ string, value int) bool { return value == 5 }))
+	require.True(t, values.AllValuesMatch(func(_ string, value int) bool { return value > 0 }))
+	require.False(t, values.AllValuesMatch(func(_ string, value int) bool { return value%2 == 0 }))
+}

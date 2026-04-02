@@ -1,6 +1,7 @@
 package set_test
 
 import (
+	"strconv"
 	"sync"
 	"testing"
 
@@ -68,4 +69,24 @@ func TestNewConcurrentSetWithCapacity(t *testing.T) {
 	require.True(t, s.Contains(1))
 	require.True(t, s.Contains(2))
 	require.True(t, s.Contains(3))
+}
+
+func TestConcurrentSet_ChainMethods(t *testing.T) {
+	t.Parallel()
+
+	values := set.NewConcurrentSet(1, 2, 3, 4).
+		Where(func(item int) bool { return item >= 2 }).
+		Reject(func(item int) bool { return item == 3 })
+	require.ElementsMatch(t, []int{2, 4}, values.Values())
+
+	visited := set.NewSet[string]()
+	first, ok := set.NewConcurrentSet(1, 2, 3, 4).
+		Each(func(item int) { visited.Add(strconv.Itoa(item)) }).
+		FirstWhere(func(item int) bool { return item > 2 }).Get()
+	require.True(t, ok)
+	require.Equal(t, 3, first)
+	require.ElementsMatch(t, []string{"1", "2", "3", "4"}, visited.Values())
+
+	require.True(t, set.NewConcurrentSet(2, 4, 6).AllMatch(func(item int) bool { return item%2 == 0 }))
+	require.True(t, set.NewConcurrentSet(1, 2, 3).AnyMatch(func(item int) bool { return item == 2 }))
 }

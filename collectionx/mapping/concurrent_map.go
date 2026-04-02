@@ -219,6 +219,36 @@ func (m *ConcurrentMap[K, V]) Range(fn func(key K, value V) bool) {
 	}
 }
 
+// WhereEntries returns a filtered snapshot map.
+func (m *ConcurrentMap[K, V]) WhereEntries(predicate func(key K, value V) bool) *Map[K, V] {
+	return NewMapFrom(m.All()).WhereEntries(predicate)
+}
+
+// RejectEntries returns a filtered snapshot map that excludes matching entries.
+func (m *ConcurrentMap[K, V]) RejectEntries(predicate func(key K, value V) bool) *Map[K, V] {
+	return NewMapFrom(m.All()).RejectEntries(predicate)
+}
+
+// EachEntry iterates a stable snapshot and returns it for chaining.
+func (m *ConcurrentMap[K, V]) EachEntry(fn func(key K, value V)) *Map[K, V] {
+	return NewMapFrom(m.All()).EachEntry(fn)
+}
+
+// FirstEntryWhere returns the first entry matching predicate from a stable snapshot.
+func (m *ConcurrentMap[K, V]) FirstEntryWhere(predicate func(key K, value V) bool) (K, V, bool) {
+	return NewMapFrom(m.All()).FirstEntryWhere(predicate)
+}
+
+// AnyEntryMatch reports whether any entry in a stable snapshot matches predicate.
+func (m *ConcurrentMap[K, V]) AnyEntryMatch(predicate func(key K, value V) bool) bool {
+	return NewMapFrom(m.All()).AnyEntryMatch(predicate)
+}
+
+// AllEntryMatch reports whether all entries in a stable snapshot match predicate.
+func (m *ConcurrentMap[K, V]) AllEntryMatch(predicate func(key K, value V) bool) bool {
+	return NewMapFrom(m.All()).AllEntryMatch(predicate)
+}
+
 func (m *ConcurrentMap[K, V]) ensureInitLocked() {
 	if m.core == nil {
 		m.core = NewMap[K, V]()

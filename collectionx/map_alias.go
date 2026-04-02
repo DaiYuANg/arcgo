@@ -23,10 +23,20 @@ type mapWritable[K comparable, V any] interface {
 	clearable
 }
 
+type mapFluent[K comparable, V any] interface {
+	WhereEntries(predicate func(key K, value V) bool) *mapping.Map[K, V]
+	RejectEntries(predicate func(key K, value V) bool) *mapping.Map[K, V]
+	EachEntry(fn func(key K, value V)) *mapping.Map[K, V]
+	FirstEntryWhere(predicate func(key K, value V) bool) (K, V, bool)
+	AnyEntryMatch(predicate func(key K, value V) bool) bool
+	AllEntryMatch(predicate func(key K, value V) bool) bool
+}
+
 // Map is the root map interface exposed by collectionx.
 type Map[K comparable, V any] interface {
 	mapReadable[K, V]
 	mapWritable[K, V]
+	mapFluent[K, V]
 	clonable[*mapping.Map[K, V]]
 	jsonStringer
 }
@@ -50,6 +60,7 @@ func NewMapFrom[K comparable, V any](source map[K]V) Map[K, V] {
 type ConcurrentMap[K comparable, V any] interface {
 	mapReadable[K, V]
 	mapWritable[K, V]
+	mapFluent[K, V]
 	GetOrStore(key K, value V) (actual V, loaded bool)
 	LoadAndDelete(key K) (V, bool)
 	LoadAndDeleteOption(key K) mo.Option[V]
@@ -133,10 +144,22 @@ type orderedMapWritable[K comparable, V any] interface {
 	clearable
 }
 
+type orderedMapFluent[K comparable, V any] interface {
+	WhereEntries(predicate func(key K, value V) bool) *mapping.OrderedMap[K, V]
+	RejectEntries(predicate func(key K, value V) bool) *mapping.OrderedMap[K, V]
+	Take(n int) *mapping.OrderedMap[K, V]
+	Drop(n int) *mapping.OrderedMap[K, V]
+	EachEntry(fn func(key K, value V)) *mapping.OrderedMap[K, V]
+	FirstEntryWhere(predicate func(key K, value V) bool) (K, V, bool)
+	AnyEntryMatch(predicate func(key K, value V) bool) bool
+	AllEntryMatch(predicate func(key K, value V) bool) bool
+}
+
 // OrderedMap is the root insertion-ordered map interface exposed by collectionx.
 type OrderedMap[K comparable, V any] interface {
 	orderedMapReadable[K, V]
 	orderedMapWritable[K, V]
+	orderedMapFluent[K, V]
 	clonable[*mapping.OrderedMap[K, V]]
 	jsonStringer
 }
@@ -176,6 +199,7 @@ type multiMapWritable[K comparable, V any] interface {
 type MultiMap[K comparable, V any] interface {
 	multiMapReadable[K, V]
 	multiMapWritable[K, V]
+	multiMapFluent[K, V]
 	clonable[*mapping.MultiMap[K, V]]
 	jsonStringer
 }
@@ -199,6 +223,7 @@ func NewMultiMapFromAll[K comparable, V any](source map[K][]V) MultiMap[K, V] {
 type ConcurrentMultiMap[K comparable, V any] interface {
 	multiMapReadable[K, V]
 	multiMapWritable[K, V]
+	multiMapFluent[K, V]
 	snapshotable[*mapping.MultiMap[K, V]]
 	jsonStringer
 }
@@ -240,6 +265,7 @@ type tableWritable[R comparable, C comparable, V any] interface {
 type Table[R comparable, C comparable, V any] interface {
 	tableReadable[R, C, V]
 	tableWritable[R, C, V]
+	tableFluent[R, C, V]
 	jsonStringer
 }
 
@@ -252,6 +278,7 @@ func NewTable[R comparable, C comparable, V any]() Table[R, C, V] {
 type ConcurrentTable[R comparable, C comparable, V any] interface {
 	tableReadable[R, C, V]
 	tableWritable[R, C, V]
+	tableFluent[R, C, V]
 	snapshotable[*mapping.Table[R, C, V]]
 	jsonStringer
 }

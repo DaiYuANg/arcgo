@@ -88,3 +88,36 @@ func TestConcurrentMultiMap_SnapshotCountsAndIsolation(t *testing.T) {
 	require.True(t, snapshot.ContainsKey("b"))
 	require.False(t, m.ContainsKey("b"))
 }
+
+func TestConcurrentMultiMap_FluentOps(t *testing.T) {
+	t.Parallel()
+
+	var values mapping.ConcurrentMultiMap[string, int]
+	values.PutAll("a", 1, 2)
+	values.PutAll("b", 3, 4)
+	values.Put("c", 5)
+
+	filtered := values.
+		WhereKeys(func(key string, _ []int) bool { return key != "c" }).
+		WhereValues(func(_ string, value int) bool { return value >= 2 })
+
+	require.Equal(t, []int{2}, filtered.Get("a"))
+	require.Equal(t, []int{3, 4}, filtered.Get("b"))
+	require.False(t, filtered.ContainsKey("c"))
+
+	flattened := values.FlattenValues()
+	require.ElementsMatch(t, []int{1, 2, 3, 4, 5}, flattened.Values())
+
+	visited := mapping.NewMultiMap[string, int]()
+	foundKey, foundValue, ok := values.
+		EachKey(func(key string, entries []int) { visited.Set(key, entries...) }).
+		EachValue(func(key string, value int) { visited.Put(key, value*10) }).
+		FirstValueWhere(func(_ string, value int) bool { return value > 4 })
+
+	require.True(t, ok)
+	require.Equal(t, "c", foundKey)
+	require.Equal(t, 5, foundValue)
+	require.Equal(t, []int{1, 2, 10, 20}, visited.Get("a"))
+	require.True(t, values.AnyValueMatch(func(_ string, value int) bool { return value == 4 }))
+	require.True(t, values.AllValuesMatch(func(_ string, value int) bool { return value > 0 }))
+}

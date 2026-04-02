@@ -136,9 +136,13 @@ func TestAdvancedInspectRuntime(t *testing.T) {
 
 	report := dixadvanced.InspectRuntime(rt, "tenant.default")
 	assert.NotEmpty(t, report.ScopeTree)
-	assert.NotEmpty(t, report.ProvidedServices)
-	assert.NotEmpty(t, report.InvokedServices)
-	assert.Contains(t, report.NamedDependencies, "tenant.default")
+	require.NotNil(t, report.ProvidedServices)
+	require.NotNil(t, report.InvokedServices)
+	require.NotNil(t, report.NamedDependencies)
+	assert.Positive(t, report.ProvidedServices.Len())
+	assert.Positive(t, report.InvokedServices.Len())
+	_, ok := report.NamedDependencies.Get("tenant.default")
+	assert.True(t, ok)
 }
 
 func TestAdvancedInspectRuntimeWithOptions(t *testing.T) {
@@ -159,7 +163,9 @@ func TestAdvancedInspectRuntimeWithOptions(t *testing.T) {
 	assert.Empty(t, report.ScopeTree)
 	assert.Nil(t, report.ProvidedServices)
 	assert.Nil(t, report.InvokedServices)
-	assert.Contains(t, report.NamedDependencies, "tenant.default")
+	require.NotNil(t, report.NamedDependencies)
+	_, ok := report.NamedDependencies.Get("tenant.default")
+	assert.True(t, ok)
 }
 
 func TestAdvancedScopeNamedHelpers(t *testing.T) {

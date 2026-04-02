@@ -1,6 +1,9 @@
 package collectionx
 
-import "github.com/DaiYuANg/arcgo/collectionx/set"
+import (
+	"github.com/DaiYuANg/arcgo/collectionx/set"
+	"github.com/samber/mo"
+)
 
 type setReadable[T comparable] interface {
 	Contains(item T) bool
@@ -15,10 +18,20 @@ type setWritable[T comparable] interface {
 	clearable
 }
 
+type setFluent[T comparable] interface {
+	Where(predicate func(item T) bool) *set.Set[T]
+	Reject(predicate func(item T) bool) *set.Set[T]
+	Each(fn func(item T)) *set.Set[T]
+	FirstWhere(predicate func(item T) bool) mo.Option[T]
+	AnyMatch(predicate func(item T) bool) bool
+	AllMatch(predicate func(item T) bool) bool
+}
+
 // Set is the root set interface exposed by collectionx.
 type Set[T comparable] interface {
 	setReadable[T]
 	setWritable[T]
+	setFluent[T]
 	Merge(other *set.Set[T]) *set.Set[T]
 	MergeSlice(items []T) *set.Set[T]
 	clonable[*set.Set[T]]
@@ -42,6 +55,7 @@ func NewSetWithCapacity[T comparable](capacity int, items ...T) Set[T] {
 type ConcurrentSet[T comparable] interface {
 	setReadable[T]
 	setWritable[T]
+	setFluent[T]
 	Merge(other *set.Set[T]) *set.ConcurrentSet[T]
 	MergeConcurrent(other *set.ConcurrentSet[T]) *set.ConcurrentSet[T]
 	MergeSlice(items []T) *set.ConcurrentSet[T]
@@ -101,10 +115,22 @@ type orderedSetReadable[T comparable] interface {
 	At(pos int) (T, bool)
 }
 
+type orderedSetFluent[T comparable] interface {
+	Where(predicate func(item T) bool) *set.OrderedSet[T]
+	Reject(predicate func(item T) bool) *set.OrderedSet[T]
+	Take(n int) *set.OrderedSet[T]
+	Drop(n int) *set.OrderedSet[T]
+	Each(fn func(item T)) *set.OrderedSet[T]
+	FirstWhere(predicate func(item T) bool) mo.Option[T]
+	AnyMatch(predicate func(item T) bool) bool
+	AllMatch(predicate func(item T) bool) bool
+}
+
 // OrderedSet is the root ordered set interface exposed by collectionx.
 type OrderedSet[T comparable] interface {
 	orderedSetReadable[T]
 	setWritable[T]
+	orderedSetFluent[T]
 	clonable[*set.OrderedSet[T]]
 	jsonStringer
 }

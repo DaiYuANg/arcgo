@@ -3,6 +3,7 @@ package mapping
 import (
 	"sync"
 
+	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	"github.com/samber/mo"
 )
 
@@ -209,6 +210,56 @@ func (m *ConcurrentMultiMap[K, V]) Snapshot() *MultiMap[K, V] {
 		return NewMultiMap[K, V]()
 	}
 	return m.core.Clone()
+}
+
+// WhereKeys returns a filtered multimap snapshot.
+func (m *ConcurrentMultiMap[K, V]) WhereKeys(predicate func(key K, values []V) bool) *MultiMap[K, V] {
+	return m.Snapshot().WhereKeys(predicate)
+}
+
+// RejectKeys returns a filtered multimap snapshot that excludes matching keys.
+func (m *ConcurrentMultiMap[K, V]) RejectKeys(predicate func(key K, values []V) bool) *MultiMap[K, V] {
+	return m.Snapshot().RejectKeys(predicate)
+}
+
+// WhereValues returns a filtered multimap snapshot containing only matching values.
+func (m *ConcurrentMultiMap[K, V]) WhereValues(predicate func(key K, value V) bool) *MultiMap[K, V] {
+	return m.Snapshot().WhereValues(predicate)
+}
+
+// RejectValues returns a filtered multimap snapshot excluding matching values.
+func (m *ConcurrentMultiMap[K, V]) RejectValues(predicate func(key K, value V) bool) *MultiMap[K, V] {
+	return m.Snapshot().RejectValues(predicate)
+}
+
+// EachKey iterates a stable snapshot and returns it for chaining.
+func (m *ConcurrentMultiMap[K, V]) EachKey(fn func(key K, values []V)) *MultiMap[K, V] {
+	return m.Snapshot().EachKey(fn)
+}
+
+// EachValue iterates a stable snapshot and returns it for chaining.
+func (m *ConcurrentMultiMap[K, V]) EachValue(fn func(key K, value V)) *MultiMap[K, V] {
+	return m.Snapshot().EachValue(fn)
+}
+
+// FirstValueWhere returns the first value matching predicate from a stable snapshot.
+func (m *ConcurrentMultiMap[K, V]) FirstValueWhere(predicate func(key K, value V) bool) (K, V, bool) {
+	return m.Snapshot().FirstValueWhere(predicate)
+}
+
+// AnyValueMatch reports whether any value in a stable snapshot matches predicate.
+func (m *ConcurrentMultiMap[K, V]) AnyValueMatch(predicate func(key K, value V) bool) bool {
+	return m.Snapshot().AnyValueMatch(predicate)
+}
+
+// AllValuesMatch reports whether all values in a stable snapshot match predicate.
+func (m *ConcurrentMultiMap[K, V]) AllValuesMatch(predicate func(key K, value V) bool) bool {
+	return m.Snapshot().AllValuesMatch(predicate)
+}
+
+// FlattenValues returns all values from a stable snapshot.
+func (m *ConcurrentMultiMap[K, V]) FlattenValues() *collectionlist.List[V] {
+	return m.Snapshot().FlattenValues()
 }
 
 // Range iterates key-values snapshots until fn returns false.

@@ -87,14 +87,14 @@ func (pf *ProfileFilter) IsActive(mod Module) bool {
 }
 
 // FilterModules returns only the modules that are active for the current profile.
-func (pf *ProfileFilter) FilterModules(modules []Module) []Module {
+func (pf *ProfileFilter) FilterModules(modules []Module) collectionx.List[Module] {
 	filtered, err := flattenModules(modules, pf.profile)
 	if err != nil {
-		return nil
+		return collectionx.NewList[Module]()
 	}
-	return lo.Map(filtered.Values(), func(spec *moduleSpec, _ int) Module {
+	return collectionx.NewList(lo.Map(filtered.Values(), func(spec *moduleSpec, _ int) Module {
 		return Module{spec: spec}
-	})
+	})...)
 }
 
 // Profiles is the shared profile helper instance.

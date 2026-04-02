@@ -123,11 +123,11 @@ func NewMapperWithOptions[E any](schema SchemaResource, opts ...MapperOption) (M
 	}, nil
 }
 
-func (m Mapper[E]) Fields() []MappedField {
+func (m Mapper[E]) Fields() collectionx.List[MappedField] {
 	if m.byColumn.Len() == 0 {
-		return nil
+		return collectionx.NewList[MappedField]()
 	}
-	return m.fields.Values()
+	return m.fields.Clone()
 }
 
 func (m Mapper[E]) FieldByColumn(column string) (MappedField, bool) {
@@ -137,11 +137,11 @@ func (m Mapper[E]) FieldByColumn(column string) (MappedField, bool) {
 	return m.byColumn.Get(column)
 }
 
-func (m StructMapper[E]) Fields() []MappedField {
+func (m StructMapper[E]) Fields() collectionx.List[MappedField] {
 	if m.meta == nil {
-		return nil
+		return collectionx.NewList[MappedField]()
 	}
-	return m.meta.fields.Values()
+	return m.meta.fields.Clone()
 }
 
 func (m StructMapper[E]) FieldByColumn(column string) (MappedField, bool) {

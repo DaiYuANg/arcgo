@@ -232,3 +232,43 @@ func (l *ConcurrentList[T]) ensureInitLocked() {
 		l.core = NewList[T]()
 	}
 }
+
+// Where returns a filtered snapshot list.
+func (l *ConcurrentList[T]) Where(predicate func(index int, item T) bool) *List[T] {
+	return l.Snapshot().Where(predicate)
+}
+
+// Reject returns a filtered snapshot list that excludes matching items.
+func (l *ConcurrentList[T]) Reject(predicate func(index int, item T) bool) *List[T] {
+	return l.Snapshot().Reject(predicate)
+}
+
+// Take returns the first n items from a stable snapshot.
+func (l *ConcurrentList[T]) Take(n int) *List[T] {
+	return l.Snapshot().Take(n)
+}
+
+// Drop returns a stable snapshot without the first n items.
+func (l *ConcurrentList[T]) Drop(n int) *List[T] {
+	return l.Snapshot().Drop(n)
+}
+
+// Each iterates a stable snapshot and returns it for chaining.
+func (l *ConcurrentList[T]) Each(fn func(index int, item T)) *List[T] {
+	return l.Snapshot().Each(fn)
+}
+
+// FirstWhere returns the first item matching predicate from a stable snapshot.
+func (l *ConcurrentList[T]) FirstWhere(predicate func(index int, item T) bool) mo.Option[T] {
+	return l.Snapshot().FirstWhere(predicate)
+}
+
+// AnyMatch reports whether any item in a stable snapshot matches predicate.
+func (l *ConcurrentList[T]) AnyMatch(predicate func(index int, item T) bool) bool {
+	return l.Snapshot().AnyMatch(predicate)
+}
+
+// AllMatch reports whether all items in a stable snapshot match predicate.
+func (l *ConcurrentList[T]) AllMatch(predicate func(index int, item T) bool) bool {
+	return l.Snapshot().AllMatch(predicate)
+}

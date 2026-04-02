@@ -9,6 +9,7 @@ import (
 	"github.com/DaiYuANg/arcgo/observabilityx"
 	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/panjf2000/ants/v2"
+	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -115,6 +116,19 @@ func (b *Bus) SubscriberCount() int {
 		return 0
 	}
 	return b.subsByType.Len()
+}
+
+// GetHandlersGroupedByEventType returns a snapshot of active handlers grouped by event type.
+func (b *Bus) GetHandlersGroupedByEventType() collectionx.MultiMap[reflect.Type, HandlerFunc] {
+	if b == nil {
+		return collectionx.NewMultiMap[reflect.Type, HandlerFunc]()
+	}
+
+	grouped := collectionx.NewMultiMapWithCapacity[reflect.Type, HandlerFunc](b.subsByType.RowCount())
+	lo.ForEach(b.subsByType.RowKeys(), func(eventType reflect.Type, _ int) {
+		grouped.Set(eventType, b.snapshotHandlersByEventType(eventType)...)
+	})
+	return grouped
 }
 
 func (b *Bus) beginDispatch() bool {

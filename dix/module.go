@@ -1,5 +1,6 @@
 package dix
 
+import "github.com/DaiYuANg/arcgo/collectionx"
 import "github.com/DaiYuANg/arcgo/pkg/option"
 
 // ModuleOption configures a Module during construction.
@@ -29,17 +30,17 @@ func (m Module) Description() string {
 }
 
 // Tags returns the module tags.
-func (m Module) Tags() []string {
+func (m Module) Tags() collectionx.OrderedSet[string] {
 	if m.spec == nil {
-		return nil
+		return collectionx.NewOrderedSet[string]()
 	}
-	return m.spec.tags.Values()
+	return m.spec.tags.Clone()
 }
 
 // Imports returns the imported modules.
-func (m Module) Imports() []Module {
+func (m Module) Imports() collectionx.List[Module] {
 	if m.spec == nil {
-		return nil
+		return collectionx.NewList[Module]()
 	}
-	return m.spec.imports.Values()
+	return m.spec.imports.Clone()
 }

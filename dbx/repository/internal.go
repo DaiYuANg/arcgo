@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -16,11 +17,10 @@ type countRow struct {
 }
 
 func (r *Base[E, S]) defaultSelect() *dbx.SelectQuery {
-	fields := r.mapper.Fields()
-	items := lo.Map(fields, func(field dbx.MappedField, _ int) dbx.SelectItem {
+	items := collectionx.MapList(r.mapper.Fields(), func(_ int, field dbx.MappedField) dbx.SelectItem {
 		return dbx.NamedColumn[any](r.schema, field.Column)
 	})
-	return dbx.Select(items...).From(r.schema)
+	return dbx.Select(items.Values()...).From(r.schema)
 }
 
 func (r *Base[E, S]) applySpecs(specs ...Spec) *dbx.SelectQuery {

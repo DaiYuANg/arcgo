@@ -60,7 +60,7 @@ func TestServer_GroupGetSSE_WithBasePath(t *testing.T) {
 	assert.Contains(t, rec.Header().Get("Content-Type"), "text/event-stream")
 	assert.Contains(t, rec.Body.String(), `"message":"hello"`)
 	assert.True(t, server.HasRoute(http.MethodGet, "/api/v1/events"))
-	assert.Len(t, server.GetRoutesByPath("/api/v1"), 1)
+	assert.Equal(t, 1, server.GetRoutesByPath("/api/v1").Len())
 
 	pathItem := server.OpenAPI().Paths["/api/v1/events"]
 	if assert.NotNil(t, pathItem) && assert.NotNil(t, pathItem.Get) {

@@ -35,7 +35,7 @@ func TestNewModule_StoresCollectionBackedSpec(t *testing.T) {
 	assert.Equal(t, 2, mod.spec.profiles.Len())
 	assert.True(t, mod.spec.excludeProfiles.Contains(ProfileTest))
 	assert.Equal(t, 1, mod.spec.excludeProfiles.Len())
-	assert.Equal(t, []string{"http", "core"}, mod.Tags())
+	assert.Equal(t, []string{"http", "core"}, mod.Tags().Values())
 }
 
 func TestWithDebugNamedServiceDependencies_Deduplicates(t *testing.T) {

@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	"github.com/DaiYuANg/arcgo/pkg/option"
 )
@@ -135,11 +136,11 @@ func (a *App) Meta() AppMeta {
 }
 
 // Modules returns the configured application modules.
-func (a *App) Modules() []Module {
+func (a *App) Modules() collectionx.List[Module] {
 	if a == nil || a.spec == nil {
-		return nil
+		return collectionx.NewList[Module]()
 	}
-	return a.spec.modules.Values()
+	return a.spec.modules.Clone()
 }
 
 // Build compiles the immutable App spec into a Runtime.

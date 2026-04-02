@@ -115,8 +115,8 @@ func TestMustMapperBuildsEntityMappingOnly(t *testing.T) {
 	mapper := MustMapper[User](users)
 
 	fields := mapper.Fields()
-	if len(fields) != 5 {
-		t.Fatalf("unexpected mapped fields count: %d", len(fields))
+	if fields.Len() != 5 {
+		t.Fatalf("unexpected mapped fields count: %d", fields.Len())
 	}
 	field, ok := mapper.FieldByColumn("role_id")
 	if !ok || field.Name != "RoleID" {

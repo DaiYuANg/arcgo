@@ -113,8 +113,8 @@ func TestStructMapperSupportsNamedInlineFields(t *testing.T) {
 	mapper := MustStructMapper[auditedUser]()
 
 	fields := mapper.Fields()
-	if len(fields) != 3 {
-		t.Fatalf("unexpected mapped field count: %d", len(fields))
+	if fields.Len() != 3 {
+		t.Fatalf("unexpected mapped field count: %d", fields.Len())
 	}
 	createdBy, ok := mapper.FieldByColumn("created_by")
 	if !ok {

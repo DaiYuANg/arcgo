@@ -125,21 +125,29 @@ func TestServer_GetRoutesAndFilters(t *testing.T) {
 	assert.NoError(t, err)
 
 	routes := server.GetRoutes()
-	assert.Len(t, routes, 1)
-	assert.Equal(t, http.MethodGet, routes[0].Method)
+	assert.Equal(t, 1, routes.Len())
+	firstRoute, ok := routes.Get(0)
+	assert.True(t, ok)
+	assert.Equal(t, http.MethodGet, firstRoute.Method)
 
 	getRoutes := server.GetRoutesByMethod(http.MethodGet)
-	assert.Len(t, getRoutes, 1)
-	getRoutes[0].Path = "/mutated"
-	assert.Equal(t, "/users", server.GetRoutesByMethod(http.MethodGet)[0].Path)
+	assert.Equal(t, 1, getRoutes.Len())
+	mutatedRoute, ok := getRoutes.Get(0)
+	assert.True(t, ok)
+	mutatedRoute.Path = "/mutated"
+	assert.True(t, getRoutes.Set(0, mutatedRoute))
+	refreshedGetRoutes := server.GetRoutesByMethod(http.MethodGet)
+	refreshedRoute, ok := refreshedGetRoutes.Get(0)
+	assert.True(t, ok)
+	assert.Equal(t, "/users", refreshedRoute.Path)
 
 	grouped := server.GetRoutesGroupedByMethod()
 	assert.Len(t, grouped.Get(http.MethodGet), 1)
 	grouped.Set(http.MethodGet)
-	assert.Len(t, server.GetRoutesByMethod(http.MethodGet), 1)
+	assert.Equal(t, 1, server.GetRoutesByMethod(http.MethodGet).Len())
 
 	pathRoutes := server.GetRoutesByPath("/users")
-	assert.Len(t, pathRoutes, 1)
+	assert.Equal(t, 1, pathRoutes.Len())
 
 	assert.True(t, server.HasRoute(http.MethodGet, "/users"))
 

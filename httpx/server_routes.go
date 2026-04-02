@@ -11,17 +11,17 @@ import (
 )
 
 // GetRoutes returns related data.
-func (s *Server) GetRoutes() []RouteInfo {
-	return s.routesSnapshot()
+func (s *Server) GetRoutes() collectionx.List[RouteInfo] {
+	return collectionx.NewList(s.routesSnapshot()...)
 }
 
 // GetRoutesByMethod returns routes matching the given HTTP method.
-func (s *Server) GetRoutesByMethod(method string) []RouteInfo {
+func (s *Server) GetRoutesByMethod(method string) collectionx.List[RouteInfo] {
 	method = strings.ToUpper(method)
 	if s == nil || method == "" {
-		return nil
+		return collectionx.NewList[RouteInfo]()
 	}
-	return s.routesByMethod.GetCopy(method)
+	return collectionx.NewList(s.routesByMethod.GetCopy(method)...)
 }
 
 // GetRoutesGroupedByMethod returns a stable snapshot of routes keyed by HTTP method.
@@ -33,13 +33,13 @@ func (s *Server) GetRoutesGroupedByMethod() collectionx.MultiMap[string, RouteIn
 }
 
 // GetRoutesByPath returns routes whose path starts with the given prefix.
-func (s *Server) GetRoutesByPath(prefix string) []RouteInfo {
+func (s *Server) GetRoutesByPath(prefix string) collectionx.List[RouteInfo] {
 	if prefix == "" {
-		return s.routesSnapshot()
+		return s.GetRoutes()
 	}
-	return lo.Filter(s.routesSnapshot(), func(route RouteInfo, _ int) bool {
+	return collectionx.NewList(lo.Filter(s.routesSnapshot(), func(route RouteInfo, _ int) bool {
 		return strings.HasPrefix(route.Path, prefix)
-	})
+	})...)
 }
 
 // HasRoute reports whether a route has been registered.

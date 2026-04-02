@@ -126,13 +126,13 @@ func normalizeConflictColumns(columns, fallback []string) []string {
 	return ordered.Values()
 }
 
-func upsertUpdateAssignments[S dbx.TableSource](schema S, fields []dbx.MappedField, conflictColumns []string) []dbx.Assignment {
+func upsertUpdateAssignments[S dbx.TableSource](schema S, fields collectionx.List[dbx.MappedField], conflictColumns []string) []dbx.Assignment {
 	conflictSet := collectionx.NewSetWithCapacity[string](len(conflictColumns))
 	conflictSet.Add(conflictColumns...)
-	return lo.FilterMap(fields, func(field dbx.MappedField, _ int) (dbx.Assignment, bool) {
+	return collectionx.FilterMapList(fields, func(_ int, field dbx.MappedField) (dbx.Assignment, bool) {
 		if conflictSet.Contains(field.Column) {
 			return nil, false
 		}
 		return dbx.NamedColumn[any](schema, field.Column).SetExcluded(), true
-	})
+	}).Values()
 }

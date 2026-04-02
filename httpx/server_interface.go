@@ -38,10 +38,10 @@ type ServerRuntime interface {
 	RegisterGlobalHeader(*huma.Param)
 
 	Group(prefix string) *Group
-	GetRoutes() []RouteInfo
-	GetRoutesByMethod(method string) []RouteInfo
+	GetRoutes() collectionx.List[RouteInfo]
+	GetRoutesByMethod(method string) collectionx.List[RouteInfo]
 	GetRoutesGroupedByMethod() collectionx.MultiMap[string, RouteInfo]
-	GetRoutesByPath(prefix string) []RouteInfo
+	GetRoutesByPath(prefix string) collectionx.List[RouteInfo]
 	HasRoute(method, path string) bool
 	RouteCount() int
 	Register(endpoint Endpoint, hooks ...EndpointHooks)

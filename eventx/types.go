@@ -18,6 +18,7 @@ type BusRuntime interface {
 	PublishAsync(ctx context.Context, event Event) error
 	Close() error
 	SubscriberCount() int
+	GetHandlersGroupedByEventType() collectionx.MultiMap[reflect.Type, HandlerFunc]
 
 	// subscribe is intentionally unexported so only eventx's own implementation
 	// can satisfy BusRuntime.

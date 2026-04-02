@@ -1,11 +1,12 @@
 package dbx
 
 import (
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
 type fieldMapper interface {
-	Fields() []MappedField
+	Fields() collectionx.List[MappedField]
 }
 
 func ProjectionOf(schema SchemaResource, mapper fieldMapper) ([]SelectItem, error) {
@@ -42,18 +43,18 @@ func projectionOfDefinition(definition schemaDefinition, mapper fieldMapper) ([]
 		return column.Name, column
 	})
 
-	items := lo.FilterMap(fields, func(field MappedField, _ int) (SelectItem, bool) {
-		column, ok := columns[field.Column]
-		if !ok {
-			return nil, false
-		}
-		return schemaSelectItem{meta: column}, true
-	})
-	if unmapped, ok := lo.Find(fields, func(field MappedField) bool {
+	if unmapped, ok := collectionx.FindList(fields, func(_ int, field MappedField) bool {
 		_, ok := columns[field.Column]
 		return !ok
 	}); ok {
 		return nil, &UnmappedColumnError{Column: unmapped.Column}
 	}
-	return items, nil
+
+	return collectionx.FilterMapList(fields, func(_ int, field MappedField) (SelectItem, bool) {
+		column, ok := columns[field.Column]
+		if !ok {
+			return nil, false
+		}
+		return schemaSelectItem{meta: column}, true
+	}).Values(), nil
 }

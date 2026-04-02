@@ -28,10 +28,22 @@ type listWritable[T any] interface {
 	clearable
 }
 
+type listFluent[T any] interface {
+	Where(predicate func(index int, item T) bool) *list.List[T]
+	Reject(predicate func(index int, item T) bool) *list.List[T]
+	Take(n int) *list.List[T]
+	Drop(n int) *list.List[T]
+	Each(fn func(index int, item T)) *list.List[T]
+	FirstWhere(predicate func(index int, item T) bool) mo.Option[T]
+	AnyMatch(predicate func(index int, item T) bool) bool
+	AllMatch(predicate func(index int, item T) bool) bool
+}
+
 // List is the root list interface exposed by collectionx.
 type List[T any] interface {
 	listReadable[T]
 	listWritable[T]
+	listFluent[T]
 	Merge(other *list.List[T]) *list.List[T]
 	MergeSlice(items []T) *list.List[T]
 	clonable[*list.List[T]]
@@ -62,6 +74,7 @@ func NewRopeListWithCapacity[T any](capacity int, items ...T) *list.RopeList[T] 
 type ConcurrentList[T any] interface {
 	listReadable[T]
 	listWritable[T]
+	listFluent[T]
 	Merge(other *list.List[T]) *list.ConcurrentList[T]
 	MergeSlice(items []T) *list.ConcurrentList[T]
 	MergeConcurrent(other *list.ConcurrentList[T]) *list.ConcurrentList[T]

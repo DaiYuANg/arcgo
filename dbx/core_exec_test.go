@@ -208,7 +208,7 @@ func TestMapperBuildsAssignmentsAndPrimaryPredicate(t *testing.T) {
 
 	insertAssignments := mustInsertAssignments(t, mapper, users, entity)
 	if len(insertAssignments) != 4 {
-		t.Fatalf("unexpected insert assignment count: %d fields=%+v columns=%+v", len(insertAssignments), mapper.Fields(), users.Columns())
+		t.Fatalf("unexpected insert assignment count: %d fields=%+v columns=%+v", len(insertAssignments), mapper.Fields().Values(), users.Columns())
 	}
 	insertBound, err := InsertInto(users).Values(insertAssignments...).Build(testSQLiteDialect{})
 	if err != nil {

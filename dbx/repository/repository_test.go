@@ -79,10 +79,12 @@ func TestBaseCreateListAndFirst(t *testing.T) {
 
 	items, err := repo.List(ctx, nil)
 	require.NoError(t, err)
-	require.Len(t, items, 1)
-	require.Equal(t, "alice", items[0].Name)
+	require.Equal(t, 1, items.Len())
+	item, ok := items.Get(0)
+	require.True(t, ok)
+	require.Equal(t, "alice", item.Name)
 
-	item, err := repo.First(ctx, dbx.Select(users.AllColumns()...).From(users).Where(users.Name.Eq("alice")))
+	item, err = repo.First(ctx, dbx.Select(users.AllColumns()...).From(users).Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 	require.Equal(t, "alice", item.Name)
 }
@@ -124,7 +126,7 @@ func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 	require.EqualValues(t, 2, page.Total)
 	require.Equal(t, 1, page.Page)
 	require.Equal(t, 1, page.PageSize)
-	require.Len(t, page.Items, 1)
+	require.Equal(t, 1, page.Items.Len())
 
 	_, err = repo.DeleteByID(ctx, alice.ID)
 	require.NoError(t, err)

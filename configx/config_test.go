@@ -142,12 +142,12 @@ func TestGetters(t *testing.T) {
 	assert.Equal(t, 1234, cfg.GetInt("app.port"))
 	assert.True(t, cfg.GetBool("app.debug"))
 	assert.Equal(t, 5, int(cfg.GetDuration("app.timeout").Seconds()))
-	assert.Equal(t, []string{"x", "y"}, cfg.GetStringSlice("app.tags"))
+	assert.Equal(t, []string{"x", "y"}, cfg.GetStringSlice("app.tags").Values())
 	assert.Equal(t, 0.75, cfg.GetFloat64("app.ratio"))
 	assert.True(t, cfg.Exists("app.name"))
 	assert.False(t, cfg.Exists("missing"))
 	assert.Equal(t, int64(1234), cfg.GetInt64("app.port"))
-	assert.Equal(t, []int{1, 2, 3}, cfg.GetIntSlice("app.ids"))
+	assert.Equal(t, []int{1, 2, 3}, cfg.GetIntSlice("app.ids").Values())
 }
 
 func TestWithIgnoreDotenvError(t *testing.T) {

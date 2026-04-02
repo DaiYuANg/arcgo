@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -110,7 +111,7 @@ func TestFlattenModules_VisitorOrderIsDependencyFirst(t *testing.T) {
 	left := NewModule("left", WithModuleImports(shared))
 	root := NewModule("root", WithModuleImports(left))
 
-	modules, err := flattenModules([]Module{root}, ProfileDefault)
+	modules, err := flattenModules(collectionx.NewList(root), ProfileDefault)
 	require.NoError(t, err)
 	require.Len(t, modules.Values(), 3)
 	assert.Equal(t, []string{"shared", "left", "root"}, []string{
@@ -127,7 +128,7 @@ func TestWalkModules_DetectsImportCycle(t *testing.T) {
 	left.imports.Add(Module{spec: right})
 	right.imports.Add(Module{spec: left})
 
-	err := walkModules([]Module{{spec: left}}, ProfileDefault, moduleVisitorFuncs{})
+	err := walkModules(collectionx.NewList(Module{spec: left}), ProfileDefault, moduleVisitorFuncs{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "module import cycle detected")
 	assert.Contains(t, err.Error(), "left")

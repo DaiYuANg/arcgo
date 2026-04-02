@@ -220,3 +220,15 @@ func (l *List[T]) Clone() *List[T] {
 	}
 	return &List[T]{items: slices.Clone(l.items)}
 }
+
+// Sort sorts items in place and returns the receiver for chaining.
+func (l *List[T]) Sort(compare func(left, right T) int) *List[T] {
+	if l == nil {
+		return NewList[T]()
+	}
+	if compare == nil || len(l.items) < 2 {
+		return l
+	}
+	slices.SortFunc(l.items, compare)
+	return l
+}

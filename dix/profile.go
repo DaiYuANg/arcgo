@@ -86,7 +86,7 @@ func (pf *ProfileFilter) IsActive(mod Module) bool {
 }
 
 // FilterModules returns only the modules that are active for the current profile.
-func (pf *ProfileFilter) FilterModules(modules []Module) collectionx.List[Module] {
+func (pf *ProfileFilter) FilterModules(modules collectionx.List[Module]) collectionx.List[Module] {
 	filtered, err := flattenModules(modules, pf.profile)
 	if err != nil {
 		return collectionx.NewList[Module]()

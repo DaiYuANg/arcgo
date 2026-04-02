@@ -57,8 +57,8 @@ func (v moduleVisitorFuncs) Leave(ctx moduleVisitContext, spec *moduleSpec) erro
 }
 
 // flattenModules walks active modules in dependency order and returns leaf-first results.
-func flattenModules(modules []Module, profile Profile) (*collectionlist.List[*moduleSpec], error) {
-	return flattenModuleList(collectionlist.NewListWithCapacity[Module](len(modules), modules...), profile)
+func flattenModules(modules *collectionlist.List[Module], profile Profile) (*collectionlist.List[*moduleSpec], error) {
+	return flattenModuleList(modules, profile)
 }
 
 func flattenModuleList(modules *collectionlist.List[Module], profile Profile) (*collectionlist.List[*moduleSpec], error) {
@@ -83,8 +83,8 @@ func flattenModuleList(modules *collectionlist.List[Module], profile Profile) (*
 	return result, nil
 }
 
-func walkModules(modules []Module, profile Profile, visitor moduleVisitor) error {
-	return walkModuleList(collectionlist.NewListWithCapacity[Module](len(modules), modules...), profile, visitor)
+func walkModules(modules *collectionlist.List[Module], profile Profile, visitor moduleVisitor) error {
+	return walkModuleList(modules, profile, visitor)
 }
 
 func walkModuleList(modules *collectionlist.List[Module], profile Profile, visitor moduleVisitor) error {

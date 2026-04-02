@@ -5,7 +5,7 @@ import (
 	"io/fs"
 	"strings"
 
-	"github.com/samber/lo"
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 type loadedSQLMigration struct {
@@ -16,13 +16,13 @@ type loadedSQLMigration struct {
 	checksum string
 }
 
-func loadSQLMigrations(source FileSource) ([]loadedSQLMigration, error) {
+func loadSQLMigrations(source FileSource) (collectionx.List[loadedSQLMigration], error) {
 	items, err := source.List()
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: list sql migrations: %w", err)
 	}
 
-	loaded, err := lo.ReduceErr(items, func(result []loadedSQLMigration, migration SQLMigration, _ int) ([]loadedSQLMigration, error) {
+	loaded, err := collectionx.ReduceErrList(items, collectionx.NewListWithCapacity[loadedSQLMigration](items.Len()), func(result collectionx.List[loadedSQLMigration], _ int, migration SQLMigration) (collectionx.List[loadedSQLMigration], error) {
 		if migration.UpPath == "" {
 			return result, nil
 		}
@@ -30,8 +30,9 @@ func loadSQLMigrations(source FileSource) ([]loadedSQLMigration, error) {
 		if loadErr != nil {
 			return nil, loadErr
 		}
-		return lo.Concat(result, []loadedSQLMigration{item}), nil
-	}, make([]loadedSQLMigration, 0, len(items)))
+		result.Add(item)
+		return result, nil
+	})
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: load sql migrations: %w", err)
 	}

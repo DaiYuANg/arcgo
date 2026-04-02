@@ -3,7 +3,6 @@ package list
 import (
 	"sync"
 
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -114,10 +113,17 @@ func (r *ConcurrentRingBuffer[T]) Range(fn func(index int, item T) bool) {
 	if fn == nil {
 		return
 	}
-	values := r.Values()
-	lo.EveryBy(lo.Range(len(values)), func(index int) bool {
-		return fn(index, values[index])
-	})
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	if r.buffer == nil || r.buffer.size == 0 {
+		return
+	}
+	for index := range r.buffer.size {
+		item := r.buffer.buf[(r.buffer.head+index)%len(r.buffer.buf)]
+		if !fn(index, item) {
+			return
+		}
+	}
 }
 
 // Snapshot returns an immutable-style copy in a normal RingBuffer.
@@ -134,8 +140,9 @@ func (r *ConcurrentRingBuffer[T]) Snapshot() *RingBuffer[T] {
 	}
 
 	out = NewRingBuffer[T](r.buffer.Capacity())
-	lo.ForEach(r.buffer.Values(), func(item T, _ int) {
+	for index := range r.buffer.size {
+		item := r.buffer.buf[(r.buffer.head+index)%len(r.buffer.buf)]
 		_ = out.Push(item)
-	})
+	}
 	return out
 }

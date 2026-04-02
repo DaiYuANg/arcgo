@@ -25,7 +25,7 @@ type goEngineBuildState struct {
 type sqlEngineBuildState struct {
 	gooseMigrations []*goose.Migration
 	metaByVersion   collectionx.Map[int64, AppliedRecord]
-	repeatables     []loadedSQLMigration
+	repeatables     collectionx.List[loadedSQLMigration]
 }
 
 func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, error) {
@@ -63,18 +63,22 @@ func (r *Runner) newRunnerEngineForGo(migrations []Migration) (*runnerEngine, er
 	return r.newRunnerEngine(state.gooseMigrations, state.metaByVersion)
 }
 
-func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, []loadedSQLMigration, error) {
+func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, collectionx.List[loadedSQLMigration], error) {
 	loaded, err := loadSQLMigrations(source)
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(loaded) == 0 {
+	if loaded.Len() == 0 {
 		return nil, nil, nil
 	}
 
-	state, err := lo.ReduceErr(loaded, func(state sqlEngineBuildState, migration loadedSQLMigration, _ int) (sqlEngineBuildState, error) {
+	state, err := collectionx.ReduceErrList(loaded, sqlEngineBuildState{
+		gooseMigrations: make([]*goose.Migration, 0, loaded.Len()),
+		metaByVersion:   collectionx.NewMapWithCapacity[int64, AppliedRecord](loaded.Len()),
+		repeatables:     collectionx.NewListWithCapacity[loadedSQLMigration](loaded.Len()),
+	}, func(state sqlEngineBuildState, _ int, migration loadedSQLMigration) (sqlEngineBuildState, error) {
 		if migration.kind == KindRepeatable {
-			state.repeatables = lo.Concat(state.repeatables, []loadedSQLMigration{migration})
+			state.repeatables.Add(migration)
 			return state, nil
 		}
 
@@ -96,10 +100,6 @@ func (r *Runner) newRunnerEngineForSQL(source FileSource) (*runnerEngine, []load
 			Success:     true,
 		})
 		return state, nil
-	}, sqlEngineBuildState{
-		gooseMigrations: make([]*goose.Migration, 0, len(loaded)),
-		metaByVersion:   collectionx.NewMapWithCapacity[int64, AppliedRecord](len(loaded)),
-		repeatables:     make([]loadedSQLMigration, 0, len(loaded)),
 	})
 	if err != nil {
 		return nil, nil, fmt.Errorf("dbx/migrate: build sql migration engine state: %w", err)

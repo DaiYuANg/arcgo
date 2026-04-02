@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -190,7 +189,7 @@ func ParseVersionedFilename(name string) (VersionedFile, error) {
 }
 
 // List returns the SQL migrations discovered in s.
-func (s FileSource) List() ([]SQLMigration, error) {
+func (s FileSource) List() (collectionx.List[SQLMigration], error) {
 	entries, err := s.readEntries()
 	if err != nil {
 		return nil, err
@@ -258,20 +257,31 @@ func setSQLMigrationPath(migration *SQLMigration, direction Direction, fullPath 
 	migration.DownPath = fullPath
 }
 
-func sortedSQLMigrations(items collectionx.Map[string, *SQLMigration]) []SQLMigration {
-	itemsSlice := lo.Map(items.Values(), func(migration *SQLMigration, _ int) SQLMigration {
-		return *migration
+func sortedSQLMigrations(items collectionx.Map[string, *SQLMigration]) collectionx.List[SQLMigration] {
+	sorted := collectionx.NewListWithCapacity[SQLMigration](items.Len())
+	items.Range(func(_ string, migration *SQLMigration) bool {
+		sorted.Add(*migration)
+		return true
 	})
-	sort.Slice(itemsSlice, func(i, j int) bool {
-		if itemsSlice[i].Repeatable != itemsSlice[j].Repeatable {
-			return !itemsSlice[i].Repeatable
+	return sorted.Sort(func(left, right SQLMigration) int {
+		switch {
+		case left.Repeatable != right.Repeatable:
+			if left.Repeatable {
+				return 1
+			}
+			return -1
+		case left.Version < right.Version:
+			return -1
+		case left.Version > right.Version:
+			return 1
+		case left.Description < right.Description:
+			return -1
+		case left.Description > right.Description:
+			return 1
+		default:
+			return 0
 		}
-		if itemsSlice[i].Version != itemsSlice[j].Version {
-			return itemsSlice[i].Version < itemsSlice[j].Version
-		}
-		return itemsSlice[i].Description < itemsSlice[j].Description
 	})
-	return itemsSlice
 }
 
 // safeJoinPath joins base and name, returning an error if the result escapes base (path traversal).

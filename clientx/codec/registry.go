@@ -3,9 +3,9 @@ package codec
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
@@ -79,10 +79,22 @@ func (r *Registry) Must(name string) Codec {
 }
 
 // Names returns the registered codec names in sorted order.
-func (r *Registry) Names() []string {
-	names := r.codecs.Keys()
-	sort.Strings(names)
-	return names
+func (r *Registry) Names() collectionx.List[string] {
+	names := collectionx.NewListWithCapacity[string](r.codecs.Len())
+	r.codecs.Range(func(name string, _ Codec) bool {
+		names.Add(name)
+		return true
+	})
+	return names.Sort(func(left, right string) int {
+		switch {
+		case left < right:
+			return -1
+		case left > right:
+			return 1
+		default:
+			return 0
+		}
+	})
 }
 
 var defaultRegistry = NewRegistry(
@@ -112,7 +124,7 @@ func Must(name string) Codec {
 }
 
 // Names returns the codec names from the default registry.
-func Names() []string {
+func Names() collectionx.List[string] {
 	return defaultRegistry.Names()
 }
 

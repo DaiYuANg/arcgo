@@ -19,7 +19,7 @@ func (r *Runner) EnsureHistory(ctx context.Context) error {
 }
 
 // Applied returns all applied migration records from the history table.
-func (r *Runner) Applied(ctx context.Context) (_ []AppliedRecord, resultErr error) {
+func (r *Runner) Applied(ctx context.Context) (_ collectionx.List[AppliedRecord], resultErr error) {
 	if r == nil || r.db == nil {
 		return nil, sql.ErrConnDone
 	}
@@ -67,7 +67,7 @@ func (r *Runner) queryAppliedRows(ctx context.Context) (*sql.Rows, error) {
 	return rows, nil
 }
 
-func collectAppliedRecords(rows *sql.Rows) ([]AppliedRecord, error) {
+func collectAppliedRecords(rows *sql.Rows) (collectionx.List[AppliedRecord], error) {
 	items := collectionx.NewListWithCapacity[AppliedRecord](8)
 	for rows.Next() {
 		record, scanErr := scanAppliedRecord(rows)
@@ -79,7 +79,7 @@ func collectAppliedRecords(rows *sql.Rows) ([]AppliedRecord, error) {
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("dbx/migrate: iterate applied rows: %w", err)
 	}
-	return items.Values(), nil
+	return items, nil
 }
 
 func closeSQLRows(rows *sql.Rows, description string, currentErr error) error {

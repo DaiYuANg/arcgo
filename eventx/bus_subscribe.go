@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"sync"
 	"sync/atomic"
-
-	"github.com/samber/lo"
 )
 
 // Subscribe registers a strongly typed handler and returns an unsubscribe function.
@@ -87,12 +85,13 @@ func (b *Bus) snapshotHandlersByEventType(eventType reflect.Type) []HandlerFunc 
 		return nil
 	}
 
-	snapshot := lo.FilterMap(lo.Values(row), func(sub *subscription, _ int) (HandlerFunc, bool) {
+	snapshot := make([]HandlerFunc, 0, len(row))
+	for _, sub := range row {
 		if sub == nil || sub.handler == nil {
-			return nil, false
+			continue
 		}
-		return sub.handler, true
-	})
+		snapshot = append(snapshot, sub.handler)
+	}
 	b.handlerCache.Set(eventType, snapshot)
 	b.logger.Debug("handler snapshot rebuilt",
 		"event_type", eventType.String(),

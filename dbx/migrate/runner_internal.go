@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
-	"github.com/samber/lo"
 )
 
 const timeLayout = "2006-01-02T15:04:05.999999999Z07:00"
@@ -18,8 +18,8 @@ func appliedRecordKey(kind Kind, version, description string) string {
 	return string(kind) + "\x1f" + version + "\x1f" + description
 }
 
-func indexAppliedRecords(records []AppliedRecord) map[string]AppliedRecord {
-	return lo.Associate(records, func(record AppliedRecord) (string, AppliedRecord) {
+func indexAppliedRecords(records collectionx.List[AppliedRecord]) map[string]AppliedRecord {
+	return collectionx.AssociateList(records, func(_ int, record AppliedRecord) (string, AppliedRecord) {
 		return appliedRecordKey(record.Kind, record.Version, record.Description), record
 	})
 }
@@ -123,10 +123,10 @@ func replaceAppliedRecordOnConn(ctx context.Context, conn interface {
 	return nil
 }
 
-func appliedRecordForVersion(items []AppliedRecord, record AppliedRecord) (AppliedRecord, error) {
-	found, ok := lo.Find(items, func(item AppliedRecord) bool {
+func appliedRecordForVersion(items collectionx.List[AppliedRecord], record AppliedRecord) (AppliedRecord, error) {
+	found, ok := items.FirstWhere(func(_ int, item AppliedRecord) bool {
 		return item.Kind == record.Kind && item.Version == record.Version && item.Description == record.Description
-	})
+	}).Get()
 	if !ok {
 		return AppliedRecord{}, fmt.Errorf("dbx/migrate: applied record not found for version %s", record.Version)
 	}

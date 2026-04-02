@@ -36,7 +36,7 @@ func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) ([]Migr
 }
 
 // PendingSQL returns SQL migrations that should be applied next.
-func (r *Runner) PendingSQL(ctx context.Context, source FileSource) ([]SQLMigration, error) {
+func (r *Runner) PendingSQL(ctx context.Context, source FileSource) (collectionx.List[SQLMigration], error) {
 	bundle, repeatables, err := r.newRunnerEngineForSQL(source)
 	if err != nil {
 		return nil, err
@@ -52,11 +52,11 @@ func (r *Runner) PendingSQL(ctx context.Context, source FileSource) ([]SQLMigrat
 		if pendingErr != nil {
 			return nil, pendingErr
 		}
-		pending.Add(versionedPending...)
+		pending.Merge(versionedPending)
 	}
 
-	pending.Add(pendingRepeatableMigrations(repeatables, indexed)...)
-	return pending.Values(), nil
+	pending.Merge(pendingRepeatableMigrations(repeatables, indexed))
+	return pending, nil
 }
 
 func pendingStatuses(ctx context.Context, engine *goose.Provider, kind string) ([]*goose.MigrationStatus, error) {
@@ -125,7 +125,7 @@ func (r *Runner) pendingVersionedSQL(
 	source FileSource,
 	bundle *runnerEngine,
 	indexed map[string]AppliedRecord,
-) ([]SQLMigration, error) {
+) (collectionx.List[SQLMigration], error) {
 	statuses, err := pendingStatuses(ctx, bundle.engine, "sql")
 	if err != nil {
 		return nil, err
@@ -144,7 +144,7 @@ func indexVersionedSQLMigrations(source FileSource) (map[int64]SQLMigration, err
 		return nil, err
 	}
 
-	byVersion, err := lo.ReduceErr(loaded, func(result map[int64]SQLMigration, migration loadedSQLMigration, _ int) (map[int64]SQLMigration, error) {
+	byVersion, err := collectionx.ReduceErrList(loaded, make(map[int64]SQLMigration, loaded.Len()), func(result map[int64]SQLMigration, _ int, migration loadedSQLMigration) (map[int64]SQLMigration, error) {
 		if migration.Repeatable {
 			return result, nil
 		}
@@ -154,7 +154,7 @@ func indexVersionedSQLMigrations(source FileSource) (map[int64]SQLMigration, err
 		}
 		result[version] = migration.SQLMigration
 		return result, nil
-	}, make(map[int64]SQLMigration, len(loaded)))
+	})
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: index sql migrations by version: %w", err)
 	}
@@ -167,8 +167,8 @@ func collectPendingSQLMigrations(
 	indexed map[string]AppliedRecord,
 	byVersion map[int64]SQLMigration,
 	validateHash bool,
-) ([]SQLMigration, error) {
-	pending, err := lo.ReduceErr(statuses, func(result []SQLMigration, status *goose.MigrationStatus, _ int) ([]SQLMigration, error) {
+) (collectionx.List[SQLMigration], error) {
+	pending, err := lo.ReduceErr(statuses, func(result collectionx.List[SQLMigration], status *goose.MigrationStatus, _ int) (collectionx.List[SQLMigration], error) {
 		migration, ok := byVersion[status.Source.Version]
 		if !ok {
 			return result, nil
@@ -179,8 +179,9 @@ func collectPendingSQLMigrations(
 		if status.State != goose.StatePending {
 			return result, nil
 		}
-		return lo.Concat(result, []SQLMigration{migration}), nil
-	}, make([]SQLMigration, 0, len(statuses)))
+		result.Add(migration)
+		return result, nil
+	}, collectionx.NewListWithCapacity[SQLMigration](len(statuses)))
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: collect pending sql migrations: %w", err)
 	}
@@ -208,8 +209,8 @@ func validatePendingStatus(
 	return nil
 }
 
-func pendingRepeatableMigrations(repeatables []loadedSQLMigration, indexed map[string]AppliedRecord) []SQLMigration {
-	return lo.FilterMap(repeatables, func(migration loadedSQLMigration, _ int) (SQLMigration, bool) {
+func pendingRepeatableMigrations(repeatables collectionx.List[loadedSQLMigration], indexed map[string]AppliedRecord) collectionx.List[SQLMigration] {
+	return collectionx.FilterMapList(repeatables, func(_ int, migration loadedSQLMigration) (SQLMigration, bool) {
 		key := appliedRecordKey(migration.kind, migration.Version, migration.Description)
 		record, ok := indexed[key]
 		if ok && record.Checksum == migration.checksum {

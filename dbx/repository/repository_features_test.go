@@ -74,7 +74,7 @@ func TestBaseSpecAPIs(t *testing.T) {
 
 	items, err := repo.ListSpec(ctx, repository.Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
-	require.Len(t, items, 1)
+	require.Equal(t, 1, items.Len())
 
 	exists, err := repo.ExistsSpec(ctx, repository.Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
@@ -87,7 +87,7 @@ func TestBaseSpecAPIs(t *testing.T) {
 	page, err := repo.ListPageSpec(ctx, 1, 1, repository.OrderBy(users.Name.Asc()))
 	require.NoError(t, err)
 	require.EqualValues(t, 2, page.Total)
-	require.Len(t, page.Items, 1)
+	require.Equal(t, 1, page.Items.Len())
 }
 
 func TestBaseOptionAPIs(t *testing.T) {

@@ -98,3 +98,23 @@ func TestNewListWithCapacity(t *testing.T) {
 	l.Add(4, 5, 6, 7, 8)
 	require.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8}, l.Values())
 }
+
+func TestList_Sort(t *testing.T) {
+	t.Parallel()
+
+	l := list.NewList(3, 1, 2)
+
+	sorted := l.Sort(func(left, right int) int {
+		switch {
+		case left < right:
+			return -1
+		case left > right:
+			return 1
+		default:
+			return 0
+		}
+	})
+
+	require.Same(t, l, sorted)
+	require.Equal(t, []int{1, 2, 3}, l.Values())
+}

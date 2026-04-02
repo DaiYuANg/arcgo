@@ -4,27 +4,29 @@ import (
 	"context"
 	"errors"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 )
 
 // List returns every entity matched by the query.
-func (r *Base[E, S]) List(ctx context.Context, query *dbx.SelectQuery) ([]E, error) {
+func (r *Base[E, S]) List(ctx context.Context, query *dbx.SelectQuery) (collectionx.List[E], error) {
 	if r == nil || r.session == nil {
 		return nil, dbx.ErrNilDB
 	}
 	listQuery := cloneOrDefault(r, query)
 	dbx.LogRuntimeNode(r.session, "repository.list.start", "table", r.schema.TableName(), "has_query", query != nil)
-	items, err := dbx.QueryAll[E](ctx, r.session, listQuery, r.mapper)
+	rows, err := dbx.QueryAll[E](ctx, r.session, listQuery, r.mapper)
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.list.error", "table", r.schema.TableName(), "error", err)
 		return nil, err
 	}
-	dbx.LogRuntimeNode(r.session, "repository.list.done", "table", r.schema.TableName(), "items", len(items))
+	items := collectionx.NewListWithCapacity[E](len(rows), rows...)
+	dbx.LogRuntimeNode(r.session, "repository.list.done", "table", r.schema.TableName(), "items", items.Len())
 	return items, nil
 }
 
 // ListSpec returns every entity matched by the provided specs.
-func (r *Base[E, S]) ListSpec(ctx context.Context, specs ...Spec) ([]E, error) {
+func (r *Base[E, S]) ListSpec(ctx context.Context, specs ...Spec) (collectionx.List[E], error) {
 	return r.List(ctx, r.applySpecs(specs...))
 }
 
@@ -121,7 +123,7 @@ func (r *Base[E, S]) ListPage(ctx context.Context, query *dbx.SelectQuery, page,
 		dbx.LogRuntimeNode(r.session, "repository.list_page.error", "table", r.schema.TableName(), "stage", "list", "error", err)
 		return PageResult[E]{}, err
 	}
-	dbx.LogRuntimeNode(r.session, "repository.list_page.done", "table", r.schema.TableName(), "items", len(items), "total", total)
+	dbx.LogRuntimeNode(r.session, "repository.list_page.done", "table", r.schema.TableName(), "items", items.Len(), "total", total)
 	return PageResult[E]{Items: items, Total: total, Page: page, PageSize: pageSize}, nil
 }
 

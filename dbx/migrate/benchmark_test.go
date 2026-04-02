@@ -29,8 +29,8 @@ func BenchmarkFileSourceList(b *testing.B) {
 		if err != nil {
 			b.Fatalf("List returned error: %v", err)
 		}
-		if len(items) != 4 {
-			b.Fatalf("unexpected migration count: %d", len(items))
+		if items.Len() != 4 {
+			b.Fatalf("unexpected migration count: %d", items.Len())
 		}
 	}
 }
@@ -55,8 +55,8 @@ func BenchmarkRunnerPendingSQL(b *testing.B) {
 			if err != nil {
 				b.Fatalf("PendingSQL returned error: %v", err)
 			}
-			if len(items) != 2 {
-				b.Fatalf("unexpected pending count: %d", len(items))
+			if items.Len() != 2 {
+				b.Fatalf("unexpected pending count: %d", items.Len())
 			}
 		}
 	}
@@ -85,8 +85,8 @@ func benchmarkRunnerAppliedCase(ctx context.Context, b *testing.B, db *sql.DB) {
 		if err != nil {
 			b.Fatalf("Applied returned error: %v", err)
 		}
-		if len(items) != 2 {
-			b.Fatalf("unexpected applied count: %d", len(items))
+		if items.Len() != 2 {
+			b.Fatalf("unexpected applied count: %d", items.Len())
 		}
 	}
 }

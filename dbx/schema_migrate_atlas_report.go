@@ -5,7 +5,6 @@ import (
 
 	atlasschema "ariga.io/atlas/sql/schema"
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompiledSchema, current *atlasschema.Schema) ValidationReport {
@@ -78,11 +77,13 @@ func atlasApplyModifyTableChange(diffs collectionx.OrderedMap[string, *TableDiff
 }
 
 func atlasValidationReport(diffs collectionx.OrderedMap[string, *TableDiff]) ValidationReport {
-	items := lo.Map(diffs.Values(), func(diff *TableDiff, _ int) TableDiff {
-		return *diff
+	items := collectionx.NewListWithCapacity[TableDiff](diffs.Len())
+	diffs.Range(func(_ string, diff *TableDiff) bool {
+		items.Add(*diff)
+		return true
 	})
 	return ValidationReport{
-		Tables:   collectionx.NewListWithCapacity(len(items), items...),
+		Tables:   items,
 		Backend:  ValidationBackendAtlas,
 		Complete: true,
 	}

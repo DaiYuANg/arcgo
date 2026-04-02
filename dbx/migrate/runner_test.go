@@ -30,16 +30,20 @@ func TestRunnerUpGoCreatesHistoryAndAppliesMigration(t *testing.T) {
 		return nil
 	}, nil))
 	require.NoError(t, err)
-	require.Len(t, report.Applied, 1)
-	require.Equal(t, "1", report.Applied[0].Version)
-	require.Equal(t, migrate.KindGo, report.Applied[0].Kind)
+	require.Equal(t, 1, report.Applied.Len())
+	reportItem, ok := report.Applied.Get(0)
+	require.True(t, ok)
+	require.Equal(t, "1", reportItem.Version)
+	require.Equal(t, migrate.KindGo, reportItem.Kind)
 
 	applied, err := runner.Applied(ctx)
 	require.NoError(t, err)
-	require.Len(t, applied, 1)
-	require.Equal(t, "1", applied[0].Version)
-	require.Equal(t, migrate.KindGo, applied[0].Kind)
-	require.True(t, applied[0].Success)
+	require.Equal(t, 1, applied.Len())
+	appliedItem, ok := applied.Get(0)
+	require.True(t, ok)
+	require.Equal(t, "1", appliedItem.Version)
+	require.Equal(t, migrate.KindGo, appliedItem.Kind)
+	require.True(t, appliedItem.Success)
 
 	require.True(t, sqliteTableExists(ctx, t, db, "sample"))
 	require.True(t, sqliteTableExists(ctx, t, db, "schema_history"))
@@ -79,8 +83,10 @@ func TestRunnerPendingSQLTracksRepeatableChecksum(t *testing.T) {
 	}
 	pending, err := runner.PendingSQL(ctx, source)
 	require.NoError(t, err)
-	require.Len(t, pending, 1)
-	require.True(t, pending[0].Repeatable)
+	require.Equal(t, 1, pending.Len())
+	item, ok := pending.Get(0)
+	require.True(t, ok)
+	require.True(t, item.Repeatable)
 }
 
 func TestRunnerUpSQLAppliesVersionedFiles(t *testing.T) {
@@ -97,16 +103,20 @@ func TestRunnerUpSQLAppliesVersionedFiles(t *testing.T) {
 
 	report, err := runner.UpSQL(ctx, source)
 	require.NoError(t, err)
-	require.Len(t, report.Applied, 1)
-	require.Equal(t, "1", report.Applied[0].Version)
-	require.Equal(t, migrate.KindSQL, report.Applied[0].Kind)
+	require.Equal(t, 1, report.Applied.Len())
+	reportItem, ok := report.Applied.Get(0)
+	require.True(t, ok)
+	require.Equal(t, "1", reportItem.Version)
+	require.Equal(t, migrate.KindSQL, reportItem.Kind)
 
 	applied, err := runner.Applied(ctx)
 	require.NoError(t, err)
-	require.Len(t, applied, 1)
-	require.Equal(t, "1", applied[0].Version)
-	require.Equal(t, migrate.KindSQL, applied[0].Kind)
-	require.True(t, applied[0].Success)
+	require.Equal(t, 1, applied.Len())
+	appliedItem, ok := applied.Get(0)
+	require.True(t, ok)
+	require.Equal(t, "1", appliedItem.Version)
+	require.Equal(t, migrate.KindSQL, appliedItem.Kind)
+	require.True(t, appliedItem.Success)
 
 	require.True(t, sqliteTableExists(ctx, t, db, "logs"))
 	require.True(t, sqliteTableExists(ctx, t, db, "schema_history"))

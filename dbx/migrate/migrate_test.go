@@ -33,8 +33,10 @@ func TestSafeJoinPath(t *testing.T) {
 		if tt.wantOk {
 			require.NoError(t, err, "base=%q name=%q", tt.base, tt.name)
 			expect := filepath.Clean(filepath.Join(tt.base, tt.name))
-			require.Len(t, items, 1, "base=%q name=%q", tt.base, tt.name)
-			require.Equal(t, filepath.ToSlash(expect), items[0].UpPath, "base=%q name=%q", tt.base, tt.name)
+			require.Equal(t, 1, items.Len(), "base=%q name=%q", tt.base, tt.name)
+			item, ok := items.Get(0)
+			require.True(t, ok, "base=%q name=%q", tt.base, tt.name)
+			require.Equal(t, filepath.ToSlash(expect), item.UpPath, "base=%q name=%q", tt.base, tt.name)
 		} else {
 			require.Error(t, err, "base=%q name=%q should reject path traversal", tt.base, tt.name)
 		}

@@ -2,13 +2,10 @@ package mapping
 
 import (
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
-// OrderedMap keeps insertion order of keys.
-// Updating existing key does not change its order.
-// Zero value is ready to use.
+// OrderedMap keeps insertion order of keys. Zero value is ready to use.
 type OrderedMap[K comparable, V any] struct {
 	order collectionlist.List[K]
 	items Map[K, V]
@@ -141,10 +138,13 @@ func (m *OrderedMap[K, V]) Values() []V {
 	if m == nil || m.order.Len() == 0 {
 		return nil
 	}
-	return lo.Map(m.order.Values(), func(key K, _ int) V {
+	values := make([]V, 0, m.order.Len())
+	m.order.Range(func(_ int, key K) bool {
 		value, _ := m.items.Get(key)
-		return value
+		values = append(values, value)
+		return true
 	})
+	return values
 }
 
 // All returns copied unordered built-in map.

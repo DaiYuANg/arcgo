@@ -1,7 +1,6 @@
 package set_test
 
 import (
-	"strconv"
 	"testing"
 
 	set "github.com/DaiYuANg/arcgo/collectionx/set"
@@ -86,16 +85,14 @@ func TestSet_ChainMethods(t *testing.T) {
 	values := set.NewSet(1, 2, 3, 4).
 		Where(func(item int) bool { return item >= 2 }).
 		Reject(func(item int) bool { return item == 3 })
-	require.ElementsMatch(t, []int{2, 4}, values.Values())
-
-	visited := set.NewSet[string]()
-	first, ok := set.NewSet(1, 2, 3, 4).
-		Each(func(item int) { visited.Add(strconv.Itoa(item)) }).
-		FirstWhere(func(item int) bool { return item > 2 }).Get()
-	require.True(t, ok)
-	require.Contains(t, []int{3, 4}, first)
-	require.ElementsMatch(t, []string{"1", "2", "3", "4"}, visited.Values())
-
-	require.True(t, set.NewSet(2, 4, 6).AllMatch(func(item int) bool { return item%2 == 0 }))
-	require.True(t, set.NewSet(1, 2, 3).AnyMatch(func(item int) bool { return item == 2 }))
+	visited, first, ok := collectVisited(set.NewSet(1, 2, 3, 4))
+	assertSetChainMethods(
+		t,
+		values,
+		first,
+		ok,
+		visited,
+		set.NewSet(2, 4, 6).AllMatch(func(item int) bool { return item%2 == 0 }),
+		set.NewSet(1, 2, 3).AnyMatch(func(item int) bool { return item == 2 }),
+	)
 }

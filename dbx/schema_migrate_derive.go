@@ -14,9 +14,12 @@ func deriveIndexes(def schemaDefinition) []IndexMeta {
 		indexes.Set(indexKey(index.Unique, index.Columns), cloneIndexMeta(index))
 	}
 	deriveColumnIndexes(def, indexes)
-	return lo.Map(indexes.Values(), func(value IndexMeta, _ int) IndexMeta {
-		return cloneIndexMeta(value)
+	items := make([]IndexMeta, 0, indexes.Len())
+	indexes.Range(func(_ string, value IndexMeta) bool {
+		items = append(items, cloneIndexMeta(value))
+		return true
 	})
+	return items
 }
 
 func deriveColumnIndexes(def schemaDefinition, indexes collectionx.OrderedMap[string, IndexMeta]) {
@@ -77,9 +80,12 @@ func deriveForeignKeys(def schemaDefinition) []ForeignKeyMeta {
 	explicitColumns := collectionx.NewSet[string]()
 	deriveExplicitForeignKeys(def, foreignKeys, explicitColumns)
 	deriveRelationForeignKeys(def, foreignKeys, explicitColumns)
-	return lo.Map(foreignKeys.Values(), func(value ForeignKeyMeta, _ int) ForeignKeyMeta {
-		return cloneForeignKeyMeta(value)
+	items := make([]ForeignKeyMeta, 0, foreignKeys.Len())
+	foreignKeys.Range(func(_ string, value ForeignKeyMeta) bool {
+		items = append(items, cloneForeignKeyMeta(value))
+		return true
 	})
+	return items
 }
 
 func deriveExplicitForeignKeys(def schemaDefinition, foreignKeys collectionx.OrderedMap[string, ForeignKeyMeta], explicitColumns collectionx.Set[string]) {

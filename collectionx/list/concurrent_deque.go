@@ -133,16 +133,27 @@ func (d *ConcurrentDeque[T]) Range(fn func(index int, item T) bool) {
 	if fn == nil {
 		return
 	}
-	for index, item := range d.Values() {
-		if !fn(index, item) {
-			return
-		}
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	if d.deque == nil {
+		return
 	}
+	d.deque.Range(fn)
 }
 
 // Snapshot returns an immutable-style copy in a normal Deque.
 func (d *ConcurrentDeque[T]) Snapshot() *Deque[T] {
-	return NewDeque(d.Values()...)
+	out := NewDeque[T]()
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	if d.deque == nil {
+		return out
+	}
+	d.deque.Range(func(_ int, item T) bool {
+		out.PushBack(item)
+		return true
+	})
+	return out
 }
 
 func (d *ConcurrentDeque[T]) ensureInitLocked() {

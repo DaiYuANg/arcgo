@@ -17,7 +17,7 @@ func (r *Runner) UpGo(ctx context.Context, migrations ...Migration) (RunReport, 
 		return RunReport{}, err
 	}
 	if bundle.engine == nil {
-		return RunReport{}, nil
+		return RunReport{Applied: collectionx.NewList[AppliedRecord]()}, nil
 	}
 
 	results, err := bundle.engine.Up(ctx)
@@ -38,12 +38,12 @@ func (r *Runner) UpSQL(ctx context.Context, source FileSource) (RunReport, error
 		return RunReport{}, err
 	}
 
-	report := RunReport{Applied: make([]AppliedRecord, 0, 8)}
+	report := RunReport{Applied: collectionx.NewListWithCapacity[AppliedRecord](8)}
 	applied, err := r.versionedSQLRunReport(ctx, bundle)
 	if err != nil {
 		return report, err
 	}
-	report.Applied = lo.Concat(report.Applied, applied)
+	report.Applied.Merge(applied)
 
 	indexed, err := r.appliedIndex(ctx)
 	if err != nil {
@@ -53,13 +53,13 @@ func (r *Runner) UpSQL(ctx context.Context, source FileSource) (RunReport, error
 	if err != nil {
 		return report, err
 	}
-	report.Applied = lo.Concat(report.Applied, repeatableRecords)
+	report.Applied.Merge(repeatableRecords)
 	return report, nil
 }
 
-func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine) ([]AppliedRecord, error) {
+func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine) (collectionx.List[AppliedRecord], error) {
 	if bundle == nil || bundle.engine == nil {
-		return nil, nil
+		return collectionx.NewList[AppliedRecord](), nil
 	}
 
 	results, err := bundle.engine.Up(ctx)
@@ -78,11 +78,11 @@ func (r *Runner) versionedSQLRunReport(ctx context.Context, bundle *runnerEngine
 }
 
 func buildRunReport(
-	applied []AppliedRecord,
+	applied collectionx.List[AppliedRecord],
 	metaByVersion collectionx.Map[int64, AppliedRecord],
 	results []*goose.MigrationResult,
 ) (RunReport, error) {
-	reportApplied, err := lo.ReduceErr(results, func(items []AppliedRecord, result *goose.MigrationResult, _ int) ([]AppliedRecord, error) {
+	reportApplied, err := lo.ReduceErr(results, func(items collectionx.List[AppliedRecord], result *goose.MigrationResult, _ int) (collectionx.List[AppliedRecord], error) {
 		record, ok := metaByVersion.Get(result.Source.Version)
 		if !ok {
 			return items, nil
@@ -91,8 +91,9 @@ func buildRunReport(
 		if currentErr != nil {
 			return nil, currentErr
 		}
-		return lo.Concat(items, []AppliedRecord{current}), nil
-	}, make([]AppliedRecord, 0, len(results)))
+		items.Add(current)
+		return items, nil
+	}, collectionx.NewListWithCapacity[AppliedRecord](len(results)))
 	if err != nil {
 		return RunReport{}, fmt.Errorf("dbx/migrate: build run report: %w", err)
 	}
@@ -101,10 +102,10 @@ func buildRunReport(
 
 func (r *Runner) applyPendingRepeatables(
 	ctx context.Context,
-	repeatables []loadedSQLMigration,
+	repeatables collectionx.List[loadedSQLMigration],
 	indexed map[string]AppliedRecord,
-) ([]AppliedRecord, error) {
-	applied, err := lo.ReduceErr(repeatables, func(items []AppliedRecord, migration loadedSQLMigration, _ int) ([]AppliedRecord, error) {
+) (collectionx.List[AppliedRecord], error) {
+	applied, err := collectionx.ReduceErrList(repeatables, collectionx.NewListWithCapacity[AppliedRecord](repeatables.Len()), func(items collectionx.List[AppliedRecord], _ int, migration loadedSQLMigration) (collectionx.List[AppliedRecord], error) {
 		if !shouldApplyRepeatableMigration(migration, indexed) {
 			return items, nil
 		}
@@ -112,8 +113,9 @@ func (r *Runner) applyPendingRepeatables(
 		if recordErr != nil {
 			return nil, recordErr
 		}
-		return lo.Concat(items, []AppliedRecord{record}), nil
-	}, make([]AppliedRecord, 0, len(repeatables)))
+		items.Add(record)
+		return items, nil
+	})
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: apply pending repeatables: %w", err)
 	}

@@ -3,7 +3,6 @@ package set
 import (
 	"sync"
 
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -169,9 +168,12 @@ func (s *ConcurrentSet[T]) Range(fn func(item T) bool) {
 	if s == nil || fn == nil {
 		return
 	}
-	lo.EveryBy(s.Values(), func(item T) bool {
-		return fn(item)
-	})
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if s.core == nil {
+		return
+	}
+	s.core.Range(fn)
 }
 
 // Snapshot returns an immutable-style copy in a normal Set.

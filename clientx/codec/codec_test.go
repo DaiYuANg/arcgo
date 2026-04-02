@@ -52,6 +52,20 @@ func TestDefaultRegistryBuiltins(t *testing.T) {
 	if codec.GetOption("json").IsAbsent() {
 		t.Fatal("expected json codec option to be present")
 	}
+
+	names := codec.Names()
+	if names.Len() != 3 {
+		t.Fatalf("expected 3 codec names, got %d", names.Len())
+	}
+	for index, expected := range []string{"bytes", "json", "text"} {
+		actual, ok := names.Get(index)
+		if !ok {
+			t.Fatalf("expected codec name at index %d", index)
+		}
+		if actual != expected {
+			t.Fatalf("unexpected codec name at index %d: got %q want %q", index, actual, expected)
+		}
+	}
 }
 
 func TestJSONRoundTrip(t *testing.T) {

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/dbx/repository"
-	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
 
@@ -70,12 +70,12 @@ func (s *Store[E, S]) FindByKeyOption(ctx context.Context, key repository.Key) (
 }
 
 // List returns models matching the provided repository specifications.
-func (s *Store[E, S]) List(ctx context.Context, specs ...repository.Spec) ([]*Model[E, S], error) {
+func (s *Store[E, S]) List(ctx context.Context, specs ...repository.Spec) (collectionx.List[*Model[E, S]], error) {
 	items, err := s.repository.ListSpec(ctx, specs...)
 	if err != nil {
 		return nil, fmt.Errorf("list entities: %w", err)
 	}
-	return lo.Map(items, func(item E, _ int) *Model[E, S] {
+	return collectionx.MapList(items, func(_ int, item E) *Model[E, S] {
 		entity := item
 		return s.newKeyedModel(&entity, s.keyOf(&entity))
 	}), nil

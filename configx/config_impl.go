@@ -3,13 +3,11 @@ package configx
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/go-playground/validator/v10"
 	"github.com/knadh/koanf/v2"
-	"github.com/samber/lo"
 )
 
 // Config documents related behavior.
@@ -82,13 +80,15 @@ func (c *Config) GetDuration(path string) time.Duration {
 }
 
 // GetStringSlice retrieves related data.
-func (c *Config) GetStringSlice(path string) []string {
-	return c.k.Strings(path)
+func (c *Config) GetStringSlice(path string) collectionx.List[string] {
+	items := c.k.Strings(path)
+	return collectionx.NewListWithCapacity(len(items), items...)
 }
 
 // GetIntSlice retrieves related data.
-func (c *Config) GetIntSlice(path string) []int {
-	return c.k.Ints(path)
+func (c *Config) GetIntSlice(path string) collectionx.List[int] {
+	items := c.k.Ints(path)
+	return collectionx.NewListWithCapacity(len(items), items...)
 }
 
 // Unmarshal documents related behavior.
@@ -118,8 +118,8 @@ func (c *Config) Exists(path string) bool {
 }
 
 // All retrieves related data.
-func (c *Config) All() map[string]any {
-	return c.k.All()
+func (c *Config) All() collectionx.Map[string, any] {
+	return collectionx.NewMapFrom(c.k.All())
 }
 
 // Validate documents related behavior.
@@ -139,10 +139,23 @@ type ConfigSnapshot struct {
 // Snapshot returns a copy-like diagnostic view of config values and sorted keys.
 func (c *Config) Snapshot() ConfigSnapshot {
 	values := c.All()
-	keys := lo.Keys(values)
-	sort.Strings(keys)
+	keys := collectionx.NewListWithCapacity[string](values.Len())
+	values.Range(func(key string, _ any) bool {
+		keys.Add(key)
+		return true
+	})
+	keys.Sort(func(left, right string) int {
+		switch {
+		case left < right:
+			return -1
+		case left > right:
+			return 1
+		default:
+			return 0
+		}
+	})
 	return ConfigSnapshot{
-		Values: collectionx.NewMapFrom(values),
-		Keys:   collectionx.NewListWithCapacity(len(keys), keys...),
+		Values: values,
+		Keys:   keys,
 	}
 }

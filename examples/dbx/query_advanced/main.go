@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
 )
@@ -95,28 +96,28 @@ func main() {
 	printUnionRows(unionRows)
 }
 
-func printActiveRows(rows []activeUserRow) {
+func printActiveRows(rows collectionx.List[activeUserRow]) {
 	printLine("cte query:")
-	for index := range rows {
-		row := &rows[index]
+	rows.Range(func(_ int, row activeUserRow) bool {
 		printFormat("- id=%d username=%s\n", row.ID, row.Username)
-	}
+		return true
+	})
 }
 
-func printLabeledRows(rows []labeledUserRow) {
+func printLabeledRows(rows collectionx.List[labeledUserRow]) {
 	printLine("case query:")
-	for index := range rows {
-		row := &rows[index]
+	rows.Range(func(_ int, row labeledUserRow) bool {
 		printFormat("- id=%d username=%s status=%s\n", row.ID, row.Username, row.StatusLabel)
-	}
+		return true
+	})
 }
 
-func printUnionRows(rows []unionLabelRow) {
+func printUnionRows(rows collectionx.List[unionLabelRow]) {
 	printLine("union query:")
-	for index := range rows {
-		row := &rows[index]
+	rows.Range(func(_ int, row unionLabelRow) bool {
 		printFormat("- label=%s\n", row.Label)
-	}
+		return true
+	})
 }
 
 func closeOrPanic(closeFn func() error) {

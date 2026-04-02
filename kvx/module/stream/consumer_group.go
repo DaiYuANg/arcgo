@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
-	"github.com/samber/lo"
 )
 
 // ConsumerGroup provides high-level consumer group operations.
@@ -60,7 +60,7 @@ func (cg *ConsumerGroup) Destroy(ctx context.Context) error {
 }
 
 // Read reads messages from the consumer group.
-func (cg *ConsumerGroup) Read(ctx context.Context, count int64, block time.Duration) ([]kvx.StreamEntry, error) {
+func (cg *ConsumerGroup) Read(ctx context.Context, count int64, block time.Duration) (collectionx.List[kvx.StreamEntry], error) {
 	streams := map[string]string{
 		cg.streamKey: ">",
 	}
@@ -71,11 +71,11 @@ func (cg *ConsumerGroup) Read(ctx context.Context, count int64, block time.Durat
 		return nil, err
 	}
 
-	return results.Get(cg.streamKey), nil
+	return streamEntriesFromMultiMap(results, cg.streamKey), nil
 }
 
 // ReadPending reads pending messages (previously delivered but not acknowledged).
-func (cg *ConsumerGroup) ReadPending(ctx context.Context, count int64) ([]kvx.StreamEntry, error) {
+func (cg *ConsumerGroup) ReadPending(ctx context.Context, count int64) (collectionx.List[kvx.StreamEntry], error) {
 	streams := map[string]string{
 		cg.streamKey: "0",
 	}
@@ -86,7 +86,7 @@ func (cg *ConsumerGroup) ReadPending(ctx context.Context, count int64) ([]kvx.St
 		return nil, err
 	}
 
-	return results.Get(cg.streamKey), nil
+	return streamEntriesFromMultiMap(results, cg.streamKey), nil
 }
 
 // Ack acknowledges processing of messages.
@@ -112,19 +112,19 @@ func (cg *ConsumerGroup) Pending(ctx context.Context) (*kvx.PendingInfo, error) 
 }
 
 // PendingRange gets pending entries in a range.
-func (cg *ConsumerGroup) PendingRange(ctx context.Context, start, stop string, count int64) ([]kvx.PendingEntry, error) {
+func (cg *ConsumerGroup) PendingRange(ctx context.Context, start, stop string, count int64) (collectionx.List[kvx.PendingEntry], error) {
 	entries, err := cg.client.XPendingRange(ctx, cg.streamKey, cg.groupName, start, stop, count)
 	return wrapResult(entries, err, cg.groupAction("read pending entry range"))
 }
 
 // Claim claims pending entries from other consumers.
-func (cg *ConsumerGroup) Claim(ctx context.Context, ids []string, minIdleTime time.Duration) ([]kvx.StreamEntry, error) {
+func (cg *ConsumerGroup) Claim(ctx context.Context, ids []string, minIdleTime time.Duration) (collectionx.List[kvx.StreamEntry], error) {
 	entries, err := cg.client.XClaim(ctx, cg.streamKey, cg.groupName, cg.consumerName, minIdleTime, ids)
 	return wrapResult(entries, err, cg.consumerAction("claim pending entries"))
 }
 
 // AutoClaim auto-claims pending entries that have been idle for minIdleTime.
-func (cg *ConsumerGroup) AutoClaim(ctx context.Context, minIdleTime time.Duration, count int64) (string, []kvx.StreamEntry, error) {
+func (cg *ConsumerGroup) AutoClaim(ctx context.Context, minIdleTime time.Duration, count int64) (string, collectionx.List[kvx.StreamEntry], error) {
 	nextID, entries, err := cg.client.XAutoClaim(
 		ctx,
 		cg.streamKey,
@@ -149,9 +149,9 @@ func (cg *ConsumerGroup) Info(ctx context.Context) (*kvx.GroupInfo, error) {
 		return nil, err
 	}
 
-	group, ok := lo.Find(groups, func(group kvx.GroupInfo) bool {
+	group, ok := groups.FirstWhere(func(_ int, group kvx.GroupInfo) bool {
 		return group.Name == cg.groupName
-	})
+	}).Get()
 	if !ok {
 		return nil, fmt.Errorf("consumer group %s not found", cg.groupName)
 	}
@@ -166,9 +166,9 @@ func (cg *ConsumerGroup) ConsumerInfo(ctx context.Context) (*kvx.ConsumerInfo, e
 		return nil, err
 	}
 
-	consumer, ok := lo.Find(consumers, func(consumer kvx.ConsumerInfo) bool {
+	consumer, ok := consumers.FirstWhere(func(_ int, consumer kvx.ConsumerInfo) bool {
 		return consumer.Name == cg.consumerName
-	})
+	}).Get()
 	if !ok {
 		return nil, fmt.Errorf("consumer %s not found in group %s", cg.consumerName, cg.groupName)
 	}
@@ -236,7 +236,7 @@ func (m *ConsumerGroupManager) DestroyGroup(ctx context.Context, groupName strin
 }
 
 // ListGroups lists all consumer groups for the stream.
-func (m *ConsumerGroupManager) ListGroups(ctx context.Context) ([]kvx.GroupInfo, error) {
+func (m *ConsumerGroupManager) ListGroups(ctx context.Context) (collectionx.List[kvx.GroupInfo], error) {
 	groups, err := m.client.XInfoGroups(ctx, m.streamKey)
 	return wrapResult(groups, err, m.streamAction("list consumer groups"))
 }

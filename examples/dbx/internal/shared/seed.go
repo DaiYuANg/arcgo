@@ -15,7 +15,7 @@ func InsertAll[E any, S dbx.SchemaSource[E]](ctx context.Context, session dbx.Se
 		if err != nil {
 			return fmt.Errorf("build insert assignments: %w", err)
 		}
-		if _, err := dbx.Exec(ctx, session, dbx.InsertInto(schema).Values(assignments...)); err != nil {
+		if _, err := dbx.Exec(ctx, session, dbx.InsertInto(schema).Values(assignments.Values()...)); err != nil {
 			return fmt.Errorf("execute insert: %w", err)
 		}
 	}

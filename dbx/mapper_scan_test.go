@@ -79,7 +79,7 @@ func TestStructMapperScansEmbeddedPointerNullableAndScanner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("QueryAll returned error: %v", err)
 	}
-	assertAccountRecords(t, items)
+	assertAccountRecords(t, items.Values())
 }
 
 func TestMapperInsertAssignmentsWithNilEmbeddedPointerAndValuer(t *testing.T) {
@@ -96,12 +96,12 @@ func TestMapperInsertAssignmentsWithNilEmbeddedPointerAndValuer(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
-	if len(assignments) != 3 {
-		t.Fatalf("unexpected assignment count: %d", len(assignments))
+	if assignments.Len() != 3 {
+		t.Fatalf("unexpected assignment count: %d", assignments.Len())
 	}
 
 	rec := &hookRecorder{}
-	if _, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(accounts).Values(assignments...)); err != nil {
+	if _, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(accounts).Values(assignments.Values()...)); err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
 	if rec.execCount != 1 {
@@ -150,11 +150,12 @@ func TestStructMapperScanPlanMatchesQualifiedAndCaseInsensitiveColumns(t *testin
 	if err != nil {
 		t.Fatalf("QueryAll returned error: %v", err)
 	}
-	if len(items) != 1 {
-		t.Fatalf("unexpected item count: %d", len(items))
+	if items.Len() != 1 {
+		t.Fatalf("unexpected item count: %d", items.Len())
 	}
-	if items[0].ID != 1 || items[0].UserCount != 2 {
-		t.Fatalf("unexpected aggregate row: %+v", items[0])
+	item, _ := items.GetFirst()
+	if item.ID != 1 || item.UserCount != 2 {
+		t.Fatalf("unexpected aggregate row: %+v", item)
 	}
 }
 

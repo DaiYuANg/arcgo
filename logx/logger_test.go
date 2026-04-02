@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/logx"
 	"go.opentelemetry.io/otel/trace"
 )
@@ -86,7 +87,7 @@ func TestProductionConfig_WritesFile(t *testing.T) {
 	t.Parallel()
 
 	logPath := filepath.Join(t.TempDir(), "app.log")
-	logger, err := logx.New(logx.ProductionConfig(logPath)...)
+	logger, err := logx.New(logx.ProductionConfig(logPath).Values()...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -169,13 +170,13 @@ func TestFieldHelpers(t *testing.T) {
 	if got := logx.WithField(logger, "retry", 3); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
-	if got := logx.WithFields(logger, map[string]any{"batch": 7}); got == nil {
+	if got := logx.WithFields(logger, collectionx.NewMapFrom(map[string]any{"batch": 7})); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
 	if got := logx.WithFieldT(logger, "tenant", "acme"); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
-	if got := logx.WithFieldsT(logger, map[string]int{"attempt": 2}); got == nil {
+	if got := logx.WithFieldsT(logger, collectionx.NewMapFrom(map[string]int{"attempt": 2})); got == nil {
 		t.Fatal("expected non-nil logger")
 	}
 	if got := logx.WithError(logger, errors.New("boom")); got == nil {

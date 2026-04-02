@@ -42,8 +42,10 @@ func TestSQLListScansStructMapperAndPropagatesStatementName(t *testing.T) {
 	if err != nil {
 		t.Fatalf("SQLList returned error: %v", err)
 	}
-	if len(items) != 2 || items[0].Username != "alice" || items[1].ID != 2 {
-		t.Fatalf("unexpected items: %+v", items)
+	first, _ := items.Get(0)
+	second, _ := items.Get(1)
+	if items.Len() != 2 || first.Username != "alice" || second.ID != 2 {
+		t.Fatalf("unexpected items: %+v", items.Values())
 	}
 	if event.Statement != "user.find_active" {
 		t.Fatalf("unexpected statement name in hook event: %+v", event)

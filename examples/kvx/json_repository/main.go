@@ -34,7 +34,7 @@ func main() {
 	mustPrintf("exists u-1: %v\n", exists)
 	mustPrintf("loaded: %s (%s)\n", entity.ID, entity.Email)
 	mustPrintf("updated name: %s\n", updated.Name)
-	mustPrintf("total: %d\n", len(all))
+	mustPrintf("total: %d\n", all.Len())
 }
 
 func must(err error) {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
@@ -57,7 +58,7 @@ func (b repositoryBase[T]) hydrateEntityID(entity *T, metadata *mapping.EntityMe
 	return wrapRepositoryError(metadata.SetEntityID(entity, extractIDFromKey(key)), "hydrate entity ID")
 }
 
-func (b repositoryBase[T]) scanAllKeys(ctx context.Context, kv kvx.KV) ([]string, error) {
+func (b repositoryBase[T]) scanAllKeys(ctx context.Context, kv kvx.KV) (collectionx.List[string], error) {
 	seen := set.NewSet[string]()
 	cursor := uint64(0)
 
@@ -67,9 +68,9 @@ func (b repositoryBase[T]) scanAllKeys(ctx context.Context, kv kvx.KV) ([]string
 			return nil, wrapRepositoryError(err, "scan repository keys")
 		}
 
-		seen.Add(keys...)
+		seen.Add(keys.Values()...)
 		if next == 0 {
-			return seen.Values(), nil
+			return collectionx.NewListWithCapacity(seen.Len(), seen.Values()...), nil
 		}
 		cursor = next
 	}
@@ -107,19 +108,19 @@ func collectPresentMap[K comparable, T any](items []K, load func(K) (*T, error))
 	return results, nil
 }
 
-func collectPresentSlice[K any, T any](items []K, load func(K) (*T, error)) ([]*T, error) {
-	results, err := lo.ReduceErr(items, func(results []*T, item K, _ int) ([]*T, error) {
+func collectPresentList[K any, T any](items []K, load func(K) (*T, error)) (collectionx.List[*T], error) {
+	results, err := lo.ReduceErr(items, func(results collectionx.List[*T], item K, _ int) (collectionx.List[*T], error) {
 		entityOpt, err := loadPresent(load(item))
 		if err != nil {
 			return nil, err
 		}
 		entityOpt.ForEach(func(entity *T) {
-			results = lo.Concat(results, []*T{entity})
+			results.Add(entity)
 		})
 		return results, nil
-	}, make([]*T, 0, len(items)))
+	}, collectionx.NewListWithCapacity[*T](len(items)))
 	if err != nil {
-		return nil, fmt.Errorf("collect present slice: %w", err)
+		return nil, fmt.Errorf("collect present list: %w", err)
 	}
 	return results, nil
 }

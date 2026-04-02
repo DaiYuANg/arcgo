@@ -3,6 +3,7 @@ package dbx
 import (
 	"log/slog"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
@@ -29,19 +30,19 @@ func defaultOptions() options {
 }
 
 // DefaultOptions returns no options; use when you want explicit defaults (logger=slog.Default, debug=false, no hooks).
-func DefaultOptions() []Option {
-	return nil
+func DefaultOptions() collectionx.List[Option] {
+	return collectionx.NewList[Option]()
 }
 
 // ProductionOptions returns options suitable for production: debug off, no extra hooks.
 // Combine with WithLogger for custom logging. Same as defaults; use for explicitness.
-func ProductionOptions() []Option {
-	return []Option{WithDebug(false)}
+func ProductionOptions() collectionx.List[Option] {
+	return collectionx.NewList(WithDebug(false))
 }
 
 // TestOptions returns options for tests: debug on (SQL logged). Combine with WithLogger, WithHooks as needed.
-func TestOptions() []Option {
-	return []Option{WithDebug(true)}
+func TestOptions() collectionx.List[Option] {
+	return collectionx.NewList(WithDebug(true))
 }
 
 // WithLogger sets the logger for operation events. Default: slog.Default().

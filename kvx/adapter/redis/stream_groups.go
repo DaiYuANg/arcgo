@@ -72,7 +72,7 @@ func (a *Adapter) XPending(ctx context.Context, key, group string) (*kvx.Pending
 }
 
 // XPendingRange gets pending entries in a range.
-func (a *Adapter) XPendingRange(ctx context.Context, key, group, start, stop string, count int64) ([]kvx.PendingEntry, error) {
+func (a *Adapter) XPendingRange(ctx context.Context, key, group, start, stop string, count int64) (collectionx.List[kvx.PendingEntry], error) {
 	result, err := a.client.XPendingExt(ctx, &goredis.XPendingExtArgs{
 		Stream: key,
 		Group:  group,
@@ -89,7 +89,7 @@ func (a *Adapter) XPendingRange(ctx context.Context, key, group, start, stop str
 }
 
 // XClaim claims pending entries for a consumer.
-func (a *Adapter) XClaim(ctx context.Context, key, group, consumer string, minIdleTime time.Duration, ids []string) ([]kvx.StreamEntry, error) {
+func (a *Adapter) XClaim(ctx context.Context, key, group, consumer string, minIdleTime time.Duration, ids []string) (collectionx.List[kvx.StreamEntry], error) {
 	result, err := a.client.XClaim(ctx, &goredis.XClaimArgs{
 		Stream:   key,
 		Group:    group,
@@ -106,7 +106,7 @@ func (a *Adapter) XClaim(ctx context.Context, key, group, consumer string, minId
 }
 
 // XAutoClaim auto-claims pending entries.
-func (a *Adapter) XAutoClaim(ctx context.Context, key, group, consumer string, minIdleTime time.Duration, start string, count int64) (string, []kvx.StreamEntry, error) {
+func (a *Adapter) XAutoClaim(ctx context.Context, key, group, consumer string, minIdleTime time.Duration, start string, count int64) (string, collectionx.List[kvx.StreamEntry], error) {
 	messages, next, err := a.client.XAutoClaim(ctx, &goredis.XAutoClaimArgs{
 		Stream:   key,
 		Group:    group,

@@ -1,6 +1,7 @@
 package dbx
 
 import (
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"slices"
 	"strings"
 
@@ -13,8 +14,20 @@ func mappedMigrationActions[T any](items []T, mapper func(T) MigrationAction) []
 	})
 }
 
+func mappedMigrationActionList[T any](items collectionx.List[T], mapper func(T) MigrationAction) []MigrationAction {
+	if items == nil || items.Len() == 0 {
+		return nil
+	}
+	actions := make([]MigrationAction, 0, items.Len())
+	items.Range(func(_ int, item T) bool {
+		actions = append(actions, mapper(item))
+		return true
+	})
+	return actions
+}
+
 func columnDiffManualActions(diff TableDiff) []MigrationAction {
-	return mappedMigrationActions(diff.ColumnDiffs.Values(), func(cd ColumnDiff) MigrationAction {
+	return mappedMigrationActionList(diff.ColumnDiffs, func(cd ColumnDiff) MigrationAction {
 		return MigrationAction{
 			Kind:    MigrationActionManual,
 			Table:   diff.Table,

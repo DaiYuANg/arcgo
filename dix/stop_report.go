@@ -16,10 +16,11 @@ type StopReport struct {
 
 // HasErrors reports whether the stop report contains any errors.
 func (r *StopReport) HasErrors() bool {
-	return r != nil && r.Err() != nil
+	return r != nil && r.Errors().Len() > 0
 }
 
-func (r *StopReport) collectErrors() collectionx.List[error] {
+// Errors returns stop errors as a collectionx list.
+func (r *StopReport) Errors() collectionx.List[error] {
 	if r == nil {
 		return collectionx.NewList[error]()
 	}
@@ -35,12 +36,12 @@ func (r *StopReport) collectErrors() collectionx.List[error] {
 
 // Err returns the combined stop error.
 func (r *StopReport) Err() error {
-	return errors.Join(r.collectErrors().Values()...)
+	return errors.Join(r.Errors().Values()...)
 }
 
 // Error returns the combined stop error string.
 func (r *StopReport) Error() string {
-	errs := r.collectErrors()
+	errs := r.Errors()
 	if errs.Len() == 0 {
 		return ""
 	}

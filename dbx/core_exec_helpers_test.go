@@ -3,6 +3,8 @@ package dbx_test
 import (
 	"context"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 func closeCursorOrFatal[E any](t *testing.T, cursor Cursor[E]) {
@@ -48,7 +50,7 @@ func assertUserSummaryRows(t *testing.T, items []UserSummary) {
 	}
 }
 
-func mustInsertAssignments(t *testing.T, mapper Mapper[User], users UserSchema, entity *User) []Assignment {
+func mustInsertAssignments(t *testing.T, mapper Mapper[User], users UserSchema, entity *User) collectionx.List[Assignment] {
 	t.Helper()
 	assignments, err := mapper.InsertAssignments(New(nil, testSQLiteDialect{}), users, entity)
 	if err != nil {
@@ -57,7 +59,7 @@ func mustInsertAssignments(t *testing.T, mapper Mapper[User], users UserSchema, 
 	return assignments
 }
 
-func mustUpdateAssignments(t *testing.T, mapper Mapper[User], users UserSchema, entity *User) []Assignment {
+func mustUpdateAssignments(t *testing.T, mapper Mapper[User], users UserSchema, entity *User) collectionx.List[Assignment] {
 	t.Helper()
 	assignments, err := mapper.UpdateAssignments(users, entity)
 	if err != nil {

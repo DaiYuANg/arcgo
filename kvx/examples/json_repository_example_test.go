@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/repository"
 )
@@ -48,14 +49,14 @@ func (m *exampleJSONBackend) ExistsMulti(context.Context, []string) (map[string]
 }
 func (m *exampleJSONBackend) Expire(context.Context, string, time.Duration) error { return nil }
 func (m *exampleJSONBackend) TTL(context.Context, string) (time.Duration, error)  { return 0, nil }
-func (m *exampleJSONBackend) Scan(_ context.Context, _ string, _ uint64, _ int64) ([]string, uint64, error) {
+func (m *exampleJSONBackend) Scan(_ context.Context, _ string, _ uint64, _ int64) (collectionx.List[string], uint64, error) {
 	keys := make([]string, 0, len(m.data))
 	for key := range m.data {
 		keys = append(keys, key)
 	}
-	return keys, 0, nil
+	return collectionx.NewListWithCapacity(len(keys), keys...), 0, nil
 }
-func (m *exampleJSONBackend) Keys(ctx context.Context, pattern string) ([]string, error) {
+func (m *exampleJSONBackend) Keys(ctx context.Context, pattern string) (collectionx.List[string], error) {
 	keys, _, err := m.Scan(ctx, pattern, 0, 0)
 	return keys, err
 }

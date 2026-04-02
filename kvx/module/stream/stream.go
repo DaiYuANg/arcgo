@@ -61,7 +61,7 @@ func (s *Stream) AddEvent(ctx context.Context, streamKey, eventType string, payl
 }
 
 // Read reads entries from the stream.
-func (s *Stream) Read(ctx context.Context, streamKey, start string, count int64) ([]kvx.StreamEntry, error) {
+func (s *Stream) Read(ctx context.Context, streamKey, start string, count int64) (collectionx.List[kvx.StreamEntry], error) {
 	entries, err := s.client.XRead(ctx, streamKey, start, count)
 	return wrapResult(entries, err, "read stream entries from "+streamKey)
 }
@@ -73,7 +73,7 @@ func (s *Stream) ReadMultiple(ctx context.Context, streams map[string]string, co
 }
 
 // ReadLast reads the last N entries from the stream.
-func (s *Stream) ReadLast(ctx context.Context, streamKey string, count int64) ([]kvx.StreamEntry, error) {
+func (s *Stream) ReadLast(ctx context.Context, streamKey string, count int64) (collectionx.List[kvx.StreamEntry], error) {
 	entries, rangeErr := s.client.XRevRange(ctx, streamKey, "+", "-")
 	entries, err := wrapResult(entries, rangeErr, "read latest stream entries from "+streamKey)
 	if err != nil {
@@ -84,19 +84,19 @@ func (s *Stream) ReadLast(ctx context.Context, streamKey string, count int64) ([
 }
 
 // ReadSince reads entries since a specific ID.
-func (s *Stream) ReadSince(ctx context.Context, streamKey, sinceID string, count int64) ([]kvx.StreamEntry, error) {
+func (s *Stream) ReadSince(ctx context.Context, streamKey, sinceID string, count int64) (collectionx.List[kvx.StreamEntry], error) {
 	entries, err := s.client.XRead(ctx, streamKey, sinceID, count)
 	return wrapResult(entries, err, "read stream entries since ID from "+streamKey)
 }
 
 // Range reads entries in a range.
-func (s *Stream) Range(ctx context.Context, streamKey, start, stop string) ([]kvx.StreamEntry, error) {
+func (s *Stream) Range(ctx context.Context, streamKey, start, stop string) (collectionx.List[kvx.StreamEntry], error) {
 	entries, err := s.client.XRange(ctx, streamKey, start, stop)
 	return wrapResult(entries, err, "read stream range from "+streamKey)
 }
 
 // RevRange reads entries in reverse order.
-func (s *Stream) RevRange(ctx context.Context, streamKey, start, stop string) ([]kvx.StreamEntry, error) {
+func (s *Stream) RevRange(ctx context.Context, streamKey, start, stop string) (collectionx.List[kvx.StreamEntry], error) {
 	entries, err := s.client.XRevRange(ctx, streamKey, start, stop)
 	return wrapResult(entries, err, "read stream reverse range from "+streamKey)
 }
@@ -167,13 +167,13 @@ func (e *EventStream[T]) Publish(ctx context.Context, event T) (string, error) {
 }
 
 // Subscribe subscribes to events from the stream.
-func (e *EventStream[T]) Subscribe(ctx context.Context, start string, count int64) ([]T, string, error) {
+func (e *EventStream[T]) Subscribe(ctx context.Context, start string, count int64) (collectionx.List[T], string, error) {
 	entries, err := e.stream.Read(ctx, e.streamKey, start, count)
 	if err != nil {
 		return nil, "", err
 	}
 
-	decoded := lo.FilterMap(entries, func(entry kvx.StreamEntry, _ int) (lo.Entry[string, T], bool) {
+	decoded := collectionx.FilterMapList(entries, func(_ int, entry kvx.StreamEntry) (lo.Entry[string, T], bool) {
 		data, ok := entry.Values.Get("data")
 		if !ok {
 			return lo.Entry[string, T]{}, false
@@ -184,13 +184,14 @@ func (e *EventStream[T]) Subscribe(ctx context.Context, start string, count int6
 		}
 		return lo.Entry[string, T]{Key: entry.ID, Value: event}, true
 	})
-	if len(decoded) == 0 {
-		return nil, "", nil
+	if decoded.IsEmpty() {
+		return collectionx.NewList[T](), "", nil
 	}
 
-	return lo.Map(decoded, func(item lo.Entry[string, T], _ int) T {
+	last, _ := decoded.GetLast()
+	return collectionx.MapList(decoded, func(_ int, item lo.Entry[string, T]) T {
 		return item.Value
-	}), decoded[len(decoded)-1].Key, nil
+	}), last.Key, nil
 }
 
 // EventConsumer consumes typed events from a stream.

@@ -24,7 +24,7 @@ func TestExecBuildsAndRunsBoundQuery(t *testing.T) {
 	}
 
 	rec := &hookRecorder{}
-	result, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(users).Values(assignments...))
+	result, err := Exec(context.Background(), MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after})), InsertInto(users).Values(assignments.Values()...))
 	if err != nil {
 		t.Fatalf("Exec returned error: %v", err)
 	}
@@ -88,8 +88,8 @@ func TestInsertAssignmentsGenerateSnowflakeID(t *testing.T) {
 	if entity.ID == 0 {
 		t.Fatal("expected generated snowflake id")
 	}
-	if len(assignments) != 2 {
-		t.Fatalf("expected id + username assignments, got %d", len(assignments))
+	if assignments.Len() != 2 {
+		t.Fatalf("expected id + username assignments, got %d", assignments.Len())
 	}
 }
 
@@ -105,8 +105,8 @@ func TestInsertAssignmentsGenerateUUIDv7ID(t *testing.T) {
 	if entity.ID == "" {
 		t.Fatal("expected generated uuid id")
 	}
-	if len(assignments) != 2 {
-		t.Fatalf("expected id + username assignments, got %d", len(assignments))
+	if assignments.Len() != 2 {
+		t.Fatalf("expected id + username assignments, got %d", assignments.Len())
 	}
 }
 
@@ -122,8 +122,8 @@ func TestInsertAssignmentsGenerateULID(t *testing.T) {
 	if entity.ID == "" {
 		t.Fatal("expected generated ulid")
 	}
-	if len(assignments) != 2 {
-		t.Fatalf("expected id + username assignments, got %d", len(assignments))
+	if assignments.Len() != 2 {
+		t.Fatalf("expected id + username assignments, got %d", assignments.Len())
 	}
 }
 
@@ -139,7 +139,7 @@ func TestInsertAssignmentsGenerateKSUID(t *testing.T) {
 	if entity.ID == "" {
 		t.Fatal("expected generated ksuid")
 	}
-	if len(assignments) != 2 {
-		t.Fatalf("expected id + username assignments, got %d", len(assignments))
+	if assignments.Len() != 2 {
+		t.Fatalf("expected id + username assignments, got %d", assignments.Len())
 	}
 }

@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
-	"github.com/samber/lo"
 )
 
 // Claimer handles claiming stale messages from other consumers.
@@ -55,7 +55,7 @@ func (c *Claimer) claimAndProcess(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if len(entries) == 0 {
+		if entries.IsEmpty() {
 			return nil
 		}
 		if err := c.processClaimedEntries(ctx, entries); err != nil {
@@ -64,16 +64,16 @@ func (c *Claimer) claimAndProcess(ctx context.Context) error {
 	}
 }
 
-func (c *Claimer) processClaimedEntries(ctx context.Context, entries []kvx.StreamEntry) error {
-	idsToAck := lo.FilterMap(entries, func(entry kvx.StreamEntry, _ int) (string, bool) {
+func (c *Claimer) processClaimedEntries(ctx context.Context, entries collectionx.List[kvx.StreamEntry]) error {
+	idsToAck := collectionx.FilterMapList(entries, func(_ int, entry kvx.StreamEntry) (string, bool) {
 		if err := c.handler(ctx, entry); err != nil {
 			return "", false
 		}
 		return entry.ID, true
 	})
-	if len(idsToAck) == 0 {
+	if idsToAck.IsEmpty() {
 		return nil
 	}
 
-	return wrapError(c.group.Ack(ctx, idsToAck), "ack claimed entries")
+	return wrapError(c.group.Ack(ctx, idsToAck.Values()), "ack claimed entries")
 }

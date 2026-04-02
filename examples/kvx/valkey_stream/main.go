@@ -1,4 +1,4 @@
-// Package valkey_stream demonstrates Valkey stream operations with kvx.
+// Package main demonstrates Valkey stream operations with kvx.
 package main
 
 import (
@@ -42,7 +42,7 @@ func main() {
 	mustWritef("valkey stream addr: %s\n", addr)
 	mustWritef("entry ids: %s, %s\n", id1, id2)
 	mustWritef("xlen: %d\n", length)
-	mustWritef("read entries: %d\n", len(entries))
+	mustWritef("read entries: %d\n", entries.Len())
 }
 
 func must(err error) {

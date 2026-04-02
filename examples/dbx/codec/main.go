@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
 )
@@ -161,7 +162,7 @@ func insertAccounts(
 		if err != nil {
 			panic(err)
 		}
-		if _, err = dbx.Exec(ctx, session, dbx.InsertInto(schema).Values(assignments...)); err != nil {
+		if _, err = dbx.Exec(ctx, session, dbx.InsertInto(schema).Values(assignments.Values()...)); err != nil {
 			panic(err)
 		}
 	}
@@ -172,7 +173,7 @@ func queryAccounts(
 	session dbx.Session,
 	schema accountSchema,
 	mapper dbx.Mapper[account],
-) ([]account, error) {
+) (collectionx.List[account], error) {
 	return dbx.QueryAll[account](
 		ctx,
 		session,
@@ -181,10 +182,9 @@ func queryAccounts(
 	)
 }
 
-func printAccounts(items []account) {
+func printAccounts(items collectionx.List[account]) {
 	printLine("codec example:")
-	for index := range items {
-		item := &items[index]
+	items.Range(func(_ int, item account) bool {
 		printFormat(
 			"- id=%d username=%s status=%s created_at=%s theme=%s tags=%v\n",
 			item.ID,
@@ -194,7 +194,8 @@ func printAccounts(items []account) {
 			item.Preferences.Theme,
 			item.Tags,
 		)
-	}
+		return true
+	})
 }
 
 func printLine(text string) {

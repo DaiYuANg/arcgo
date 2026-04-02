@@ -190,7 +190,7 @@ func registerTyped[I, O any](
 	wrappedHandler := applyRoutePolicies(withInputValidation(s, handler), policies)
 	op := newTypedOperation(method, registerPath, fullPath, operationOptions, policies)
 	handlerName := handlerName(handler)
-	applyOperationModifiers(&op, s.operationModifiers.Values())
+	applyOperationModifiers(&op, s.operationModifiers)
 	if s.logger != nil && s.logger.Enabled(context.Background(), slog.LevelDebug) {
 		s.logger.Debug("httpx route registration starting",
 			"method", method,
@@ -252,11 +252,16 @@ func newTypedOperation[I, O any](
 	return op
 }
 
-func applyOperationModifiers(op *huma.Operation, modifiers []func(*huma.Operation)) {
-	if op == nil {
+func applyOperationModifiers(op *huma.Operation, modifiers collectionx.ConcurrentList[func(*huma.Operation)]) {
+	if op == nil || modifiers == nil {
 		return
 	}
-	option.Apply(op, modifiers...)
+	modifiers.Range(func(_ int, modifier func(*huma.Operation)) bool {
+		if modifier != nil {
+			modifier(op)
+		}
+		return true
+	})
 }
 
 // handlerName returns a best-effort function name for diagnostics.

@@ -24,7 +24,7 @@ func (r *Base[E, S]) Create(ctx context.Context, entity *E) error {
 		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
 	}
-	_, err = dbx.Exec(ctx, r.session, dbx.InsertInto(r.schema).Values(assignments...))
+	_, err = dbx.Exec(ctx, r.session, dbx.InsertInto(r.schema).Values(assignments.Values()...))
 	if err != nil {
 		wrapped := wrapMutationError(err)
 		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
@@ -53,7 +53,7 @@ func (r *Base[E, S]) CreateMany(ctx context.Context, entities ...*E) error {
 			dbx.LogRuntimeNode(r.session, "repository.create_many.error", "table", r.schema.TableName(), "stage", "assignments", "index", index, "error", err)
 			return err
 		}
-		query.Values(assignments...)
+		query.Values(assignments.Values()...)
 	}
 	_, err := dbx.Exec(ctx, r.session, query)
 	if err != nil {
@@ -79,7 +79,7 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
 	}
-	query := dbx.InsertInto(r.schema).Values(assignments...)
+	query := dbx.InsertInto(r.schema).Values(assignments.Values()...)
 	targetColumns := normalizeConflictColumns(conflictColumns, r.primaryKeyColumns())
 	if len(targetColumns) == 0 {
 		return &ValidationError{Message: "upsert requires conflict columns"}
@@ -103,7 +103,7 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 	return nil
 }
 
-func (r *Base[E, S]) insertAssignments(entity *E) ([]dbx.Assignment, error) {
+func (r *Base[E, S]) insertAssignments(entity *E) (collectionx.List[dbx.Assignment], error) {
 	assignments, err := r.mapper.InsertAssignments(r.session, r.schema, entity)
 	if err != nil {
 		return nil, fmt.Errorf("build insert assignments: %w", err)

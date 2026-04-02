@@ -30,7 +30,7 @@ func (a *Adapter) DropIndex(ctx context.Context, indexName string) error {
 }
 
 // Search performs a search query.
-func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int) ([]string, error) {
+func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int) (collectionx.List[string], error) {
 	val, err := a.client.Do(ctx, "FT.SEARCH", indexName, query, "LIMIT", 0, limit).Result()
 	val, err = wrapRedisResult("search index", val, err)
 	if err != nil {
@@ -41,7 +41,7 @@ func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int
 }
 
 // SearchWithSort performs a search query with sorting.
-func (a *Adapter) SearchWithSort(ctx context.Context, indexName, query, sortBy string, ascending bool, limit int) ([]string, error) {
+func (a *Adapter) SearchWithSort(ctx context.Context, indexName, query, sortBy string, ascending bool, limit int) (collectionx.List[string], error) {
 	args := collectionx.NewList[any]("FT.SEARCH", indexName, query, "SORTBY", sortBy)
 	if !ascending {
 		args.Add("DESC")

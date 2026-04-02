@@ -139,7 +139,7 @@ func queryRelationTargets[E any](ctx context.Context, session Session, rt *relat
 			logRuntimeNode(session, "relation.targets.query.error", "stage", "query_rows", "index", index, "error", err)
 			return nil, err
 		}
-		items.Add(rows...)
+		items.Merge(rows)
 	}
 	logRuntimeNode(session, "relation.targets.query.done", "table", schema.tableRef().TableName(), "items", items.Len())
 	return items.Values(), nil

@@ -101,24 +101,7 @@ func collectPendingGoMigrations(
 	byVersion map[int64]Migration,
 	validateHash bool,
 ) (collectionx.List[Migration], error) {
-	pending, err := lo.ReduceErr(statuses, func(result collectionx.List[Migration], status *goose.MigrationStatus, _ int) (collectionx.List[Migration], error) {
-		migration, ok := byVersion[status.Source.Version]
-		if !ok {
-			return result, nil
-		}
-		if err := validatePendingStatus(status, metaByVersion, indexed, validateHash); err != nil {
-			return nil, err
-		}
-		if status.State != goose.StatePending {
-			return result, nil
-		}
-		result.Add(migration)
-		return result, nil
-	}, collectionx.NewListWithCapacity[Migration](len(statuses)))
-	if err != nil {
-		return nil, fmt.Errorf("dbx/migrate: collect pending go migrations: %w", err)
-	}
-	return pending, nil
+	return collectPendingMigrations(statuses, metaByVersion, indexed, byVersion, validateHash, "go")
 }
 
 func (r *Runner) pendingVersionedSQL(
@@ -169,7 +152,18 @@ func collectPendingSQLMigrations(
 	byVersion map[int64]SQLMigration,
 	validateHash bool,
 ) (collectionx.List[SQLMigration], error) {
-	pending, err := lo.ReduceErr(statuses, func(result collectionx.List[SQLMigration], status *goose.MigrationStatus, _ int) (collectionx.List[SQLMigration], error) {
+	return collectPendingMigrations(statuses, metaByVersion, indexed, byVersion, validateHash, "sql")
+}
+
+func collectPendingMigrations[T any](
+	statuses []*goose.MigrationStatus,
+	metaByVersion collectionx.Map[int64, AppliedRecord],
+	indexed map[string]AppliedRecord,
+	byVersion map[int64]T,
+	validateHash bool,
+	kind string,
+) (collectionx.List[T], error) {
+	pending, err := lo.ReduceErr(statuses, func(result collectionx.List[T], status *goose.MigrationStatus, _ int) (collectionx.List[T], error) {
 		migration, ok := byVersion[status.Source.Version]
 		if !ok {
 			return result, nil
@@ -182,9 +176,9 @@ func collectPendingSQLMigrations(
 		}
 		result.Add(migration)
 		return result, nil
-	}, collectionx.NewListWithCapacity[SQLMigration](len(statuses)))
+	}, collectionx.NewListWithCapacity[T](len(statuses)))
 	if err != nil {
-		return nil, fmt.Errorf("dbx/migrate: collect pending sql migrations: %w", err)
+		return nil, fmt.Errorf("dbx/migrate: collect pending %s migrations: %w", kind, err)
 	}
 	return pending, nil
 }

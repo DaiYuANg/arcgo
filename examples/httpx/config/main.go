@@ -53,7 +53,9 @@ func main() {
 		OpenAPIPath: "/openapi.json",
 	})
 
-	server := httpx.New(append(serverOpts.Build(), httpx.WithAdapter(stdAdapter))...)
+	serverBuild := serverOpts.Build()
+	serverBuild.Add(httpx.WithAdapter(stdAdapter))
+	server := httpx.New(serverBuild.Values()...)
 	httpx.MustGet(server, "/users", func(_ context.Context, _ *struct{}) (*userOutput, error) {
 		out := &userOutput{}
 		out.Body.Users = []string{"Alice", "Bob", "Charlie"}

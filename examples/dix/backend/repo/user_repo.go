@@ -48,18 +48,18 @@ func (r *userRepo) List(ctx context.Context, search string, limit, offset int) (
 	if err != nil {
 		return nil, 0, err
 	}
-	total := len(all)
+	total := all.Len()
 
 	if offset >= total {
 		return []domain.User{}, total, nil
 	}
-	end := min(offset+limit, total)
-	page := all[offset:end]
+	page := all.Drop(offset).Take(min(limit, total-offset))
 
-	users := make([]domain.User, len(page))
-	for i, row := range page {
+	users := make([]domain.User, page.Len())
+	page.Range(func(i int, row backendschema.UserRow) bool {
 		users[i] = rowToDomain(row)
-	}
+		return true
+	})
 	return users, total, nil
 }
 
@@ -74,10 +74,11 @@ func (r *userRepo) GetByID(ctx context.Context, id int64) (domain.User, bool, er
 	if err != nil {
 		return domain.User{}, false, err
 	}
-	if len(rows) == 0 {
+	if rows.IsEmpty() {
 		return domain.User{}, false, nil
 	}
-	return rowToDomain(rows[0]), true, nil
+	row, _ := rows.GetFirst()
+	return rowToDomain(row), true, nil
 }
 
 func (r *userRepo) Create(ctx context.Context, in domain.CreateUserInput) (domain.User, error) {
@@ -101,7 +102,8 @@ func (r *userRepo) Create(ctx context.Context, in domain.CreateUserInput) (domai
 	if err != nil {
 		return domain.User{}, err
 	}
-	return rowToDomain(rows[0]), nil
+	row, _ := rows.GetFirst()
+	return rowToDomain(row), nil
 }
 
 func (r *userRepo) Update(ctx context.Context, id int64, in domain.UpdateUserInput) (domain.User, bool, error) {
@@ -126,10 +128,11 @@ func (r *userRepo) Update(ctx context.Context, id int64, in domain.UpdateUserInp
 	if err != nil {
 		return domain.User{}, false, err
 	}
-	if len(rows) == 0 {
+	if rows.IsEmpty() {
 		return domain.User{}, false, nil
 	}
-	return rowToDomain(rows[0]), true, nil
+	row, _ := rows.GetFirst()
+	return rowToDomain(row), true, nil
 }
 
 func (r *userRepo) Delete(ctx context.Context, id int64) (bool, error) {

@@ -3,6 +3,7 @@ package redis
 import (
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
@@ -38,13 +39,13 @@ func valueToBytes(val any) []byte {
 	}
 }
 
-func parseFTSearchResponse(val any) []string {
+func parseFTSearchResponse(val any) collectionx.List[string] {
 	arr, ok := val.([]any)
 	if !ok || len(arr) < 1 {
-		return nil
+		return collectionx.NewList[string]()
 	}
 
-	return lo.FilterMap(arr[1:], func(item any, index int) (string, bool) {
+	return collectionx.FilterMapList(collectionx.NewListWithCapacity(len(arr)-1, arr[1:]...), func(index int, item any) (string, bool) {
 		if index%2 != 0 {
 			return "", false
 		}

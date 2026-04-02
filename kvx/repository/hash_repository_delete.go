@@ -74,8 +74,8 @@ func (r *HashRepository[T]) persistHashDelete(ctx context.Context, state hashDel
 	if err != nil {
 		return wrapRepositoryError(err, "list hash fields for delete")
 	}
-	if len(fields) > 0 {
-		if err := r.client.HDel(ctx, state.key, fields...); err != nil {
+	if !fields.IsEmpty() {
+		if err := r.client.HDel(ctx, state.key, fields.Values()...); err != nil {
 			return wrapRepositoryError(err, "delete hash fields")
 		}
 	}

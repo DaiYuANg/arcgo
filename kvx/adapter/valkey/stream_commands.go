@@ -17,14 +17,14 @@ func (a *Adapter) XAdd(ctx context.Context, key, id string, values map[string][]
 }
 
 // XRead reads entries from a stream.
-func (a *Adapter) XRead(ctx context.Context, key, start string, count int64) ([]kvx.StreamEntry, error) {
+func (a *Adapter) XRead(ctx context.Context, key, start string, count int64) (collectionx.List[kvx.StreamEntry], error) {
 	resp := a.client.Do(ctx, newXReadCommand(a.client, key, start, count))
 	entries, err := xReadEntriesFromResult("read stream", resp)
 	if err != nil {
 		return nil, err
 	}
 	if len(entries) == 0 {
-		return nil, nil
+		return collectionx.NewList[kvx.StreamEntry](), nil
 	}
 
 	return convertXRangeEntries(entries[key]), nil
@@ -45,7 +45,7 @@ func (a *Adapter) XReadMultiple(ctx context.Context, streams map[string]string, 
 			return
 		}
 
-		result.Set(entry.Key, entries...)
+		result.Set(entry.Key, entries.Values()...)
 	})
 	if readErr != nil {
 		return nil, readErr
@@ -55,7 +55,7 @@ func (a *Adapter) XReadMultiple(ctx context.Context, streams map[string]string, 
 }
 
 // XRange reads entries in a range.
-func (a *Adapter) XRange(ctx context.Context, key, start, stop string) ([]kvx.StreamEntry, error) {
+func (a *Adapter) XRange(ctx context.Context, key, start, stop string) (collectionx.List[kvx.StreamEntry], error) {
 	resp := a.client.Do(ctx, a.client.B().Xrange().Key(key).Start(start).End(stop).Build())
 	entries, err := xRangeEntriesFromResult("range stream", resp)
 	if err != nil {
@@ -66,7 +66,7 @@ func (a *Adapter) XRange(ctx context.Context, key, start, stop string) ([]kvx.St
 }
 
 // XRevRange reads entries in reverse order.
-func (a *Adapter) XRevRange(ctx context.Context, key, start, stop string) ([]kvx.StreamEntry, error) {
+func (a *Adapter) XRevRange(ctx context.Context, key, start, stop string) (collectionx.List[kvx.StreamEntry], error) {
 	resp := a.client.Do(ctx, a.client.B().Arbitrary("XREVRANGE").Args(key, start, stop).Build())
 	entries, err := xRangeEntriesFromResult("reverse range stream", resp)
 	if err != nil {

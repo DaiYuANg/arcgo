@@ -62,7 +62,7 @@ func (i *Index) Search(ctx context.Context, query string, opts *Options) (*Resul
 		limit = 10
 	}
 
-	var keys []string
+	var keys collectionx.List[string]
 	var err error
 
 	if opts.SortBy != "" {
@@ -76,8 +76,8 @@ func (i *Index) Search(ctx context.Context, query string, opts *Options) (*Resul
 	}
 
 	return &Result{
-		Keys:  collectionx.NewListWithCapacity(len(keys), keys...),
-		Total: int64(len(keys)),
+		Keys:  keys,
+		Total: int64(keys.Len()),
 	}, nil
 }
 

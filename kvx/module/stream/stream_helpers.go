@@ -3,6 +3,7 @@ package stream
 import (
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/samber/lo"
 )
@@ -35,10 +36,18 @@ func convertToBytes(v any) ([]byte, error) {
 	}
 }
 
-func limitEntries(entries []kvx.StreamEntry, count int64) []kvx.StreamEntry {
-	if count <= 0 || count >= int64(len(entries)) {
+func limitEntries(entries collectionx.List[kvx.StreamEntry], count int64) collectionx.List[kvx.StreamEntry] {
+	if entries == nil || count <= 0 || count >= int64(entries.Len()) {
 		return entries
 	}
 
-	return entries[:count]
+	return entries.Take(int(count))
+}
+
+func streamEntriesFromMultiMap(results collectionx.MultiMap[string, kvx.StreamEntry], streamKey string) collectionx.List[kvx.StreamEntry] {
+	entries := results.Get(streamKey)
+	if len(entries) == 0 {
+		return collectionx.NewList[kvx.StreamEntry]()
+	}
+	return collectionx.NewListWithCapacity(len(entries), entries...)
 }

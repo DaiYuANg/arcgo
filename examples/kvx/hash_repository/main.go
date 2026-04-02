@@ -35,7 +35,7 @@ func main() {
 	must(err)
 
 	mustPrintf("loaded: %s (%s)\n", entity.Name, entity.Email)
-	mustPrintf("indexed matches: %d\n", len(matches))
+	mustPrintf("indexed matches: %d\n", matches.Len())
 	mustPrintf("count: %d\n", count)
 }
 

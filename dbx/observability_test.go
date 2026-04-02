@@ -88,7 +88,7 @@ func TestDBDebugLoggingAndHooks(t *testing.T) {
 	if err != nil {
 		t.Fatalf("InsertAssignments returned error: %v", err)
 	}
-	mustExecInsert(context.Background(), t, db, InsertInto(users).Values(assignments...))
+	mustExecInsert(context.Background(), t, db, InsertInto(users).Values(assignments.Values()...))
 	assertDebugHookCounts(t, beforeCount, afterCount)
 	record := mustFindOperationRecord(t, handler.records, OperationExec)
 	assertDebugRecord(t, record, OperationExec)
@@ -195,7 +195,7 @@ func TestHookEventMetadataAndDuration(t *testing.T) {
 
 	type ctxKey struct{}
 	ctx := context.WithValue(context.Background(), ctxKey{}, "abc-123")
-	mustExecInsert(ctx, t, db, InsertInto(users).Values(assignments...))
+	mustExecInsert(ctx, t, db, InsertInto(users).Values(assignments.Values()...))
 	assertHookEventMetadata(t, afterEvent, "abc-123", "req-456")
 	assertTraceRecord(t, mustFindOperationRecord(t, handler.records, OperationExec), "abc-123", "req-456")
 }

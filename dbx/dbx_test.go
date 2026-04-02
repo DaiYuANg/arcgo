@@ -184,21 +184,21 @@ func TestQueryBuildersCompactNilInputs(t *testing.T) {
 }
 
 func TestOptionsPresets(t *testing.T) {
-	db, err := NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, TestOptions()...)
+	db, err := NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, TestOptions().Values()...)
 	if err != nil {
 		t.Fatalf("NewWithOptions returned error: %v", err)
 	}
 	if !db.Debug() {
 		t.Error("TestOptions should enable debug")
 	}
-	db, err = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, ProductionOptions()...)
+	db, err = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, ProductionOptions().Values()...)
 	if err != nil {
 		t.Fatalf("NewWithOptions returned error: %v", err)
 	}
 	if db.Debug() {
 		t.Error("ProductionOptions should disable debug")
 	}
-	db, err = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, DefaultOptions()...)
+	db, err = NewWithOptions((*sql.DB)(nil), testSQLiteDialect{}, DefaultOptions().Values()...)
 	if err != nil {
 		t.Fatalf("NewWithOptions returned error: %v", err)
 	}

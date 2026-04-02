@@ -53,7 +53,7 @@ func main() {
 
 	mustWritef("redis addr: %s\n", addr)
 	mustWritef("loaded: %s (%s)\n", entity.Name, entity.Email)
-	mustWritef("indexed matches: %d\n", len(matches))
+	mustWritef("indexed matches: %d\n", matches.Len())
 	mustWritef("count: %d\n", count)
 }
 

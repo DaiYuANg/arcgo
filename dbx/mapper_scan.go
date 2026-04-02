@@ -16,15 +16,15 @@ type scanPlan struct {
 	fields []MappedField
 }
 
-func (m StructMapper[E]) ScanRows(rows *sql.Rows) ([]E, error) {
+func (m StructMapper[E]) ScanRows(rows *sql.Rows) (collectionx.List[E], error) {
 	return m.scanRowsWithCapacity(rows, 0)
 }
 
-func (m StructMapper[E]) ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) ([]E, error) {
+func (m StructMapper[E]) ScanRowsWithCapacity(rows *sql.Rows, capacityHint int) (collectionx.List[E], error) {
 	return m.scanRowsWithCapacity(rows, capacityHint)
 }
 
-func (m StructMapper[E]) scanRowsWithCapacity(rows *sql.Rows, capacityHint int) ([]E, error) {
+func (m StructMapper[E]) scanRowsWithCapacity(rows *sql.Rows, capacityHint int) (collectionx.List[E], error) {
 	if m.meta == nil {
 		return nil, ErrNilMapper
 	}
@@ -44,10 +44,13 @@ func (m StructMapper[E]) scanRowsWithCapacity(rows *sql.Rows, capacityHint int) 
 		return m.collectRowsWithCapacity(context.Background(), plan, rows, capacityHint)
 	}
 	items, err := scanlib.AllFromRows[E](context.Background(), m.scanMapper(plan), rows)
-	return items, wrapDBError("scan all rows", err)
+	if err != nil {
+		return nil, wrapDBError("scan all rows", err)
+	}
+	return collectionx.NewListWithCapacity(len(items), items...), nil
 }
 
-func (m StructMapper[E]) collectRowsWithCapacity(ctx context.Context, plan *scanPlan, rows *sql.Rows, capacityHint int) (_ []E, err error) {
+func (m StructMapper[E]) collectRowsWithCapacity(ctx context.Context, plan *scanPlan, rows *sql.Rows, capacityHint int) (_ collectionx.List[E], err error) {
 	cursor, err := scanlib.CursorFromRows(ctx, m.scanMapper(plan), rows)
 	if err != nil {
 		return nil, wrapDBError("open scan cursor", err)
@@ -55,13 +58,13 @@ func (m StructMapper[E]) collectRowsWithCapacity(ctx context.Context, plan *scan
 	defer func() {
 		err = errors.Join(err, wrapDBError("close scan cursor", cursor.Close()))
 	}()
-	result := make([]E, 0, capacityHint)
+	result := collectionx.NewListWithCapacity[E](capacityHint)
 	for cursor.Next() {
 		value, getErr := cursor.Get()
 		if getErr != nil {
 			return nil, wrapDBError("get scan cursor value", getErr)
 		}
-		result = append(result, value)
+		result.Add(value)
 	}
 	return result, wrapDBError("read scan cursor error", cursor.Err())
 }

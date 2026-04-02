@@ -102,16 +102,16 @@ func buildMissingTableActions(schemaDialect SchemaDialect, spec TableSpec) []Mig
 
 func buildExistingTableActions(schemaDialect SchemaDialect, diff TableDiff) []MigrationAction {
 	return slices.Concat(
-		mappedMigrationActions(diff.MissingColumns.Values(), func(column ColumnMeta) MigrationAction {
+		mappedMigrationActionList(diff.MissingColumns, func(column ColumnMeta) MigrationAction {
 			return buildAddColumnAction(schemaDialect, diff.Table, column)
 		}),
-		mappedMigrationActions(diff.MissingIndexes.Values(), func(index IndexMeta) MigrationAction {
+		mappedMigrationActionList(diff.MissingIndexes, func(index IndexMeta) MigrationAction {
 			return buildCreateIndexAction(schemaDialect, index)
 		}),
-		mappedMigrationActions(diff.MissingForeignKeys.Values(), func(foreignKey ForeignKeyMeta) MigrationAction {
+		mappedMigrationActionList(diff.MissingForeignKeys, func(foreignKey ForeignKeyMeta) MigrationAction {
 			return buildAddForeignKeyAction(schemaDialect, diff.Table, foreignKey)
 		}),
-		mappedMigrationActions(diff.MissingChecks.Values(), func(check CheckMeta) MigrationAction {
+		mappedMigrationActionList(diff.MissingChecks, func(check CheckMeta) MigrationAction {
 			return buildAddCheckAction(schemaDialect, diff.Table, check)
 		}),
 		primaryKeyManualActions(diff),
@@ -135,7 +135,7 @@ func (r ValidationReport) withWarning(message string) ValidationReport {
 		return r
 	}
 	next := r
-	next.Warnings = collectionx.NewListWithCapacity(r.Warnings.Len()+1, r.Warnings.Values()...)
+	next.Warnings = r.Warnings.Clone()
 	next.Warnings.Add(message)
 	return next
 }

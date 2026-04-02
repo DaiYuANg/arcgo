@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
-	"github.com/samber/lo"
 )
 
 // Consumer handles message processing with automatic acknowledgment.
@@ -21,7 +21,7 @@ type Consumer struct {
 type MessageHandler func(ctx context.Context, entry kvx.StreamEntry) error
 
 // BatchMessageHandler is the callback function for processing messages in batch.
-type BatchMessageHandler func(ctx context.Context, entries []kvx.StreamEntry) error
+type BatchMessageHandler func(ctx context.Context, entries collectionx.List[kvx.StreamEntry]) error
 
 // ConsumerOptions contains options for creating a Consumer.
 type ConsumerOptions struct {
@@ -61,7 +61,7 @@ func (c *Consumer) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		if len(entries) == 0 {
+		if entries.IsEmpty() {
 			continue
 		}
 
@@ -71,18 +71,18 @@ func (c *Consumer) Run(ctx context.Context) error {
 	}
 }
 
-func (c *Consumer) processEntries(ctx context.Context, entries []kvx.StreamEntry) error {
-	idsToAck := lo.FilterMap(entries, func(entry kvx.StreamEntry, _ int) (string, bool) {
+func (c *Consumer) processEntries(ctx context.Context, entries collectionx.List[kvx.StreamEntry]) error {
+	idsToAck := collectionx.FilterMapList(entries, func(_ int, entry kvx.StreamEntry) (string, bool) {
 		if err := c.handler(ctx, entry); err != nil || !c.autoAck {
 			return "", false
 		}
 		return entry.ID, true
 	})
-	if !c.autoAck || len(idsToAck) == 0 {
+	if !c.autoAck || idsToAck.IsEmpty() {
 		return nil
 	}
 
-	return wrapError(c.group.Ack(ctx, idsToAck), "ack processed consumer entries")
+	return wrapError(c.group.Ack(ctx, idsToAck.Values()), "ack processed consumer entries")
 }
 
 // BatchConsumer handles message processing in batches.
@@ -109,12 +109,12 @@ func NewBatchConsumer(group *ConsumerGroup, handler BatchMessageHandler, opts Co
 
 // Run starts the batch consumer loop.
 func (c *BatchConsumer) Run(ctx context.Context) error {
-	buffer := make([]kvx.StreamEntry, 0, c.batchSize)
+	buffer := collectionx.NewListWithCapacity[kvx.StreamEntry](int(c.batchSize))
 	timer := time.NewTimer(c.maxWaitTime)
 	defer stopTimer(timer)
 
 	for {
-		flushed, err := c.flushOnTimer(ctx, timer, &buffer)
+		flushed, err := c.flushOnTimer(ctx, timer, buffer)
 		if err != nil {
 			return err
 		}
@@ -127,14 +127,14 @@ func (c *BatchConsumer) Run(ctx context.Context) error {
 			return err
 		}
 
-		buffer = lo.Concat(buffer, entries)
-		if err := c.flushIfReady(ctx, timer, &buffer); err != nil {
+		buffer.Merge(entries)
+		if err := c.flushIfReady(ctx, timer, buffer); err != nil {
 			return err
 		}
 	}
 }
 
-func (c *BatchConsumer) flushOnTimer(ctx context.Context, timer *time.Timer, buffer *[]kvx.StreamEntry) (bool, error) {
+func (c *BatchConsumer) flushOnTimer(ctx context.Context, timer *time.Timer, buffer collectionx.List[kvx.StreamEntry]) (bool, error) {
 	select {
 	case <-ctx.Done():
 		return false, wrapContextError(ctx, "run batch consumer")
@@ -149,8 +149,8 @@ func (c *BatchConsumer) flushOnTimer(ctx context.Context, timer *time.Timer, buf
 	}
 }
 
-func (c *BatchConsumer) remainingCapacity(buffer []kvx.StreamEntry) int64 {
-	remaining := c.batchSize - int64(len(buffer))
+func (c *BatchConsumer) remainingCapacity(buffer collectionx.List[kvx.StreamEntry]) int64 {
+	remaining := c.batchSize - int64(buffer.Len())
 	if remaining > 0 {
 		return remaining
 	}
@@ -158,8 +158,8 @@ func (c *BatchConsumer) remainingCapacity(buffer []kvx.StreamEntry) int64 {
 	return c.batchSize
 }
 
-func (c *BatchConsumer) flushIfReady(ctx context.Context, timer *time.Timer, buffer *[]kvx.StreamEntry) error {
-	if int64(len(*buffer)) < c.batchSize {
+func (c *BatchConsumer) flushIfReady(ctx context.Context, timer *time.Timer, buffer collectionx.List[kvx.StreamEntry]) error {
+	if int64(buffer.Len()) < c.batchSize {
 		return nil
 	}
 	if err := c.flushBuffer(ctx, buffer); err != nil {
@@ -170,19 +170,19 @@ func (c *BatchConsumer) flushIfReady(ctx context.Context, timer *time.Timer, buf
 	return nil
 }
 
-func (c *BatchConsumer) flushBuffer(ctx context.Context, buffer *[]kvx.StreamEntry) error {
-	if len(*buffer) == 0 {
+func (c *BatchConsumer) flushBuffer(ctx context.Context, buffer collectionx.List[kvx.StreamEntry]) error {
+	if buffer.IsEmpty() {
 		return nil
 	}
-	if err := c.processBatch(ctx, *buffer); err != nil {
+	if err := c.processBatch(ctx, buffer); err != nil {
 		return err
 	}
 
-	*buffer = (*buffer)[:0]
+	buffer.Clear()
 	return nil
 }
 
-func (c *BatchConsumer) processBatch(ctx context.Context, entries []kvx.StreamEntry) error {
+func (c *BatchConsumer) processBatch(ctx context.Context, entries collectionx.List[kvx.StreamEntry]) error {
 	if err := c.handler(ctx, entries); err != nil {
 		return err
 	}
@@ -190,10 +190,10 @@ func (c *BatchConsumer) processBatch(ctx context.Context, entries []kvx.StreamEn
 		return nil
 	}
 
-	ids := lo.Map(entries, func(entry kvx.StreamEntry, _ int) string {
+	ids := collectionx.MapList(entries, func(_ int, entry kvx.StreamEntry) string {
 		return entry.ID
 	})
-	return wrapError(c.group.Ack(ctx, ids), "ack processed batch entries")
+	return wrapError(c.group.Ack(ctx, ids.Values()), "ack processed batch entries")
 }
 
 func waitForShutdown(ctx context.Context, action string) error {

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 // Option documents related behavior.
@@ -238,24 +240,24 @@ func WithCaller(enabled bool) Option {
 // Note.
 // Note.
 // Note.
-func DevelopmentConfig() []Option {
-	return []Option{
+func DevelopmentConfig() collectionx.List[Option] {
+	return collectionx.NewList(
 		WithConsole(true),
 		WithDebugLevel(),
 		WithCaller(true),
-	}
+	)
 }
 
 // ProductionConfig documents related behavior.
 // Note.
 // Note.
 // Note.
-func ProductionConfig(logPath string) []Option {
-	return []Option{
+func ProductionConfig(logPath string) collectionx.List[Option] {
+	return collectionx.NewList(
 		WithConsole(false),
 		WithInfoLevel(),
 		WithFile(logPath),
 		WithFileRotation(100, 7, 10),
 		WithCompress(true),
-	}
+	)
 }

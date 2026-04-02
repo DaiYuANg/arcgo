@@ -68,13 +68,13 @@ func main() {
 	}
 
 	printLine("Snowflake by marker type:")
-	printFormat("- strategy=%s generated_id=%d assignments=%d\n", snowflakeSchema.ID.Meta().IDStrategy, snowflakeEntity.ID, len(snowflakeAssignments))
+	printFormat("- strategy=%s generated_id=%d assignments=%d\n", snowflakeSchema.ID.Meta().IDStrategy, snowflakeEntity.ID, snowflakeAssignments.Len())
 
 	printLine("UUID by default (string pk => uuidv7):")
-	printFormat("- strategy=%s uuid_version=%s generated_id=%s assignments=%d\n", uuidSchema.ID.Meta().IDStrategy, uuidSchema.ID.Meta().UUIDVersion, uuidEntity.ID, len(uuidAssignments))
+	printFormat("- strategy=%s uuid_version=%s generated_id=%s assignments=%d\n", uuidSchema.ID.Meta().IDStrategy, uuidSchema.ID.Meta().UUIDVersion, uuidEntity.ID, uuidAssignments.Len())
 
 	printLine("Snowflake by typed IDColumn marker:")
-	printFormat("- strategy=%s generated_id=%d assignments=%d\n", strongTypedSchema.ID.Meta().IDStrategy, strongTypedEntity.ID, len(strongTypedAssignments))
+	printFormat("- strategy=%s generated_id=%d assignments=%d\n", strongTypedSchema.ID.Meta().IDStrategy, strongTypedEntity.ID, strongTypedAssignments.Len())
 }
 
 func printLine(text string) {

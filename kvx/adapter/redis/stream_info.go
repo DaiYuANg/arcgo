@@ -3,11 +3,12 @@ package redis
 import (
 	"context"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 )
 
 // XInfoGroups gets info about consumer groups.
-func (a *Adapter) XInfoGroups(ctx context.Context, key string) ([]kvx.GroupInfo, error) {
+func (a *Adapter) XInfoGroups(ctx context.Context, key string) (collectionx.List[kvx.GroupInfo], error) {
 	result, err := a.client.XInfoGroups(ctx, key).Result()
 	result, err = wrapRedisResult("get stream groups info", result, err)
 	if err != nil {
@@ -18,7 +19,7 @@ func (a *Adapter) XInfoGroups(ctx context.Context, key string) ([]kvx.GroupInfo,
 }
 
 // XInfoConsumers gets info about consumers in a group.
-func (a *Adapter) XInfoConsumers(ctx context.Context, key, group string) ([]kvx.ConsumerInfo, error) {
+func (a *Adapter) XInfoConsumers(ctx context.Context, key, group string) (collectionx.List[kvx.ConsumerInfo], error) {
 	result, err := a.client.XInfoConsumers(ctx, key, group).Result()
 	result, err = wrapRedisResult("get stream consumers info", result, err)
 	if err != nil {

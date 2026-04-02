@@ -168,12 +168,12 @@ func MustNew(opts ...Option) *slog.Logger {
 
 // NewDevelopment creates a development logger.
 func NewDevelopment() (*slog.Logger, error) {
-	return New(DevelopmentConfig()...)
+	return New(DevelopmentConfig().Values()...)
 }
 
 // NewProduction creates a production logger.
 func NewProduction() (*slog.Logger, error) {
-	return New(ProductionConfig("")...)
+	return New(ProductionConfig("").Values()...)
 }
 
 // SetDefault sets slog default logger.
@@ -222,17 +222,19 @@ func WithField(logger *slog.Logger, key string, value any) *slog.Logger {
 }
 
 // WithFields adds fields and returns a derived logger.
-func WithFields(logger *slog.Logger, fields map[string]any) *slog.Logger {
+func WithFields(logger *slog.Logger, fields collectionx.Map[string, any]) *slog.Logger {
 	if logger == nil {
 		return nil
 	}
-	if len(fields) == 0 {
+	if fields == nil || fields.Len() == 0 {
 		return logger
 	}
-	args := lo.FlatMap(lo.Entries(fields), func(entry lo.Entry[string, any], _ int) []any {
-		return []any{entry.Key, entry.Value}
+	args := collectionx.NewListWithCapacity[any](fields.Len() * 2)
+	fields.Range(func(key string, value any) bool {
+		args.Add(key, value)
+		return true
 	})
-	return logger.With(args...)
+	return logger.With(args.Values()...)
 }
 
 // WithError adds an error field and returns a derived logger.

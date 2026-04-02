@@ -51,7 +51,7 @@ func registerSSE[I any](
 	}
 	wrappedHandler := applySSERoutePolicies(handler, policies)
 	op := newSSEOperation(method, registerPath, fullPath, operationOptions, policies)
-	applyOperationModifiers(&op, s.operationModifiers.Values())
+	applyOperationModifiers(&op, s.operationModifiers)
 	if s.logger != nil && s.logger.Enabled(context.Background(), slog.LevelDebug) {
 		s.logger.Debug("httpx sse route registration starting",
 			"method", method,

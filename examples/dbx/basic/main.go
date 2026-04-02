@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
 )
@@ -56,7 +57,7 @@ func prepareBasicData(ctx context.Context, core *dbx.DB, catalog shared.Catalog)
 	}
 }
 
-func queryActiveUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog) []shared.User {
+func queryActiveUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog) collectionx.List[shared.User] {
 	userMapper := dbx.MustMapper[shared.User](catalog.Users)
 	users, err := dbx.QueryAll[shared.User](
 		ctx,
@@ -74,15 +75,15 @@ func queryActiveUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog)
 	return users
 }
 
-func printActiveUsers(users []shared.User) {
+func printActiveUsers(users collectionx.List[shared.User]) {
 	printLine("active users:")
-	for index := range users {
-		user := &users[index]
+	users.Range(func(_ int, user shared.User) bool {
 		printFormat("- id=%d username=%s email=%s role_id=%d\n", user.ID, user.Username, user.Email, user.RoleID)
-	}
+		return true
+	})
 }
 
-func queryUserSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalog) []shared.UserSummary {
+func queryUserSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalog) collectionx.List[shared.UserSummary] {
 	summaryMapper := dbx.MustMapper[shared.UserSummary](catalog.Users)
 	summaries, err := dbx.QueryAll[shared.UserSummary](
 		ctx,
@@ -97,12 +98,12 @@ func queryUserSummaries(ctx context.Context, core *dbx.DB, catalog shared.Catalo
 	return summaries
 }
 
-func printUserSummaries(summaries []shared.UserSummary) {
+func printUserSummaries(summaries collectionx.List[shared.UserSummary]) {
 	printLine("projected summaries:")
-	for index := range summaries {
-		summary := &summaries[index]
+	summaries.Range(func(_ int, summary shared.UserSummary) bool {
 		printFormat("- id=%d username=%s email=%s\n", summary.ID, summary.Username, summary.Email)
-	}
+		return true
+	})
 }
 
 func updateUserStatus(ctx context.Context, core *dbx.DB, catalog shared.Catalog, username string, status int) {
@@ -127,7 +128,7 @@ func updateUserStatus(ctx context.Context, core *dbx.DB, catalog shared.Catalog,
 	commitOrPanic(tx)
 }
 
-func queryUsersByUsername(ctx context.Context, core *dbx.DB, catalog shared.Catalog, username string) []shared.User {
+func queryUsersByUsername(ctx context.Context, core *dbx.DB, catalog shared.Catalog, username string) collectionx.List[shared.User] {
 	userMapper := dbx.MustMapper[shared.User](catalog.Users)
 	users, err := dbx.QueryAll[shared.User](
 		ctx,
@@ -144,8 +145,12 @@ func queryUsersByUsername(ctx context.Context, core *dbx.DB, catalog shared.Cata
 	return users
 }
 
-func printUpdatedStatus(users []shared.User) {
-	printFormat("bob status after tx update: %d\n", users[0].Status)
+func printUpdatedStatus(users collectionx.List[shared.User]) {
+	user, ok := users.GetFirst()
+	if !ok {
+		panic("expected updated user")
+	}
+	printFormat("bob status after tx update: %d\n", user.Status)
 }
 
 func rollbackOrPanic(rollback func() error) {

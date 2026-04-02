@@ -6,6 +6,7 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/mo"
 	scanlib "github.com/stephenafamo/scan"
 )
@@ -75,7 +76,7 @@ func (x *SQLExecutor) sessionOrErr() (Session, error) {
 	return x.session, nil
 }
 
-func SQLList[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) ([]E, error) {
+func SQLList[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (collectionx.List[E], error) {
 	if mapper == nil {
 		return nil, ErrNilMapper
 	}
@@ -101,7 +102,7 @@ func SQLList[E any](ctx context.Context, session Session, statement SQLStatement
 		logRuntimeNode(session, "sql.list.error", "stage", "close_rows", "error", closeErr)
 		return nil, closeErr
 	}
-	logRuntimeNode(session, "sql.list.done", "items", len(items))
+	logRuntimeNode(session, "sql.list.done", "items", items.Len())
 	return items, nil
 }
 
@@ -138,14 +139,15 @@ func SQLGet[E any](ctx context.Context, session Session, statement SQLStatementS
 		return zero, err
 	}
 
-	switch len(items) {
+	switch items.Len() {
 	case 0:
 		logRuntimeNode(session, "sql.get.not_found")
 		var zero E
 		return zero, sql.ErrNoRows
 	case 1:
 		logRuntimeNode(session, "sql.get.done")
-		return items[0], nil
+		item, _ := items.GetFirst()
+		return item, nil
 	default:
 		logRuntimeNode(session, "sql.get.error", "stage", "too_many_rows")
 		var zero E
@@ -180,13 +182,14 @@ func SQLFind[E any](ctx context.Context, session Session, statement SQLStatement
 		return mo.None[E](), err
 	}
 
-	switch len(items) {
+	switch items.Len() {
 	case 0:
 		logRuntimeNode(session, "sql.find.done", "found", false)
 		return mo.None[E](), nil
 	case 1:
 		logRuntimeNode(session, "sql.find.done", "found", true)
-		return mo.Some(items[0]), nil
+		item, _ := items.GetFirst()
+		return mo.Some(item), nil
 	default:
 		logRuntimeNode(session, "sql.find.error", "stage", "too_many_rows")
 		return mo.None[E](), ErrTooManyRows

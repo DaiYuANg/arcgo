@@ -45,9 +45,9 @@ func NewApp(name string, modules ...Module) *App {
 // NewAppWithOptions keeps backward compatibility with the v0.3 style.
 //
 // Deprecated: prefer New(name, WithModules(...), WithProfile(...), ...).
-func NewAppWithOptions(name string, opts []AppOption, modules ...Module) *App {
-	merged := collectionlist.NewListWithCapacity[AppOption](len(opts)+1, WithModules(modules...))
-	merged.MergeSlice(opts)
+func NewAppWithOptions(name string, opts collectionx.List[AppOption], modules ...Module) *App {
+	merged := collectionlist.NewListWithCapacity[AppOption](opts.Len()+1, WithModules(modules...))
+	merged.Merge(opts)
 	return New(name, merged.Values()...)
 }
 

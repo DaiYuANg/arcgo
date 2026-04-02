@@ -57,8 +57,8 @@ func convertStringMapToBytes(values map[string]string) map[string][]byte {
 	})
 }
 
-func convertXRangeEntries(entries []valkey.XRangeEntry) []kvx.StreamEntry {
-	return lo.Map(entries, func(entry valkey.XRangeEntry, _ int) kvx.StreamEntry {
+func convertXRangeEntries(entries []valkey.XRangeEntry) collectionx.List[kvx.StreamEntry] {
+	return collectionx.MapList(collectionx.NewListWithCapacity(len(entries), entries...), func(_ int, entry valkey.XRangeEntry) kvx.StreamEntry {
 		return kvx.StreamEntry{
 			ID:     entry.ID,
 			Values: collectionx.NewMapFrom(convertStringMapToBytes(entry.FieldValues)),
@@ -69,13 +69,13 @@ func convertXRangeEntries(entries []valkey.XRangeEntry) []kvx.StreamEntry {
 func convertXReadEntries(entries map[string][]valkey.XRangeEntry) collectionx.MultiMap[string, kvx.StreamEntry] {
 	result := collectionx.NewMultiMapWithCapacity[string, kvx.StreamEntry](len(entries))
 	lo.ForEach(lo.Entries(entries), func(entry lo.Entry[string, []valkey.XRangeEntry], _ int) {
-		result.Set(entry.Key, convertXRangeEntries(entry.Value)...)
+		result.Set(entry.Key, convertXRangeEntries(entry.Value).Values()...)
 	})
 	return result
 }
 
-func searchDocsToKeys(docs []valkey.FtSearchDoc) []string {
-	return lo.Map(docs, func(doc valkey.FtSearchDoc, _ int) string {
+func searchDocsToKeys(docs []valkey.FtSearchDoc) collectionx.List[string] {
+	return collectionx.MapList(collectionx.NewListWithCapacity(len(docs), docs...), func(_ int, doc valkey.FtSearchDoc) string {
 		return doc.Key
 	})
 }

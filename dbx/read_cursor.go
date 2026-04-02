@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	scanlib "github.com/stephenafamo/scan"
 )
 
@@ -37,11 +38,11 @@ func (c scanCursor[E]) Err() error {
 }
 
 type sliceCursor[E any] struct {
-	items []E
+	items collectionx.List[E]
 	index int
 }
 
-func newSliceCursor[E any](items []E) Cursor[E] {
+func newSliceCursor[E any](items collectionx.List[E]) Cursor[E] {
 	return &sliceCursor[E]{items: items, index: -1}
 }
 
@@ -50,7 +51,7 @@ func (c *sliceCursor[E]) Close() error {
 }
 
 func (c *sliceCursor[E]) Next() bool {
-	if c.index+1 >= len(c.items) {
+	if c.index+1 >= c.items.Len() {
 		return false
 	}
 	c.index++
@@ -58,11 +59,12 @@ func (c *sliceCursor[E]) Next() bool {
 }
 
 func (c *sliceCursor[E]) Get() (E, error) {
-	if c.index < 0 || c.index >= len(c.items) {
+	if c.index < 0 || c.index >= c.items.Len() {
 		var zero E
 		return zero, sql.ErrNoRows
 	}
-	return c.items[c.index], nil
+	item, _ := c.items.Get(c.index)
+	return item, nil
 }
 
 func (c *sliceCursor[E]) Err() error {
@@ -119,7 +121,7 @@ func QueryCursorBound[E any](ctx context.Context, session Session, bound BoundQu
 		logRuntimeNode(session, "query_cursor_bound.scan_slice_error", "error", closeErr)
 		return nil, closeErr
 	}
-	logRuntimeNode(session, "query_cursor_bound.scan_slice_done", "items", len(items))
+	logRuntimeNode(session, "query_cursor_bound.scan_slice_done", "items", items.Len())
 	return newSliceCursor(items), nil
 }
 

@@ -7,6 +7,7 @@ import (
 	"maps"
 	"strconv"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 )
 
@@ -97,30 +98,30 @@ func (b *HashBackend) HExists(_ context.Context, key, field string) (bool, error
 }
 
 // HKeys returns the field names stored in the hash at key.
-func (b *HashBackend) HKeys(_ context.Context, key string) ([]string, error) {
+func (b *HashBackend) HKeys(_ context.Context, key string) (collectionx.List[string], error) {
 	hash, ok := b.hashes[key]
 	if !ok {
-		return nil, nil
+		return collectionx.NewList[string](), nil
 	}
 
-	keys := make([]string, 0, len(hash))
+	keys := collectionx.NewListWithCapacity[string](len(hash))
 	for field := range hash {
-		keys = append(keys, field)
+		keys.Add(field)
 	}
 
 	return keys, nil
 }
 
 // HVals returns the field values stored in the hash at key.
-func (b *HashBackend) HVals(_ context.Context, key string) ([][]byte, error) {
+func (b *HashBackend) HVals(_ context.Context, key string) (collectionx.List[[]byte], error) {
 	hash, ok := b.hashes[key]
 	if !ok {
-		return nil, nil
+		return collectionx.NewList[[]byte](), nil
 	}
 
-	values := make([][]byte, 0, len(hash))
+	values := collectionx.NewListWithCapacity[[]byte](len(hash))
 	for _, value := range hash {
-		values = append(values, value)
+		values.Add(value)
 	}
 
 	return values, nil

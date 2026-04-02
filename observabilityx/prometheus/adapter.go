@@ -44,7 +44,7 @@ func New(opts ...Option) *Adapter {
 		namespace:  normalizeMetricSegment(cfg.namespace, defaultNamespace),
 		register:   cfg.register,
 		gatherer:   cfg.gatherer,
-		buckets:    cfg.buckets,
+		buckets:    cfg.buckets.Values(),
 		counters:   collectionmapping.NewConcurrentMap[string, *counterInstrument](),
 		histograms: collectionmapping.NewConcurrentMap[string, *histInstrument](),
 	}

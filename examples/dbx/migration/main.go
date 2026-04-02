@@ -7,6 +7,7 @@ import (
 	"embed"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/dbx/migrate"
 	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
@@ -54,16 +55,17 @@ func planSchemaChanges(ctx context.Context, core *dbx.DB, catalog shared.Catalog
 
 func printMigrationPlan(plan dbx.MigrationPlan) {
 	printLine("planned migration actions:")
-	for index := range plan.Actions {
-		action := &plan.Actions[index]
+	plan.Actions.Range(func(_ int, action dbx.MigrationAction) bool {
 		printFormat("- kind=%s executable=%t summary=%s\n", action.Kind, action.Executable, action.Summary)
-	}
+		return true
+	})
 
 	printLine("planned sql preview:")
 	preview := plan.SQLPreview()
-	for index := range preview {
-		printFormat("- sql=%s\n", preview[index])
-	}
+	preview.Range(func(_ int, sql string) bool {
+		printFormat("- sql=%s\n", sql)
+		return true
+	})
 }
 
 func autoMigrateSchemas(ctx context.Context, core *dbx.DB, catalog shared.Catalog) dbx.ValidationReport {
@@ -76,7 +78,7 @@ func autoMigrateSchemas(ctx context.Context, core *dbx.DB, catalog shared.Catalo
 }
 
 func printMigrationReport(report dbx.ValidationReport) {
-	printFormat("auto migrate valid=%t tables=%d\n", report.Valid(), len(report.Tables))
+	printFormat("auto migrate valid=%t tables=%d\n", report.Valid(), report.Tables.Len())
 }
 
 func validateSchemas(ctx context.Context, core *dbx.DB, catalog shared.Catalog) dbx.ValidationReport {
@@ -95,10 +97,10 @@ func printSchemaValidation(report dbx.ValidationReport) {
 func printForeignKeys(catalog shared.Catalog) {
 	printLine("users foreign keys:")
 	foreignKeys := catalog.Users.ForeignKeys()
-	for index := range foreignKeys {
-		fk := foreignKeys[index]
+	foreignKeys.Range(func(_ int, fk dbx.ForeignKeyMeta) bool {
 		printFormat("- name=%s columns=%v target=%s(%v)\n", fk.Name, fk.Columns, fk.TargetTable, fk.TargetColumns)
-	}
+		return true
+	})
 }
 
 func runGoMigrations(ctx context.Context, runner *migrate.Runner) migrate.RunReport {
@@ -123,7 +125,7 @@ func runGoMigrations(ctx context.Context, runner *migrate.Runner) migrate.RunRep
 }
 
 func printGoMigrationReport(report migrate.RunReport) {
-	printFormat("go migrations applied=%d\n", len(report.Applied))
+	printFormat("go migrations applied=%d\n", report.Applied.Len())
 }
 
 func runSQLMigrations(ctx context.Context, runner *migrate.Runner) migrate.RunReport {
@@ -137,10 +139,10 @@ func runSQLMigrations(ctx context.Context, runner *migrate.Runner) migrate.RunRe
 }
 
 func printSQLMigrationReport(report migrate.RunReport) {
-	printFormat("sql migrations applied=%d\n", len(report.Applied))
+	printFormat("sql migrations applied=%d\n", report.Applied.Len())
 }
 
-func appliedHistory(ctx context.Context, runner *migrate.Runner) []migrate.AppliedRecord {
+func appliedHistory(ctx context.Context, runner *migrate.Runner) collectionx.List[migrate.AppliedRecord] {
 	applied, err := runner.Applied(ctx)
 	if err != nil {
 		panic(err)
@@ -149,13 +151,13 @@ func appliedHistory(ctx context.Context, runner *migrate.Runner) []migrate.Appli
 	return applied
 }
 
-func printAppliedHistory(applied []migrate.AppliedRecord) {
+func printAppliedHistory(applied collectionx.List[migrate.AppliedRecord]) {
 	printLine("applied history:")
-	for index := range applied {
-		record := &applied[index]
+	applied.Range(func(_ int, record migrate.AppliedRecord) bool {
 		checksum := truncateChecksum(record.Checksum)
 		printFormat("- version=%s kind=%s description=%s checksum=%s\n", record.Version, record.Kind, record.Description, checksum)
-	}
+		return true
+	})
 }
 
 func truncateChecksum(checksum string) string {

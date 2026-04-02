@@ -148,7 +148,7 @@ func (r *Runtime) StopWithReport(ctx context.Context) (*StopReport, error) {
 	if debugEnabled {
 		r.logger.Debug("executing runtime stop",
 			"app", r.Name(),
-			"stop_hooks", len(r.lifecycle.stopHooks.Values()),
+			"stop_hooks", r.lifecycle.stopHooks.Len(),
 		)
 	}
 

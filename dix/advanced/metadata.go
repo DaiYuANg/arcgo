@@ -1,6 +1,9 @@
 package advanced
 
-import "github.com/DaiYuANg/arcgo/dix"
+import (
+	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/DaiYuANg/arcgo/dix"
+)
 
 func newProvider(
 	label string,
@@ -18,17 +21,17 @@ func newProvider(
 func newSetup(
 	label string,
 	run func(*dix.Container) error,
-	dependencies []dix.ServiceRef,
-	provides []dix.ServiceRef,
-	overrides []dix.ServiceRef,
+	dependencies collectionx.List[dix.ServiceRef],
+	provides collectionx.List[dix.ServiceRef],
+	overrides collectionx.List[dix.ServiceRef],
 ) dix.SetupFunc {
 	return dix.NewSetupFunc(func(c *dix.Container, _ dix.Lifecycle) error {
 		return run(c)
 	}, dix.SetupMetadata{
 		Label:         label,
-		Dependencies:  dix.ServiceRefs(dependencies...),
-		Provides:      dix.ServiceRefs(provides...),
-		Overrides:     dix.ServiceRefs(overrides...),
+		Dependencies:  dependencies,
+		Provides:      provides,
+		Overrides:     overrides,
 		GraphMutation: false,
 		Raw:           false,
 	})

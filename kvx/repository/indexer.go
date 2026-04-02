@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/DaiYuANg/arcgo/kvx/mapping"
@@ -147,12 +148,12 @@ func (i *Indexer[T]) getIndexMembers(ctx context.Context, indexKey string) ([]st
 		return nil, wrapRepositoryError(err, "list index members")
 	}
 	prefixLen := len(indexKey) + 1
-	return lo.FilterMap(keys, func(key string, _ int) (string, bool) {
+	return collectionx.FilterMapList(keys, func(_ int, key string) (string, bool) {
 		if len(key) <= prefixLen {
 			return "", false
 		}
 		return key[prefixLen:], true
-	}), nil
+	}).Values(), nil
 }
 
 func (i *Indexer[T]) entityFieldIndexKeys(entity *T, metadata *mapping.EntityMetadata) []lo.Entry[string, string] {

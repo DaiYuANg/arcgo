@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/dbx/repository"
 )
@@ -116,11 +117,11 @@ func (m *Model[E, S]) update(ctx context.Context) error {
 		return err
 	}
 
-	if len(assignments) == 0 {
+	if assignments.IsEmpty() {
 		return nil
 	}
 
-	if _, err = m.store.repository.UpdateByKey(ctx, m.Key(), assignments...); err != nil {
+	if _, err = m.store.repository.UpdateByKey(ctx, m.Key(), assignments.Values()...); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return m.create(ctx)
 		}
@@ -130,7 +131,7 @@ func (m *Model[E, S]) update(ctx context.Context) error {
 	return nil
 }
 
-func (m *Model[E, S]) updateAssignments() ([]dbx.Assignment, error) {
+func (m *Model[E, S]) updateAssignments() (collectionx.List[dbx.Assignment], error) {
 	assignments, err := m.store.repository.Mapper().UpdateAssignments(
 		m.store.repository.Schema(),
 		m.entity,

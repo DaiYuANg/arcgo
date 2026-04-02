@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
@@ -73,7 +74,7 @@ func ExecBound(ctx context.Context, session Session, bound BoundQuery) (sql.Resu
 	return result, wrapDBError("execute bound query", err)
 }
 
-func QueryAll[E any](ctx context.Context, session Session, query QueryBuilder, mapper RowsScanner[E]) ([]E, error) {
+func QueryAll[E any](ctx context.Context, session Session, query QueryBuilder, mapper RowsScanner[E]) (collectionx.List[E], error) {
 	if mapper == nil {
 		return nil, ErrNilMapper
 	}
@@ -88,7 +89,7 @@ func QueryAll[E any](ctx context.Context, session Session, query QueryBuilder, m
 // for reuse when executing the same query multiple times.
 // When bound.CapacityHint > 0 and mapper implements CapacityHintScanner, uses
 // pre-allocated slice to reduce append growth.
-func QueryAllBound[E any](ctx context.Context, session Session, bound BoundQuery, mapper RowsScanner[E]) ([]E, error) {
+func QueryAllBound[E any](ctx context.Context, session Session, bound BoundQuery, mapper RowsScanner[E]) (collectionx.List[E], error) {
 	if mapper == nil {
 		return nil, ErrNilMapper
 	}
@@ -116,7 +117,7 @@ func QueryAllBound[E any](ctx context.Context, session Session, bound BoundQuery
 		logRuntimeNode(session, "query_all_bound.scan_error", "error", closeErr)
 		return nil, closeErr
 	}
-	logRuntimeNode(session, "query_all_bound.scan_done", "items", len(items))
+	logRuntimeNode(session, "query_all_bound.scan_done", "items", items.Len())
 	return items, nil
 }
 
@@ -128,7 +129,7 @@ func capacityHintScannerFor[E any](mapper RowsScanner[E], capacityHint int) (Cap
 	return withCap, ok
 }
 
-func scanAllBoundWithCapacity[E any](session Session, rows *sql.Rows, bound BoundQuery, mapper CapacityHintScanner[E]) ([]E, error) {
+func scanAllBoundWithCapacity[E any](session Session, rows *sql.Rows, bound BoundQuery, mapper CapacityHintScanner[E]) (collectionx.List[E], error) {
 	logRuntimeNode(session, "query_all_bound.scan_with_capacity", "capacity_hint", bound.CapacityHint)
 	items, scanErr := mapper.ScanRowsWithCapacity(rows, bound.CapacityHint)
 	scanErr = errors.Join(wrapDBError("scan rows with capacity", scanErr), rowsIterError(rows))
@@ -142,6 +143,6 @@ func scanAllBoundWithCapacity[E any](session Session, rows *sql.Rows, bound Boun
 		logRuntimeNode(session, "query_all_bound.scan_error", "error", closeErr)
 		return nil, closeErr
 	}
-	logRuntimeNode(session, "query_all_bound.scan_done", "items", len(items))
+	logRuntimeNode(session, "query_all_bound.scan_done", "items", items.Len())
 	return items, nil
 }

@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/samber/lo"
 	"github.com/valkey-io/valkey-go"
@@ -128,34 +130,45 @@ func (a *Adapter) TTL(ctx context.Context, key string) (time.Duration, error) {
 }
 
 // Scan iterates over keys matching the pattern.
-func (a *Adapter) Scan(ctx context.Context, pattern string, cursor uint64, count int64) ([]string, uint64, error) {
+func (a *Adapter) Scan(ctx context.Context, pattern string, cursor uint64, count int64) (collectionx.List[string], uint64, error) {
 	keys, err := a.Keys(ctx, pattern)
 	if err != nil {
 		return nil, 0, err
 	}
-	if cursor >= uint64(len(keys)) {
-		return []string{}, 0, nil
-	}
-
 	if cursor > uint64(math.MaxInt) {
 		return nil, 0, fmt.Errorf("valkey scan cursor exceeds int range: %d", cursor)
 	}
 
 	start := int(cursor)
+	if start >= keys.Len() {
+		return collectionx.NewList[string](), 0, nil
+	}
 	if count <= 0 {
-		count = int64(len(keys) - start)
+		count = int64(keys.Len() - start)
 	}
 	end := start + int(count)
-	if end >= len(keys) {
-		return keys[start:], 0, nil
+	if end >= keys.Len() {
+		return keys.Drop(start), 0, nil
 	}
 
-	window := keys[start:end]
-	return window, cursor + uint64(len(window)), nil
+	window := keys.Drop(start).Take(int(count))
+	nextCursor, err := scanCursorFromIndex(start + window.Len())
+	if err != nil {
+		return nil, 0, err
+	}
+	return window, nextCursor, nil
+}
+
+func scanCursorFromIndex(index int) (uint64, error) {
+	value, err := strconv.ParseUint(strconv.Itoa(index), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse valkey scan cursor: %w", err)
+	}
+	return value, nil
 }
 
 // Keys returns all keys matching the pattern.
-func (a *Adapter) Keys(ctx context.Context, pattern string) ([]string, error) {
+func (a *Adapter) Keys(ctx context.Context, pattern string) (collectionx.List[string], error) {
 	if pattern == "" {
 		pattern = "*"
 	}

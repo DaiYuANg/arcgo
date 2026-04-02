@@ -20,9 +20,8 @@ func (r *Base[E, S]) List(ctx context.Context, query *dbx.SelectQuery) (collecti
 		dbx.LogRuntimeNode(r.session, "repository.list.error", "table", r.schema.TableName(), "error", err)
 		return nil, err
 	}
-	items := collectionx.NewListWithCapacity[E](len(rows), rows...)
-	dbx.LogRuntimeNode(r.session, "repository.list.done", "table", r.schema.TableName(), "items", items.Len())
-	return items, nil
+	dbx.LogRuntimeNode(r.session, "repository.list.done", "table", r.schema.TableName(), "items", rows.Len())
+	return rows, nil
 }
 
 // ListSpec returns every entity matched by the provided specs.
@@ -43,12 +42,13 @@ func (r *Base[E, S]) First(ctx context.Context, query *dbx.SelectQuery) (E, erro
 		dbx.LogRuntimeNode(r.session, "repository.first.error", "table", r.schema.TableName(), "error", err)
 		return zero, err
 	}
-	if len(items) == 0 {
+	if items.IsEmpty() {
 		dbx.LogRuntimeNode(r.session, "repository.first.not_found", "table", r.schema.TableName())
 		return zero, ErrNotFound
 	}
 	dbx.LogRuntimeNode(r.session, "repository.first.done", "table", r.schema.TableName())
-	return items[0], nil
+	item, _ := items.GetFirst()
+	return item, nil
 }
 
 // FirstSpec returns the first entity matched by the provided specs.
@@ -72,12 +72,13 @@ func (r *Base[E, S]) Count(ctx context.Context, query *dbx.SelectQuery) (int64, 
 		dbx.LogRuntimeNode(r.session, "repository.count.error", "table", r.schema.TableName(), "error", err)
 		return 0, err
 	}
-	if len(rows) == 0 {
+	if rows.IsEmpty() {
 		dbx.LogRuntimeNode(r.session, "repository.count.done", "table", r.schema.TableName(), "count", 0)
 		return 0, nil
 	}
-	dbx.LogRuntimeNode(r.session, "repository.count.done", "table", r.schema.TableName(), "count", rows[0].Count)
-	return rows[0].Count, nil
+	row, _ := rows.GetFirst()
+	dbx.LogRuntimeNode(r.session, "repository.count.done", "table", r.schema.TableName(), "count", row.Count)
+	return row.Count, nil
 }
 
 // CountSpec returns the number of rows matched by the provided specs.

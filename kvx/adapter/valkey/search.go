@@ -29,7 +29,7 @@ func (a *Adapter) DropIndex(ctx context.Context, indexName string) error {
 }
 
 // Search performs a search query.
-func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int) ([]string, error) {
+func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int) (collectionx.List[string], error) {
 	resp := a.client.Do(ctx, a.client.B().Arbitrary("FT.SEARCH").Args(indexName, query, "LIMIT", "0", strconv.Itoa(limit)).Build())
 	docs, err := ftSearchDocsFromResult("search index", resp)
 	if err != nil {
@@ -40,7 +40,7 @@ func (a *Adapter) Search(ctx context.Context, indexName, query string, limit int
 }
 
 // SearchWithSort performs a search query with sorting.
-func (a *Adapter) SearchWithSort(ctx context.Context, indexName, query, sortBy string, ascending bool, limit int) ([]string, error) {
+func (a *Adapter) SearchWithSort(ctx context.Context, indexName, query, sortBy string, ascending bool, limit int) (collectionx.List[string], error) {
 	args := collectionx.NewList[string](indexName, query, "SORTBY", sortBy)
 	if !ascending {
 		args.Add("DESC")

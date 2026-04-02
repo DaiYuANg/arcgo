@@ -70,27 +70,29 @@ func (l *lifecycleImpl) OnStop(hook StopHook) {
 }
 
 func (l *lifecycleImpl) executeStartHooks(ctx context.Context, _ *Container) (int, error) {
-	hooks := l.startHooks.Values()
 	debugEnabled := l.debugEnabled(ctx)
-	l.logDebug(debugEnabled, "executing start hooks", "count", len(hooks))
+	l.logDebug(debugEnabled, "executing start hooks", "count", l.startHooks.Len())
 
 	completed := 0
-	for i, hook := range hooks {
+	var startErr error
+	l.startHooks.Range(func(i int, hook StartHook) bool {
 		l.logDebug(debugEnabled, "executing start hook", "index", i)
 		if err := hook(ctx); err != nil {
 			if l.logger != nil {
 				l.logger.Error("start hook failed", "index", i, "error", err)
 			}
-			return completed, fmt.Errorf("start hook %d failed: %w", i, err)
+			startErr = fmt.Errorf("start hook %d failed: %w", i, err)
+			return false
 		}
 		l.logDebug(debugEnabled, "start hook completed", "index", i)
 		completed++
-	}
-	return completed, nil
+		return true
+	})
+	return completed, startErr
 }
 
 func (l *lifecycleImpl) executeStopHooks(ctx context.Context, _ *Container) error {
-	return l.executeStopHooksSubset(ctx, len(l.stopHooks.Values()))
+	return l.executeStopHooksSubset(ctx, l.stopHooks.Len())
 }
 
 func (l *lifecycleImpl) executeStopHooksSubset(ctx context.Context, count int) error {
@@ -103,7 +105,7 @@ func (l *lifecycleImpl) executeStopHooksSubset(ctx context.Context, count int) e
 		stopHooks = stopHooks[:count]
 	}
 	debugEnabled := l.debugEnabled(ctx)
-	l.logDebug(debugEnabled, "executing stop hooks", "count", len(stopHooks), "registered", len(l.stopHooks.Values()))
+	l.logDebug(debugEnabled, "executing stop hooks", "count", len(stopHooks), "registered", l.stopHooks.Len())
 	slices.Reverse(stopHooks)
 
 	errs := lo.Reduce(stopHooks, func(errs []error, hook StopHook, i int) []error {

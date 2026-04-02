@@ -9,11 +9,11 @@ type fieldMapper interface {
 	Fields() collectionx.List[MappedField]
 }
 
-func ProjectionOf(schema SchemaResource, mapper fieldMapper) ([]SelectItem, error) {
+func ProjectionOf(schema SchemaResource, mapper fieldMapper) (collectionx.List[SelectItem], error) {
 	return projectionOfDefinition(schema.schemaRef(), mapper)
 }
 
-func MustProjectionOf(schema SchemaResource, mapper fieldMapper) []SelectItem {
+func MustProjectionOf(schema SchemaResource, mapper fieldMapper) collectionx.List[SelectItem] {
 	items, err := projectionOfDefinition(schema.schemaRef(), mapper)
 	if err != nil {
 		panic(err)
@@ -26,7 +26,7 @@ func SelectMapped(schema SchemaResource, mapper fieldMapper) (*SelectQuery, erro
 	if err != nil {
 		return nil, err
 	}
-	return Select(items...).From(schema), nil
+	return Select(items.Values()...).From(schema), nil
 }
 
 func MustSelectMapped(schema SchemaResource, mapper fieldMapper) *SelectQuery {
@@ -34,10 +34,10 @@ func MustSelectMapped(schema SchemaResource, mapper fieldMapper) *SelectQuery {
 	if err != nil {
 		panic(err)
 	}
-	return Select(items...).From(schema)
+	return Select(items.Values()...).From(schema)
 }
 
-func projectionOfDefinition(definition schemaDefinition, mapper fieldMapper) ([]SelectItem, error) {
+func projectionOfDefinition(definition schemaDefinition, mapper fieldMapper) (collectionx.List[SelectItem], error) {
 	fields := mapper.Fields()
 	columns := lo.Associate(definition.columns, func(column ColumnMeta) (string, ColumnMeta) {
 		return column.Name, column
@@ -56,5 +56,5 @@ func projectionOfDefinition(definition schemaDefinition, mapper fieldMapper) ([]
 			return nil, false
 		}
 		return schemaSelectItem{meta: column}, true
-	}).Values(), nil
+	}), nil
 }

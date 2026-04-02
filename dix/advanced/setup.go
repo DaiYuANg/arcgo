@@ -25,14 +25,14 @@ func DoSetupWithMetadata(fn func(do.Injector) error, meta dix.SetupMetadata) dix
 func BindAlias[From, To any]() dix.SetupFunc {
 	return newSetup("BindAlias", func(c *dix.Container) error {
 		return do.As[From, To](c.Raw())
-	}, []dix.ServiceRef{dix.TypedService[From]()}, []dix.ServiceRef{dix.TypedService[To]()}, nil)
+	}, dix.ServiceRefs(dix.TypedService[From]()), dix.ServiceRefs(dix.TypedService[To]()), nil)
 }
 
 // BindNamedAlias binds one named service to another named alias.
 func BindNamedAlias[From, To any](sourceName, aliasName string) dix.SetupFunc {
 	return newSetup("BindNamedAlias", func(c *dix.Container) error {
 		return do.AsNamed[From, To](c.Raw(), sourceName, aliasName)
-	}, []dix.ServiceRef{dix.NamedService(sourceName)}, []dix.ServiceRef{dix.NamedService(aliasName)}, nil)
+	}, dix.ServiceRefs(dix.NamedService(sourceName)), dix.ServiceRefs(dix.NamedService(aliasName)), nil)
 }
 
 // OverrideValue overrides a typed value registration.
@@ -45,7 +45,7 @@ func NamedOverrideValue[T any](name string, value T) dix.SetupFunc {
 	return newSetup("OverrideValue", func(c *dix.Container) error {
 		do.OverrideNamedValue(c.Raw(), name, value)
 		return nil
-	}, nil, nil, []dix.ServiceRef{dix.NamedService(name)})
+	}, nil, nil, dix.ServiceRefs(dix.NamedService(name)))
 }
 
 // Override0 overrides a typed provider with no dependencies.
@@ -58,7 +58,7 @@ func NamedOverride0[T any](name string, fn func() T) dix.SetupFunc {
 	return newSetup("Override0", func(c *dix.Container) error {
 		do.OverrideNamed(c.Raw(), name, func(do.Injector) (T, error) { return fn(), nil })
 		return nil
-	}, nil, nil, []dix.ServiceRef{dix.NamedService(name)})
+	}, nil, nil, dix.ServiceRefs(dix.NamedService(name)))
 }
 
 // Override1 overrides a typed provider with one dependency.
@@ -78,7 +78,7 @@ func NamedOverride1[T, D1 any](name string, fn func(D1) T) dix.SetupFunc {
 			return fn(d1), nil
 		})
 		return nil
-	}, []dix.ServiceRef{dix.TypedService[D1]()}, nil, []dix.ServiceRef{dix.NamedService(name)})
+	}, dix.ServiceRefs(dix.TypedService[D1]()), nil, dix.ServiceRefs(dix.NamedService(name)))
 }
 
 // OverrideTransient0 overrides a typed transient provider with no dependencies.
@@ -91,7 +91,7 @@ func NamedOverrideTransient0[T any](name string, fn func() T) dix.SetupFunc {
 	return newSetup("OverrideTransient0", func(c *dix.Container) error {
 		do.OverrideNamedTransient(c.Raw(), name, func(do.Injector) (T, error) { return fn(), nil })
 		return nil
-	}, nil, nil, []dix.ServiceRef{dix.NamedService(name)})
+	}, nil, nil, dix.ServiceRefs(dix.NamedService(name)))
 }
 
 // OverrideTransient1 overrides a typed transient provider with one dependency.
@@ -111,5 +111,5 @@ func NamedOverrideTransient1[T, D1 any](name string, fn func(D1) T) dix.SetupFun
 			return fn(d1), nil
 		})
 		return nil
-	}, []dix.ServiceRef{dix.TypedService[D1]()}, nil, []dix.ServiceRef{dix.NamedService(name)})
+	}, dix.ServiceRefs(dix.TypedService[D1]()), nil, dix.ServiceRefs(dix.NamedService(name)))
 }

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/eventx"
 	eventxfx "github.com/DaiYuANg/arcgo/eventx/fx"
 	"github.com/DaiYuANg/arcgo/logx"
@@ -80,10 +81,10 @@ func subscribeNotificationType(bus eventx.BusRuntime, logger *slog.Logger, cfg s
 			return nil
 		}
 
-		logx.WithFields(logger, map[string]any{
+		logx.WithFields(logger, collectionx.NewMapFrom(map[string]any{
 			"user_id":  event.UserID,
 			"msg_type": cfg.msgType,
-		}).Info(cfg.logLabel)
+		})).Info(cfg.logLabel)
 		mustPrintf("   %s to %s: %s\n", cfg.logLabel, event.UserID, event.Message)
 		time.Sleep(100 * time.Millisecond)
 		return nil
@@ -114,17 +115,17 @@ func publishNotifications(ctx context.Context, bus eventx.BusRuntime, logger *sl
 	}
 
 	for i, event := range events {
-		logx.WithFields(logger, map[string]any{
+		logx.WithFields(logger, collectionx.NewMapFrom(map[string]any{
 			"index":   i + 1,
 			"type":    event.Type,
 			"user_id": event.UserID,
 			"total":   len(events),
-		}).Info("publish notification event")
+		})).Info("publish notification event")
 
 		if err := bus.PublishAsync(ctx, event); err != nil {
-			logx.WithError(logx.WithFields(logger, map[string]any{
+			logx.WithError(logx.WithFields(logger, collectionx.NewMapFrom(map[string]any{
 				"event": event,
-			}), err).Error("publish event failed")
+			})), err).Error("publish event failed")
 		}
 	}
 

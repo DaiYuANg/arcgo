@@ -19,7 +19,7 @@ func BenchmarkServerOptionsBuild(b *testing.B) {
 		)(opts)
 
 		compiled := opts.Build()
-		if len(compiled) == 0 {
+		if compiled.Len() == 0 {
 			b.Fatal("expected non-empty server options")
 		}
 	}

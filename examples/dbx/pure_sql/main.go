@@ -6,6 +6,7 @@ import (
 	"embed"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx"
 	"github.com/DaiYuANg/arcgo/examples/dbx/internal/shared"
@@ -52,7 +53,7 @@ func preparePureSQLData(ctx context.Context, core *dbx.DB, catalog shared.Catalo
 	}
 }
 
-func runActiveUserQuery(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry) []shared.UserSummary {
+func runActiveUserQuery(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry) collectionx.List[shared.UserSummary] {
 	users, err := dbx.SQLList[shared.UserSummary](
 		ctx,
 		core,
@@ -69,12 +70,12 @@ func runActiveUserQuery(ctx context.Context, core *dbx.DB, registry *sqltmplx.Re
 	return users
 }
 
-func printActiveUsers(users []shared.UserSummary) {
+func printActiveUsers(users collectionx.List[shared.UserSummary]) {
 	printLine("active users from pure sql:")
-	for index := range users {
-		user := &users[index]
+	users.Range(func(_ int, user shared.UserSummary) bool {
 		printFormat("- id=%d username=%s email=%s\n", user.ID, user.Username, user.Email)
-	}
+		return true
+	})
 }
 
 func runActiveUserCount(ctx context.Context, core *dbx.DB, registry *sqltmplx.Registry) int64 {

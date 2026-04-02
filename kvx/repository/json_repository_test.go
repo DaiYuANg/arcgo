@@ -62,14 +62,15 @@ func TestJSONRepository_FindAll_ScansAllPagesAndDeduplicates(t *testing.T) {
 		t.Fatalf("FindAll failed: %v", err)
 	}
 
-	if len(results) != 3 {
-		t.Fatalf("Expected 3 unique results, got %d", len(results))
+	if results.Len() != 3 {
+		t.Fatalf("Expected 3 unique results, got %d", results.Len())
 	}
 
 	ids := map[string]bool{}
-	for _, result := range results {
+	results.Range(func(_ int, result *TestUser) bool {
 		ids[result.ID] = true
-	}
+		return true
+	})
 
 	for _, id := range []string{"user1", "user2", "user3"} {
 		if !ids[id] {

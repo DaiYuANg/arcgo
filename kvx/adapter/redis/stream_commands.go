@@ -17,7 +17,7 @@ func (a *Adapter) XAdd(ctx context.Context, key, id string, values map[string][]
 }
 
 // XRead reads entries from a stream.
-func (a *Adapter) XRead(ctx context.Context, key, start string, count int64) ([]kvx.StreamEntry, error) {
+func (a *Adapter) XRead(ctx context.Context, key, start string, count int64) (collectionx.List[kvx.StreamEntry], error) {
 	result, err := a.client.XRead(ctx, &goredis.XReadArgs{
 		Streams: []string{key, start},
 		Count:   count,
@@ -25,14 +25,14 @@ func (a *Adapter) XRead(ctx context.Context, key, start string, count int64) ([]
 	}).Result()
 	if err != nil {
 		if errors.Is(err, goredis.Nil) {
-			return nil, nil
+			return collectionx.NewList[kvx.StreamEntry](), nil
 		}
 
 		return nil, wrapRedisError("read stream", err)
 	}
 
 	if len(result) == 0 {
-		return nil, nil
+		return collectionx.NewList[kvx.StreamEntry](), nil
 	}
 
 	return convertStreamMessages(result[0].Messages), nil
@@ -57,7 +57,7 @@ func (a *Adapter) XReadMultiple(ctx context.Context, streams map[string]string, 
 }
 
 // XRange reads entries in a range.
-func (a *Adapter) XRange(ctx context.Context, key, start, stop string) ([]kvx.StreamEntry, error) {
+func (a *Adapter) XRange(ctx context.Context, key, start, stop string) (collectionx.List[kvx.StreamEntry], error) {
 	result, err := a.client.XRange(ctx, key, start, stop).Result()
 	result, err = wrapRedisResult("range stream", result, err)
 	if err != nil {
@@ -68,7 +68,7 @@ func (a *Adapter) XRange(ctx context.Context, key, start, stop string) ([]kvx.St
 }
 
 // XRevRange reads entries in reverse order.
-func (a *Adapter) XRevRange(ctx context.Context, key, start, stop string) ([]kvx.StreamEntry, error) {
+func (a *Adapter) XRevRange(ctx context.Context, key, start, stop string) (collectionx.List[kvx.StreamEntry], error) {
 	result, err := a.client.XRevRange(ctx, key, start, stop).Result()
 	result, err = wrapRedisResult("reverse range stream", result, err)
 	if err != nil {

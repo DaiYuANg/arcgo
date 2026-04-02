@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/valkey-io/valkey-go"
 )
@@ -89,7 +90,7 @@ func stringFromResult(op string, resp valkey.ValkeyResult) (string, error) {
 	return value, nil
 }
 
-func stringSliceFromResult(op string, resp valkey.ValkeyResult) ([]string, error) {
+func stringSliceFromResult(op string, resp valkey.ValkeyResult) (collectionx.List[string], error) {
 	if err := wrapValkeyError(op, resp.Error()); err != nil {
 		return nil, err
 	}
@@ -99,7 +100,7 @@ func stringSliceFromResult(op string, resp valkey.ValkeyResult) ([]string, error
 		return nil, wrapValkeyError(op, err)
 	}
 
-	return value, nil
+	return collectionx.NewListWithCapacity(len(value), value...), nil
 }
 
 func stringMapFromResult(op string, resp valkey.ValkeyResult) (map[string]string, error) {

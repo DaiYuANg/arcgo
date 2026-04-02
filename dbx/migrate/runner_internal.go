@@ -21,7 +21,7 @@ func appliedRecordKey(kind Kind, version, description string) string {
 func indexAppliedRecords(records collectionx.List[AppliedRecord]) map[string]AppliedRecord {
 	return collectionx.AssociateList(records, func(_ int, record AppliedRecord) (string, AppliedRecord) {
 		return appliedRecordKey(record.Kind, record.Version, record.Description), record
-	})
+	}).All()
 }
 
 func checksumGoMigration(migration Migration) string {

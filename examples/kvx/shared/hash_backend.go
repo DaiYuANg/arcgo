@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 )
 
@@ -114,11 +115,11 @@ func (b *HashBackend) TTL(_ context.Context, key string) (time.Duration, error) 
 }
 
 // Scan returns keys matching the provided glob-style prefix pattern.
-func (b *HashBackend) Scan(_ context.Context, pattern string, _ uint64, _ int64) ([]string, uint64, error) {
-	keys := make([]string, 0, len(b.keys))
+func (b *HashBackend) Scan(_ context.Context, pattern string, _ uint64, _ int64) (collectionx.List[string], uint64, error) {
+	keys := collectionx.NewListWithCapacity[string](len(b.keys))
 	for key := range b.keys {
 		if matchesPattern(key, pattern) {
-			keys = append(keys, key)
+			keys.Add(key)
 		}
 	}
 
@@ -126,7 +127,7 @@ func (b *HashBackend) Scan(_ context.Context, pattern string, _ uint64, _ int64)
 }
 
 // Keys returns keys matching pattern.
-func (b *HashBackend) Keys(ctx context.Context, pattern string) ([]string, error) {
+func (b *HashBackend) Keys(ctx context.Context, pattern string) (collectionx.List[string], error) {
 	keys, _, err := b.Scan(ctx, pattern, 0, 0)
 	return keys, err
 }

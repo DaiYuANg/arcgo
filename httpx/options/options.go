@@ -119,7 +119,7 @@ func WithAccessLog(enabled bool) ServerOption {
 }
 
 // Build converts `ServerOptions` into `httpx.ServerOption` values.
-func (o *ServerOptions) Build() []httpx.ServerOption {
+func (o *ServerOptions) Build() collectionx.List[httpx.ServerOption] {
 	opts := collectionx.NewList[httpx.ServerOption](
 		httpx.WithLogger(o.Logger),
 		httpx.WithPrintRoutes(o.PrintRoutes),
@@ -138,7 +138,7 @@ func (o *ServerOptions) Build() []httpx.ServerOption {
 		httpx.WithAccessLog(o.EnableAccessLog),
 	)
 
-	return opts.Values()
+	return opts
 }
 
 // HTTPClientOptions collects standard `http.Client` construction settings.

@@ -43,10 +43,14 @@ func main() {
 	}
 
 	report := dixadvanced.InspectRuntime(rt, "tenant.default")
+	hasTenantDeps := false
+	if report.NamedDependencies != nil {
+		_, hasTenantDeps = report.NamedDependencies.Get("tenant.default")
+	}
 	printLine("inspect example")
-	printValues("provided:", len(report.ProvidedServices))
-	printValues("invoked:", len(report.InvokedServices))
-	printValues("has tenant deps:", report.NamedDependencies["tenant.default"] != "")
+	printValues("provided:", report.ProvidedServices.Len())
+	printValues("invoked:", report.InvokedServices.Len())
+	printValues("has tenant deps:", hasTenantDeps)
 }
 
 func printLine(value any) {

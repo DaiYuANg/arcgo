@@ -93,11 +93,13 @@ func TestQueryAllBuildsAndScansWithMapper(t *testing.T) {
 	if err != nil {
 		t.Fatalf("QueryAll returned error: %v", err)
 	}
-	if len(items) != 2 {
-		t.Fatalf("unexpected item count: %d", len(items))
+	if items.Len() != 2 {
+		t.Fatalf("unexpected item count: %d", items.Len())
 	}
-	if items[0].Username != "alice" || items[1].RoleID != 3 {
-		t.Fatalf("unexpected scanned entities: %+v", items)
+	first, _ := items.Get(0)
+	second, _ := items.Get(1)
+	if first.Username != "alice" || second.RoleID != 3 {
+		t.Fatalf("unexpected scanned entities: %+v", items.Values())
 	}
 	if rec.queryCount != 1 {
 		t.Fatalf("unexpected recorded query count: %d", rec.queryCount)
@@ -137,11 +139,13 @@ func TestQueryAllScansDTOProjection(t *testing.T) {
 	if err != nil {
 		t.Fatalf("QueryAll returned error: %v", err)
 	}
-	if len(items) != 2 {
-		t.Fatalf("unexpected dto count: %d", len(items))
+	if items.Len() != 2 {
+		t.Fatalf("unexpected dto count: %d", items.Len())
 	}
-	if items[0].Username != "alice" || items[1].ID != 2 {
-		t.Fatalf("unexpected dto payload: %+v", items)
+	first, _ := items.Get(0)
+	second, _ := items.Get(1)
+	if first.Username != "alice" || second.ID != 2 {
+		t.Fatalf("unexpected dto payload: %+v", items.Values())
 	}
 }
 
@@ -207,10 +211,10 @@ func TestMapperBuildsAssignmentsAndPrimaryPredicate(t *testing.T) {
 	}
 
 	insertAssignments := mustInsertAssignments(t, mapper, users, entity)
-	if len(insertAssignments) != 4 {
-		t.Fatalf("unexpected insert assignment count: %d fields=%+v columns=%+v", len(insertAssignments), mapper.Fields().Values(), users.Columns())
+	if insertAssignments.Len() != 4 {
+		t.Fatalf("unexpected insert assignment count: %d fields=%+v columns=%+v", insertAssignments.Len(), mapper.Fields().Values(), users.Columns())
 	}
-	insertBound, err := InsertInto(users).Values(insertAssignments...).Build(testSQLiteDialect{})
+	insertBound, err := InsertInto(users).Values(insertAssignments.Values()...).Build(testSQLiteDialect{})
 	if err != nil {
 		t.Fatalf("insert build returned error: %v", err)
 	}
@@ -219,12 +223,12 @@ func TestMapperBuildsAssignmentsAndPrimaryPredicate(t *testing.T) {
 	}
 
 	updateAssignments := mustUpdateAssignments(t, mapper, users, entity)
-	if len(updateAssignments) != 4 {
-		t.Fatalf("unexpected update assignment count: %d", len(updateAssignments))
+	if updateAssignments.Len() != 4 {
+		t.Fatalf("unexpected update assignment count: %d", updateAssignments.Len())
 	}
 
 	predicate := mustPrimaryPredicate(t, mapper, users, entity)
-	updateBound, err := Update(users).Set(updateAssignments...).Where(predicate).Build(testSQLiteDialect{})
+	updateBound, err := Update(users).Set(updateAssignments.Values()...).Where(predicate).Build(testSQLiteDialect{})
 	if err != nil {
 		t.Fatalf("update build returned error: %v", err)
 	}

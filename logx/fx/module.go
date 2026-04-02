@@ -57,10 +57,10 @@ func NewLogxModuleWithSlog(opts ...logx.Option) fx.Option {
 
 // NewDevelopmentModule creates a development logx module.
 func NewDevelopmentModule() fx.Option {
-	return NewLogxModule(logx.DevelopmentConfig()...)
+	return NewLogxModule(logx.DevelopmentConfig().Values()...)
 }
 
 // NewProductionModule creates a production logx module.
 func NewProductionModule(logPath string) fx.Option {
-	return NewLogxModule(logx.ProductionConfig(logPath)...)
+	return NewLogxModule(logx.ProductionConfig(logPath).Values()...)
 }

@@ -272,7 +272,7 @@ func TestHashRepository_FindAll(t *testing.T) {
 		t.Fatalf("FindAll failed: %v", err)
 	}
 
-	if len(results) != 2 {
-		t.Errorf("Expected 2 results, got %d", len(results))
+	if results.Len() != 2 {
+		t.Errorf("Expected 2 results, got %d", results.Len())
 	}
 }

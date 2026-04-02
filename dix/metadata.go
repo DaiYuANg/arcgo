@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	collectionset "github.com/DaiYuANg/arcgo/collectionx/set"
 	"github.com/samber/lo"
@@ -23,8 +24,8 @@ func validateTypedGraphReport(plan *buildPlan) ValidationReport {
 	validateDeclaredDependencies(plan.modules, state)
 
 	return ValidationReport{
-		Errors:   state.err.Values(),
-		Warnings: state.warnings.Values(),
+		Errors:   collectionx.NewListWithCapacity(state.err.Len(), state.err.Values()...),
+		Warnings: collectionx.NewListWithCapacity(state.warnings.Len(), state.warnings.Values()...),
 	}
 }
 

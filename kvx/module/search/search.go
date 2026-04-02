@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 )
 
@@ -75,7 +76,7 @@ func (i *Index) Search(ctx context.Context, query string, opts *Options) (*Resul
 	}
 
 	return &Result{
-		Keys:  keys,
+		Keys:  collectionx.NewListWithCapacity(len(keys), keys...),
 		Total: int64(len(keys)),
 	}, nil
 }
@@ -97,7 +98,7 @@ func DefaultOptions() *Options {
 
 // Result represents the result of a search query.
 type Result struct {
-	Keys  []string
+	Keys  collectionx.List[string]
 	Total int64
 }
 

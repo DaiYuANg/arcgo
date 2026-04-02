@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/danielgtaylor/huma/v2"
 	humaconditional "github.com/danielgtaylor/huma/v2/conditional"
 	humasse "github.com/danielgtaylor/huma/v2/sse"
@@ -29,11 +30,11 @@ const (
 
 // RouteInfo describes a registered route for diagnostics and tests.
 type RouteInfo struct {
-	Method      string   `json:"method"`
-	Path        string   `json:"path"`
-	HandlerName string   `json:"handler_name"`
-	Comment     string   `json:"comment,omitempty"`
-	Tags        []string `json:"tags,omitempty"`
+	Method      string                   `json:"method"`
+	Path        string                   `json:"path"`
+	HandlerName string                   `json:"handler_name"`
+	Comment     string                   `json:"comment,omitempty"`
+	Tags        collectionx.List[string] `json:"tags,omitempty"`
 }
 
 // String returns related data.

@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/pkg/option"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/samber/lo"
@@ -221,6 +222,7 @@ func registerTyped[I, O any](
 		Method:      method,
 		Path:        fullPath,
 		HandlerName: handlerName,
+		Tags:        routeTags(op.Tags),
 	})
 	if s.logger != nil && s.logger.Enabled(context.Background(), slog.LevelDebug) {
 		s.logger.Debug("httpx route registration completed",
@@ -274,4 +276,11 @@ func defaultOperationID(method, path string) string {
 	cleanPath = lo.Ternary(cleanPath == "", "root", cleanPath)
 	cleanPath = strings.NewReplacer("/", "-", "{", "", "}", "", ":", "").Replace(cleanPath)
 	return strings.ToLower(method) + "-" + cleanPath
+}
+
+func routeTags(tags []string) collectionx.List[string] {
+	if len(tags) == 0 {
+		return nil
+	}
+	return collectionx.NewListWithCapacity(len(tags), tags...)
 }

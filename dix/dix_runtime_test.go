@@ -145,8 +145,10 @@ func TestHealthKinds(t *testing.T) {
 
 	assert.True(t, live.Healthy())
 	assert.True(t, ready.Healthy())
-	assert.Len(t, live.Checks, 1)
-	assert.Len(t, ready.Checks, 1)
+	require.NotNil(t, live.Checks)
+	require.NotNil(t, ready.Checks)
+	assert.Equal(t, 1, live.Checks.Len())
+	assert.Equal(t, 1, ready.Checks.Len())
 }
 
 func TestNewDefault(t *testing.T) {

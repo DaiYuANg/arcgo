@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
@@ -16,33 +17,36 @@ func (a *App) Validate() error {
 func (a *App) ValidateReport() ValidationReport {
 	plan, err := newBuildPlan(a)
 	if err != nil {
-		return ValidationReport{Errors: []error{err}}
+		return ValidationReport{Errors: collectionx.NewList(err)}
 	}
 	return validateTypedGraphReport(plan)
 }
 
 // HasWarnings reports whether the validation report contains warnings.
 func (r ValidationReport) HasWarnings() bool {
-	return len(r.Warnings) > 0
+	return r.Warnings != nil && r.Warnings.Len() > 0
 }
 
 // HasErrors reports whether the validation report contains errors.
 func (r ValidationReport) HasErrors() bool {
-	return len(r.Errors) > 0
+	return r.Errors != nil && r.Errors.Len() > 0
 }
 
 // Err returns the combined validation error.
 func (r ValidationReport) Err() error {
-	return errors.Join(r.Errors...)
+	if r.Errors == nil {
+		return nil
+	}
+	return errors.Join(r.Errors.Values()...)
 }
 
 // WarningSummary renders the validation warnings as a newline-delimited summary.
 func (r ValidationReport) WarningSummary() string {
-	if len(r.Warnings) == 0 {
+	if r.Warnings == nil || r.Warnings.Len() == 0 {
 		return ""
 	}
 
-	return strings.Join(lo.Map(r.Warnings, func(warning ValidationWarning, _ int) string {
+	return strings.Join(lo.Map(r.Warnings.Values(), func(warning ValidationWarning, _ int) string {
 		line := string(warning.Kind)
 		if warning.Module != "" {
 			line += " module=" + warning.Module

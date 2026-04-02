@@ -61,15 +61,16 @@ func (c *Container) RegisterHealthCheckOfKind(kind HealthKind, name string, fn H
 
 // HealthReport describes the current health status.
 type HealthReport struct {
-	Kind   HealthKind       `json:"kind"`
-	Checks map[string]error `json:"-"`
+	Kind   HealthKind                     `json:"kind"`
+	Checks collectionx.Map[string, error] `json:"-"`
 }
 
 // Healthy reports whether all checks passed.
 func (r HealthReport) Healthy() bool {
-	return lo.EveryBy(lo.Values(r.Checks), func(err error) bool {
-		return err == nil
-	})
+	if r.Checks == nil || r.Checks.Len() == 0 {
+		return true
+	}
+	return r.Checks.AllEntryMatch(func(_ string, err error) bool { return err == nil })
 }
 
 // Error returns a combined error when one or more checks fail.
@@ -78,14 +79,18 @@ func (r HealthReport) Error() error {
 		return nil
 	}
 
-	parts := lo.FilterMap(lo.Entries(r.Checks), func(entry lo.Entry[string, error], _ int) (string, bool) {
-		if entry.Value == nil {
-			return "", false
-		}
-		return fmt.Sprintf("%s: %v", entry.Key, entry.Value), true
-	})
-	sort.Strings(parts)
-	return fmt.Errorf("health check failed: %s", strings.Join(parts, "; "))
+	parts := collectionx.NewList[string]()
+	if r.Checks != nil {
+		r.Checks.Range(func(name string, err error) bool {
+			if err != nil {
+				parts.Add(fmt.Sprintf("%s: %v", name, err))
+			}
+			return true
+		})
+	}
+	items := parts.Values()
+	sort.Strings(items)
+	return fmt.Errorf("health check failed: %s", strings.Join(items, "; "))
 }
 
 // MarshalJSON renders a user-friendly JSON payload for HTTP endpoints.
@@ -96,15 +101,22 @@ func (r HealthReport) MarshalJSON() ([]byte, error) {
 		Checks  map[string]*string `json:"checks"`
 	}
 
-	checks := collectionx.NewMapWithCapacity[string, *string](len(r.Checks))
-	lo.ForEach(lo.Entries(r.Checks), func(entry lo.Entry[string, error], _ int) {
-		if entry.Value == nil {
-			checks.Set(entry.Key, nil)
-			return
-		}
-		message := entry.Value.Error()
-		checks.Set(entry.Key, &message)
-	})
+	checksLen := 0
+	if r.Checks != nil {
+		checksLen = r.Checks.Len()
+	}
+	checks := collectionx.NewMapWithCapacity[string, *string](checksLen)
+	if r.Checks != nil {
+		r.Checks.Range(func(name string, err error) bool {
+			if err == nil {
+				checks.Set(name, nil)
+				return true
+			}
+			message := err.Error()
+			checks.Set(name, &message)
+			return true
+		})
+	}
 
 	data, err := json.Marshal(payload{Kind: r.Kind, Healthy: r.Healthy(), Checks: checks.All()})
 	if err != nil {
@@ -129,7 +141,7 @@ func (r *Runtime) CheckReadiness(ctx context.Context) HealthReport {
 }
 
 func (r *Runtime) checkHealthByKind(ctx context.Context, kind HealthKind) HealthReport {
-	report := HealthReport{Kind: kind, Checks: map[string]error{}}
+	report := HealthReport{Kind: kind, Checks: collectionx.NewMap[string, error]()}
 	if r == nil || r.container == nil {
 		return report
 	}
@@ -141,7 +153,7 @@ func (r *Runtime) checkHealthByKind(ctx context.Context, kind HealthKind) Health
 	lo.ForEach(entries, func(check healthCheckEntry, _ int) {
 		reportChecks.Set(check.name, r.runHealthCheck(ctx, check))
 	})
-	report.Checks = reportChecks.All()
+	report.Checks = reportChecks
 	return report
 }
 

@@ -3,6 +3,7 @@ package dix
 import (
 	"log/slog"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	collectionset "github.com/DaiYuANg/arcgo/collectionx/set"
 )
@@ -135,6 +136,6 @@ type ValidationWarning struct {
 
 // ValidationReport summarizes graph validation errors and warnings.
 type ValidationReport struct {
-	Errors   []error
-	Warnings []ValidationWarning
+	Errors   collectionx.List[error]
+	Warnings collectionx.List[ValidationWarning]
 }

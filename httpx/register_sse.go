@@ -83,6 +83,7 @@ func registerSSE[I any](
 		Method:      method,
 		Path:        fullPath,
 		HandlerName: handlerName(handler),
+		Tags:        routeTags(op.Tags),
 	})
 	if s.logger != nil && s.logger.Enabled(context.Background(), slog.LevelDebug) {
 		s.logger.Debug("httpx sse route registration completed",

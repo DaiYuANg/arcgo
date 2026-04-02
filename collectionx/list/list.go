@@ -95,9 +95,33 @@ func (l *List[T]) Get(index int) (T, bool) {
 	return l.items[index], true
 }
 
+// GetFirst returns the first item.
+func (l *List[T]) GetFirst() (T, bool) {
+	return l.Get(0)
+}
+
 // GetOption returns item at index as mo.Option.
 func (l *List[T]) GetOption(index int) mo.Option[T] {
 	value, ok := l.Get(index)
+	if !ok {
+		return mo.None[T]()
+	}
+	return mo.Some(value)
+}
+
+// GetFirstOption returns the first item as mo.Option.
+func (l *List[T]) GetFirstOption() mo.Option[T] {
+	return l.GetOption(0)
+}
+
+// GetLast returns the last item.
+func (l *List[T]) GetLast() (T, bool) {
+	return l.Get(l.Len() - 1)
+}
+
+// GetLastOption returns the last item as mo.Option.
+func (l *List[T]) GetLastOption() mo.Option[T] {
+	value, ok := l.GetLast()
 	if !ok {
 		return mo.None[T]()
 	}

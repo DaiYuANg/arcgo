@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
@@ -104,8 +105,8 @@ func (db *DB) Logger() *slog.Logger {
 	return db.observe.logger
 }
 
-func (db *DB) Hooks() []Hook {
-	return slices.Clone(db.observe.hooks)
+func (db *DB) Hooks() collectionx.List[Hook] {
+	return collectionx.NewListWithCapacity(len(db.observe.hooks), slices.Clone(db.observe.hooks)...)
 }
 
 func (db *DB) Debug() bool {

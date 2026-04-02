@@ -102,15 +102,7 @@ func TestSchemaOperationsEmitObserverEvents(t *testing.T) {
 
 	users := MustSchema("users", UserSchema{})
 	schemaDialect := newFakeSchemaDialect()
-	spec := TableSpecForTest(users)
-	schemaDialect.tables["users"] = TableState{
-		Exists:      true,
-		Name:        "users",
-		Columns:     []ColumnState{toColumnState(users.Columns()[0]), toColumnState(users.Columns()[1]), toColumnState(users.Columns()[2]), toColumnState(users.Columns()[3]), toColumnState(users.Columns()[4])},
-		Indexes:     toIndexStates(spec.Indexes),
-		PrimaryKey:  &PrimaryKeyState{Name: spec.PrimaryKey.Name, Columns: append([]string(nil), spec.PrimaryKey.Columns...)},
-		ForeignKeys: toForeignKeyStates(spec.ForeignKeys),
-	}
+	schemaDialect.tables["users"] = observedUserTableState(t, users)
 
 	db := MustNewWithOptions(
 		nil,
@@ -143,6 +135,29 @@ func TestSchemaOperationsEmitObserverEvents(t *testing.T) {
 	}
 	if len(handler.records) < 2 {
 		t.Fatalf("expected schema operation logs, got %d", len(handler.records))
+	}
+}
+
+func observedUserTableState(t *testing.T, users UserSchema) TableState {
+	t.Helper()
+
+	spec := TableSpecForTest(users)
+	columns := users.Columns()
+	columnStateAt := func(index int) ColumnState {
+		column, ok := columns.Get(index)
+		if !ok {
+			t.Fatalf("expected column at index %d", index)
+		}
+		return toColumnState(column)
+	}
+
+	return TableState{
+		Exists:      true,
+		Name:        "users",
+		Columns:     []ColumnState{columnStateAt(0), columnStateAt(1), columnStateAt(2), columnStateAt(3), columnStateAt(4)},
+		Indexes:     toIndexStates(spec.Indexes),
+		PrimaryKey:  &PrimaryKeyState{Name: spec.PrimaryKey.Name, Columns: append([]string(nil), spec.PrimaryKey.Columns...)},
+		ForeignKeys: toForeignKeyStates(spec.ForeignKeys),
 	}
 }
 

@@ -2,6 +2,7 @@ package search
 
 import "context"
 
+import "github.com/DaiYuANg/arcgo/collectionx"
 import "github.com/DaiYuANg/arcgo/kvx"
 
 // SearchableRepository provides search capabilities for repositories.
@@ -10,7 +11,7 @@ type SearchableRepository[T any] struct {
 }
 
 // NewSearchableRepository creates a new SearchableRepository.
-func NewSearchableRepository[T any](client kvx.Search, indexName, keyPrefix string, schema []kvx.SchemaField) *SearchableRepository[T] {
+func NewSearchableRepository[T any](client kvx.Search, indexName, keyPrefix string, schema collectionx.List[kvx.SchemaField]) *SearchableRepository[T] {
 	return &SearchableRepository[T]{
 		index: NewIndex(client, indexName, keyPrefix, schema),
 	}

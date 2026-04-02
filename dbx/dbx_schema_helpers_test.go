@@ -37,28 +37,31 @@ func assertUserReferenceMetadata(t *testing.T, users UserSchema) {
 func assertUserRelationMetadata(t *testing.T, users UserSchema) {
 	t.Helper()
 	columns := users.Columns()
-	if len(columns) != 5 {
-		t.Fatalf("unexpected columns metadata count: %d", len(columns))
+	if columns.Len() != 5 {
+		t.Fatalf("unexpected columns metadata count: %d", columns.Len())
 	}
 	relations := users.Relations()
-	if len(relations) != 4 {
-		t.Fatalf("unexpected relations metadata count: %d", len(relations))
+	if relations.Len() != 4 {
+		t.Fatalf("unexpected relations metadata count: %d", relations.Len())
 	}
-	if relations[0].Kind != RelationBelongsTo || relations[0].TargetTable != "roles" {
-		t.Fatalf("unexpected first relation metadata: %+v", relations[0])
+	first, ok := relations.Get(0)
+	if !ok || first.Kind != RelationBelongsTo || first.TargetTable != "roles" {
+		t.Fatalf("unexpected first relation metadata: %+v", first)
 	}
-	if relations[3].Kind != RelationManyToMany || relations[3].ThroughTable != "user_roles" {
-		t.Fatalf("unexpected many-to-many metadata: %+v", relations[3])
+	last, ok := relations.Get(3)
+	if !ok || last.Kind != RelationManyToMany || last.ThroughTable != "user_roles" {
+		t.Fatalf("unexpected many-to-many metadata: %+v", last)
 	}
 }
 
 func assertUserForeignKeys(t *testing.T, users UserSchema) {
 	t.Helper()
 	foreignKeys := users.ForeignKeys()
-	if len(foreignKeys) != 1 {
-		t.Fatalf("unexpected foreign key count: %d", len(foreignKeys))
+	if foreignKeys.Len() != 1 {
+		t.Fatalf("unexpected foreign key count: %d", foreignKeys.Len())
 	}
-	if foreignKeys[0].Columns[0] != "role_id" || foreignKeys[0].TargetTable != "roles" {
-		t.Fatalf("unexpected foreign key metadata: %+v", foreignKeys[0])
+	foreignKey, ok := foreignKeys.Get(0)
+	if !ok || foreignKey.Columns[0] != "role_id" || foreignKey.TargetTable != "roles" {
+		t.Fatalf("unexpected foreign key metadata: %+v", foreignKey)
 	}
 }

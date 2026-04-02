@@ -63,11 +63,25 @@ func TestList_OptionAPIs(t *testing.T) {
 
 	l := list.NewList("a", "b")
 
-	opt := l.GetOption(0)
-	require.True(t, opt.IsPresent())
-	value, ok := opt.Get()
+	value, ok := l.GetFirst()
 	require.True(t, ok)
 	require.Equal(t, "a", value)
+
+	opt := l.GetFirstOption()
+	require.True(t, opt.IsPresent())
+	value, ok = opt.Get()
+	require.True(t, ok)
+	require.Equal(t, "a", value)
+
+	last, ok := l.GetLast()
+	require.True(t, ok)
+	require.Equal(t, "b", last)
+
+	lastOpt := l.GetLastOption()
+	require.True(t, lastOpt.IsPresent())
+	last, ok = lastOpt.Get()
+	require.True(t, ok)
+	require.Equal(t, "b", last)
 
 	removedOpt := l.RemoveAtOption(1)
 	require.True(t, removedOpt.IsPresent())
@@ -77,6 +91,8 @@ func TestList_OptionAPIs(t *testing.T) {
 
 	require.True(t, l.GetOption(10).IsAbsent())
 	require.True(t, l.RemoveAtOption(10).IsAbsent())
+	require.True(t, list.NewList[string]().GetFirstOption().IsAbsent())
+	require.True(t, list.NewList[string]().GetLastOption().IsAbsent())
 }
 
 func TestList_Merge(t *testing.T) {

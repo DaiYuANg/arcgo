@@ -5,6 +5,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
@@ -48,22 +49,31 @@ type EntityMetadata struct {
 }
 
 // StorageNames returns all storage field names.
-func (m *EntityMetadata) StorageNames() []string {
+func (m *EntityMetadata) StorageNames() collectionx.List[string] {
 	fieldNames := orderedFieldNames(m)
-	return lo.Map(fieldNames, func(fieldName string, _ int) string {
+	return collectionx.MapList(fieldNames, func(_ int, fieldName string) string {
 		return m.Fields[fieldName].StorageName()
 	})
 }
 
 // IndexedNames returns all effective indexed field names.
-func (m *EntityMetadata) IndexedNames() []string {
-	return lo.Uniq(lo.Map(m.IndexFields, func(fieldName string, _ int) string {
+func (m *EntityMetadata) IndexedNames() collectionx.List[string] {
+	names := collectionx.NewOrderedSetWithCapacity[string](len(m.IndexFields))
+	lo.ForEach(m.IndexFields, func(fieldName string, _ int) {
 		field, ok := m.Fields[fieldName]
 		if !ok {
-			return fieldName
+			names.Add(fieldName)
+			return
 		}
-		return field.IndexNameOrDefault()
-	}))
+		names.Add(field.IndexNameOrDefault())
+	})
+
+	indexed := collectionx.NewListWithCapacity[string](names.Len())
+	names.Range(func(item string) bool {
+		indexed.Add(item)
+		return true
+	})
+	return indexed
 }
 
 // ResolveField resolves a struct field, storage field, or index alias into a struct field name and metadata.
@@ -252,11 +262,17 @@ func isKeyField(fieldTag FieldTag) bool {
 	return fieldTag.Name == "id" || fieldTag.Name == "key"
 }
 
-func orderedFieldNames(m *EntityMetadata) []string {
-	return lo.FilterMap(lo.Entries(m.Fields), func(entry lo.Entry[string, FieldTag], _ int) (string, bool) {
+func orderedFieldNames(m *EntityMetadata) collectionx.List[string] {
+	if m == nil || len(m.Fields) == 0 {
+		return collectionx.NewList[string]()
+	}
+
+	names := collectionx.NewListWithCapacity[string](len(m.Fields))
+	lo.ForEach(lo.Entries(m.Fields), func(entry lo.Entry[string, FieldTag], _ int) {
 		if entry.Value.Ignored || entry.Key == m.KeyField {
-			return "", false
+			return
 		}
-		return entry.Key, true
+		names.Add(entry.Key)
 	})
+	return names
 }

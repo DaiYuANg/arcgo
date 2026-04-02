@@ -62,6 +62,15 @@ type ColumnMeta struct {
 	UUIDVersion   string
 }
 
+func cloneColumnMeta(meta ColumnMeta) ColumnMeta {
+	if meta.References == nil {
+		return meta
+	}
+	reference := *meta.References
+	meta.References = &reference
+	return meta
+}
+
 type columnBinder interface {
 	bindColumn(binding columnBinding) any
 }

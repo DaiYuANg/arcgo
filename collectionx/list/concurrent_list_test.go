@@ -55,11 +55,25 @@ func TestConcurrentList_OptionAPIs(t *testing.T) {
 	var l list.ConcurrentList[string]
 	l.Add("a", "b")
 
-	opt := l.GetOption(0)
-	require.True(t, opt.IsPresent())
-	value, ok := opt.Get()
+	value, ok := l.GetFirst()
 	require.True(t, ok)
 	require.Equal(t, "a", value)
+
+	opt := l.GetFirstOption()
+	require.True(t, opt.IsPresent())
+	value, ok = opt.Get()
+	require.True(t, ok)
+	require.Equal(t, "a", value)
+
+	last, ok := l.GetLast()
+	require.True(t, ok)
+	require.Equal(t, "b", last)
+
+	lastOpt := l.GetLastOption()
+	require.True(t, lastOpt.IsPresent())
+	last, ok = lastOpt.Get()
+	require.True(t, ok)
+	require.Equal(t, "b", last)
 
 	removed := l.RemoveAtOption(1)
 	require.True(t, removed.IsPresent())
@@ -68,6 +82,8 @@ func TestConcurrentList_OptionAPIs(t *testing.T) {
 	require.Equal(t, "b", removedValue)
 
 	require.True(t, l.GetOption(99).IsAbsent())
+	require.True(t, new(list.ConcurrentList[string]).GetFirstOption().IsAbsent())
+	require.True(t, new(list.ConcurrentList[string]).GetLastOption().IsAbsent())
 }
 
 func TestConcurrentList_Merge(t *testing.T) {

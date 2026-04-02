@@ -24,11 +24,11 @@ type Index struct {
 	client    kvx.Search
 	name      string
 	keyPrefix string
-	schema    []kvx.SchemaField
+	schema    collectionx.List[kvx.SchemaField]
 }
 
 // NewIndex creates a new Index instance.
-func NewIndex(client kvx.Search, name, keyPrefix string, schema []kvx.SchemaField) *Index {
+func NewIndex(client kvx.Search, name, keyPrefix string, schema collectionx.List[kvx.SchemaField]) *Index {
 	return &Index{
 		client:    client,
 		name:      name,
@@ -39,7 +39,7 @@ func NewIndex(client kvx.Search, name, keyPrefix string, schema []kvx.SchemaFiel
 
 // Create creates the search index.
 func (i *Index) Create(ctx context.Context) error {
-	if err := i.client.CreateIndex(ctx, i.name, i.keyPrefix, i.schema); err != nil {
+	if err := i.client.CreateIndex(ctx, i.name, i.keyPrefix, i.schema.Values()); err != nil {
 		return fmt.Errorf("create search index %q: %w", i.name, err)
 	}
 	return nil

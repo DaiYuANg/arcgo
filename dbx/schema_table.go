@@ -2,10 +2,9 @@ package dbx
 
 import (
 	"reflect"
-	"slices"
 	"strings"
 
-	"github.com/samber/lo"
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 type Table struct {
@@ -97,16 +96,18 @@ func (s Schema[E]) EntityType() reflect.Type {
 	return s.def.table.entityType
 }
 
-func (s Schema[E]) Columns() []ColumnMeta {
-	return slices.Clone(s.def.columns)
+func (s Schema[E]) Columns() collectionx.List[ColumnMeta] {
+	return collectionx.MapList(collectionx.NewListWithCapacity(len(s.def.columns), s.def.columns...), func(_ int, column ColumnMeta) ColumnMeta {
+		return cloneColumnMeta(column)
+	})
 }
 
-func (s Schema[E]) Relations() []RelationMeta {
-	return slices.Clone(s.def.relations)
+func (s Schema[E]) Relations() collectionx.List[RelationMeta] {
+	return collectionx.NewListWithCapacity(len(s.def.relations), s.def.relations...)
 }
 
-func (s Schema[E]) Indexes() []IndexMeta {
-	return lo.Map(s.def.indexes, func(item IndexMeta, _ int) IndexMeta {
+func (s Schema[E]) Indexes() collectionx.List[IndexMeta] {
+	return collectionx.MapList(collectionx.NewListWithCapacity(len(s.def.indexes), s.def.indexes...), func(_ int, item IndexMeta) IndexMeta {
 		return cloneIndexMeta(item)
 	})
 }
@@ -118,14 +119,17 @@ func (s Schema[E]) PrimaryKey() (PrimaryKeyMeta, bool) {
 	return clonePrimaryKeyMeta(*s.def.primaryKey), true
 }
 
-func (s Schema[E]) Checks() []CheckMeta {
-	return lo.Map(s.def.checks, func(item CheckMeta, _ int) CheckMeta {
+func (s Schema[E]) Checks() collectionx.List[CheckMeta] {
+	return collectionx.MapList(collectionx.NewListWithCapacity(len(s.def.checks), s.def.checks...), func(_ int, item CheckMeta) CheckMeta {
 		return cloneCheckMeta(item)
 	})
 }
 
-func (s Schema[E]) ForeignKeys() []ForeignKeyMeta {
-	return deriveForeignKeys(s.def)
+func (s Schema[E]) ForeignKeys() collectionx.List[ForeignKeyMeta] {
+	items := deriveForeignKeys(s.def)
+	return collectionx.MapList(collectionx.NewListWithCapacity(len(items), items...), func(_ int, item ForeignKeyMeta) ForeignKeyMeta {
+		return cloneForeignKeyMeta(item)
+	})
 }
 
 func MustSchema[S any](name string, schema S) S {

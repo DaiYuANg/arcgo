@@ -10,13 +10,13 @@ import (
 )
 
 // PendingGo returns Go migrations that have not yet been applied.
-func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) ([]Migration, error) {
+func (r *Runner) PendingGo(ctx context.Context, migrations ...Migration) (collectionx.List[Migration], error) {
 	bundle, err := r.newRunnerEngineForGo(migrations)
 	if err != nil {
 		return nil, err
 	}
 	if bundle.engine == nil {
-		return nil, nil
+		return collectionx.NewList[Migration](), nil
 	}
 
 	statuses, err := pendingStatuses(ctx, bundle.engine, "go")
@@ -100,8 +100,8 @@ func collectPendingGoMigrations(
 	indexed map[string]AppliedRecord,
 	byVersion map[int64]Migration,
 	validateHash bool,
-) ([]Migration, error) {
-	pending, err := lo.ReduceErr(statuses, func(result []Migration, status *goose.MigrationStatus, _ int) ([]Migration, error) {
+) (collectionx.List[Migration], error) {
+	pending, err := lo.ReduceErr(statuses, func(result collectionx.List[Migration], status *goose.MigrationStatus, _ int) (collectionx.List[Migration], error) {
 		migration, ok := byVersion[status.Source.Version]
 		if !ok {
 			return result, nil
@@ -112,8 +112,9 @@ func collectPendingGoMigrations(
 		if status.State != goose.StatePending {
 			return result, nil
 		}
-		return lo.Concat(result, []Migration{migration}), nil
-	}, make([]Migration, 0, len(statuses)))
+		result.Add(migration)
+		return result, nil
+	}, collectionx.NewListWithCapacity[Migration](len(statuses)))
 	if err != nil {
 		return nil, fmt.Errorf("dbx/migrate: collect pending go migrations: %w", err)
 	}

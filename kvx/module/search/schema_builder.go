@@ -1,6 +1,7 @@
 package search
 
 import (
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/kvx"
 	"github.com/samber/lo"
 )
@@ -49,6 +50,6 @@ func (sb *SchemaBuilder) NumericField(name string, sortable bool) *SchemaBuilder
 }
 
 // Build builds the schema.
-func (sb *SchemaBuilder) Build() []kvx.SchemaField {
-	return sb.fields
+func (sb *SchemaBuilder) Build() collectionx.List[kvx.SchemaField] {
+	return collectionx.NewListWithCapacity(len(sb.fields), sb.fields...)
 }

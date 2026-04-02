@@ -79,26 +79,6 @@ func (l *ConcurrentList[T]) AddAllAt(index int, items ...T) bool {
 	return l.core.AddAllAt(index, items...)
 }
 
-// Get returns item at index.
-func (l *ConcurrentList[T]) Get(index int) (T, bool) {
-	var zero T
-	l.mu.RLock()
-	defer l.mu.RUnlock()
-	if l.core == nil {
-		return zero, false
-	}
-	return l.core.Get(index)
-}
-
-// GetOption returns item at index as mo.Option.
-func (l *ConcurrentList[T]) GetOption(index int) mo.Option[T] {
-	value, ok := l.Get(index)
-	if !ok {
-		return mo.None[T]()
-	}
-	return mo.Some(value)
-}
-
 // Set replaces item at index.
 func (l *ConcurrentList[T]) Set(index int, item T) bool {
 	l.mu.Lock()

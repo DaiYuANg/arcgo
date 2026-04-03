@@ -8,6 +8,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
+	"github.com/samber/do/v2"
 )
 
 type buildPlan struct {
@@ -46,14 +47,30 @@ func (p *buildPlan) Build() (*Runtime, error) {
 	if logger == nil {
 		logger = slog.Default()
 	}
-	debugEnabled := logger.Enabled(context.Background(), slog.LevelDebug)
-	infoEnabled := logger.Enabled(context.Background(), slog.LevelInfo)
-
-	p.logBuildStart(logger, infoEnabled, debugEnabled)
 
 	rt := newRuntime(p.spec, p)
 	registerRuntimeCoreServices(rt)
-	p.registerProviders(rt, logger, debugEnabled)
+
+	providersRegistered := false
+	if p.spec.loggerFromContainer != nil {
+		p.registerProviders(rt, nil, false)
+		providersRegistered = true
+		if resolvedLogger, err := p.resolveFrameworkLogger(rt); err != nil {
+			return nil, cleanupBuildFailure(rt, logger, err)
+		} else if resolvedLogger != nil {
+			logger = resolvedLogger
+		}
+	}
+
+	debugEnabled := logger.Enabled(context.Background(), slog.LevelDebug)
+	infoEnabled := logger.Enabled(context.Background(), slog.LevelInfo)
+	p.logBuildStart(logger, infoEnabled, debugEnabled)
+
+	if providersRegistered {
+		p.logProviderRegistrations(logger, debugEnabled)
+	} else {
+		p.registerProviders(rt, logger, debugEnabled)
+	}
 
 	if err := p.bindHooksAndRunSetups(rt, logger, debugEnabled); err != nil {
 		return nil, cleanupBuildFailure(rt, logger, err)
@@ -108,6 +125,26 @@ func registerRuntimeCoreServices(rt *Runtime) {
 	ProvideValueT[Profile](rt.container, rt.spec.profile)
 }
 
+func (p *buildPlan) resolveFrameworkLogger(rt *Runtime) (*slog.Logger, error) {
+	if p == nil || p.spec == nil || rt == nil || p.spec.loggerFromContainer == nil {
+		return nil, nil
+	}
+
+	logger, err := p.spec.loggerFromContainer(rt.container)
+	if err != nil {
+		return nil, fmt.Errorf("resolve framework logger failed: %w", err)
+	}
+	if logger == nil {
+		return nil, errors.New("resolve framework logger failed: resolver returned nil logger")
+	}
+
+	rt.logger = logger
+	rt.container.logger = logger
+	rt.lifecycle.logger = logger
+	do.OverrideNamedValue(rt.container.Raw(), serviceNameOf[*slog.Logger](), logger)
+	return logger, nil
+}
+
 func (p *buildPlan) registerProviders(rt *Runtime, logger *slog.Logger, debugEnabled bool) {
 	p.modules.Range(func(_ int, mod *moduleSpec) bool {
 		if debugEnabled {
@@ -130,6 +167,32 @@ func (p *buildPlan) registerProviders(rt *Runtime, logger *slog.Logger, debugEna
 				)
 			}
 			provider.apply(rt.container)
+			return true
+		})
+		return true
+	})
+}
+
+func (p *buildPlan) logProviderRegistrations(logger *slog.Logger, debugEnabled bool) {
+	if !debugEnabled {
+		return
+	}
+	p.modules.Range(func(_ int, mod *moduleSpec) bool {
+		logger.Debug("registering module",
+			"module", mod.name,
+			"providers", mod.providers.Len(),
+			"hooks", mod.hooks.Len(),
+			"setups", mod.setups.Len(),
+			"invokes", mod.invokes.Len(),
+		)
+		mod.providers.Range(func(_ int, provider ProviderFunc) bool {
+			logger.Debug("registering provider",
+				"module", mod.name,
+				"label", provider.meta.Label,
+				"output", provider.meta.Output.Name,
+				"dependencies", serviceRefNames(provider.meta.Dependencies),
+				"raw", provider.meta.Raw,
+			)
 			return true
 		})
 		return true

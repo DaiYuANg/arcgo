@@ -75,6 +75,40 @@ func WithLogger(logger *slog.Logger) AppOption {
 	}
 }
 
+// WithLoggerFrom resolves the framework logger from the built DI container.
+// The resolved logger overrides the default logger and updates runtime internals.
+func WithLoggerFrom(fn func(*Container) (*slog.Logger, error)) AppOption {
+	return func(spec *appSpec) {
+		if fn != nil {
+			spec.loggerFromContainer = fn
+		}
+	}
+}
+
+// WithLoggerFrom0 resolves the framework logger from a zero-dependency callback.
+func WithLoggerFrom0(fn func() *slog.Logger) AppOption {
+	if fn == nil {
+		return func(*appSpec) {}
+	}
+	return WithLoggerFrom(func(*Container) (*slog.Logger, error) {
+		return fn(), nil
+	})
+}
+
+// WithLoggerFrom1 resolves the framework logger from a one-dependency callback.
+func WithLoggerFrom1[D1 any](fn func(D1) *slog.Logger) AppOption {
+	if fn == nil {
+		return func(*appSpec) {}
+	}
+	return WithLoggerFrom(func(c *Container) (*slog.Logger, error) {
+		d1, err := ResolveAs[D1](c)
+		if err != nil {
+			return nil, err
+		}
+		return fn(d1), nil
+	})
+}
+
 // WithModules appends application modules.
 func WithModules(modules ...Module) AppOption {
 	return func(spec *appSpec) {

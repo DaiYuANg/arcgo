@@ -84,11 +84,12 @@ type Module struct {
 }
 
 type appSpec struct {
-	meta    AppMeta
-	profile Profile
-	modules collectionlist.List[Module]
-	logger  *slog.Logger
-	debug   debugSettings
+	meta                AppMeta
+	profile             Profile
+	modules             collectionlist.List[Module]
+	logger              *slog.Logger
+	loggerFromContainer func(*Container) (*slog.Logger, error)
+	debug               debugSettings
 }
 
 type moduleSpec struct {

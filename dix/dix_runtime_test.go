@@ -1,6 +1,7 @@
 package dix_test
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"log/slog"
@@ -13,6 +14,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type frameworkLoggerCarrier struct {
+	logger *slog.Logger
+}
 
 func TestBuildDebugLogging(t *testing.T) {
 	logger, buf := newDebugLogger()
@@ -154,4 +159,58 @@ func TestHealthKinds(t *testing.T) {
 func TestNewDefault(t *testing.T) {
 	app := dix.NewDefault()
 	assert.Equal(t, dix.DefaultAppName, app.Name())
+}
+
+func TestWithLoggerFrom1_UsesDIProvidedLogger(t *testing.T) {
+	buf := &bytes.Buffer{}
+	diLogger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	app := dix.New("di-logger",
+		dix.WithLoggerFrom1(func(carrier *frameworkLoggerCarrier) *slog.Logger {
+			return carrier.logger
+		}),
+		dix.WithModule(
+			dix.NewModule("logger",
+				dix.WithModuleProviders(
+					dix.Provider0(func() *frameworkLoggerCarrier {
+						return &frameworkLoggerCarrier{logger: diLogger}
+					}),
+				),
+				dix.WithModuleHooks(
+					dix.OnStart0(func(context.Context) error { return nil }),
+					dix.OnStop0(func(context.Context) error { return nil }),
+				),
+			),
+		),
+	)
+
+	rt := buildRuntime(t, app)
+
+	resolved, err := dix.ResolveAs[*slog.Logger](rt.Container())
+	require.NoError(t, err)
+	assert.Same(t, diLogger, rt.Logger())
+	assert.Same(t, diLogger, resolved)
+
+	require.NoError(t, rt.Start(context.Background()))
+	require.NoError(t, rt.Stop(context.Background()))
+
+	logs := buf.String()
+	assert.Contains(t, logs, "building app")
+	assert.Contains(t, logs, "registering provider")
+	assert.Contains(t, logs, "starting app")
+	assert.Contains(t, logs, "app stopped")
+}
+
+func TestWithLoggerFrom1_MissingDependencyFailsBuild(t *testing.T) {
+	app := dix.New("di-logger-missing",
+		dix.WithLoggerFrom1(func(*frameworkLoggerCarrier) *slog.Logger {
+			return slog.Default()
+		}),
+	)
+
+	_, err := app.Build()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "resolve framework logger failed")
 }

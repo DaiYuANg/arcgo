@@ -112,6 +112,55 @@ go get github.com/DaiYuANg/arcgo/logx@latest
 go run .
 ```
 
+## 可选：从 DI 解析框架 logger（结合 `logx`）
+
+如果你希望 `dix` 框架内部日志使用模块图里构建的 logger（而不是在 `New` 时显式传 `dix.WithLogger(...)`），可以使用 `dix.WithLoggerFrom...`。
+
+```go
+package main
+
+import (
+	"context"
+	"log/slog"
+
+	"github.com/DaiYuANg/arcgo/dix"
+	"github.com/DaiYuANg/arcgo/logx"
+)
+
+type LogBundle struct {
+	Logger *slog.Logger
+}
+
+func main() {
+	logModule := dix.NewModule("logx",
+		dix.WithModuleProviders(
+			dix.Provider0(func() *LogBundle {
+				return &LogBundle{
+					Logger: logx.MustNew(logx.WithConsole(true), logx.WithDebugLevel()),
+				}
+			}),
+		),
+		dix.WithModuleHooks(
+			dix.OnStop(func(_ context.Context, logs *LogBundle) error {
+				return logx.Close(logs.Logger)
+			}),
+		),
+	)
+
+	app := dix.New(
+		"demo",
+		dix.WithModules(logModule /*, other modules... */),
+		dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
+			return logs.Logger
+		}),
+	)
+
+	_, _ = app.Build()
+}
+```
+
+这样可以把 logger 的初始化和回收都放在模块里，同时覆盖掉框架默认 logger。
+
 ## 校验说明
 
 - 对纯 typed 应用来说，`app.Validate()` 通常已经足够。

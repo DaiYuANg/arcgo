@@ -14,13 +14,14 @@ It provides two main usage styles:
 - **Typed load** — `LoadT[T]` / `LoadTErr[T]` unmarshals into a struct and (optionally) validates it.
 - **Dynamic config** — `LoadConfig` returns `*configx.Config` for path-based access (`GetString`, `Exists`, `All`, `Unmarshal`).
 
-Sources are merged by priority. Later sources override earlier ones.
+Sources are merged by priority. Later sources override earlier ones. The default order is `dotenv → file → env → args`.
 
 ## Current capabilities
 
 - `.env` loading (`WithDotenv`, `WithIgnoreDotenvError`)
 - File loading (YAML/JSON/TOML) (`WithFiles`)
 - Environment variables (`WithEnvPrefix`, `WithEnvSeparator`)
+- Command-line args and flags (`WithArgs`, `WithOSArgs`, `WithFlagSet`, `WithCommandLineFlags`, `WithArgsNameFunc`)
 - Explicit source priority (`WithPriority`)
 - Defaults (`WithDefaults`, `WithDefaultsTyped`, `WithTypedDefaults`)
 - Optional validation (`WithValidateLevel`, `WithValidator`)
@@ -30,7 +31,7 @@ Sources are merged by priority. Later sources override earlier ones.
 ## Documentation map
 
 - Minimal typed load with validation: [Getting Started](./getting-started)
-- Files, env vars, merge order: [Sources and priority](./sources-and-priority)
+- Files, env vars, command-line inputs, merge order: [Sources and priority](./sources-and-priority)
 - Custom validator and dynamic config: [Validation and dynamic config](./validation-and-dynamic)
 
 ## Install / Import

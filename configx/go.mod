@@ -14,6 +14,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.4
 	github.com/samber/lo v1.53.0
 	github.com/samber/mo v1.16.0
+	github.com/spf13/pflag v1.0.10
 	github.com/stretchr/testify v1.11.1
 )
 

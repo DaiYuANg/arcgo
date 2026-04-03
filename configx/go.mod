@@ -3,7 +3,7 @@ module github.com/DaiYuANg/arcgo/configx
 go 1.26.1
 
 require (
-	github.com/go-playground/validator/v10 v10.30.1
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/joho/godotenv v1.5.1
 	github.com/knadh/koanf/parsers/json v1.0.0
 	github.com/knadh/koanf/parsers/toml/v2 v2.2.0

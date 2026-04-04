@@ -88,7 +88,7 @@ func main() {
 	// Read
 	list, err := dbx.QueryAll(
 		ctx, core,
-		dbx.Select(Users.AllColumns()...).From(Users).Where(Users.Username.Eq("alice")),
+		dbx.Select(Users.AllColumns().Values()...).From(Users).Where(Users.Username.Eq("alice")),
 		mapper,
 	)
 	if err != nil {

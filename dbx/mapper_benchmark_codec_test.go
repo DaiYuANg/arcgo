@@ -12,7 +12,7 @@ func BenchmarkQueryAllStructMapperJSONCodec(b *testing.B) {
 	registerCSVCodecBenchmark()
 	codecAccounts := MustSchema("codec_accounts", codecSchema{})
 	mapper := MustStructMapper[codecRecord]()
-	query := Select(codecAccounts.AllColumns()...).From(codecAccounts)
+	query := Select(codecAccounts.AllColumns().Values()...).From(codecAccounts)
 	ddl := []string{mapperCodecExtraDDL, `INSERT INTO "codec_accounts" ("id","preferences","tags") VALUES (1,'{"theme":"dark","flags":["alpha","beta"]}','go,dbx,orm')`}
 
 	run := func(b *testing.B, sqlDB *sql.DB) {

@@ -23,8 +23,10 @@ where status = /* status */1
 	}{Status: 1})
 	require.NoError(t, err)
 	require.Equal(t, "user/find_active.sql", bound.Name)
-	require.Equal(t, 1, len(bound.Args))
-	require.Equal(t, 1, bound.Args[0])
+	require.Equal(t, 1, bound.Args.Len())
+	value, ok := bound.Args.Get(0)
+	require.True(t, ok)
+	require.Equal(t, 1, value)
 	require.NotEmpty(t, bound.SQL)
 }
 
@@ -52,5 +54,5 @@ order by id
 	}{Status: 2})
 	require.NoError(t, err)
 	require.Equal(t, "sql/user/find_active.sql", bound.Name)
-	require.Equal(t, []any{2}, bound.Args)
+	require.Equal(t, []any{2}, bound.Args.Values())
 }

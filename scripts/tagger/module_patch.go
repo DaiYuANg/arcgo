@@ -22,45 +22,50 @@ type releaseTarget struct {
 	next   semver.Version
 }
 
-type modulePatchConfig struct {
+type moduleBumpConfig struct {
 	remote      string
 	taggerName  string
 	taggerEmail string
 }
 
-func defineModulePatchTasks() {
-	goyek.Define(goyek.Task{
-		Name:  "modules-patch",
-		Usage: "Create next patch tags for all modules (default scope: libs)",
-		Action: func(a *goyek.A) {
-			runModulePatchTagger(a, false, false)
-		},
-	})
+func defineModuleBumpTasks() {
+	lo.ForEach(bumpTaskSpecs, func(spec bumpTaskSpec, _ int) {
+		mode := spec.mode
+		name := spec.name
 
-	goyek.Define(goyek.Task{
-		Name:  "modules-patch-push",
-		Usage: "Create and push next patch tags for all modules (default scope: libs)",
-		Action: func(a *goyek.A) {
-			runModulePatchTagger(a, true, false)
-		},
-	})
+		goyek.Define(goyek.Task{
+			Name:  "modules-" + name,
+			Usage: fmt.Sprintf("Create next %s tags for all modules (default scope: libs)", name),
+			Action: func(a *goyek.A) {
+				runModuleBumpTagger(a, mode, false, false)
+			},
+		})
 
-	goyek.Define(goyek.Task{
-		Name:  "modules-patch-dry-run",
-		Usage: "Show module patch tags that would be created (default scope: libs)",
-		Action: func(a *goyek.A) {
-			runModulePatchTagger(a, false, true)
-		},
+		goyek.Define(goyek.Task{
+			Name:  "modules-" + name + "-push",
+			Usage: fmt.Sprintf("Create and push next %s tags for all modules (default scope: libs)", name),
+			Action: func(a *goyek.A) {
+				runModuleBumpTagger(a, mode, true, false)
+			},
+		})
+
+		goyek.Define(goyek.Task{
+			Name:  "modules-" + name + "-dry-run",
+			Usage: fmt.Sprintf("Show module %s tags that would be created (default scope: libs)", name),
+			Action: func(a *goyek.A) {
+				runModuleBumpTagger(a, mode, false, true)
+			},
+		})
 	})
 }
 
-func runModulePatchTagger(a *goyek.A, push, dryRun bool) {
+func runModuleBumpTagger(a *goyek.A, mode bumpMode, push, dryRun bool) {
 	repo, err := git.PlainOpen(".")
 	if err != nil {
 		a.Fatal(err)
 	}
 
-	targets, err := modulePatchTargets(repo)
+	targets, err := moduleBumpTargets(repo, mode)
 	if err != nil {
 		a.Fatal(err)
 	}
@@ -69,39 +74,39 @@ func runModulePatchTagger(a *goyek.A, push, dryRun bool) {
 		return
 	}
 
-	commit, cfg, err := modulePatchContext(repo)
+	commit, cfg, err := moduleBumpContext(repo)
 	if err != nil {
 		a.Fatal(err)
 	}
 
 	for i := range targets {
-		runModulePatchTarget(a, repo, commit, cfg, &targets[i], push, dryRun)
+		runModuleBumpTarget(a, repo, commit, cfg, &targets[i], push, dryRun)
 	}
 
-	logModulePatchSummary(a, len(targets), cfg.remote, push, dryRun)
+	logModuleBumpSummary(a, len(targets), cfg.remote, push, dryRun)
 }
 
-func modulePatchContext(repo *git.Repository) (*object.Commit, modulePatchConfig, error) {
+func moduleBumpContext(repo *git.Repository) (*object.Commit, moduleBumpConfig, error) {
 	head, err := repo.Head()
 	if err != nil {
-		return nil, modulePatchConfig{}, fmt.Errorf("resolve repository head: %w", err)
+		return nil, moduleBumpConfig{}, fmt.Errorf("resolve repository head: %w", err)
 	}
 	commit, err := repo.CommitObject(head.Hash())
 	if err != nil {
-		return nil, modulePatchConfig{}, fmt.Errorf("resolve head commit: %w", err)
+		return nil, moduleBumpConfig{}, fmt.Errorf("resolve head commit: %w", err)
 	}
-	return commit, modulePatchConfig{
+	return commit, moduleBumpConfig{
 		remote:      getenvDefault("TAGGER_REMOTE", "origin"),
 		taggerName:  getenvDefault("TAGGER_NAME", "auto-tagger"),
 		taggerEmail: getenvDefault("TAGGER_EMAIL", "ci@local"),
 	}, nil
 }
 
-func runModulePatchTarget(
+func runModuleBumpTarget(
 	a *goyek.A,
 	repo *git.Repository,
 	commit *object.Commit,
-	cfg modulePatchConfig,
+	cfg moduleBumpConfig,
 	target *releaseTarget,
 	push, dryRun bool,
 ) {
@@ -138,7 +143,7 @@ func runModulePatchTarget(
 	}
 }
 
-func logModulePatchSummary(a *goyek.A, count int, remote string, push, dryRun bool) {
+func logModuleBumpSummary(a *goyek.A, count int, remote string, push, dryRun bool) {
 	if dryRun {
 		a.Logf("Dry-run complete (%d tags)", count)
 		return
@@ -153,7 +158,7 @@ func logModulePatchSummary(a *goyek.A, count int, remote string, push, dryRun bo
 	a.Logf("Push manually with: git push %s --tags", remote)
 }
 
-func modulePatchTargets(repo *git.Repository) ([]releaseTarget, error) {
+func moduleBumpTargets(repo *git.Repository, mode bumpMode) ([]releaseTarget, error) {
 	iter, err := repo.Tags()
 	if err != nil {
 		return nil, fmt.Errorf("iterate repository tags: %w", err)
@@ -184,7 +189,7 @@ func modulePatchTargets(repo *git.Repository) ([]releaseTarget, error) {
 	targets := make([]releaseTarget, 0, len(modules))
 	for _, moduleName := range modules {
 		latest := latestByModule[moduleName]
-		next := latest.IncPatch()
+		next := bump(latest, mode)
 		targets = append(targets, releaseTarget{
 			name:   moduleName,
 			latest: latest,

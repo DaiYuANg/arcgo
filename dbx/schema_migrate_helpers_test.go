@@ -2,6 +2,8 @@ package dbx_test
 
 import (
 	"strings"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 func toColumnState(column ColumnMeta) ColumnState {
@@ -19,38 +21,40 @@ func toColumnState(column ColumnMeta) ColumnState {
 	}
 }
 
-func toIndexStates(indexes []IndexMeta) []IndexState {
-	items := make([]IndexState, len(indexes))
-	for i, index := range indexes {
-		items[i] = IndexState{
+func toIndexStates(indexes collectionx.List[IndexMeta]) collectionx.List[IndexState] {
+	items := collectionx.NewListWithCapacity[IndexState](indexes.Len())
+	indexes.Range(func(_ int, index IndexMeta) bool {
+		items.Add(IndexState{
 			Name:    index.Name,
-			Columns: append([]string(nil), index.Columns...),
+			Columns: index.Columns.Clone(),
 			Unique:  index.Unique,
-		}
-	}
+		})
+		return true
+	})
 	return items
 }
 
-func toForeignKeyStates(foreignKeys []ForeignKeyMeta) []ForeignKeyState {
-	items := make([]ForeignKeyState, len(foreignKeys))
-	for i := range foreignKeys {
-		foreignKey := &foreignKeys[i]
-		items[i] = ForeignKeyState{
+func toForeignKeyStates(foreignKeys collectionx.List[ForeignKeyMeta]) collectionx.List[ForeignKeyState] {
+	items := collectionx.NewListWithCapacity[ForeignKeyState](foreignKeys.Len())
+	foreignKeys.Range(func(_ int, foreignKey ForeignKeyMeta) bool {
+		items.Add(ForeignKeyState{
 			Name:          foreignKey.Name,
-			Columns:       append([]string(nil), foreignKey.Columns...),
+			Columns:       foreignKey.Columns.Clone(),
 			TargetTable:   foreignKey.TargetTable,
-			TargetColumns: append([]string(nil), foreignKey.TargetColumns...),
+			TargetColumns: foreignKey.TargetColumns.Clone(),
 			OnDelete:      foreignKey.OnDelete,
 			OnUpdate:      foreignKey.OnUpdate,
-		}
-	}
+		})
+		return true
+	})
 	return items
 }
 
-func toCheckStates(checks []CheckMeta) []CheckState {
-	items := make([]CheckState, len(checks))
-	for i, check := range checks {
-		items[i] = CheckState{Name: check.Name, Expression: check.Expression}
-	}
+func toCheckStates(checks collectionx.List[CheckMeta]) collectionx.List[CheckState] {
+	items := collectionx.NewListWithCapacity[CheckState](checks.Len())
+	checks.Range(func(_ int, check CheckMeta) bool {
+		items.Add(CheckState{Name: check.Name, Expression: check.Expression})
+		return true
+	})
 	return items
 }

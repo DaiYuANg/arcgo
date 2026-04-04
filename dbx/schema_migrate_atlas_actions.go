@@ -3,11 +3,11 @@ package dbx
 import (
 	"context"
 	"errors"
-	"slices"
 	"strings"
 
 	atlasmigrate "ariga.io/atlas/sql/migrate"
 	atlasschema "ariga.io/atlas/sql/schema"
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
@@ -91,7 +91,7 @@ func atlasPlannedAction(change atlasschema.Change, planned *atlasmigrate.Change)
 		Kind:       atlasActionKind(change),
 		Table:      atlasChangeTableName(change),
 		Summary:    summary,
-		Statement:  BoundQuery{SQL: planned.Cmd, Args: slices.Clone(planned.Args)},
+		Statement:  BoundQuery{SQL: planned.Cmd, Args: collectionx.NewList(planned.Args...)},
 		Executable: true,
 	}
 }

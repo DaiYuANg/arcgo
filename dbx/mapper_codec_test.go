@@ -94,7 +94,7 @@ func TestStructMapperScansCodecFields(t *testing.T) {
 	items, err := QueryAll(
 		context.Background(),
 		New(sqlDB, testSQLiteDialect{}),
-		Select(accounts.AllColumns()...).From(accounts),
+		Select(accounts.AllColumns().Values()...).From(accounts),
 		MustStructMapper[codecRecord](),
 	)
 	if err != nil {
@@ -189,7 +189,7 @@ func TestStructMapperWithOptionsUsesScopedCodecRegistry(t *testing.T) {
 	items, err := QueryAll(
 		context.Background(),
 		New(sqlDB, testSQLiteDialect{}),
-		Select(schema.AllColumns()...).From(schema),
+		Select(schema.AllColumns().Values()...).From(schema),
 		mapper,
 	)
 	if err != nil {

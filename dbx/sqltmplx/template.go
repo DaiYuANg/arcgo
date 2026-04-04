@@ -2,8 +2,8 @@ package sqltmplx
 
 import (
 	"fmt"
-	"slices"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/parse"
@@ -15,17 +15,17 @@ import (
 // Template stores a compiled SQL template.
 type Template struct {
 	name      string
-	nodes     []parse.Node
+	nodes     collectionx.List[parse.Node]
 	dialect   dialect.Contract
 	validator validate.Validator
 }
 
 func compileTemplate(name, tpl string, d dialect.Contract, cfg config) (*Template, error) {
-	tokens, err := scan.Scan(tpl)
+	tokens, err := scan.ScanList(tpl)
 	if err != nil {
 		return nil, fmt.Errorf("scan template: %w", err)
 	}
-	nodes, err := parse.Build(tokens)
+	nodes, err := parse.BuildList(tokens)
 	if err != nil {
 		return nil, fmt.Errorf("build template nodes: %w", err)
 	}
@@ -42,7 +42,7 @@ func (t *Template) StatementName() string {
 
 // Render renders the template into SQL and bind arguments.
 func (t *Template) Render(params any) (BoundSQL, error) {
-	bound, err := render.Render(t.nodes, params, t.dialect)
+	bound, err := render.RenderList(t.nodes, params, t.dialect)
 	if err != nil {
 		return BoundSQL{}, fmt.Errorf("render template: %w", err)
 	}
@@ -51,7 +51,7 @@ func (t *Template) Render(params any) (BoundSQL, error) {
 			return BoundSQL{}, fmt.Errorf("validate rendered sql: %w", err)
 		}
 	}
-	return BoundSQL{Query: bound.Query, Args: bound.Args}, nil
+	return BoundSQL{Query: bound.Query, Args: bound.Args.Clone()}, nil
 }
 
 // Bind renders the template into a dbx bound query.
@@ -67,6 +67,6 @@ func (t *Template) Bind(params any) (dbx.BoundQuery, error) {
 	return dbx.BoundQuery{
 		Name: t.name,
 		SQL:  bound.Query,
-		Args: slices.Clone(bound.Args),
+		Args: bound.Args.Clone(),
 	}, nil
 }

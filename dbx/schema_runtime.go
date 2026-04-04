@@ -1,6 +1,9 @@
 package dbx
 
-import "github.com/samber/lo"
+import (
+	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/samber/lo"
+)
 
 type schemaSelectItem struct {
 	meta ColumnMeta
@@ -12,22 +15,30 @@ func (s schemaSelectItem) columnRef() ColumnMeta {
 	return s.meta
 }
 
-func (s Schema[E]) AllColumns() []SelectItem {
-	return lo.Map(s.def.columns, func(column ColumnMeta, _ int) SelectItem {
-		return schemaSelectItem{meta: column}
+func (s Schema[E]) AllColumns() collectionx.List[SelectItem] {
+	return collectionx.MapList(collectionx.NewListWithCapacity(len(s.def.columns), s.def.columns...), func(_ int, column ColumnMeta) SelectItem {
+		return schemaSelectItem{meta: cloneColumnMeta(column)}
 	})
 }
 
 func (s Schema[E]) PrimaryColumn() (ColumnMeta, bool) {
-	return lo.Find(s.def.columns, func(column ColumnMeta) bool {
+	column, ok := lo.Find(s.def.columns, func(column ColumnMeta) bool {
 		return column.PrimaryKey
 	})
+	if !ok {
+		return ColumnMeta{}, false
+	}
+	return cloneColumnMeta(column), true
 }
 
 func (s Schema[E]) ColumnByName(name string) (ColumnMeta, bool) {
-	return lo.Find(s.def.columns, func(column ColumnMeta) bool {
+	column, ok := lo.Find(s.def.columns, func(column ColumnMeta) bool {
 		return column.Name == name
 	})
+	if !ok {
+		return ColumnMeta{}, false
+	}
+	return cloneColumnMeta(column), true
 }
 
 type metadataAssignment struct {

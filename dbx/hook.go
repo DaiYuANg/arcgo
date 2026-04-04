@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 type Operation string
@@ -30,7 +28,7 @@ type HookEvent struct {
 	Operation       Operation
 	Statement       string
 	SQL             string
-	Args            []any
+	Args            collectionx.List[any]
 	Table           string
 	StartedAt       time.Time // Set in Before, use with Duration for slow-query detection.
 	Duration        time.Duration
@@ -40,16 +38,16 @@ type HookEvent struct {
 
 	// Metadata holds arbitrary key-value pairs (e.g. trace_id, request_id) for observability.
 	// Hooks can set it in Before and read it in After; values are included in logs when present.
-	// Use SetMetadata to avoid nil map panics.
-	Metadata map[string]any
+	// Use SetMetadata to initialize and populate it.
+	Metadata collectionx.Map[string, any]
 }
 
 // SetMetadata sets a key-value pair in Metadata, initializing the map if needed.
 func (e *HookEvent) SetMetadata(key string, value any) {
 	if e.Metadata == nil {
-		e.Metadata = make(map[string]any)
+		e.Metadata = collectionx.NewMap[string, any]()
 	}
-	e.Metadata[key] = value
+	e.Metadata.Set(key, value)
 }
 
 type Hook interface {
@@ -77,20 +75,21 @@ func (h HookFuncs) After(ctx context.Context, event *HookEvent) {
 
 type runtimeObserver struct {
 	logger *slog.Logger
-	hooks  []Hook
+	hooks  collectionx.List[Hook]
 	debug  bool
 }
 
 func newRuntimeObserver(opts options) runtimeObserver {
 	return runtimeObserver{
 		logger: opts.logger,
-		hooks:  slices.Clone(opts.hooks),
+		hooks:  opts.hooks.Clone(),
 		debug:  opts.debug,
 	}
 }
 
 func (o runtimeObserver) before(ctx context.Context, event HookEvent) (context.Context, *HookEvent, error) {
-	event.Args = slices.Clone(event.Args)
+	event.Args = event.Args.Clone()
+	event.Metadata = event.Metadata.Clone()
 	event.StartedAt = time.Now()
 
 	ctx, err := o.applyBeforeHooks(ctx, &event, 0)
@@ -102,10 +101,14 @@ func (o runtimeObserver) before(ctx context.Context, event HookEvent) (context.C
 }
 
 func (o runtimeObserver) applyBeforeHooks(ctx context.Context, event *HookEvent, index int) (context.Context, error) {
-	if index >= len(o.hooks) {
+	if index >= o.hooks.Len() {
 		return ctx, nil
 	}
-	nextCtx, err := o.hooks[index].Before(ctx, event)
+	hook, ok := o.hooks.Get(index)
+	if !ok {
+		return ctx, nil
+	}
+	nextCtx, err := hook.Before(ctx, event)
 	if err != nil {
 		return ctx, fmt.Errorf("dbx: before hook failed: %w", err)
 	}
@@ -124,8 +127,9 @@ func (o runtimeObserver) after(ctx context.Context, event *HookEvent) {
 	}
 
 	o.log(*event)
-	lo.ForEach(o.hooks, func(hook Hook, _ int) {
+	o.hooks.Range(func(_ int, hook Hook) bool {
 		hook.After(ctx, event)
+		return true
 	})
 }
 
@@ -158,14 +162,15 @@ func (o runtimeObserver) buildLogAttrs(event HookEvent) []any {
 	if event.SQL != "" {
 		attrs.Add("sql", event.SQL)
 	}
-	if len(event.Args) > 0 {
-		attrs.Add("args", event.Args)
+	if event.Args.Len() > 0 {
+		attrs.Add("args", event.Args.Values())
 	}
 	if event.HasRowsAffected {
 		attrs.Add("rows_affected", event.RowsAffected)
 	}
-	lo.ForEach(lo.Entries(event.Metadata), func(entry lo.Entry[string, any], _ int) {
-		attrs.Add(entry.Key, entry.Value)
+	event.Metadata.Range(func(key string, value any) bool {
+		attrs.Add(key, value)
+		return true
 	})
 	if event.Err != nil {
 		attrs.Add("error", event.Err)

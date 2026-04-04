@@ -110,12 +110,45 @@ func main() {
 	mux.HandleFunc("/livez", rt.LivenessHandler())
 	mux.HandleFunc("/readyz", rt.ReadinessHandler())
 
-	_ = mux
+_ = mux
 }
 ```
+
+## Optional: use DI logger as framework logger (`logx`)
+
+If your health/lifecycle modules also own logger wiring, you can let `dix` internal logs use the DI-produced logger:
+
+```go
+type LogBundle struct {
+	Logger *slog.Logger
+}
+
+logModule := dix.NewModule("logx",
+	dix.WithModuleProviders(
+		dix.Provider0(func() *LogBundle {
+			return &LogBundle{
+				Logger: logx.MustNew(logx.WithConsole(true), logx.WithDebugLevel()),
+			}
+		}),
+	),
+	dix.WithModuleHooks(
+		dix.OnStop(func(_ context.Context, logs *LogBundle) error {
+			return logx.Close(logs.Logger)
+		}),
+	),
+)
+
+app := dix.NewDefault(
+	dix.WithModules(logModule, serverModule),
+	dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
+		return logs.Logger
+	}),
+)
+```
+
+This keeps logger lifecycle in modules while replacing the framework default logger.
 
 ## Related
 
 - [Getting Started](./getting-started)
 - Example guide: [dix examples](./examples)
-

@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	sqlitedialect "github.com/DaiYuANg/arcgo/dbx/dialect/sqlite"
 	"github.com/stretchr/testify/require"
@@ -15,35 +16,35 @@ import (
 func TestBuildCreateTable(t *testing.T) {
 	bound, err := sqlitedialect.New().BuildCreateTable(dbx.TableSpec{
 		Name: "users",
-		Columns: []dbx.ColumnMeta{
-			{Name: "id", Table: "users", GoType: reflect.TypeFor[int64](), PrimaryKey: true, AutoIncrement: true},
-			{Name: "username", Table: "users", GoType: reflect.TypeFor[string]()},
-			{Name: "email_address", Table: "users", GoType: reflect.TypeFor[string]()},
-			{Name: "role_id", Table: "users", GoType: reflect.TypeFor[int64]()},
-			{Name: "status", Table: "users", GoType: reflect.TypeFor[int]()},
-		},
+		Columns: collectionx.NewList(
+			dbx.ColumnMeta{Name: "id", Table: "users", GoType: reflect.TypeFor[int64](), PrimaryKey: true, AutoIncrement: true},
+			dbx.ColumnMeta{Name: "username", Table: "users", GoType: reflect.TypeFor[string]()},
+			dbx.ColumnMeta{Name: "email_address", Table: "users", GoType: reflect.TypeFor[string]()},
+			dbx.ColumnMeta{Name: "role_id", Table: "users", GoType: reflect.TypeFor[int64]()},
+			dbx.ColumnMeta{Name: "status", Table: "users", GoType: reflect.TypeFor[int]()},
+		),
 		PrimaryKey: &dbx.PrimaryKeyMeta{
 			Name:    "pk_users",
 			Table:   "users",
-			Columns: []string{"id"},
+			Columns: collectionx.NewList("id"),
 		},
-		ForeignKeys: []dbx.ForeignKeyMeta{
-			{
+		ForeignKeys: collectionx.NewList(
+			dbx.ForeignKeyMeta{
 				Name:          "fk_users_role_id",
 				Table:         "users",
-				Columns:       []string{"role_id"},
+				Columns:       collectionx.NewList("role_id"),
 				TargetTable:   "roles",
-				TargetColumns: []string{"id"},
+				TargetColumns: collectionx.NewList("id"),
 				OnDelete:      dbx.ReferentialCascade,
 			},
-		},
-		Checks: []dbx.CheckMeta{
-			{
+		),
+		Checks: collectionx.NewList(
+			dbx.CheckMeta{
 				Name:       "ck_users_status",
 				Table:      "users",
 				Expression: "status >= 0",
 			},
-		},
+		),
 	})
 	require.NoError(t, err)
 
@@ -69,17 +70,21 @@ func TestInspectTable(t *testing.T) {
 	require.NoError(t, err)
 
 	require.True(t, state.Exists)
-	require.Len(t, state.Columns, 5)
-	require.Len(t, state.Indexes, 2)
+	require.Equal(t, 5, state.Columns.Len())
+	require.Equal(t, 2, state.Indexes.Len())
 
 	require.NotNil(t, state.PrimaryKey)
-	require.Equal(t, []string{"id"}, state.PrimaryKey.Columns)
+	require.Equal(t, []string{"id"}, state.PrimaryKey.Columns.Values())
 
-	require.Len(t, state.ForeignKeys, 1)
-	require.Equal(t, "roles", state.ForeignKeys[0].TargetTable)
+	require.Equal(t, 1, state.ForeignKeys.Len())
+	foreignKey, ok := state.ForeignKeys.Get(0)
+	require.True(t, ok)
+	require.Equal(t, "roles", foreignKey.TargetTable)
 
-	require.Len(t, state.Checks, 1)
-	require.Equal(t, "status >= 0", state.Checks[0].Expression)
+	require.Equal(t, 1, state.Checks.Len())
+	check, ok := state.Checks.Get(0)
+	require.True(t, ok)
+	require.Equal(t, "status >= 0", check.Expression)
 }
 
 func openSQLiteDB(tb testing.TB) *sql.DB {

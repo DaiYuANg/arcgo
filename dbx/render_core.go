@@ -3,9 +3,9 @@ package dbx
 import (
 	"errors"
 	"fmt"
-	"slices"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
@@ -125,7 +125,7 @@ func (s *renderState) renderTable(table Table) {
 }
 
 func (s *renderState) BoundQuery() BoundQuery {
-	return BoundQuery{SQL: s.buf.String(), Args: slices.Clone(s.args)}
+	return BoundQuery{SQL: s.buf.String(), Args: collectionx.NewList(s.args...)}
 }
 
 func renderSelectItem(state *renderState, item SelectItem) error {

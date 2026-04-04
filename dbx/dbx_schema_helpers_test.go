@@ -61,7 +61,7 @@ func assertUserForeignKeys(t *testing.T, users UserSchema) {
 		t.Fatalf("unexpected foreign key count: %d", foreignKeys.Len())
 	}
 	foreignKey, ok := foreignKeys.Get(0)
-	if !ok || foreignKey.Columns[0] != "role_id" || foreignKey.TargetTable != "roles" {
+	if !ok || foreignKey.Columns.Len() != 1 || foreignKey.Columns.Values()[0] != "role_id" || foreignKey.TargetTable != "roles" {
 		t.Fatalf("unexpected foreign key metadata: %+v", foreignKey)
 	}
 }

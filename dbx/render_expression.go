@@ -60,19 +60,25 @@ func (p comparisonPredicate) renderPredicate(state *renderState) error {
 }
 
 func (p logicalPredicate) renderPredicate(state *renderState) error {
-	if len(p.Predicates) == 0 {
+	if p.Predicates.Len() == 0 {
 		return errors.New("dbx: logical predicate requires nested predicates")
 	}
 	state.writeByte('(')
-	for i, predicate := range p.Predicates {
-		if i > 0 {
+	var renderErr error
+	p.Predicates.Range(func(index int, predicate Predicate) bool {
+		if index > 0 {
 			state.writeByte(' ')
 			state.writeString(string(p.Op))
 			state.writeByte(' ')
 		}
 		if err := renderPredicate(state, predicate); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
+		return true
+	})
+	if renderErr != nil {
+		return renderErr
 	}
 	state.writeByte(')')
 	return nil
@@ -183,16 +189,22 @@ func (a Aggregate[T]) renderSelectItem(state *renderState) error {
 }
 
 func (c CaseExpression[T]) renderOperand(state *renderState) (string, error) {
-	if len(c.Branches) == 0 {
+	if c.Branches.Len() == 0 {
 		return "", errors.New("dbx: CASE expression requires at least one WHEN branch")
 	}
 
 	var builder renderBuffer
 	builder.writeString("CASE")
-	for _, branch := range c.Branches {
+	var renderErr error
+	c.Branches.Range(func(_ int, branch caseWhenBranch) bool {
 		if err := renderCaseBranch(&builder, state, branch); err != nil {
-			return "", err
+			renderErr = err
+			return false
 		}
+		return true
+	})
+	if renderErr != nil {
+		return "", renderErr
 	}
 	if err := renderCaseElse(&builder, state, c.Else); err != nil {
 		return "", err

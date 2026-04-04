@@ -119,7 +119,7 @@ func (d Dialect) inspectIndex(ctx context.Context, executor dbx.Executor, name s
 	if err != nil {
 		return dbx.IndexState{}, err
 	}
-	return dbx.IndexState{Name: name, Columns: columns, Unique: unique}, nil
+	return dbx.IndexState{Name: name, Columns: collectionx.NewList(columns...), Unique: unique}, nil
 }
 
 func (d Dialect) inspectIndexColumns(ctx context.Context, executor dbx.Executor, name string) (_ []string, resultErr error) {

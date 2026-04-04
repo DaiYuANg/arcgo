@@ -76,7 +76,7 @@ func Open(opts ...OpenOption) (*DB, error) {
 		"db.open.configured",
 		"driver", config.driver,
 		"dialect", dialectName(config.dialect),
-		"hooks", len(config.observe.hooks),
+		"hooks", config.observe.hooks.Len(),
 	)
 
 	if config.driver == "" {
@@ -101,7 +101,7 @@ func Open(opts ...OpenOption) (*DB, error) {
 
 	dbOpts := collectionx.NewList[Option](
 		WithLogger(config.observe.logger),
-		WithHooks(config.observe.hooks...),
+		WithHooksList(config.observe.hooks),
 		WithDebug(config.observe.debug),
 	)
 	if config.observe.hasIDGenerator {
@@ -110,7 +110,7 @@ func Open(opts ...OpenOption) (*DB, error) {
 	if config.observe.hasNodeID {
 		dbOpts.Add(WithNodeID(config.observe.nodeID))
 	}
-	db, err := NewWithOptions(raw, config.dialect, dbOpts.Values()...)
+	db, err := NewWithOptionsList(raw, config.dialect, dbOpts)
 	if err != nil {
 		logRuntimeNodeWithLogger(config.observe.logger, config.observe.debug, "db.open.error", "stage", "new_with_options", "error", err)
 		return nil, err

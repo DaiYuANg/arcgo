@@ -10,7 +10,6 @@ import (
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
-	"github.com/samber/lo"
 )
 
 var (
@@ -67,34 +66,41 @@ func (Dialect) QueryFeatures() dialect.QueryFeatures {
 
 // BuildCreateTable builds a CREATE TABLE statement.
 func (d Dialect) BuildCreateTable(spec dbx.TableSpec) (dbx.BoundQuery, error) {
-	parts := collectionx.NewListWithCapacity[string](len(spec.Columns) + len(spec.ForeignKeys) + len(spec.Checks) + 1)
+	parts := collectionx.NewListWithCapacity[string](spec.Columns.Len() + spec.ForeignKeys.Len() + spec.Checks.Len() + 1)
 	inlinePrimaryKey := singlePrimaryKeyColumn(spec.PrimaryKey)
 
-	for i := range spec.Columns {
-		column := spec.Columns[i]
+	var buildErr error
+	spec.Columns.Range(func(_ int, column dbx.ColumnMeta) bool {
 		ddl, err := d.columnDDL(column, columnDDLConfig{
 			AllowAutoIncrement: true,
 			InlinePrimaryKey:   inlinePrimaryKey == column.Name,
 		})
 		if err != nil {
-			return dbx.BoundQuery{}, fmt.Errorf("build sqlite column ddl: %w", err)
+			buildErr = fmt.Errorf("build sqlite column ddl: %w", err)
+			return false
 		}
 		parts.Add(ddl)
+		return true
+	})
+	if buildErr != nil {
+		return dbx.BoundQuery{}, buildErr
 	}
 
-	if spec.PrimaryKey != nil && len(spec.PrimaryKey.Columns) > 1 {
+	if spec.PrimaryKey != nil && spec.PrimaryKey.Columns.Len() > 1 {
 		parts.Add(d.primaryKeyDDL(*spec.PrimaryKey))
 	}
 
-	for i := range spec.ForeignKeys {
-		parts.Add(d.foreignKeyDDL(spec.ForeignKeys[i]))
-	}
-	for i := range spec.Checks {
-		parts.Add(d.checkDDL(spec.Checks[i]))
-	}
+	spec.ForeignKeys.Range(func(_ int, foreignKey dbx.ForeignKeyMeta) bool {
+		parts.Add(d.foreignKeyDDL(foreignKey))
+		return true
+	})
+	spec.Checks.Range(func(_ int, check dbx.CheckMeta) bool {
+		parts.Add(d.checkDDL(check))
+		return true
+	})
 
 	return dbx.BoundQuery{
-		SQL: "CREATE TABLE IF NOT EXISTS " + d.QuoteIdent(spec.Name) + " (" + strings.Join(parts.Values(), ", ") + ")",
+		SQL: "CREATE TABLE IF NOT EXISTS " + d.QuoteIdent(spec.Name) + " (" + joinSQLiteStrings(parts, ", ") + ")",
 	}, nil
 }
 
@@ -116,15 +122,12 @@ func (d Dialect) BuildAddColumn(table string, column dbx.ColumnMeta) (dbx.BoundQ
 
 // BuildCreateIndex builds a CREATE INDEX statement.
 func (d Dialect) BuildCreateIndex(index dbx.IndexMeta) (dbx.BoundQuery, error) {
-	columns := lo.Map(index.Columns, func(column string, _ int) string {
-		return d.QuoteIdent(column)
-	})
 	prefix := "CREATE INDEX IF NOT EXISTS "
 	if index.Unique {
 		prefix = "CREATE UNIQUE INDEX IF NOT EXISTS "
 	}
 	return dbx.BoundQuery{
-		SQL: prefix + d.QuoteIdent(index.Name) + " ON " + d.QuoteIdent(index.Table) + " (" + strings.Join(columns, ", ") + ")",
+		SQL: prefix + d.QuoteIdent(index.Name) + " ON " + d.QuoteIdent(index.Table) + " (" + d.joinQuotedIdentifiers(index.Columns) + ")",
 	}, nil
 }
 
@@ -171,11 +174,11 @@ func (d Dialect) InspectTable(ctx context.Context, executor dbx.Executor, table 
 	return dbx.TableState{
 		Exists:      true,
 		Name:        table,
-		Columns:     markSQLiteAutoincrementColumns(columns, autoincrementColumns),
-		Indexes:     indexes,
+		Columns:     collectionx.NewListWithCapacity(len(columns), markSQLiteAutoincrementColumns(columns, autoincrementColumns)...),
+		Indexes:     collectionx.NewListWithCapacity(len(indexes), indexes...),
 		PrimaryKey:  primaryKey,
-		ForeignKeys: foreignKeys,
-		Checks:      checks,
+		ForeignKeys: collectionx.NewListWithCapacity(len(foreignKeys), foreignKeys...),
+		Checks:      collectionx.NewListWithCapacity(len(checks), checks...),
 	}, nil
 }
 

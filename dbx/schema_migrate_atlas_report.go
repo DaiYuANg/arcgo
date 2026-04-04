@@ -1,8 +1,6 @@
 package dbx
 
 import (
-	"slices"
-
 	atlasschema "ariga.io/atlas/sql/schema"
 	"github.com/DaiYuANg/arcgo/collectionx"
 )
@@ -16,12 +14,13 @@ func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompile
 	return atlasValidationReport(diffs)
 }
 
-func atlasReportDiffMap(order []string) collectionx.OrderedMap[string, *TableDiff] {
-	diffs := collectionx.NewOrderedMapWithCapacity[string, *TableDiff](len(order))
-	for _, name := range order {
+func atlasReportDiffMap(order collectionx.List[string]) collectionx.OrderedMap[string, *TableDiff] {
+	diffs := collectionx.NewOrderedMapWithCapacity[string, *TableDiff](order.Len())
+	order.Range(func(_ int, name string) bool {
 		diff := newTableDiff(name)
 		diffs.Set(name, &diff)
-	}
+		return true
+	})
 	return diffs
 }
 
@@ -52,10 +51,10 @@ func atlasApplyAddTableChange(diffs collectionx.OrderedMap[string, *TableDiff], 
 	}
 	diff, _ := diffs.Get(change.T.Name)
 	diff.MissingTable = true
-	diff.MissingColumns = collectionx.NewListWithCapacity(len(compiledTable.spec.Columns), slices.Clone(compiledTable.spec.Columns)...)
-	diff.MissingIndexes = collectionx.NewListWithCapacity(len(compiledTable.spec.Indexes), slices.Clone(compiledTable.spec.Indexes)...)
-	diff.MissingForeignKeys = collectionx.NewListWithCapacity(len(compiledTable.spec.ForeignKeys), slices.Clone(compiledTable.spec.ForeignKeys)...)
-	diff.MissingChecks = collectionx.NewListWithCapacity(len(compiledTable.spec.Checks), slices.Clone(compiledTable.spec.Checks)...)
+	diff.MissingColumns = compiledTable.spec.Columns.Clone()
+	diff.MissingIndexes = compiledTable.spec.Indexes.Clone()
+	diff.MissingForeignKeys = compiledTable.spec.ForeignKeys.Clone()
+	diff.MissingChecks = compiledTable.spec.Checks.Clone()
 	if compiledTable.spec.PrimaryKey != nil {
 		diff.PrimaryKeyDiff = &PrimaryKeyDiff{
 			Expected: new(clonePrimaryKeyMeta(*compiledTable.spec.PrimaryKey)),

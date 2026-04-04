@@ -161,7 +161,7 @@ func loadRelations(ctx context.Context, core *dbx.DB, catalog shared.Catalog) co
 	usersToLoad, err := dbx.QueryAll[shared.User](
 		ctx,
 		core,
-		dbx.Select(catalog.Users.AllColumns()...).From(catalog.Users).OrderBy(catalog.Users.ID.Asc()),
+		dbx.Select(catalog.Users.AllColumns().Values()...).From(catalog.Users).OrderBy(catalog.Users.ID.Asc()),
 		userMapper,
 	)
 	if err != nil {

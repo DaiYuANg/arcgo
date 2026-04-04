@@ -111,7 +111,7 @@ func addMappedField(field reflect.StructField, columnName string, options map[st
 		Column:     columnName,
 		Codec:      codecName,
 		Index:      path[0],
-		Path:       path,
+		Path:       collectionx.NewList(path...),
 		Type:       field.Type,
 		Insertable: !optionEnabled(options, "readonly") && !optionEnabled(options, "-insert") && !optionEnabled(options, "noinsert"),
 		Updatable:  !optionEnabled(options, "readonly") && !optionEnabled(options, "-update") && !optionEnabled(options, "noupdate"),

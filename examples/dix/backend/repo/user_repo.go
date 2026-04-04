@@ -34,7 +34,7 @@ func (r *userRepo) List(ctx context.Context, search string, limit, offset int) (
 	s := r.schema
 	mapper := dbx.MustMapper[backendschema.UserRow](s)
 
-	q := dbx.Select(s.AllColumns()...).From(s)
+	q := dbx.Select(s.AllColumns().Values()...).From(s)
 	if search != "" {
 		pattern := "%" + strings.TrimSpace(search) + "%"
 		q = q.Where(dbx.Or(
@@ -68,7 +68,7 @@ func (r *userRepo) GetByID(ctx context.Context, id int64) (domain.User, bool, er
 	mapper := dbx.MustMapper[backendschema.UserRow](s)
 
 	rows, err := dbx.QueryAll[backendschema.UserRow](ctx, r.db,
-		dbx.Select(s.AllColumns()...).From(s).Where(s.ID.Eq(id)),
+		dbx.Select(s.AllColumns().Values()...).From(s).Where(s.ID.Eq(id)),
 		mapper,
 	)
 	if err != nil {
@@ -96,7 +96,7 @@ func (r *userRepo) Create(ctx context.Context, in domain.CreateUserInput) (domai
 				s.CreatedAt.Set(now),
 				s.UpdatedAt.Set(now),
 			).
-			Returning(s.AllColumns()...),
+			Returning(s.AllColumns().Values()...),
 		mapper,
 	)
 	if err != nil {
@@ -122,7 +122,7 @@ func (r *userRepo) Update(ctx context.Context, id int64, in domain.UpdateUserInp
 	}
 
 	rows, err := dbx.QueryAll[backendschema.UserRow](ctx, r.db,
-		dbx.Update(s).Set(assignments...).Where(s.ID.Eq(id)).Returning(s.AllColumns()...),
+		dbx.Update(s).Set(assignments...).Where(s.ID.Eq(id)).Returning(s.AllColumns().Values()...),
 		mapper,
 	)
 	if err != nil {

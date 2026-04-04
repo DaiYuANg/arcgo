@@ -3,6 +3,8 @@ package dbx_test
 import (
 	"reflect"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 func TestInsertBuildWithMultipleRows(t *testing.T) {
@@ -20,8 +22,35 @@ func TestInsertBuildWithMultipleRows(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected batch insert SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{"alice", 1, "bob", 2}) {
-		t.Fatalf("unexpected batch insert args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{"alice", 1, "bob", 2}) {
+		t.Fatalf("unexpected batch insert args: %#v", bound.Args.Values())
+	}
+}
+
+func TestInsertBuildWithValuesRowsList(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	rows := collectionx.NewList(
+		collectionx.NewList[Assignment](
+			users.Username.Set("alice"),
+			users.Status.Set(1),
+		),
+		collectionx.NewList[Assignment](
+			users.Status.Set(2),
+			users.Username.Set("bob"),
+		),
+	)
+	bound, err := InsertInto(users).ValuesRowsList(rows).Build(testMySQLDialect{})
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+
+	expectedSQL := "INSERT INTO `users` (`username`, `status`) VALUES (?, ?), (?, ?)"
+	if bound.SQL != expectedSQL {
+		t.Fatalf("unexpected rows-list insert SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
+	}
+	if !reflect.DeepEqual(bound.Args.Values(), []any{"alice", 1, "bob", 2}) {
+		t.Fatalf("unexpected rows-list insert args: %#v", bound.Args.Values())
 	}
 }
 
@@ -44,8 +73,8 @@ func TestInsertBuildFromSelect(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected insert-select SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{1}) {
-		t.Fatalf("unexpected insert-select args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{1}) {
+		t.Fatalf("unexpected insert-select args: %#v", bound.Args.Values())
 	}
 }
 
@@ -65,8 +94,8 @@ func TestInsertBuildWithPostgresUpsert(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected postgres upsert SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{"alice", 1}) {
-		t.Fatalf("unexpected postgres upsert args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{"alice", 1}) {
+		t.Fatalf("unexpected postgres upsert args: %#v", bound.Args.Values())
 	}
 }
 
@@ -86,8 +115,8 @@ func TestInsertBuildWithMySQLUpsert(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected mysql upsert SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{"alice", 1}) {
-		t.Fatalf("unexpected mysql upsert args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{"alice", 1}) {
+		t.Fatalf("unexpected mysql upsert args: %#v", bound.Args.Values())
 	}
 }
 
@@ -182,8 +211,8 @@ func TestSelectBuildWithCTE(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected cte sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{1}) {
-		t.Fatalf("unexpected cte args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{1}) {
+		t.Fatalf("unexpected cte args: %#v", bound.Args.Values())
 	}
 }
 
@@ -211,8 +240,8 @@ func TestSelectBuildWithUnionAllAndOuterOrder(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected union sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{1}) {
-		t.Fatalf("unexpected union args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{1}) {
+		t.Fatalf("unexpected union args: %#v", bound.Args.Values())
 	}
 }
 
@@ -241,7 +270,7 @@ func TestSelectBuildWithCaseWhen(t *testing.T) {
 		t.Fatalf("unexpected case sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
 	expectedArgs := []any{1, "active", 2, "blocked", "unknown", 1, "active", 2, "blocked", "unknown", "unknown", 1, "active", 2, "blocked", "unknown"}
-	if !reflect.DeepEqual(bound.Args, expectedArgs) {
-		t.Fatalf("unexpected case args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), expectedArgs) {
+		t.Fatalf("unexpected case args: %#v", bound.Args.Values())
 	}
 }

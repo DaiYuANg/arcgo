@@ -3,6 +3,8 @@ package dbx
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 func appendIndexPath(prefix []int, index int) []int {
@@ -22,11 +24,11 @@ func indirectStructType(typ reflect.Type) (reflect.Type, bool) {
 	return typ, true
 }
 
-func fieldPath(field MappedField) []int {
-	if len(field.Path) > 0 {
+func fieldPath(field MappedField) collectionx.List[int] {
+	if field.Path.Len() > 0 {
 		return field.Path
 	}
-	return []int{field.Index}
+	return collectionx.NewList(field.Index)
 }
 
 func ensureFieldValue(root reflect.Value, field MappedField) (reflect.Value, error) {
@@ -40,12 +42,16 @@ func fieldValueForRead(root reflect.Value, field MappedField) (reflect.Value, er
 func walkFieldValue(root reflect.Value, field MappedField, createPointers bool) (reflect.Value, error) {
 	current := root
 	path := fieldPath(field)
-	for i, index := range path {
+	if path.Len() == 0 {
+		return reflect.Value{}, fmt.Errorf("dbx: field path for %s is empty", field.Name)
+	}
+	for i := 0; i < path.Len(); i++ {
+		index, _ := path.Get(i)
 		current = current.Field(index)
-		if i == len(path)-1 {
+		if i == path.Len()-1 {
 			return current, nil
 		}
-		next, ok, err := descendFieldValue(current, field, path[:i+1], createPointers)
+		next, ok, err := descendFieldValue(current, field, path, i+1, createPointers)
 		if err != nil {
 			return reflect.Value{}, err
 		}
@@ -54,16 +60,16 @@ func walkFieldValue(root reflect.Value, field MappedField, createPointers bool) 
 		}
 		current = next
 	}
-	return reflect.Value{}, fmt.Errorf("dbx: field path %v is empty", path)
+	return reflect.Value{}, fmt.Errorf("dbx: field path for %s is empty", field.Name)
 }
 
-func descendFieldValue(current reflect.Value, field MappedField, path []int, createPointers bool) (reflect.Value, bool, error) {
+func descendFieldValue(current reflect.Value, field MappedField, path collectionx.List[int], depth int, createPointers bool) (reflect.Value, bool, error) {
 	descended, ok, err := descendPointerValue(current, field, createPointers)
 	if err != nil || !ok {
 		return reflect.Value{}, ok, err
 	}
 	if descended.Kind() != reflect.Struct {
-		return reflect.Value{}, false, fmt.Errorf("dbx: field path %v does not resolve to struct", path)
+		return reflect.Value{}, false, fmt.Errorf("dbx: field path %v does not resolve to struct", path.Take(depth).Values())
 	}
 	return descended, true, nil
 }

@@ -2,10 +2,8 @@ package dbx
 
 import (
 	"context"
-	"slices"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 func diffSchema(ctx context.Context, schemaDialect SchemaDialect, session Session, schema SchemaResource) (TableDiff, error) {
@@ -23,10 +21,10 @@ func diffSchema(ctx context.Context, schemaDialect SchemaDialect, session Sessio
 func missingTableDiff(spec TableSpec) TableDiff {
 	diff := newTableDiff(spec.Name)
 	diff.MissingTable = true
-	diff.MissingColumns = collectionx.NewListWithCapacity(len(spec.Columns), slices.Clone(spec.Columns)...)
-	diff.MissingIndexes = collectionx.NewListWithCapacity(len(spec.Indexes), slices.Clone(spec.Indexes)...)
-	diff.MissingForeignKeys = collectionx.NewListWithCapacity(len(spec.ForeignKeys), slices.Clone(spec.ForeignKeys)...)
-	diff.MissingChecks = collectionx.NewListWithCapacity(len(spec.Checks), slices.Clone(spec.Checks)...)
+	diff.MissingColumns = spec.Columns.Clone()
+	diff.MissingIndexes = spec.Indexes.Clone()
+	diff.MissingForeignKeys = spec.ForeignKeys.Clone()
+	diff.MissingChecks = spec.Checks.Clone()
 	if spec.PrimaryKey != nil {
 		diff.PrimaryKeyDiff = &PrimaryKeyDiff{
 			Expected: new(clonePrimaryKeyMeta(*spec.PrimaryKey)),
@@ -38,7 +36,7 @@ func missingTableDiff(spec TableSpec) TableDiff {
 
 func existingTableDiff(schemaDialect SchemaDialect, spec TableSpec, actual TableState) TableDiff {
 	diff := newTableDiff(spec.Name)
-	actualColumns := lo.SliceToMap(actual.Columns, func(column ColumnState) (string, ColumnState) {
+	actualColumns := collectionx.AssociateList(actual.Columns, func(_ int, column ColumnState) (string, ColumnState) {
 		return column.Name, column
 	})
 	diffColumns(schemaDialect, spec.Columns, actualColumns, &diff)
@@ -49,22 +47,22 @@ func existingTableDiff(schemaDialect SchemaDialect, spec TableSpec, actual Table
 	return diff
 }
 
-func diffColumns(schemaDialect SchemaDialect, expectedColumns []ColumnMeta, actualColumns map[string]ColumnState, diff *TableDiff) {
-	missingColumns := collectionx.NewListWithCapacity[ColumnMeta](len(expectedColumns))
-	columnDiffs := collectionx.NewListWithCapacity[ColumnDiff](len(expectedColumns))
-	for i := range expectedColumns {
-		expected := expectedColumns[i]
-		actualColumn, ok := actualColumns[expected.Name]
+func diffColumns(schemaDialect SchemaDialect, expectedColumns collectionx.List[ColumnMeta], actualColumns collectionx.Map[string, ColumnState], diff *TableDiff) {
+	missingColumns := collectionx.NewListWithCapacity[ColumnMeta](expectedColumns.Len())
+	columnDiffs := collectionx.NewListWithCapacity[ColumnDiff](expectedColumns.Len())
+	expectedColumns.Range(func(_ int, expected ColumnMeta) bool {
+		actualColumn, ok := actualColumns.Get(expected.Name)
 		if !ok {
 			missingColumns.Add(expected)
-			continue
+			return true
 		}
 		issues := columnDiffIssues(schemaDialect, expected, actualColumn)
 		if len(issues) == 0 {
-			continue
+			return true
 		}
 		columnDiffs.Add(ColumnDiff{Column: expected, Issues: collectionx.NewListWithCapacity(len(issues), issues...)})
-	}
+		return true
+	})
 	diff.MissingColumns = missingColumns
 	diff.ColumnDiffs = columnDiffs
 }
@@ -95,8 +93,8 @@ func clonePrimaryKeyStatePtr(state *PrimaryKeyState) *PrimaryKeyState {
 	return new(clonePrimaryKeyState(*state))
 }
 
-func diffIndexes(expected []IndexMeta, actual []IndexState, diff *TableDiff) {
-	actualIndexes := lo.SliceToMap(actual, func(index IndexState) (string, IndexState) {
+func diffIndexes(expected collectionx.List[IndexMeta], actual collectionx.List[IndexState], diff *TableDiff) {
+	actualIndexes := collectionx.AssociateList(actual, func(_ int, index IndexState) (string, IndexState) {
 		return indexKey(index.Unique, index.Columns), index
 	})
 	diff.MissingIndexes = missingByKey(expected, actualIndexes, func(index IndexMeta) string {
@@ -104,15 +102,15 @@ func diffIndexes(expected []IndexMeta, actual []IndexState, diff *TableDiff) {
 	})
 }
 
-func diffForeignKeys(expected []ForeignKeyMeta, actual []ForeignKeyState, diff *TableDiff) {
-	actualForeignKeys := lo.SliceToMap(actual, func(foreignKey ForeignKeyState) (string, ForeignKeyState) {
+func diffForeignKeys(expected collectionx.List[ForeignKeyMeta], actual collectionx.List[ForeignKeyState], diff *TableDiff) {
+	actualForeignKeys := collectionx.AssociateList(actual, func(_ int, foreignKey ForeignKeyState) (string, ForeignKeyState) {
 		return foreignKeyKeyFromState(foreignKey), foreignKey
 	})
 	diff.MissingForeignKeys = missingByKey(expected, actualForeignKeys, foreignKeyKey)
 }
 
-func diffChecks(expected []CheckMeta, actual []CheckState, diff *TableDiff) {
-	actualChecks := lo.SliceToMap(actual, func(check CheckState) (string, CheckState) {
+func diffChecks(expected collectionx.List[CheckMeta], actual collectionx.List[CheckState], diff *TableDiff) {
+	actualChecks := collectionx.AssociateList(actual, func(_ int, check CheckState) (string, CheckState) {
 		return checkKey(check.Expression), check
 	})
 	diff.MissingChecks = missingByKey(expected, actualChecks, func(check CheckMeta) string {
@@ -120,20 +118,25 @@ func diffChecks(expected []CheckMeta, actual []CheckState, diff *TableDiff) {
 	})
 }
 
-func missingByKey[T any, S any](expected []T, actual map[string]S, key func(T) string) collectionx.List[T] {
-	return collectionx.NewList(lo.Filter(expected, func(item T, _ int) bool {
-		_, ok := actual[key(item)]
+func missingByKey[T any, S any](expected collectionx.List[T], actual collectionx.Map[string, S], key func(T) string) collectionx.List[T] {
+	return collectionx.FilterList(expected, func(_ int, item T) bool {
+		_, ok := actual.Get(key(item))
 		return !ok
-	})...)
+	})
 }
 
 func buildTableSpec(def schemaDefinition) TableSpec {
+	indexes := deriveIndexes(def)
+	foreignKeys := deriveForeignKeys(def)
+	checks := deriveChecks(def)
 	return TableSpec{
-		Name:        def.table.name,
-		Columns:     slices.Clone(def.columns),
-		Indexes:     deriveIndexes(def),
+		Name: def.table.name,
+		Columns: collectionx.MapList(collectionx.NewListWithCapacity(len(def.columns), def.columns...), func(_ int, column ColumnMeta) ColumnMeta {
+			return cloneColumnMeta(column)
+		}),
+		Indexes:     collectionx.NewListWithCapacity(len(indexes), indexes...),
 		PrimaryKey:  derivePrimaryKey(def),
-		ForeignKeys: deriveForeignKeys(def),
-		Checks:      deriveChecks(def),
+		ForeignKeys: collectionx.NewListWithCapacity(len(foreignKeys), foreignKeys...),
+		Checks:      collectionx.NewListWithCapacity(len(checks), checks...),
 	}
 }

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 func benchmarkSQLFetch(
@@ -42,7 +44,7 @@ func benchmarkSQLFetch(
 
 func BenchmarkSQLList(b *testing.B) {
 	statement := NewSQLStatement("user.list", func(_ any) (BoundQuery, error) {
-		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "status" = ?`, Args: []any{int64(1)}}, nil
+		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "status" = ?`, Args: collectionx.NewList[any](int64(1))}, nil
 	})
 	dataSQL := []string{
 		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
@@ -60,7 +62,7 @@ func BenchmarkSQLList(b *testing.B) {
 
 func BenchmarkSQLGet(b *testing.B) {
 	statement := NewSQLStatement("user.get", func(_ any) (BoundQuery, error) {
-		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "id" = ?`, Args: []any{int64(1)}}, nil
+		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "id" = ?`, Args: collectionx.NewList[any](int64(1))}, nil
 	})
 	dataSQL := []string{
 		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,
@@ -78,7 +80,7 @@ func BenchmarkSQLGet(b *testing.B) {
 
 func BenchmarkSQLFind(b *testing.B) {
 	statement := NewSQLStatement("user.find", func(_ any) (BoundQuery, error) {
-		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "id" = ?`, Args: []any{int64(1)}}, nil
+		return BoundQuery{SQL: `SELECT "id", "username" FROM "users" WHERE "id" = ?`, Args: collectionx.NewList[any](int64(1))}, nil
 	})
 	dataSQL := []string{
 		`INSERT INTO "roles" ("id","name") VALUES (1,'r')`,

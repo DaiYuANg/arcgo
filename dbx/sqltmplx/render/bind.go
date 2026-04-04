@@ -68,7 +68,7 @@ func bindParam(name string, spread bool, st *state) (string, error) {
 		return "", err
 	}
 	if !spread {
-		st.args = append(st.args, val)
+		st.args.Add(val)
 		return st.nextBind(), nil
 	}
 
@@ -115,7 +115,7 @@ func bindSpreadParam(val any, st *state) (string, error) {
 	length := rv.Len()
 	for j := range length {
 		appendSpreadBind(&out, j, st.nextBind())
-		st.args = append(st.args, rv.Index(j).Interface())
+		st.args.Add(rv.Index(j).Interface())
 	}
 	return out.String(), nil
 }

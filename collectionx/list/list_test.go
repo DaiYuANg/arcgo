@@ -134,3 +134,14 @@ func TestList_Sort(t *testing.T) {
 	require.Same(t, l, sorted)
 	require.Equal(t, []int{1, 2, 3}, l.Values())
 }
+
+func TestList_Join(t *testing.T) {
+	t.Parallel()
+
+	require.Equal(t, "a,b,c", list.NewList("a", "b", "c").Join(","))
+	require.Equal(t, "1,2,3", list.NewList(1, 2, 3).Join(","))
+	require.Equal(t, "u1 | u2", list.NewList(1, 2).Join(" | ", func(_ int, item int) string {
+		return "u" + string(rune('0'+item))
+	}))
+	require.Equal(t, "", list.NewList[string]().Join(","))
+}

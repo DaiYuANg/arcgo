@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	atlasschema "ariga.io/atlas/sql/schema"
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 type AtlasCompiledSchemaTestView struct {
@@ -43,8 +44,9 @@ func TableSpecForTest(schema SchemaResource) TableSpec {
 	return buildTableSpec(schema.schemaRef())
 }
 
-func IndexesForTest(schema SchemaResource) []IndexMeta {
-	return deriveIndexes(schema.schemaRef())
+func IndexesForTest(schema SchemaResource) collectionx.List[IndexMeta] {
+	indexes := deriveIndexes(schema.schemaRef())
+	return collectionx.NewListWithCapacity(len(indexes), indexes...)
 }
 
 func InferTypeNameForTest(column ColumnMeta) string {

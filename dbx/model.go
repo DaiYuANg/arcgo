@@ -41,7 +41,7 @@ type MappedField struct {
 	Column     string
 	Codec      string
 	Index      int
-	Path       []int
+	Path       collectionx.List[int]
 	Type       reflect.Type
 	Insertable bool
 	Updatable  bool

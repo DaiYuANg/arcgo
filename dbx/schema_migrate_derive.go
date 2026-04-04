@@ -31,7 +31,7 @@ func deriveColumnIndexes(def schemaDefinition, indexes collectionx.OrderedMap[st
 		meta := IndexMeta{
 			Name:    indexNameForColumn(def.table.name, *column),
 			Table:   def.table.name,
-			Columns: []string{column.Name},
+			Columns: collectionx.NewList(column.Name),
 			Unique:  column.Unique,
 		}
 		indexes.Set(indexKey(meta.Unique, meta.Columns), meta)
@@ -71,7 +71,7 @@ func derivePrimaryKey(def schemaDefinition) *PrimaryKeyMeta {
 	return &PrimaryKeyMeta{
 		Name:    "pk_" + def.table.name,
 		Table:   def.table.name,
-		Columns: columns,
+		Columns: collectionx.NewList(columns...),
 	}
 }
 
@@ -98,9 +98,9 @@ func deriveExplicitForeignKeys(def schemaDefinition, foreignKeys collectionx.Ord
 		meta := ForeignKeyMeta{
 			Name:          "fk_" + def.table.name + "_" + column.Name,
 			Table:         def.table.name,
-			Columns:       []string{column.Name},
+			Columns:       collectionx.NewList(column.Name),
 			TargetTable:   column.References.TargetTable,
-			TargetColumns: []string{column.References.TargetColumn},
+			TargetColumns: collectionx.NewList(column.References.TargetColumn),
 			OnDelete:      column.References.OnDelete,
 			OnUpdate:      column.References.OnUpdate,
 		}
@@ -117,9 +117,9 @@ func deriveRelationForeignKeys(def schemaDefinition, foreignKeys collectionx.Ord
 		meta := ForeignKeyMeta{
 			Name:          "fk_" + def.table.name + "_" + relation.LocalColumn,
 			Table:         def.table.name,
-			Columns:       []string{relation.LocalColumn},
+			Columns:       collectionx.NewList(relation.LocalColumn),
 			TargetTable:   relation.TargetTable,
-			TargetColumns: []string{relation.TargetColumn},
+			TargetColumns: collectionx.NewList(relation.TargetColumn),
 		}
 		key := foreignKeyKey(meta)
 		if _, exists := foreignKeys.Get(key); !exists {

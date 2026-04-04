@@ -98,7 +98,7 @@ func TestBuiltInUnixMilliTimeCodecScanAndEncode(t *testing.T) {
 	items, err := QueryAll(
 		context.Background(),
 		New(sqlDB, testSQLiteDialect{}),
-		Select(schema.AllColumns()...).From(schema),
+		Select(schema.AllColumns().Values()...).From(schema),
 		mapper,
 	)
 	if err != nil {
@@ -134,7 +134,7 @@ func TestBuiltInTextCodecScanAndEncode(t *testing.T) {
 	items, err := QueryAll(
 		context.Background(),
 		New(sqlDB, testSQLiteDialect{}),
-		Select(schema.AllColumns()...).From(schema),
+		Select(schema.AllColumns().Values()...).From(schema),
 		mapper,
 	)
 	if err != nil {

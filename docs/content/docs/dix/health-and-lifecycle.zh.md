@@ -110,12 +110,45 @@ func main() {
 	mux.HandleFunc("/livez", rt.LivenessHandler())
 	mux.HandleFunc("/readyz", rt.ReadinessHandler())
 
-	_ = mux
+_ = mux
 }
 ```
+
+## 可选：使用 DI logger 作为框架 logger（`logx`）
+
+如果你的健康检查/生命周期模块也负责 logger 初始化，可以让 `dix` 框架内部日志直接使用 DI 构建出的 logger：
+
+```go
+type LogBundle struct {
+	Logger *slog.Logger
+}
+
+logModule := dix.NewModule("logx",
+	dix.WithModuleProviders(
+		dix.Provider0(func() *LogBundle {
+			return &LogBundle{
+				Logger: logx.MustNew(logx.WithConsole(true), logx.WithDebugLevel()),
+			}
+		}),
+	),
+	dix.WithModuleHooks(
+		dix.OnStop(func(_ context.Context, logs *LogBundle) error {
+			return logx.Close(logs.Logger)
+		}),
+	),
+)
+
+app := dix.NewDefault(
+	dix.WithModules(logModule, serverModule),
+	dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
+		return logs.Logger
+	}),
+)
+```
+
+这样可以把 logger 的生命周期放在模块里统一管理，同时替换掉框架默认 logger。
 
 ## 延伸阅读
 
 - [快速开始](./getting-started)
 - 示例导航：[dix examples](./examples)
-

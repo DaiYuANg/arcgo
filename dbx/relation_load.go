@@ -10,7 +10,7 @@ import (
 
 type relationSourceState struct {
 	rt     *relationRuntime
-	keys   []any
+	keys   collectionx.List[any]
 	lookup []relationLookupValue
 }
 
@@ -40,7 +40,7 @@ func LoadManyToMany[S any, T any](ctx context.Context, session Session, sources 
 	if err != nil {
 		return err
 	}
-	if len(state.keys) == 0 {
+	if state.keys.Len() == 0 {
 		assignEmptyRelations(sources, assign)
 		logRelationLoadDone(session, logPrefix, "reason", "no_source_keys")
 		return nil
@@ -71,7 +71,7 @@ func loadSingleRelation[S any, T any](ctx context.Context, session Session, sour
 	if err != nil {
 		return err
 	}
-	if len(state.keys) == 0 {
+	if state.keys.Len() == 0 {
 		assignMissingSingleRelations(sources, assign)
 		logRelationLoadDone(session, logPrefix, "reason", "no_source_keys")
 		return nil
@@ -104,7 +104,7 @@ func loadMultiRelation[S any, T any](ctx context.Context, session Session, sourc
 		logRuntimeNode(session, "relation.load.multi.error", "stage", "collect_source_keys", "error", err)
 		return err
 	}
-	if len(sourceKeys) == 0 {
+	if sourceKeys.Len() == 0 {
 		assignEmptyRelations(sources, assign)
 		logRuntimeNode(session, "relation.load.multi.done", "reason", "no_source_keys")
 		return nil
@@ -129,7 +129,7 @@ func loadMultiRelation[S any, T any](ctx context.Context, session Session, sourc
 		key := sourceLookup[index]
 		assign(index, &sources[index], grouped.Get(key.key))
 	}
-	logRuntimeNode(session, "relation.load.multi.done", "sources", len(sources), "targets", len(targets))
+	logRuntimeNode(session, "relation.load.multi.done", "sources", len(sources), "targets", targets.Len())
 	return nil
 }
 
@@ -183,7 +183,7 @@ func prepareRelationSourceState[E any](session Session, sources []E, sourceSchem
 	return relationSourceState{rt: rt, keys: keys, lookup: lookup}, nil
 }
 
-func loadManyToManyGroupedTargets[T any](ctx context.Context, session Session, rt *relationRuntime, sourceSchema schemaDefinition, meta RelationMeta, targetSchema SchemaSource[T], targetMapper Mapper[T], sourceKeys []any, logPrefix string) (collectionx.MultiMap[any, T], int, bool, error) {
+func loadManyToManyGroupedTargets[T any](ctx context.Context, session Session, rt *relationRuntime, sourceSchema schemaDefinition, meta RelationMeta, targetSchema SchemaSource[T], targetMapper Mapper[T], sourceKeys collectionx.List[any], logPrefix string) (collectionx.MultiMap[any, T], int, bool, error) {
 	targetColumn, err := relationTargetColumnForSchema(targetSchema, meta)
 	if err != nil {
 		logRelationLoadError(session, logPrefix, "resolve_target_column", err)
@@ -194,7 +194,7 @@ func loadManyToManyGroupedTargets[T any](ctx context.Context, session Session, r
 		logRelationLoadError(session, logPrefix, "query_pairs", err)
 		return nil, 0, false, err
 	}
-	if len(pairs) == 0 {
+	if pairs.Len() == 0 {
 		return collectionx.NewMultiMap[any, T](), 0, false, nil
 	}
 	targetKeys := uniqueRelationKeysFromPairs(rt, pairs, false)
@@ -208,10 +208,10 @@ func loadManyToManyGroupedTargets[T any](ctx context.Context, session Session, r
 		logRelationLoadError(session, logPrefix, "index_targets", err)
 		return nil, 0, false, err
 	}
-	return groupManyToManyTargets(rt, pairs, targetsByKey), len(targets), true, nil
+	return groupManyToManyTargets(rt, pairs, targetsByKey), targets.Len(), true, nil
 }
 
-func loadSingleRelationTargets[T any](ctx context.Context, session Session, rt *relationRuntime, meta RelationMeta, targetSchema SchemaSource[T], targetMapper Mapper[T], sourceKeys []any, logPrefix string) (map[any]T, int, error) {
+func loadSingleRelationTargets[T any](ctx context.Context, session Session, rt *relationRuntime, meta RelationMeta, targetSchema SchemaSource[T], targetMapper Mapper[T], sourceKeys collectionx.List[any], logPrefix string) (map[any]T, int, error) {
 	targetColumn, err := relationTargetColumnForSchema(targetSchema, meta)
 	if err != nil {
 		logRelationLoadError(session, logPrefix, "resolve_target_column", err)
@@ -227,7 +227,7 @@ func loadSingleRelationTargets[T any](ctx context.Context, session Session, rt *
 		logRelationLoadError(session, logPrefix, "index_targets", err)
 		return nil, 0, err
 	}
-	return targetsByKey, len(targets), nil
+	return targetsByKey, targets.Len(), nil
 }
 
 func assignMissingSingleRelations[S any, T any](sources []S, assign func(int, *S, mo.Option[T])) {

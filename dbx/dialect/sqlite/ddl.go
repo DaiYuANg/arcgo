@@ -8,7 +8,6 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
-	"github.com/samber/lo"
 )
 
 type columnDDLConfig struct {
@@ -87,30 +86,21 @@ func resolvedSQLiteType(column dbx.ColumnMeta) string {
 }
 
 func (d Dialect) primaryKeyDDL(primaryKey dbx.PrimaryKeyMeta) string {
-	columns := lo.Map(primaryKey.Columns, func(column string, _ int) string {
-		return d.QuoteIdent(column)
-	})
-	return "CONSTRAINT " + d.QuoteIdent(primaryKey.Name) + " PRIMARY KEY (" + strings.Join(columns, ", ") + ")"
+	return "CONSTRAINT " + d.QuoteIdent(primaryKey.Name) + " PRIMARY KEY (" + d.joinQuotedIdentifiers(primaryKey.Columns) + ")"
 }
 
 func (d Dialect) foreignKeyDDL(foreignKey dbx.ForeignKeyMeta) string {
-	columns := lo.Map(foreignKey.Columns, func(column string, _ int) string {
-		return d.QuoteIdent(column)
-	})
-	targetColumns := lo.Map(foreignKey.TargetColumns, func(column string, _ int) string {
-		return d.QuoteIdent(column)
-	})
 	parts := collectionx.NewList[string]()
 	parts.Add("CONSTRAINT " + d.QuoteIdent(foreignKey.Name))
-	parts.Add("FOREIGN KEY (" + strings.Join(columns, ", ") + ")")
-	parts.Add("REFERENCES " + d.QuoteIdent(foreignKey.TargetTable) + " (" + strings.Join(targetColumns, ", ") + ")")
+	parts.Add("FOREIGN KEY (" + d.joinQuotedIdentifiers(foreignKey.Columns) + ")")
+	parts.Add("REFERENCES " + d.QuoteIdent(foreignKey.TargetTable) + " (" + d.joinQuotedIdentifiers(foreignKey.TargetColumns) + ")")
 	if foreignKey.OnDelete != "" {
 		parts.Add("ON DELETE " + string(foreignKey.OnDelete))
 	}
 	if foreignKey.OnUpdate != "" {
 		parts.Add("ON UPDATE " + string(foreignKey.OnUpdate))
 	}
-	return strings.Join(parts.Values(), " ")
+	return joinSQLiteStrings(parts, " ")
 }
 
 func (d Dialect) checkDDL(check dbx.CheckMeta) string {
@@ -176,8 +166,39 @@ func fallbackSQLiteType(typ reflect.Type) string {
 }
 
 func singlePrimaryKeyColumn(primaryKey *dbx.PrimaryKeyMeta) string {
-	if primaryKey == nil || len(primaryKey.Columns) != 1 {
+	if primaryKey == nil || primaryKey.Columns.Len() != 1 {
 		return ""
 	}
-	return primaryKey.Columns[0]
+	column, _ := primaryKey.Columns.GetFirst()
+	return column
+}
+
+func (d Dialect) joinQuotedIdentifiers(items collectionx.List[string]) string {
+	if items.Len() == 0 {
+		return ""
+	}
+	var builder strings.Builder
+	items.Range(func(index int, item string) bool {
+		if index > 0 {
+			builder.WriteString(", ")
+		}
+		builder.WriteString(d.QuoteIdent(item))
+		return true
+	})
+	return builder.String()
+}
+
+func joinSQLiteStrings(items collectionx.List[string], sep string) string {
+	if items.Len() == 0 {
+		return ""
+	}
+	var builder strings.Builder
+	items.Range(func(index int, item string) bool {
+		if index > 0 {
+			builder.WriteString(sep)
+		}
+		builder.WriteString(item)
+		return true
+	})
+	return builder.String()
 }

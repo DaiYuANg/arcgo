@@ -3,6 +3,8 @@ package dbx
 import (
 	"errors"
 	"fmt"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 func renderUpsert(state *renderState, q *InsertQuery) error {
@@ -35,24 +37,30 @@ func renderUpsertOnConflict(state *renderState, q *InsertQuery) error {
 	return renderUpsertAssignments(state, q.Upsert.Assignments)
 }
 
-func renderUpsertTargets(state *renderState, targets []Expression) error {
-	if len(targets) == 0 {
+func renderUpsertTargets(state *renderState, targets collectionx.List[Expression]) error {
+	if targets.Len() == 0 {
 		return nil
 	}
 	state.writeString(" (")
-	for i, target := range targets {
-		if i > 0 {
+	var renderErr error
+	targets.Range(func(index int, target Expression) bool {
+		if index > 0 {
 			state.writeString(", ")
 		}
 		if column, ok := target.(columnAccessor); ok {
 			state.writeQuotedIdent(column.columnRef().Name)
-			continue
+			return true
 		}
 		operand, err := renderOperandValue(state, target)
 		if err != nil {
-			return err
+			renderErr = err
+			return false
 		}
 		state.writeString(operand)
+		return true
+	})
+	if renderErr != nil {
+		return renderErr
 	}
 	state.writeByte(')')
 	return nil
@@ -60,9 +68,9 @@ func renderUpsertTargets(state *renderState, targets []Expression) error {
 
 func validateUpsertAssignments(upsert *UpsertClause) error {
 	switch {
-	case len(upsert.Assignments) == 0:
+	case upsert.Assignments.Len() == 0:
 		return errors.New("dbx: upsert update requires assignments")
-	case len(upsert.Targets) == 0:
+	case upsert.Targets.Len() == 0:
 		return errors.New("dbx: upsert update requires conflict targets")
 	default:
 		return nil
@@ -73,40 +81,46 @@ func renderUpsertOnDuplicateKey(state *renderState, q *InsertQuery) error {
 	if q.Upsert.DoNothing {
 		return nil
 	}
-	if len(q.Upsert.Assignments) == 0 {
+	if q.Upsert.Assignments.Len() == 0 {
 		return errors.New("dbx: upsert update requires assignments")
 	}
 	state.writeString(" ON DUPLICATE KEY UPDATE ")
 	return renderUpsertAssignments(state, q.Upsert.Assignments)
 }
 
-func renderUpsertAssignments(state *renderState, assignments []Assignment) error {
-	for i, assignment := range assignments {
-		if i > 0 {
+func renderUpsertAssignments(state *renderState, assignments collectionx.List[Assignment]) error {
+	var renderErr error
+	assignments.Range(func(index int, assignment Assignment) bool {
+		if index > 0 {
 			state.writeString(", ")
 		}
 		if err := renderAssignment(state, assignment); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return renderErr
 }
 
-func renderReturning(state *renderState, items []SelectItem) error {
-	if len(items) == 0 {
+func renderReturning(state *renderState, items collectionx.List[SelectItem]) error {
+	if items.Len() == 0 {
 		return nil
 	}
 	if !dialectFeatures(state.dialect).SupportsReturning {
 		return fmt.Errorf("dbx: RETURNING is not supported for dialect %s", state.dialect.Name())
 	}
 	state.writeString(" RETURNING ")
-	for i, item := range items {
-		if i > 0 {
+	var renderErr error
+	items.Range(func(index int, item SelectItem) bool {
+		if index > 0 {
 			state.writeString(", ")
 		}
 		if err := renderSelectItem(state, item); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return renderErr
 }

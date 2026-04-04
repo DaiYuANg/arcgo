@@ -1,7 +1,5 @@
 package dbx
 
-import "slices"
-
 type SQLStatementSource interface {
 	StatementName() string
 	Bind(params any) (BoundQuery, error)
@@ -35,8 +33,8 @@ func (s *SQLStatement) Bind(params any) (BoundQuery, error) {
 	if bound.Name == "" {
 		bound.Name = s.name
 	}
-	if len(bound.Args) > 0 {
-		bound.Args = slices.Clone(bound.Args)
+	if bound.Args.Len() > 0 {
+		bound.Args = bound.Args.Clone()
 	}
 	return bound, nil
 }

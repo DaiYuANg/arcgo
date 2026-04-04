@@ -1,28 +1,28 @@
 package dbx
 
-import "github.com/samber/lo"
+import "github.com/DaiYuANg/arcgo/collectionx"
 
 type InsertQuery struct {
 	Into           Table
-	TargetColumns  []Expression
-	Assignments    []Assignment
-	Rows           [][]Assignment
+	TargetColumns  collectionx.List[Expression]
+	Assignments    collectionx.List[Assignment]
+	Rows           collectionx.Grid[Assignment]
 	Source         *SelectQuery
 	Upsert         *UpsertClause
-	ReturningItems []SelectItem
+	ReturningItems collectionx.List[SelectItem]
 }
 
 type UpdateQuery struct {
 	Table          Table
-	Assignments    []Assignment
+	Assignments    collectionx.List[Assignment]
 	WhereExp       Predicate
-	ReturningItems []SelectItem
+	ReturningItems collectionx.List[SelectItem]
 }
 
 type DeleteQuery struct {
 	From           Table
 	WhereExp       Predicate
-	ReturningItems []SelectItem
+	ReturningItems collectionx.List[SelectItem]
 }
 
 type ConflictBuilder struct {
@@ -30,9 +30,9 @@ type ConflictBuilder struct {
 }
 
 type UpsertClause struct {
-	Targets     []Expression
+	Targets     collectionx.List[Expression]
 	DoNothing   bool
-	Assignments []Assignment
+	Assignments collectionx.List[Assignment]
 }
 
 func InsertInto(source TableSource) *InsertQuery {
@@ -40,14 +40,39 @@ func InsertInto(source TableSource) *InsertQuery {
 }
 
 func (q *InsertQuery) Columns(columns ...Expression) *InsertQuery {
-	q.TargetColumns = lo.Concat(q.TargetColumns, compactExpressions(columns))
+	return q.ColumnsList(compactExpressions(columns))
+}
+
+func (q *InsertQuery) ColumnsList(columns collectionx.List[Expression]) *InsertQuery {
+	q.TargetColumns = mergeList(q.TargetColumns, columns)
 	return q
 }
 
 func (q *InsertQuery) Values(assignments ...Assignment) *InsertQuery {
-	row := compactAssignments(assignments)
-	q.Rows = lo.Concat(q.Rows, [][]Assignment{row})
-	if len(q.Rows) == 1 {
+	return q.ValuesList(compactAssignments(assignments))
+}
+
+func (q *InsertQuery) ValuesList(assignments collectionx.List[Assignment]) *InsertQuery {
+	grid := collectionx.NewGridWithCapacity[Assignment](1)
+	grid.AddRowList(assignments)
+	return q.ValuesGrid(grid)
+}
+
+func (q *InsertQuery) ValuesRowsList(rows collectionx.List[collectionx.List[Assignment]]) *InsertQuery {
+	if rows == nil || rows.Len() == 0 {
+		return q
+	}
+	grid := collectionx.NewGridWithCapacity[Assignment](rows.Len())
+	rows.Each(func(_ int, row collectionx.List[Assignment]) {
+		grid.AddRowList(row)
+	})
+	return q.ValuesGrid(grid)
+}
+
+func (q *InsertQuery) ValuesGrid(rows collectionx.Grid[Assignment]) *InsertQuery {
+	q.Rows = mergeGrid(q.Rows, rows)
+	if q.Rows.RowCount() == 1 {
+		row, _ := q.Rows.GetRowList(0)
 		q.Assignments = row
 	} else {
 		q.Assignments = nil
@@ -61,27 +86,39 @@ func (q *InsertQuery) FromSelect(query *SelectQuery) *InsertQuery {
 }
 
 func (q *InsertQuery) Returning(items ...SelectItem) *InsertQuery {
-	q.ReturningItems = lo.Concat(q.ReturningItems, compactSelectItems(items))
+	return q.ReturningList(compactSelectItems(items))
+}
+
+func (q *InsertQuery) ReturningList(items collectionx.List[SelectItem]) *InsertQuery {
+	q.ReturningItems = mergeList(q.ReturningItems, items)
 	return q
 }
 
 func (q *InsertQuery) OnConflict(targets ...Expression) *ConflictBuilder {
-	q.Upsert = &UpsertClause{Targets: compactExpressions(targets)}
+	return q.OnConflictList(compactExpressions(targets))
+}
+
+func (q *InsertQuery) OnConflictList(targets collectionx.List[Expression]) *ConflictBuilder {
+	q.Upsert = &UpsertClause{Targets: targets.Clone()}
 	return &ConflictBuilder{query: q}
 }
 
 func (b *ConflictBuilder) DoNothing() *InsertQuery {
 	b.query.Upsert = &UpsertClause{
-		Targets:   b.query.Upsert.Targets,
+		Targets:   b.query.Upsert.Targets.Clone(),
 		DoNothing: true,
 	}
 	return b.query
 }
 
 func (b *ConflictBuilder) DoUpdateSet(assignments ...Assignment) *InsertQuery {
+	return b.DoUpdateSetList(compactAssignments(assignments))
+}
+
+func (b *ConflictBuilder) DoUpdateSetList(assignments collectionx.List[Assignment]) *InsertQuery {
 	b.query.Upsert = &UpsertClause{
-		Targets:     b.query.Upsert.Targets,
-		Assignments: compactAssignments(assignments),
+		Targets:     b.query.Upsert.Targets.Clone(),
+		Assignments: assignments.Clone(),
 	}
 	return b.query
 }
@@ -91,7 +128,11 @@ func Update(source TableSource) *UpdateQuery {
 }
 
 func (q *UpdateQuery) Set(assignments ...Assignment) *UpdateQuery {
-	q.Assignments = lo.Concat(q.Assignments, compactAssignments(assignments))
+	return q.SetList(compactAssignments(assignments))
+}
+
+func (q *UpdateQuery) SetList(assignments collectionx.List[Assignment]) *UpdateQuery {
+	q.Assignments = mergeList(q.Assignments, assignments)
 	return q
 }
 
@@ -101,7 +142,11 @@ func (q *UpdateQuery) Where(predicate Predicate) *UpdateQuery {
 }
 
 func (q *UpdateQuery) Returning(items ...SelectItem) *UpdateQuery {
-	q.ReturningItems = lo.Concat(q.ReturningItems, compactSelectItems(items))
+	return q.ReturningList(compactSelectItems(items))
+}
+
+func (q *UpdateQuery) ReturningList(items collectionx.List[SelectItem]) *UpdateQuery {
+	q.ReturningItems = mergeList(q.ReturningItems, items)
 	return q
 }
 
@@ -115,12 +160,24 @@ func (q *DeleteQuery) Where(predicate Predicate) *DeleteQuery {
 }
 
 func (q *DeleteQuery) Returning(items ...SelectItem) *DeleteQuery {
-	q.ReturningItems = lo.Concat(q.ReturningItems, compactSelectItems(items))
+	return q.ReturningList(compactSelectItems(items))
+}
+
+func (q *DeleteQuery) ReturningList(items collectionx.List[SelectItem]) *DeleteQuery {
+	q.ReturningItems = mergeList(q.ReturningItems, items)
 	return q
 }
 
-func compactAssignments(assignments []Assignment) []Assignment {
-	return lo.Filter(assignments, func(assignment Assignment, _ int) bool {
+func compactAssignments(assignments []Assignment) collectionx.List[Assignment] {
+	return collectionx.FilterList(collectionx.NewList(assignments...), func(_ int, assignment Assignment) bool {
 		return assignment != nil
 	})
+}
+
+func mergeGrid[T any](current, next collectionx.Grid[T]) collectionx.Grid[T] {
+	if current == nil {
+		return next.Clone()
+	}
+	current.Merge(next)
+	return current
 }

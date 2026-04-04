@@ -89,7 +89,7 @@ func TestQueryAllBuildsAndScansWithMapper(t *testing.T) {
 	rec := &hookRecorder{}
 	core := MustNewWithOptions(sqlDB, testSQLiteDialect{}, WithHooks(HookFuncs{AfterFunc: rec.after}))
 
-	items, err := QueryAll(context.Background(), core, Select(users.AllColumns()...).From(users).Where(users.Status.Eq(1)), mapper)
+	items, err := QueryAll(context.Background(), core, Select(users.AllColumns().Values()...).From(users).Where(users.Status.Eq(1)), mapper)
 	if err != nil {
 		t.Fatalf("QueryAll returned error: %v", err)
 	}
@@ -146,6 +146,45 @@ func TestQueryAllScansDTOProjection(t *testing.T) {
 	second, _ := items.Get(1)
 	if first.Username != "alice" || second.ID != 2 {
 		t.Fatalf("unexpected dto payload: %+v", items.Values())
+	}
+}
+
+func TestQueryAllListAndBoundList(t *testing.T) {
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1),('bob','b@x.com',1,1)`,
+	)
+	defer cleanup()
+
+	users := MustSchema("users", UserSchema{})
+	mapper := MustMapper[UserSummary](users)
+	core := New(sqlDB, testSQLiteDialect{})
+	query := MustSelectMapped(users, mapper)
+
+	items, err := QueryAllList(context.Background(), core, query, mapper)
+	if err != nil {
+		t.Fatalf("QueryAllList returned error: %v", err)
+	}
+	if items.Len() != 2 {
+		t.Fatalf("unexpected list item count: %d", items.Len())
+	}
+	first, _ := items.GetFirst()
+	if first.Username != "alice" {
+		t.Fatalf("unexpected first item: %+v", first)
+	}
+
+	bound, err := Build(core, query)
+	if err != nil {
+		t.Fatalf("Build returned error: %v", err)
+	}
+	boundItems, err := QueryAllBoundList(context.Background(), core, bound, mapper)
+	if err != nil {
+		t.Fatalf("QueryAllBoundList returned error: %v", err)
+	}
+	if !boundItems.AllMatch(func(index int, item UserSummary) bool {
+		return index != 1 || item.ID == 2
+	}) {
+		t.Fatalf("unexpected bound list items: %+v", boundItems.Values())
 	}
 }
 
@@ -235,7 +274,8 @@ func TestMapperBuildsAssignmentsAndPrimaryPredicate(t *testing.T) {
 	if updateBound.SQL != `UPDATE "users" SET "username" = ?, "email_address" = ?, "status" = ?, "role_id" = ? WHERE "users"."id" = ?` {
 		t.Fatalf("unexpected update sql: %q", updateBound.SQL)
 	}
-	if len(updateBound.Args) != 5 || updateBound.Args[4] != int64(42) {
-		t.Fatalf("unexpected update args: %#v", updateBound.Args)
+	lastArg, ok := updateBound.Args.Get(4)
+	if updateBound.Args.Len() != 5 || !ok || lastArg != int64(42) {
+		t.Fatalf("unexpected update args: %#v", updateBound.Args.Values())
 	}
 }

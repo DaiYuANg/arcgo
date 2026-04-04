@@ -22,7 +22,7 @@ func relationCachedQuery(rt *relationRuntime, cacheKey string) (string, bool, er
 	return value, ok, wrapDBError("read relation query cache", err)
 }
 
-func scanRelationPairs(rows *sql.Rows, sourceType, targetType reflect.Type) ([]relationKeyPair, error) {
+func scanRelationPairs(rows *sql.Rows, sourceType, targetType reflect.Type) (collectionx.List[relationKeyPair], error) {
 	pairs := collectionx.NewList[relationKeyPair]()
 	for rows.Next() {
 		pair, ok, err := scanRelationPairRow(rows, sourceType, targetType)
@@ -37,7 +37,7 @@ func scanRelationPairs(rows *sql.Rows, sourceType, targetType reflect.Type) ([]r
 	if err := rowsIterError(rows); err != nil {
 		return nil, err
 	}
-	return pairs.Values(), nil
+	return pairs, nil
 }
 
 func scanRelationPairRow(rows *sql.Rows, sourceType, targetType reflect.Type) (relationKeyPair, bool, error) {
@@ -95,25 +95,37 @@ func relationChunkSize(session Session) int {
 	}
 }
 
-func chunkRelationKeys(keys []any, chunkSize int) [][]any {
-	if len(keys) == 0 {
-		return nil
+func chunkRelationKeys(keys collectionx.List[any], chunkSize int) collectionx.List[collectionx.List[any]] {
+	if keys.Len() == 0 {
+		return collectionx.NewList[collectionx.List[any]]()
 	}
-	if chunkSize <= 0 || len(keys) <= chunkSize {
-		return [][]any{keys}
+	if chunkSize <= 0 || keys.Len() <= chunkSize {
+		return collectionx.NewList(keys.Clone())
 	}
-	chunks := make([][]any, 0, (len(keys)+chunkSize-1)/chunkSize)
-	for start := 0; start < len(keys); start += chunkSize {
-		end := min(start+chunkSize, len(keys))
-		chunks = append(chunks, keys[start:end])
+
+	chunks := collectionx.NewListWithCapacity[collectionx.List[any]]((keys.Len() + chunkSize - 1) / chunkSize)
+	current := collectionx.NewListWithCapacity[any](chunkSize)
+	keys.Range(func(_ int, key any) bool {
+		current.Add(key)
+		if current.Len() < chunkSize {
+			return true
+		}
+		chunks.Add(current)
+		current = collectionx.NewListWithCapacity[any](chunkSize)
+		return true
+	})
+	if current.Len() > 0 {
+		chunks.Add(current)
 	}
 	return chunks
 }
 
-func relationTargetOrders(schema relationSchemaSource, targetColumn ColumnMeta) []Order {
-	orders := []Order{NamedColumn[any](schema, targetColumn.Name).Asc()}
-	if primaryKey := derivePrimaryKey(schema.schemaRef()); primaryKey != nil && len(primaryKey.Columns) == 1 && primaryKey.Columns[0] != targetColumn.Name {
-		orders = append(orders, NamedColumn[any](schema, primaryKey.Columns[0]).Asc())
+func relationTargetOrders(schema relationSchemaSource, targetColumn ColumnMeta) collectionx.List[Order] {
+	orders := collectionx.NewList[Order](NamedColumn[any](schema, targetColumn.Name).Asc())
+	if primaryKey := derivePrimaryKey(schema.schemaRef()); primaryKey != nil && primaryKey.Columns.Len() == 1 {
+		if column, ok := primaryKey.Columns.GetFirst(); ok && column != targetColumn.Name {
+			orders.Add(NamedColumn[any](schema, column).Asc())
+		}
 	}
 	return orders
 }

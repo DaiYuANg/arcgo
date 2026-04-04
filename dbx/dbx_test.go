@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 type Role struct {
@@ -136,20 +138,20 @@ func TestSelectAndMutationBuilders(t *testing.T) {
 	if query.FromItem.Name() != "users" {
 		t.Fatalf("unexpected from table: %q", query.FromItem.Name())
 	}
-	if len(query.Items) != 2 {
-		t.Fatalf("unexpected select items: %d", len(query.Items))
+	if query.Items.Len() != 2 {
+		t.Fatalf("unexpected select items: %d", query.Items.Len())
 	}
-	if len(query.Orders) != 1 {
-		t.Fatalf("unexpected orders: %d", len(query.Orders))
+	if query.Orders.Len() != 1 {
+		t.Fatalf("unexpected orders: %d", query.Orders.Len())
 	}
 
 	insert := InsertInto(users).Values(users.Username.Set("alice"), users.Status.Set(1))
-	if len(insert.Assignments) != 2 {
-		t.Fatalf("unexpected insert assignments: %d", len(insert.Assignments))
+	if insert.Assignments.Len() != 2 {
+		t.Fatalf("unexpected insert assignments: %d", insert.Assignments.Len())
 	}
 
 	update := Update(users).Set(users.Status.Set(2)).Where(users.ID.Eq(10))
-	if len(update.Assignments) != 1 || update.WhereExp == nil {
+	if update.Assignments.Len() != 1 || update.WhereExp == nil {
 		t.Fatalf("unexpected update query state: %+v", update)
 	}
 
@@ -165,21 +167,51 @@ func TestQueryBuildersCompactNilInputs(t *testing.T) {
 	query := Select(users.ID, nil).
 		From(users).
 		OrderBy(nil, users.ID.Desc())
-	if len(query.Items) != 1 {
-		t.Fatalf("unexpected select items after nil compaction: %d", len(query.Items))
+	if query.Items.Len() != 1 {
+		t.Fatalf("unexpected select items after nil compaction: %d", query.Items.Len())
 	}
-	if len(query.Orders) != 1 {
-		t.Fatalf("unexpected orders after nil compaction: %d", len(query.Orders))
+	if query.Orders.Len() != 1 {
+		t.Fatalf("unexpected orders after nil compaction: %d", query.Orders.Len())
 	}
 
 	insert := InsertInto(users).Values(nil, users.Username.Set("alice"))
-	if len(insert.Assignments) != 1 {
-		t.Fatalf("unexpected insert assignments after nil compaction: %d", len(insert.Assignments))
+	if insert.Assignments.Len() != 1 {
+		t.Fatalf("unexpected insert assignments after nil compaction: %d", insert.Assignments.Len())
 	}
 
 	update := Update(users).Set(nil, users.Status.Set(1))
-	if len(update.Assignments) != 1 {
-		t.Fatalf("unexpected update assignments after nil compaction: %d", len(update.Assignments))
+	if update.Assignments.Len() != 1 {
+		t.Fatalf("unexpected update assignments after nil compaction: %d", update.Assignments.Len())
+	}
+}
+
+func TestInsertBuilderValuesGridTracksAssignmentState(t *testing.T) {
+	users := MustSchema("users", UserSchema{})
+
+	query := InsertInto(users).ValuesGrid(collectionx.NewGrid(
+		[]Assignment{
+			users.Username.Set("alice"),
+			users.Status.Set(1),
+		},
+	))
+	if query.Rows.RowCount() != 1 {
+		t.Fatalf("unexpected insert row count: %d", query.Rows.RowCount())
+	}
+	if query.Assignments.Len() != 2 {
+		t.Fatalf("unexpected single-row assignment count: %d", query.Assignments.Len())
+	}
+
+	query = query.ValuesGrid(collectionx.NewGrid(
+		[]Assignment{
+			users.Status.Set(2),
+			users.Username.Set("bob"),
+		},
+	))
+	if query.Rows.RowCount() != 2 {
+		t.Fatalf("unexpected insert row count after append: %d", query.Rows.RowCount())
+	}
+	if query.Assignments.Len() != 0 {
+		t.Fatalf("multi-row insert should clear flattened assignments, got: %d", query.Assignments.Len())
 	}
 }
 
@@ -210,7 +242,7 @@ func TestOptionsPresets(t *testing.T) {
 func TestDBWrapper(t *testing.T) {
 	core := New((*sql.DB)(nil), testSQLiteDialect{})
 	bound := core.Bound("select 1 where id = ?", 1)
-	if bound.SQL != "select 1 where id = ?" || len(bound.Args) != 1 {
+	if bound.SQL != "select 1 where id = ?" || bound.Args.Len() != 1 {
 		t.Fatalf("unexpected bound query: %+v", bound)
 	}
 }

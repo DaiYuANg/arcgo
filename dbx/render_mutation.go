@@ -17,7 +17,7 @@ func (q *InsertQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 		return BoundQuery{}, err
 	}
 
-	state := &renderState{dialect: d, args: make([]any, 0, len(rows)*4)}
+	state := &renderState{dialect: d, args: make([]any, 0, rows.RowCount()*4)}
 	state.writeString(insertStatementPrefix(d, q))
 	if err := renderInsertBody(state, q, rows); err != nil {
 		return BoundQuery{}, err
@@ -34,15 +34,15 @@ func (q *InsertQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 	return state.BoundQuery(), nil
 }
 
-func validateInsertQuery(q *InsertQuery, rows [][]Assignment) error {
+func validateInsertQuery(q *InsertQuery, rows collectionx.Grid[Assignment]) error {
 	switch {
 	case q.Into.Name() == "":
 		return errors.New("dbx: insert query requires target table")
-	case len(rows) == 0 && q.Source == nil:
+	case rows.RowCount() == 0 && q.Source == nil:
 		return errors.New("dbx: insert query requires values or source query")
-	case len(rows) > 0 && q.Source != nil:
+	case rows.RowCount() > 0 && q.Source != nil:
 		return errors.New("dbx: insert query cannot combine values and source query")
-	case q.Source != nil && len(q.TargetColumns) == 0:
+	case q.Source != nil && q.TargetColumns.Len() == 0:
 		return errors.New("dbx: insert-select requires target columns")
 	default:
 		return nil
@@ -57,7 +57,7 @@ func insertStatementPrefix(d dialect.Dialect, q *InsertQuery) string {
 	return "INSERT INTO "
 }
 
-func renderInsertBody(state *renderState, q *InsertQuery, rows [][]Assignment) error {
+func renderInsertBody(state *renderState, q *InsertQuery, rows collectionx.Grid[Assignment]) error {
 	state.renderTable(q.Into)
 	columns, err := resolveInsertColumns(q, rows)
 	if err != nil {
@@ -69,22 +69,23 @@ func renderInsertBody(state *renderState, q *InsertQuery, rows [][]Assignment) e
 	return renderInsertSourceOrValues(state, q, columns, rows)
 }
 
-func renderInsertColumns(state *renderState, columns []ColumnMeta) error {
-	if len(columns) == 0 {
+func renderInsertColumns(state *renderState, columns collectionx.List[ColumnMeta]) error {
+	if columns.Len() == 0 {
 		return nil
 	}
 	state.writeString(" (")
-	for i := range columns {
-		if i > 0 {
+	columns.Range(func(index int, column ColumnMeta) bool {
+		if index > 0 {
 			state.writeString(", ")
 		}
-		state.writeQuotedIdent(columns[i].Name)
-	}
+		state.writeQuotedIdent(column.Name)
+		return true
+	})
 	state.writeByte(')')
 	return nil
 }
 
-func renderInsertSourceOrValues(state *renderState, q *InsertQuery, columns []ColumnMeta, rows [][]Assignment) error {
+func renderInsertSourceOrValues(state *renderState, q *InsertQuery, columns collectionx.List[ColumnMeta], rows collectionx.Grid[Assignment]) error {
 	if q.Source != nil {
 		state.writeByte(' ')
 		return renderSelectQuery(state, q.Source)
@@ -92,21 +93,24 @@ func renderInsertSourceOrValues(state *renderState, q *InsertQuery, columns []Co
 	return renderInsertValues(state, columns, rows)
 }
 
-func renderInsertValues(state *renderState, columns []ColumnMeta, rows [][]Assignment) error {
+func renderInsertValues(state *renderState, columns collectionx.List[ColumnMeta], rows collectionx.Grid[Assignment]) error {
 	orderedRows, err := orderInsertRows(columns, rows)
 	if err != nil {
 		return err
 	}
 	state.writeString(" VALUES ")
-	for rowIndex, row := range orderedRows {
+	var renderErr error
+	orderedRows.Range(func(rowIndex int, row []Assignment) bool {
 		if rowIndex > 0 {
 			state.writeString(", ")
 		}
 		if err := renderInsertValueRow(state, row); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return renderErr
 }
 
 func renderInsertValueRow(state *renderState, row []Assignment) error {
@@ -135,7 +139,7 @@ func (q *UpdateQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 		return BoundQuery{}, err
 	}
 
-	state := &renderState{dialect: d, args: make([]any, 0, len(q.Assignments))}
+	state := &renderState{dialect: d, args: make([]any, 0, q.Assignments.Len())}
 	state.writeString("UPDATE ")
 	state.renderTable(q.Table)
 	state.writeString(" SET ")
@@ -158,23 +162,26 @@ func validateUpdateQuery(q *UpdateQuery) error {
 	switch {
 	case q.Table.Name() == "":
 		return errors.New("dbx: update query requires target table")
-	case len(q.Assignments) == 0:
+	case q.Assignments.Len() == 0:
 		return errors.New("dbx: update query requires assignments")
 	default:
 		return nil
 	}
 }
 
-func renderUpdateAssignments(state *renderState, assignments []Assignment) error {
-	for i, assignment := range assignments {
-		if i > 0 {
+func renderUpdateAssignments(state *renderState, assignments collectionx.List[Assignment]) error {
+	var renderErr error
+	assignments.Range(func(index int, assignment Assignment) bool {
+		if index > 0 {
 			state.writeString(", ")
 		}
 		if err := renderAssignment(state, assignment); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return renderErr
 }
 
 func renderOptionalWhere(state *renderState, predicate Predicate) error {
@@ -208,27 +215,30 @@ func (q *DeleteQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 	return state.BoundQuery(), nil
 }
 
-func normalizedInsertRows(q *InsertQuery) [][]Assignment {
-	if len(q.Rows) > 0 {
+func normalizedInsertRows(q *InsertQuery) collectionx.Grid[Assignment] {
+	if q.Rows.RowCount() > 0 {
 		return q.Rows
 	}
-	if len(q.Assignments) > 0 {
-		return [][]Assignment{q.Assignments}
+	if q.Assignments.Len() > 0 {
+		rows := collectionx.NewGridWithCapacity[Assignment](1)
+		rows.AddRowList(q.Assignments)
+		return rows
 	}
 	return nil
 }
 
-func resolveInsertColumns(q *InsertQuery, rows [][]Assignment) ([]ColumnMeta, error) {
-	if len(q.TargetColumns) > 0 {
+func resolveInsertColumns(q *InsertQuery, rows collectionx.Grid[Assignment]) (collectionx.List[ColumnMeta], error) {
+	if q.TargetColumns.Len() > 0 {
 		return resolveTargetColumns(q.TargetColumns)
 	}
-	if len(rows) == 0 {
+	row, ok := rows.FirstRowWhere(func(_ int, _ []Assignment) bool { return true }).Get()
+	if !ok {
 		return nil, nil
 	}
-	return assignmentColumns(rows[0])
+	return assignmentColumns(row)
 }
 
-func assignmentColumns(assignments []Assignment) ([]ColumnMeta, error) {
+func assignmentColumns(assignments []Assignment) (collectionx.List[ColumnMeta], error) {
 	columns := collectionx.NewListWithCapacity[ColumnMeta](len(assignments))
 	for _, assignment := range assignments {
 		renderer, ok := assignment.(insertAssignmentRenderer)
@@ -237,34 +247,46 @@ func assignmentColumns(assignments []Assignment) ([]ColumnMeta, error) {
 		}
 		columns.Add(renderer.assignmentColumn())
 	}
-	return columns.Values(), nil
+	return columns, nil
 }
 
-func resolveTargetColumns(expressions []Expression) ([]ColumnMeta, error) {
-	columns := collectionx.NewListWithCapacity[ColumnMeta](len(expressions))
-	for _, expression := range expressions {
+func resolveTargetColumns(expressions collectionx.List[Expression]) (collectionx.List[ColumnMeta], error) {
+	columns := collectionx.NewListWithCapacity[ColumnMeta](expressions.Len())
+	var resolveErr error
+	expressions.Range(func(_ int, expression Expression) bool {
 		column, ok := expression.(columnAccessor)
 		if !ok {
-			return nil, fmt.Errorf("dbx: unsupported target column expression %T", expression)
+			resolveErr = fmt.Errorf("dbx: unsupported target column expression %T", expression)
+			return false
 		}
 		columns.Add(column.columnRef())
+		return true
+	})
+	if resolveErr != nil {
+		return nil, resolveErr
 	}
-	return columns.Values(), nil
+	return columns, nil
 }
 
-func orderInsertRows(columns []ColumnMeta, rows [][]Assignment) ([][]Assignment, error) {
-	orderedRows := collectionx.NewListWithCapacity[[]Assignment](len(rows))
-	for _, row := range rows {
+func orderInsertRows(columns collectionx.List[ColumnMeta], rows collectionx.Grid[Assignment]) (collectionx.Grid[Assignment], error) {
+	orderedRows := collectionx.NewGridWithCapacity[Assignment](rows.RowCount())
+	var orderErr error
+	rows.Range(func(_ int, row []Assignment) bool {
 		orderedRow, err := orderInsertRow(columns, row)
 		if err != nil {
-			return nil, err
+			orderErr = err
+			return false
 		}
-		orderedRows.Add(orderedRow)
+		orderedRows.AddRowList(orderedRow)
+		return true
+	})
+	if orderErr != nil {
+		return nil, orderErr
 	}
-	return orderedRows.Values(), nil
+	return orderedRows, nil
 }
 
-func orderInsertRow(columns []ColumnMeta, row []Assignment) ([]Assignment, error) {
+func orderInsertRow(columns collectionx.List[ColumnMeta], row []Assignment) (collectionx.List[Assignment], error) {
 	assignmentsByColumn := collectionx.NewMapWithCapacity[string, Assignment](len(row))
 	for _, assignment := range row {
 		renderer, ok := assignment.(insertAssignmentRenderer)
@@ -274,13 +296,19 @@ func orderInsertRow(columns []ColumnMeta, row []Assignment) ([]Assignment, error
 		assignmentsByColumn.Set(renderer.assignmentColumn().Name, assignment)
 	}
 
-	orderedRow := collectionx.NewListWithCapacity[Assignment](len(columns))
-	for i := range columns {
-		assignment, ok := assignmentsByColumn.Get(columns[i].Name)
+	orderedRow := collectionx.NewListWithCapacity[Assignment](columns.Len())
+	var orderErr error
+	columns.Range(func(_ int, column ColumnMeta) bool {
+		assignment, ok := assignmentsByColumn.Get(column.Name)
 		if !ok {
-			return nil, fmt.Errorf("dbx: missing value for insert column %s", columns[i].Name)
+			orderErr = fmt.Errorf("dbx: missing value for insert column %s", column.Name)
+			return false
 		}
 		orderedRow.Add(assignment)
+		return true
+	})
+	if orderErr != nil {
+		return nil, orderErr
 	}
-	return orderedRow.Values(), nil
+	return orderedRow, nil
 }

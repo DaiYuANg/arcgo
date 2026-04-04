@@ -75,7 +75,7 @@ func TestStructMapperScansEmbeddedPointerNullableAndScanner(t *testing.T) {
 	accounts := MustSchema("accounts", accountSchema{})
 	mapper := MustStructMapper[accountRecord]()
 
-	items, err := QueryAll(context.Background(), New(sqlDB, testSQLiteDialect{}), Select(accounts.AllColumns()...).From(accounts), mapper)
+	items, err := QueryAll(context.Background(), New(sqlDB, testSQLiteDialect{}), Select(accounts.AllColumns().Values()...).From(accounts), mapper)
 	if err != nil {
 		t.Fatalf("QueryAll returned error: %v", err)
 	}
@@ -120,10 +120,11 @@ func TestStructMapperSupportsNamedInlineFields(t *testing.T) {
 	if !ok {
 		t.Fatal("expected created_by mapping")
 	}
-	if len(createdBy.Path) != 2 {
+	if createdBy.Path.Len() != 2 {
 		t.Fatalf("expected inline field path depth=2, got: %+v", createdBy.Path)
 	}
-	if createdBy.Path[0] != 1 {
+	rootIndex, _ := createdBy.Path.Get(0)
+	if rootIndex != 1 {
 		t.Fatalf("unexpected inline field root path: %+v", createdBy.Path)
 	}
 }
@@ -168,7 +169,7 @@ func TestQueryCursorScansEmbeddedPointerNullableAndScanner(t *testing.T) {
 	accounts := MustSchema("accounts", accountSchema{})
 	mapper := MustStructMapper[accountRecord]()
 	core := New(sqlDB, testSQLiteDialect{})
-	query := Select(accounts.AllColumns()...).From(accounts)
+	query := Select(accounts.AllColumns().Values()...).From(accounts)
 
 	cursor, err := QueryCursor(context.Background(), core, query, mapper)
 	if err != nil {

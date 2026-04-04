@@ -127,7 +127,7 @@ func BenchmarkMapperInsertAssignmentsIDStrategy(b *testing.B) {
 func BenchmarkQueryAllStructMapper(b *testing.B) {
 	accounts := MustSchema("accounts", accountSchema{})
 	mapper := MustStructMapper[accountRecord]()
-	query := Select(accounts.AllColumns()...).From(accounts)
+	query := Select(accounts.AllColumns().Values()...).From(accounts)
 	ddl := []string{mapperScanAccountsDDL, `INSERT INTO "accounts" ("id","nickname","bio","label") VALUES (1,'ally','hello','admin'),(2,NULL,NULL,'reader')`}
 
 	run := func(b *testing.B, sqlDB *sql.DB) {
@@ -157,7 +157,7 @@ func BenchmarkQueryAllStructMapper(b *testing.B) {
 func BenchmarkQueryAllStructMapperWithLimit(b *testing.B) {
 	accounts := MustSchema("accounts", accountSchema{})
 	mapper := MustStructMapper[accountRecord]()
-	query := Select(accounts.AllColumns()...).From(accounts).Limit(20)
+	query := Select(accounts.AllColumns().Values()...).From(accounts).Limit(20)
 	ddl := []string{mapperScanAccountsDDL, `INSERT INTO "accounts" ("id","nickname","bio","label") VALUES (1,'ally','hello','admin'),(2,NULL,NULL,'reader')`}
 
 	run := func(b *testing.B, sqlDB *sql.DB) {
@@ -187,7 +187,7 @@ func BenchmarkQueryAllStructMapperWithLimit(b *testing.B) {
 func BenchmarkQueryCursorStructMapper(b *testing.B) {
 	accounts := MustSchema("accounts", accountSchema{})
 	mapper := MustStructMapper[accountRecord]()
-	query := Select(accounts.AllColumns()...).From(accounts)
+	query := Select(accounts.AllColumns().Values()...).From(accounts)
 	ddl := []string{mapperScanAccountsDDL, `INSERT INTO "accounts" ("id","nickname","bio","label") VALUES (1,'ally','hello','admin'),(2,NULL,NULL,'reader')`}
 
 	run := func(b *testing.B, sqlDB *sql.DB) {

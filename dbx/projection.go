@@ -26,7 +26,7 @@ func SelectMapped(schema SchemaResource, mapper fieldMapper) (*SelectQuery, erro
 	if err != nil {
 		return nil, err
 	}
-	return Select(items.Values()...).From(schema), nil
+	return SelectList(items).From(schema), nil
 }
 
 func MustSelectMapped(schema SchemaResource, mapper fieldMapper) *SelectQuery {
@@ -34,7 +34,7 @@ func MustSelectMapped(schema SchemaResource, mapper fieldMapper) *SelectQuery {
 	if err != nil {
 		panic(err)
 	}
-	return Select(items.Values()...).From(schema)
+	return SelectList(items).From(schema)
 }
 
 func projectionOfDefinition(definition schemaDefinition, mapper fieldMapper) (collectionx.List[SelectItem], error) {

@@ -50,7 +50,7 @@ func Build(session Session, query QueryBuilder) (BoundQuery, error) {
 		logRuntimeNode(session, "build.error", "error", err)
 		return BoundQuery{}, wrapDBError("build query", err)
 	}
-	logRuntimeNode(session, "build.done", "sql_empty", bound.SQL == "", "args_count", len(bound.Args))
+	logRuntimeNode(session, "build.done", "sql_empty", bound.SQL == "", "args_count", bound.Args.Len())
 	return bound, nil
 }
 
@@ -59,7 +59,7 @@ func Exec(ctx context.Context, session Session, query QueryBuilder) (sql.Result,
 	if err != nil {
 		return nil, err
 	}
-	logRuntimeNode(session, "exec.bound_ready", "statement", bound.Name, "args_count", len(bound.Args))
+	logRuntimeNode(session, "exec.bound_ready", "statement", bound.Name, "args_count", bound.Args.Len())
 	return ExecBound(ctx, session, bound)
 }
 
@@ -69,7 +69,7 @@ func ExecBound(ctx context.Context, session Session, bound BoundQuery) (sql.Resu
 	if session == nil {
 		return nil, ErrNilDB
 	}
-	logRuntimeNode(session, "exec_bound.start", "statement", bound.Name, "args_count", len(bound.Args))
+	logRuntimeNode(session, "exec_bound.start", "statement", bound.Name, "args_count", bound.Args.Len())
 	result, err := session.ExecBoundContext(ctx, bound)
 	return result, wrapDBError("execute bound query", err)
 }
@@ -83,6 +83,18 @@ func QueryAll[E any](ctx context.Context, session Session, query QueryBuilder, m
 		return nil, err
 	}
 	return QueryAllBound(ctx, session, bound, mapper)
+}
+
+// QueryAllList builds a query and maps all rows into a collectionx.List.
+func QueryAllList[E any](ctx context.Context, session Session, query QueryBuilder, mapper RowsScanner[E]) (collectionx.List[E], error) {
+	if mapper == nil {
+		return nil, ErrNilMapper
+	}
+	bound, err := Build(session, query)
+	if err != nil {
+		return nil, err
+	}
+	return QueryAllBoundList(ctx, session, bound, mapper)
 }
 
 // QueryAllBound executes a pre-built BoundQuery and maps all rows. Use with Build
@@ -119,6 +131,15 @@ func QueryAllBound[E any](ctx context.Context, session Session, bound BoundQuery
 	}
 	logRuntimeNode(session, "query_all_bound.scan_done", "items", items.Len())
 	return items, nil
+}
+
+// QueryAllBoundList executes a pre-built BoundQuery and maps all rows into a collectionx.List.
+func QueryAllBoundList[E any](ctx context.Context, session Session, bound BoundQuery, mapper RowsScanner[E]) (collectionx.List[E], error) {
+	items, err := QueryAllBound(ctx, session, bound, mapper)
+	if err != nil {
+		return nil, err
+	}
+	return collectionx.NewList(items...), nil
 }
 
 func capacityHintScannerFor[E any](mapper RowsScanner[E], capacityHint int) (CapacityHintScanner[E], bool) {

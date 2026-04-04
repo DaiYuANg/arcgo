@@ -21,6 +21,36 @@ func (l *List[T]) String() string {
 	return common.StringFromToJSON(l.ToJSON, "[]")
 }
 
+// ToJSON serializes grid rows to JSON.
+func (g *Grid[T]) ToJSON() ([]byte, error) {
+	return marshalListJSON(g.Values(), "grid")
+}
+
+// MarshalJSON implements json.Marshaler.
+func (g *Grid[T]) MarshalJSON() ([]byte, error) {
+	return forwardListJSON(g.ToJSON, "grid")
+}
+
+// String implements fmt.Stringer.
+func (g *Grid[T]) String() string {
+	return common.StringFromToJSON(g.ToJSON, "[]")
+}
+
+// ToJSON serializes concurrent grid rows to JSON.
+func (g *ConcurrentGrid[T]) ToJSON() ([]byte, error) {
+	return marshalListJSON(g.Values(), "concurrent grid")
+}
+
+// MarshalJSON implements json.Marshaler.
+func (g *ConcurrentGrid[T]) MarshalJSON() ([]byte, error) {
+	return forwardListJSON(g.ToJSON, "concurrent grid")
+}
+
+// String implements fmt.Stringer.
+func (g *ConcurrentGrid[T]) String() string {
+	return common.StringFromToJSON(g.ToJSON, "[]")
+}
+
 // ToJSON serializes concurrent list values to JSON.
 func (l *ConcurrentList[T]) ToJSON() ([]byte, error) {
 	return marshalListJSON(l.Values(), "concurrent list")

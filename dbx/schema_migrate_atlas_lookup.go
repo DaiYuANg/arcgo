@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	atlasschema "ariga.io/atlas/sql/schema"
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
@@ -51,22 +52,23 @@ func atlasForeignKeyKey(foreignKey *atlasschema.ForeignKey) string {
 		return column.Name, column != nil
 	})
 	meta := ForeignKeyMeta{
-		Columns:       columns,
+		Columns:       collectionx.NewList(columns...),
 		TargetTable:   lo.If(foreignKey.RefTable != nil, foreignKey.RefTable.Name).Else(""),
-		TargetColumns: targetColumns,
+		TargetColumns: collectionx.NewList(targetColumns...),
 		OnDelete:      ReferentialAction(foreignKey.OnDelete),
 		OnUpdate:      ReferentialAction(foreignKey.OnUpdate),
 	}
 	return foreignKeyKey(meta)
 }
 
-func atlasIndexColumns(index *atlasschema.Index) []string {
-	return lo.FilterMap(index.Parts, func(part *atlasschema.IndexPart, _ int) (string, bool) {
+func atlasIndexColumns(index *atlasschema.Index) collectionx.List[string] {
+	columns := lo.FilterMap(index.Parts, func(part *atlasschema.IndexPart, _ int) (string, bool) {
 		if part == nil || part.C == nil {
 			return "", false
 		}
 		return part.C.Name, true
 	})
+	return collectionx.NewList(columns...)
 }
 
 func atlasPrimaryKeyState(table *atlasschema.Table) *PrimaryKeyState {

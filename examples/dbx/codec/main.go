@@ -177,7 +177,7 @@ func queryAccounts(
 	return dbx.QueryAll[account](
 		ctx,
 		session,
-		dbx.Select(schema.AllColumns()...).From(schema).OrderBy(schema.ID.Asc()),
+		dbx.Select(schema.AllColumns().Values()...).From(schema).OrderBy(schema.ID.Asc()),
 		mapper,
 	)
 }

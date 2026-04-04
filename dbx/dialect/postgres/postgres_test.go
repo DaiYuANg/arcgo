@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
 	postgres "github.com/DaiYuANg/arcgo/dbx/dialect/postgres"
 	"github.com/stretchr/testify/require"
@@ -12,35 +13,35 @@ import (
 func TestBuildCreateTable(t *testing.T) {
 	bound, err := postgres.New().BuildCreateTable(dbx.TableSpec{
 		Name: "users",
-		Columns: []dbx.ColumnMeta{
-			{Name: "id", Table: "users", GoType: reflect.TypeFor[int64](), PrimaryKey: true, AutoIncrement: true},
-			{Name: "username", Table: "users", GoType: reflect.TypeFor[string]()},
-			{Name: "email_address", Table: "users", GoType: reflect.TypeFor[string]()},
-			{Name: "role_id", Table: "users", GoType: reflect.TypeFor[int64]()},
-			{Name: "status", Table: "users", GoType: reflect.TypeFor[int]()},
-		},
+		Columns: collectionx.NewList(
+			dbx.ColumnMeta{Name: "id", Table: "users", GoType: reflect.TypeFor[int64](), PrimaryKey: true, AutoIncrement: true},
+			dbx.ColumnMeta{Name: "username", Table: "users", GoType: reflect.TypeFor[string]()},
+			dbx.ColumnMeta{Name: "email_address", Table: "users", GoType: reflect.TypeFor[string]()},
+			dbx.ColumnMeta{Name: "role_id", Table: "users", GoType: reflect.TypeFor[int64]()},
+			dbx.ColumnMeta{Name: "status", Table: "users", GoType: reflect.TypeFor[int]()},
+		),
 		PrimaryKey: &dbx.PrimaryKeyMeta{
 			Name:    "pk_users",
 			Table:   "users",
-			Columns: []string{"id"},
+			Columns: collectionx.NewList("id"),
 		},
-		ForeignKeys: []dbx.ForeignKeyMeta{
-			{
+		ForeignKeys: collectionx.NewList(
+			dbx.ForeignKeyMeta{
 				Name:          "fk_users_role_id",
 				Table:         "users",
-				Columns:       []string{"role_id"},
+				Columns:       collectionx.NewList("role_id"),
 				TargetTable:   "roles",
-				TargetColumns: []string{"id"},
+				TargetColumns: collectionx.NewList("id"),
 				OnDelete:      dbx.ReferentialCascade,
 			},
-		},
-		Checks: []dbx.CheckMeta{
-			{
+		),
+		Checks: collectionx.NewList(
+			dbx.CheckMeta{
 				Name:       "ck_users_status",
 				Table:      "users",
 				Expression: "status >= 0",
 			},
-		},
+		),
 	})
 	require.NoError(t, err)
 

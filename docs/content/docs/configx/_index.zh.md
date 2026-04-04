@@ -14,13 +14,14 @@ weight: 3
 - **强类型加载**：`LoadT[T]` / `LoadTErr[T]` 反序列化到结构体，并可选执行校验。
 - **动态配置**：`LoadConfig` 返回 `*configx.Config`，用于按路径读取（`GetString`、`Exists`、`All`、`Unmarshal`）。
 
-配置源按优先级合并：后加载的源会覆盖先加载的源。
+配置源按优先级合并：后加载的源会覆盖先加载的源。默认顺序为 `dotenv → file → env → args`。
 
 ## 当前能力
 
 - `.env` 加载（`WithDotenv`、`WithIgnoreDotenvError`）
 - 文件加载（YAML/JSON/TOML）（`WithFiles`）
 - 环境变量（`WithEnvPrefix`、`WithEnvSeparator`）
+- 命令行参数与 flag（`WithArgs`、`WithOSArgs`、`WithFlagSet`、`WithCommandLineFlags`、`WithArgsNameFunc`）
 - 显式合并顺序（`WithPriority`）
 - 默认值（`WithDefaults`、`WithDefaultsTyped`、`WithTypedDefaults`）
 - 可选校验（`WithValidateLevel`、`WithValidator`）
@@ -30,7 +31,7 @@ weight: 3
 ## 文档导航
 
 - 强类型最小示例（含校验）：[快速开始](./getting-started)
-- 文件/环境变量/合并顺序：[配置源与优先级](./sources-and-priority)
+- 文件、环境变量、命令行参数与合并顺序：[配置源与优先级](./sources-and-priority)
 - 自定义校验器与动态访问：[校验与动态访问](./validation-and-dynamic)
 
 ## Install / Import

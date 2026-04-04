@@ -113,7 +113,7 @@ func TestBaseUpdateByVersion(t *testing.T) {
 	repo, users, ctx := newVersionedUserRepo(t, "file:repository_version_conflict_test?mode=memory&cache=shared")
 	require.NoError(t, repo.Create(ctx, &VersionedUser{Name: "alice", Version: 1}))
 
-	item, err := repo.First(ctx, dbx.Select(users.AllColumns()...).From(users))
+	item, err := repo.First(ctx, dbx.Select(users.AllColumns().Values()...).From(users))
 	require.NoError(t, err)
 
 	key := repository.Key{"id": item.ID}

@@ -54,7 +54,7 @@ func (q *SelectQuery) joinRelation(joinType JoinType, source relationSchemaSourc
 	if err != nil {
 		return nil, err
 	}
-	q.Joins = lo.Concat(q.Joins, joins)
+	q.Joins = mergeList(q.Joins, joins)
 	return q, nil
 }
 
@@ -62,9 +62,10 @@ func (q *SelectQuery) containsTable(table Table) bool {
 	if sameTable(q.FromItem, table) {
 		return true
 	}
-	return lo.SomeBy(q.Joins, func(join Join) bool {
+	_, ok := collectionx.FindList(q.Joins, func(_ int, join Join) bool {
 		return sameTable(join.Table, table)
 	})
+	return ok
 }
 
 func sameTable(left, right Table) bool {
@@ -87,7 +88,7 @@ func buildDirectRelationPredicate(source relationSchemaSource, meta RelationMeta
 	}, nil
 }
 
-func buildRelationJoins(joinType JoinType, source relationSchemaSource, meta RelationMeta, target Table) ([]Join, error) {
+func buildRelationJoins(joinType JoinType, source relationSchemaSource, meta RelationMeta, target Table) (collectionx.List[Join], error) {
 	joins := collectionx.NewListWithCapacity[Join](2)
 
 	switch meta.Kind {
@@ -97,7 +98,7 @@ func buildRelationJoins(joinType JoinType, source relationSchemaSource, meta Rel
 			return nil, err
 		}
 		joins.Add(Join{Type: joinType, Table: target, Predicate: predicate})
-		return joins.Values(), nil
+		return joins, nil
 	case RelationManyToMany:
 		through, first, second, err := buildManyToManyJoins(source, meta, target)
 		if err != nil {
@@ -105,7 +106,7 @@ func buildRelationJoins(joinType JoinType, source relationSchemaSource, meta Rel
 		}
 		joins.Add(Join{Type: joinType, Table: through, Predicate: first})
 		joins.Add(Join{Type: joinType, Table: target, Predicate: second})
-		return joins.Values(), nil
+		return joins, nil
 	default:
 		return nil, fmt.Errorf("dbx: unsupported relation kind %d", meta.Kind)
 	}
@@ -149,10 +150,10 @@ func relationSourceColumn(source relationSchemaSource, meta RelationMeta) (Colum
 	name := meta.LocalColumn
 	if name == "" {
 		primaryKey := derivePrimaryKey(source.schemaRef())
-		if primaryKey == nil || len(primaryKey.Columns) != 1 {
+		if primaryKey == nil || primaryKey.Columns.Len() != 1 {
 			return ColumnMeta{}, fmt.Errorf("dbx: relation %s requires local column or single-column primary key", meta.Name)
 		}
-		name = primaryKey.Columns[0]
+		name, _ = primaryKey.Columns.GetFirst()
 	}
 
 	column, ok := sourceColumnByName(source.schemaRef(), name)

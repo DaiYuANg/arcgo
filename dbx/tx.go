@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
-	"slices"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
@@ -27,7 +27,7 @@ func (tx *Tx) Dialect() dialect.Dialect {
 }
 
 func (tx *Tx) Bound(rawSQL string, args ...any) BoundQuery {
-	return BoundQuery{SQL: rawSQL, Args: slices.Clone(args)}
+	return BoundQuery{SQL: rawSQL, Args: collectionx.NewList(args...)}
 }
 
 func (tx *Tx) QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error) {
@@ -67,7 +67,7 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *R
 	if tx.raw == nil {
 		return errorRow(ErrNilSQLDB)
 	}
-	ctx, event, err := tx.observe.before(ctx, HookEvent{Operation: OperationQueryRow, SQL: query, Args: args})
+	ctx, event, err := tx.observe.before(ctx, HookEvent{Operation: OperationQueryRow, SQL: query, Args: collectionx.NewList(args...)})
 	if err != nil {
 		tx.observe.after(ctx, event)
 		return errorRow(err)
@@ -82,11 +82,11 @@ func (tx *Tx) QueryRowContext(ctx context.Context, query string, args ...any) *R
 }
 
 func (tx *Tx) QueryBoundContext(ctx context.Context, bound BoundQuery) (*sql.Rows, error) {
-	return tx.queryContext(ctx, bound.Name, bound.SQL, bound.Args...)
+	return tx.queryContext(ctx, bound.Name, bound.SQL, bound.Args.Values()...)
 }
 
 func (tx *Tx) ExecBoundContext(ctx context.Context, bound BoundQuery) (sql.Result, error) {
-	return tx.execContext(ctx, bound.Name, bound.SQL, bound.Args...)
+	return tx.execContext(ctx, bound.Name, bound.SQL, bound.Args.Values()...)
 }
 
 // Commit commits the transaction using a background context.

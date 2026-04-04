@@ -135,8 +135,8 @@ func (d Dialect) inspectForeignKeys(ctx context.Context, executor dbx.Executor, 
 			continue
 		}
 
-		current.Columns = append(current.Columns, state.Columns...)
-		current.TargetColumns = append(current.TargetColumns, state.TargetColumns...)
+		current.Columns.Merge(state.Columns)
+		current.TargetColumns.Merge(state.TargetColumns)
 		groups.Set(name, current)
 	}
 
@@ -215,7 +215,7 @@ func scanMySQLIndex(rows *sql.Rows) (string, dbx.IndexState, error) {
 
 	return name, dbx.IndexState{
 		Name:    name,
-		Columns: []string{column},
+		Columns: collectionx.NewList(column),
 		Unique:  nonUnique == 0,
 	}, nil
 }
@@ -226,7 +226,7 @@ func appendMySQLIndex(groups collectionx.OrderedMap[string, dbx.IndexState], nam
 		groups.Set(name, state)
 		return
 	}
-	current.Columns = append(current.Columns, state.Columns...)
+	current.Columns.Merge(state.Columns)
 	groups.Set(name, current)
 }
 
@@ -245,8 +245,8 @@ func scanMySQLForeignKey(rows *sql.Rows) (string, dbx.ForeignKeyState, error) {
 	return name, dbx.ForeignKeyState{
 		Name:          name,
 		TargetTable:   targetTable,
-		Columns:       []string{column},
-		TargetColumns: []string{targetColumn},
+		Columns:       collectionx.NewList(column),
+		TargetColumns: collectionx.NewList(targetColumn),
 		OnDelete:      referentialAction(deleteRule.String),
 		OnUpdate:      referentialAction(updateRule.String),
 	}, nil
@@ -267,7 +267,7 @@ func mysqlPrimaryKeyState(columns []string) *dbx.PrimaryKeyState {
 	if len(columns) == 0 {
 		return nil
 	}
-	return &dbx.PrimaryKeyState{Name: "PRIMARY", Columns: columns}
+	return &dbx.PrimaryKeyState{Name: "PRIMARY", Columns: collectionx.NewList(columns...)}
 }
 
 func queryMySQLRows(ctx context.Context, executor dbx.Executor, action, query string, args ...any) (*sql.Rows, error) {

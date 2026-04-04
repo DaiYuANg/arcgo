@@ -66,7 +66,7 @@ func (r *Base[E, S]) Count(ctx context.Context, query *dbx.SelectQuery) (int64, 
 		countQuery = cloneForCount(query)
 	}
 	dbx.LogRuntimeNode(r.session, "repository.count.start", "table", r.schema.TableName(), "has_query", query != nil)
-	countQuery.Items = []dbx.SelectItem{dbx.CountAll().As("count")}
+	countQuery.Items = collectionx.NewList[dbx.SelectItem](dbx.CountAll().As("count"))
 	rows, err := dbx.QueryAll[countRow](ctx, r.session, countQuery, dbx.MustStructMapper[countRow]())
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.count.error", "table", r.schema.TableName(), "error", err)

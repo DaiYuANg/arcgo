@@ -6,7 +6,6 @@ import (
 	atlasmigrate "ariga.io/atlas/sql/migrate"
 	atlasschema "ariga.io/atlas/sql/schema"
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 func compileAtlasSchema(dialectName string, driver atlasmigrate.Driver, schemaName string, schemas []SchemaResource) *atlasCompiledSchema {
@@ -20,13 +19,15 @@ func compileAtlasSchema(dialectName string, driver atlasmigrate.Driver, schemaNa
 
 func newAtlasCompiledSchema(schemaName string, schemas []SchemaResource) *atlasCompiledSchema {
 	atlasSchema := atlasschema.New(schemaName)
+	order := collectionx.NewListWithCapacity[string](len(schemas))
+	for _, schema := range schemas {
+		order.Add(schema.tableRef().TableName())
+	}
 	return &atlasCompiledSchema{
 		schema:    atlasSchema,
 		tables:    collectionx.NewMapWithCapacity[string, *atlasCompiledTable](len(schemas)),
 		externals: collectionx.NewMap[string, *atlasschema.Table](),
-		order: lo.Map(schemas, func(schema SchemaResource, _ int) string {
-			return schema.tableRef().TableName()
-		}),
+		order:     order,
 	}
 }
 
@@ -44,39 +45,41 @@ func newAtlasCompiledTable(spec TableSpec, table *atlasschema.Table) *atlasCompi
 	return &atlasCompiledTable{
 		spec:              spec,
 		table:             table,
-		columnsByName:     collectionx.NewMapWithCapacity[string, ColumnMeta](len(spec.Columns)),
-		indexesByName:     collectionx.NewMapWithCapacity[string, IndexMeta](len(spec.Indexes)),
-		indexesByKey:      collectionx.NewMapWithCapacity[string, IndexMeta](len(spec.Indexes)),
-		foreignKeysByName: collectionx.NewMapWithCapacity[string, ForeignKeyMeta](len(spec.ForeignKeys)),
-		foreignKeysByKey:  collectionx.NewMapWithCapacity[string, ForeignKeyMeta](len(spec.ForeignKeys)),
-		checksByName:      collectionx.NewMapWithCapacity[string, CheckMeta](len(spec.Checks)),
-		checksByExpr:      collectionx.NewMapWithCapacity[string, CheckMeta](len(spec.Checks)),
+		columnsByName:     collectionx.NewMapWithCapacity[string, ColumnMeta](spec.Columns.Len()),
+		indexesByName:     collectionx.NewMapWithCapacity[string, IndexMeta](spec.Indexes.Len()),
+		indexesByKey:      collectionx.NewMapWithCapacity[string, IndexMeta](spec.Indexes.Len()),
+		foreignKeysByName: collectionx.NewMapWithCapacity[string, ForeignKeyMeta](spec.ForeignKeys.Len()),
+		foreignKeysByKey:  collectionx.NewMapWithCapacity[string, ForeignKeyMeta](spec.ForeignKeys.Len()),
+		checksByName:      collectionx.NewMapWithCapacity[string, CheckMeta](spec.Checks.Len()),
+		checksByExpr:      collectionx.NewMapWithCapacity[string, CheckMeta](spec.Checks.Len()),
 	}
 }
 
 func compileAtlasTableColumns(compiledTable *atlasCompiledTable, dialectName string, driver atlasmigrate.Driver) {
-	for i := range compiledTable.spec.Columns {
-		column := compiledTable.spec.Columns[i]
+	compiledTable.spec.Columns.Range(func(_ int, column ColumnMeta) bool {
 		atlasColumn := compileAtlasColumn(dialectName, driver, column)
 		compiledTable.table.AddColumns(atlasColumn)
 		compiledTable.columnsByName.Set(column.Name, column)
-	}
+		return true
+	})
 }
 
 func compileAtlasTableMetadata(compiledTable *atlasCompiledTable) {
-	for _, index := range compiledTable.spec.Indexes {
+	compiledTable.spec.Indexes.Range(func(_ int, index IndexMeta) bool {
 		compiledTable.indexesByName.Set(index.Name, index)
 		compiledTable.indexesByKey.Set(indexKey(index.Unique, index.Columns), index)
-	}
-	for i := range compiledTable.spec.ForeignKeys {
-		foreignKey := compiledTable.spec.ForeignKeys[i]
+		return true
+	})
+	compiledTable.spec.ForeignKeys.Range(func(_ int, foreignKey ForeignKeyMeta) bool {
 		compiledTable.foreignKeysByName.Set(foreignKey.Name, foreignKey)
 		compiledTable.foreignKeysByKey.Set(foreignKeyKey(foreignKey), foreignKey)
-	}
-	for _, check := range compiledTable.spec.Checks {
+		return true
+	})
+	compiledTable.spec.Checks.Range(func(_ int, check CheckMeta) bool {
 		compiledTable.checksByName.Set(check.Name, check)
 		compiledTable.checksByExpr.Set(checkKey(check.Expression), check)
-	}
+		return true
+	})
 }
 
 func attachCompiledTableConstraints(compiled *atlasCompiledSchema) {
@@ -99,26 +102,28 @@ func attachCompiledPrimaryKey(table *atlasCompiledTable) {
 }
 
 func attachCompiledIndexes(table *atlasCompiledTable) {
-	for _, index := range table.spec.Indexes {
+	table.spec.Indexes.Range(func(_ int, index IndexMeta) bool {
 		if atlasIndex := atlasIndexForSpec(table.table, index); atlasIndex != nil {
 			table.table.AddIndexes(atlasIndex)
 		}
-	}
+		return true
+	})
 }
 
 func attachCompiledForeignKeys(compiled *atlasCompiledSchema, table *atlasCompiledTable) {
-	for i := range table.spec.ForeignKeys {
-		foreignKey := table.spec.ForeignKeys[i]
+	table.spec.ForeignKeys.Range(func(_ int, foreignKey ForeignKeyMeta) bool {
 		if atlasForeignKey := compiled.atlasForeignKeyForSpec(table.table, foreignKey); atlasForeignKey != nil {
 			table.table.AddForeignKeys(atlasForeignKey)
 		}
-	}
+		return true
+	})
 }
 
 func attachCompiledChecks(table *atlasCompiledTable) {
-	for _, check := range table.spec.Checks {
+	table.spec.Checks.Range(func(_ int, check CheckMeta) bool {
 		table.table.AddChecks(atlasschema.NewCheck().SetName(check.Name).SetExpr(check.Expression))
-	}
+		return true
+	})
 }
 
 func compileAtlasColumn(dialectName string, driver atlasmigrate.Driver, column ColumnMeta) *atlasschema.Column {
@@ -160,18 +165,12 @@ func atlasColumnType(driver atlasmigrate.Driver, rawType string, column ColumnMe
 }
 
 func (c *atlasCompiledSchema) atlasForeignKeyForSpec(table *atlasschema.Table, foreignKey ForeignKeyMeta) *atlasschema.ForeignKey {
-	columns := lo.FilterMap(foreignKey.Columns, func(name string, _ int) (*atlasschema.Column, bool) {
-		column, ok := table.Column(name)
-		return column, ok
-	})
+	columns := atlasColumnsByName(table, foreignKey.Columns)
 	if len(columns) == 0 {
 		return nil
 	}
 	refTable := c.referenceTable(table.Schema, foreignKey.TargetTable, foreignKey.TargetColumns)
-	refColumns := lo.FilterMap(foreignKey.TargetColumns, func(name string, _ int) (*atlasschema.Column, bool) {
-		column, ok := refTable.Column(name)
-		return column, ok
-	})
+	refColumns := atlasColumnsByName(refTable, foreignKey.TargetColumns)
 	if len(refColumns) == 0 {
 		return nil
 	}
@@ -184,7 +183,7 @@ func (c *atlasCompiledSchema) atlasForeignKeyForSpec(table *atlasschema.Table, f
 		SetOnUpdate(atlasReferenceAction(foreignKey.OnUpdate))
 }
 
-func (c *atlasCompiledSchema) referenceTable(schema *atlasschema.Schema, tableName string, targetColumns []string) *atlasschema.Table {
+func (c *atlasCompiledSchema) referenceTable(schema *atlasschema.Schema, tableName string, targetColumns collectionx.List[string]) *atlasschema.Table {
 	if compiled, ok := c.tables.Get(tableName); ok {
 		return compiled.table
 	}
@@ -192,9 +191,10 @@ func (c *atlasCompiledSchema) referenceTable(schema *atlasschema.Schema, tableNa
 		return external
 	}
 	external := atlasschema.NewTable(tableName).SetSchema(schema)
-	for i := range targetColumns {
-		external.AddColumns(atlasschema.NewColumn(targetColumns[i]))
-	}
+	targetColumns.Range(func(_ int, column string) bool {
+		external.AddColumns(atlasschema.NewColumn(column))
+		return true
+	})
 	c.externals.Set(tableName, external)
 	return external
 }

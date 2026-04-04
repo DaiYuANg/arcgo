@@ -3,24 +3,24 @@ package dbx
 import (
 	"fmt"
 	"reflect"
-	"slices"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 )
 
 type PrimaryKeyMeta struct {
 	Name    string
 	Table   string
-	Columns []string
+	Columns collectionx.List[string]
 }
 
 type ForeignKeyMeta struct {
 	Name          string
 	Table         string
-	Columns       []string
+	Columns       collectionx.List[string]
 	TargetTable   string
-	TargetColumns []string
+	TargetColumns collectionx.List[string]
 	OnDelete      ReferentialAction
 	OnUpdate      ReferentialAction
 }
@@ -126,7 +126,7 @@ func resolveKeyConstraintBinding(def tableDefinition, field reflect.StructField,
 			primaryKey: &PrimaryKeyMeta{
 				Name:    name,
 				Table:   def.name,
-				Columns: columns,
+				Columns: collectionx.NewList(columns...),
 			},
 		}, nil
 	}
@@ -134,7 +134,7 @@ func resolveKeyConstraintBinding(def tableDefinition, field reflect.StructField,
 		indexes: []IndexMeta{{
 			Name:    name,
 			Table:   def.name,
-			Columns: columns,
+			Columns: collectionx.NewList(columns...),
 			Unique:  meta.unique,
 		}},
 	}, nil
@@ -191,18 +191,18 @@ func defaultConstraintName(table, field string, meta keyBindingMeta) string {
 }
 
 func cloneIndexMeta(meta IndexMeta) IndexMeta {
-	meta.Columns = slices.Clone(meta.Columns)
+	meta.Columns = meta.Columns.Clone()
 	return meta
 }
 
 func clonePrimaryKeyMeta(meta PrimaryKeyMeta) PrimaryKeyMeta {
-	meta.Columns = slices.Clone(meta.Columns)
+	meta.Columns = meta.Columns.Clone()
 	return meta
 }
 
 func cloneForeignKeyMeta(meta ForeignKeyMeta) ForeignKeyMeta {
-	meta.Columns = slices.Clone(meta.Columns)
-	meta.TargetColumns = slices.Clone(meta.TargetColumns)
+	meta.Columns = meta.Columns.Clone()
+	meta.TargetColumns = meta.TargetColumns.Clone()
 	return meta
 }
 

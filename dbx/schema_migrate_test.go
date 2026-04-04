@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
@@ -44,10 +45,9 @@ func (d *fakeSchemaDialect) NormalizeType(value string) string {
 
 func (d *fakeSchemaDialect) BuildCreateTable(spec TableSpec) (BoundQuery, error) {
 	stmt := "create table " + spec.Name
-	columns := make([]ColumnState, len(spec.Columns))
-	for i := range spec.Columns {
-		column := &spec.Columns[i]
-		columns[i] = ColumnState{
+	columns := collectionx.NewListWithCapacity[ColumnState](spec.Columns.Len())
+	spec.Columns.Range(func(_ int, column ColumnMeta) bool {
+		state := ColumnState{
 			Name:          column.Name,
 			Type:          strings.ToLower(column.SQLType),
 			Nullable:      column.Nullable,
@@ -55,18 +55,20 @@ func (d *fakeSchemaDialect) BuildCreateTable(spec TableSpec) (BoundQuery, error)
 			AutoIncrement: column.AutoIncrement,
 			DefaultValue:  column.DefaultValue,
 		}
-		if columns[i].Type == "" {
-			columns[i].Type = strings.ToLower(InferTypeNameForTest(*column))
+		if state.Type == "" {
+			state.Type = strings.ToLower(InferTypeNameForTest(column))
 		}
-	}
-	indexes := append([]IndexState(nil), toIndexStates(spec.Indexes)...)
+		columns.Add(state)
+		return true
+	})
+	indexes := toIndexStates(spec.Indexes)
 	var primaryKey *PrimaryKeyState
 	if spec.PrimaryKey != nil {
 		copyPrimary := ClonePrimaryKeyMetaForTest(*spec.PrimaryKey)
 		primaryKey = &PrimaryKeyState{Name: copyPrimary.Name, Columns: copyPrimary.Columns}
 	}
-	foreignKeys := append([]ForeignKeyState(nil), toForeignKeyStates(spec.ForeignKeys)...)
-	checks := append([]CheckState(nil), toCheckStates(spec.Checks)...)
+	foreignKeys := toForeignKeyStates(spec.ForeignKeys)
+	checks := toCheckStates(spec.Checks)
 	d.actions[stmt] = func() {
 		d.tables[spec.Name] = TableState{
 			Exists:      true,
@@ -86,13 +88,19 @@ func (d *fakeSchemaDialect) BuildAddColumn(table string, column ColumnMeta) (Bou
 	state := toColumnState(column)
 	d.actions[stmt] = func() {
 		current := d.tables[table]
-		current.Columns = append(current.Columns, state)
+		if current.Columns == nil {
+			current.Columns = collectionx.NewList[ColumnState]()
+		}
+		current.Columns.Add(state)
 		if column.References != nil {
-			current.ForeignKeys = append(current.ForeignKeys, ForeignKeyState{
+			if current.ForeignKeys == nil {
+				current.ForeignKeys = collectionx.NewList[ForeignKeyState]()
+			}
+			current.ForeignKeys.Add(ForeignKeyState{
 				Name:          "fk_" + table + "_" + column.Name,
-				Columns:       []string{column.Name},
+				Columns:       collectionx.NewList(column.Name),
 				TargetTable:   column.References.TargetTable,
-				TargetColumns: []string{column.References.TargetColumn},
+				TargetColumns: collectionx.NewList(column.References.TargetColumn),
 				OnDelete:      column.References.OnDelete,
 				OnUpdate:      column.References.OnUpdate,
 			})
@@ -103,11 +111,14 @@ func (d *fakeSchemaDialect) BuildAddColumn(table string, column ColumnMeta) (Bou
 }
 
 func (d *fakeSchemaDialect) BuildCreateIndex(index IndexMeta) (BoundQuery, error) {
-	stmt := "create index " + index.Name + " on " + index.Table + "(" + strings.Join(index.Columns, ",") + ")"
-	state := IndexState{Name: index.Name, Columns: append([]string(nil), index.Columns...), Unique: index.Unique}
+	stmt := "create index " + index.Name + " on " + index.Table + "(" + strings.Join(index.Columns.Values(), ",") + ")"
+	state := IndexState{Name: index.Name, Columns: index.Columns.Clone(), Unique: index.Unique}
 	d.actions[stmt] = func() {
 		current := d.tables[index.Table]
-		current.Indexes = append(current.Indexes, state)
+		if current.Indexes == nil {
+			current.Indexes = collectionx.NewList[IndexState]()
+		}
+		current.Indexes.Add(state)
 		d.tables[index.Table] = current
 	}
 	return BoundQuery{SQL: stmt}, nil
@@ -117,15 +128,18 @@ func (d *fakeSchemaDialect) BuildAddForeignKey(table string, foreignKey ForeignK
 	stmt := "alter table " + table + " add constraint " + foreignKey.Name + " foreign key"
 	state := ForeignKeyState{
 		Name:          foreignKey.Name,
-		Columns:       append([]string(nil), foreignKey.Columns...),
+		Columns:       foreignKey.Columns.Clone(),
 		TargetTable:   foreignKey.TargetTable,
-		TargetColumns: append([]string(nil), foreignKey.TargetColumns...),
+		TargetColumns: foreignKey.TargetColumns.Clone(),
 		OnDelete:      foreignKey.OnDelete,
 		OnUpdate:      foreignKey.OnUpdate,
 	}
 	d.actions[stmt] = func() {
 		current := d.tables[table]
-		current.ForeignKeys = append(current.ForeignKeys, state)
+		if current.ForeignKeys == nil {
+			current.ForeignKeys = collectionx.NewList[ForeignKeyState]()
+		}
+		current.ForeignKeys.Add(state)
 		d.tables[table] = current
 	}
 	return BoundQuery{SQL: stmt}, nil
@@ -136,7 +150,10 @@ func (d *fakeSchemaDialect) BuildAddCheck(table string, check CheckMeta) (BoundQ
 	state := CheckState{Name: check.Name, Expression: check.Expression}
 	d.actions[stmt] = func() {
 		current := d.tables[table]
-		current.Checks = append(current.Checks, state)
+		if current.Checks == nil {
+			current.Checks = collectionx.NewList[CheckState]()
+		}
+		current.Checks.Add(state)
 		d.tables[table] = current
 	}
 	return BoundQuery{SQL: stmt}, nil
@@ -145,14 +162,14 @@ func (d *fakeSchemaDialect) BuildAddCheck(table string, check CheckMeta) (BoundQ
 func (d *fakeSchemaDialect) InspectTable(_ context.Context, _ Executor, table string) (TableState, error) {
 	if state, ok := d.tables[table]; ok {
 		copyState := state
-		copyState.Columns = append([]ColumnState(nil), state.Columns...)
-		copyState.Indexes = append([]IndexState(nil), state.Indexes...)
+		copyState.Columns = state.Columns.Clone()
+		copyState.Indexes = state.Indexes.Clone()
 		if state.PrimaryKey != nil {
 			copyState.PrimaryKey = new(PrimaryKeyState)
 			*copyState.PrimaryKey = ClonePrimaryKeyStateForTest(*state.PrimaryKey)
 		}
-		copyState.ForeignKeys = append([]ForeignKeyState(nil), state.ForeignKeys...)
-		copyState.Checks = append([]CheckState(nil), state.Checks...)
+		copyState.ForeignKeys = state.ForeignKeys.Clone()
+		copyState.Checks = state.Checks.Clone()
 		return copyState, nil
 	}
 	return TableState{Name: table, Exists: false}, nil
@@ -168,7 +185,7 @@ func (s *fakeSession) QueryContext(context.Context, string, ...any) (*sql.Rows, 
 }
 
 func (s *fakeSession) ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error) {
-	return s.ExecBoundContext(ctx, BoundQuery{SQL: query, Args: args})
+	return s.ExecBoundContext(ctx, BoundQuery{SQL: query, Args: collectionx.NewList(args...)})
 }
 
 func (s *fakeSession) QueryRowContext(context.Context, string, ...any) *Row {
@@ -250,15 +267,15 @@ func TestAutoMigrateReturnsDriftForIncompatibleColumn(t *testing.T) {
 	schemaDialect.tables["users"] = TableState{
 		Exists: true,
 		Name:   "users",
-		Columns: []ColumnState{
-			{Name: "id", Type: "bigint", PrimaryKey: true},
-			{Name: "username", Type: "bigint", Nullable: false},
-			{Name: "email_address", Type: "text", Nullable: false},
-			{Name: "status", Type: "integer", Nullable: false},
-			{Name: "role_id", Type: "bigint", Nullable: false},
-		},
+		Columns: collectionx.NewList(
+			ColumnState{Name: "id", Type: "bigint", PrimaryKey: true},
+			ColumnState{Name: "username", Type: "bigint", Nullable: false},
+			ColumnState{Name: "email_address", Type: "text", Nullable: false},
+			ColumnState{Name: "status", Type: "integer", Nullable: false},
+			ColumnState{Name: "role_id", Type: "bigint", Nullable: false},
+		),
 		Indexes:    toIndexStates(IndexesForTest(users)),
-		PrimaryKey: &PrimaryKeyState{Name: "pk_users", Columns: []string{"id"}},
+		PrimaryKey: &PrimaryKeyState{Name: "pk_users", Columns: collectionx.NewList("id")},
 	}
 	session := &fakeSession{dialect: schemaDialect}
 

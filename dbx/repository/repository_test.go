@@ -84,7 +84,7 @@ func TestBaseCreateListAndFirst(t *testing.T) {
 	require.True(t, ok)
 	require.Equal(t, "alice", item.Name)
 
-	item, err = repo.First(ctx, dbx.Select(users.AllColumns()...).From(users).Where(users.Name.Eq("alice")))
+	item, err = repo.First(ctx, dbx.Select(users.AllColumns().Values()...).From(users).Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 	require.Equal(t, "alice", item.Name)
 }
@@ -92,7 +92,7 @@ func TestBaseCreateListAndFirst(t *testing.T) {
 func TestBaseFirstNotFound(t *testing.T) {
 	repo, users, ctx := newUserRepo(t, "file:repository_not_found_test?mode=memory&cache=shared")
 
-	_, err := repo.First(ctx, dbx.Select(users.AllColumns()...).From(users).Where(users.Name.Eq("nobody")))
+	_, err := repo.First(ctx, dbx.Select(users.AllColumns().Values()...).From(users).Where(users.Name.Eq("nobody")))
 	require.ErrorIs(t, err, repository.ErrNotFound)
 }
 
@@ -103,11 +103,11 @@ func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 2, total)
 
-	exists, err := repo.Exists(ctx, dbx.Select(users.AllColumns()...).From(users).Where(users.Name.Eq("alice")))
+	exists, err := repo.Exists(ctx, dbx.Select(users.AllColumns().Values()...).From(users).Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 	require.True(t, exists)
 
-	alice, err := repo.First(ctx, dbx.Select(users.AllColumns()...).From(users).Where(users.Name.Eq("alice")))
+	alice, err := repo.First(ctx, dbx.Select(users.AllColumns().Values()...).From(users).Where(users.Name.Eq("alice")))
 	require.NoError(t, err)
 
 	got, err := repo.GetByID(ctx, alice.ID)
@@ -121,7 +121,7 @@ func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "alice-updated", updated.Name)
 
-	page, err := repo.ListPage(ctx, dbx.Select(users.AllColumns()...).From(users).OrderBy(users.Name.Asc()), 1, 1)
+	page, err := repo.ListPage(ctx, dbx.Select(users.AllColumns().Values()...).From(users).OrderBy(users.Name.Asc()), 1, 1)
 	require.NoError(t, err)
 	require.EqualValues(t, 2, page.Total)
 	require.Equal(t, 1, page.Page)
@@ -139,7 +139,7 @@ func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 func TestBaseFirstDoesNotMutateQuery(t *testing.T) {
 	repo, users, ctx := newSeededUserRepo(t, "file:repository_first_immutable_test?mode=memory&cache=shared", "alice")
 
-	query := dbx.Select(users.AllColumns()...).From(users).Where(users.Name.Eq("alice"))
+	query := dbx.Select(users.AllColumns().Values()...).From(users).Where(users.Name.Eq("alice"))
 	_, err := repo.First(ctx, query)
 	require.NoError(t, err)
 	require.Nil(t, query.LimitN)
@@ -167,7 +167,7 @@ func TestBaseCountDoesNotMutateQuery(t *testing.T) {
 func TestBaseListPageDoesNotMutateQuery(t *testing.T) {
 	repo, users, ctx := newSeededUserRepo(t, "file:repository_page_immutable_test?mode=memory&cache=shared", "alice", "bob")
 
-	query := dbx.Select(users.AllColumns()...).From(users).OrderBy(users.Name.Asc())
+	query := dbx.Select(users.AllColumns().Values()...).From(users).OrderBy(users.Name.Asc())
 	_, err := repo.ListPage(ctx, query, 2, 1)
 	require.NoError(t, err)
 	require.Nil(t, query.LimitN)
@@ -258,7 +258,7 @@ func seedUsers(ctx context.Context, t *testing.T, repo *repository.Base[User, Us
 }
 
 func newOrderedUserQuery(users UserSchema) *dbx.SelectQuery {
-	return dbx.Select(users.AllColumns()...).From(users).OrderBy(users.Name.Asc()).Limit(10).Offset(5)
+	return dbx.Select(users.AllColumns().Values()...).From(users).OrderBy(users.Name.Asc()).Limit(10).Offset(5)
 }
 
 func assertOrderedUserQueryUnchanged(t *testing.T, query *dbx.SelectQuery) {
@@ -268,5 +268,5 @@ func assertOrderedUserQueryUnchanged(t *testing.T, query *dbx.SelectQuery) {
 	require.Equal(t, 10, *query.LimitN)
 	require.NotNil(t, query.OffsetN)
 	require.Equal(t, 5, *query.OffsetN)
-	require.Len(t, query.Orders, 1)
+	require.Equal(t, 1, query.Orders.Len())
 }

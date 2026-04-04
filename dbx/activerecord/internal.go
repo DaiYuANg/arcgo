@@ -46,8 +46,8 @@ func primaryKeyColumns[S dbx.TableSource](schema S) []string {
 		PrimaryKey() (dbx.PrimaryKeyMeta, bool)
 	}
 	if provider, ok := any(schema).(primaryKeyProvider); ok {
-		if primary, ok := provider.PrimaryKey(); ok && len(primary.Columns) > 0 {
-			return append([]string(nil), primary.Columns...)
+		if primary, ok := provider.PrimaryKey(); ok && primary.Columns.Len() > 0 {
+			return primary.Columns.Values()
 		}
 	}
 	type primaryColumnProvider interface {
@@ -63,12 +63,21 @@ func primaryKeyColumns[S dbx.TableSource](schema S) []string {
 
 func mappedFieldValue(root reflect.Value, field dbx.MappedField) (reflect.Value, error) {
 	value := root
-	for _, index := range field.Path {
+	if field.Path.Len() == 0 {
+		return dereferenceMappedValue(value.Field(field.Index)), nil
+	}
+	var pathErr error
+	field.Path.Range(func(_ int, index int) bool {
 		next, err := mappedStructField(value, field.Name, index)
 		if err != nil {
-			return reflect.Value{}, err
+			pathErr = err
+			return false
 		}
 		value = next
+		return true
+	})
+	if pathErr != nil {
+		return reflect.Value{}, pathErr
 	}
 	return dereferenceMappedValue(value), nil
 }

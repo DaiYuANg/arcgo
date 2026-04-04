@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"slices"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/mo"
@@ -32,10 +31,10 @@ func (x *SQLExecutor) Bind(statement SQLStatementSource, params any) (BoundQuery
 	if bound.Name == "" {
 		bound.Name = statement.StatementName()
 	}
-	if len(bound.Args) > 0 {
-		bound.Args = slices.Clone(bound.Args)
+	if bound.Args.Len() > 0 {
+		bound.Args = bound.Args.Clone()
 	}
-	logRuntimeNode(x.session, "sql.bind.done", "statement", bound.Name, "args_count", len(bound.Args))
+	logRuntimeNode(x.session, "sql.bind.done", "statement", bound.Name, "args_count", bound.Args.Len())
 	return bound, nil
 }
 
@@ -49,7 +48,7 @@ func (x *SQLExecutor) Exec(ctx context.Context, statement SQLStatementSource, pa
 	if err != nil {
 		return nil, err
 	}
-	logRuntimeNode(session, "sql.exec.start", "statement", bound.Name, "args_count", len(bound.Args))
+	logRuntimeNode(session, "sql.exec.start", "statement", bound.Name, "args_count", bound.Args.Len())
 	result, execErr := session.ExecBoundContext(ctx, bound)
 	return result, wrapDBError("execute sql statement", execErr)
 }
@@ -64,7 +63,7 @@ func (x *SQLExecutor) Query(ctx context.Context, statement SQLStatementSource, p
 	if err != nil {
 		return nil, err
 	}
-	logRuntimeNode(session, "sql.query.start", "statement", bound.Name, "args_count", len(bound.Args))
+	logRuntimeNode(session, "sql.query.start", "statement", bound.Name, "args_count", bound.Args.Len())
 	rows, queryErr := session.QueryBoundContext(ctx, bound)
 	return rows, wrapDBError("query sql statement", queryErr)
 }
@@ -104,6 +103,16 @@ func SQLList[E any](ctx context.Context, session Session, statement SQLStatement
 	}
 	logRuntimeNode(session, "sql.list.done", "items", items.Len())
 	return items, nil
+}
+
+// SQLQueryList executes a SQL statement source and returns mapped rows as a collectionx.List.
+// This is the collectionx.List companion to SQLList.
+func SQLQueryList[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (collectionx.List[E], error) {
+	items, err := SQLList(ctx, session, statement, params, mapper)
+	if err != nil {
+		return nil, err
+	}
+	return collectionx.NewList(items...), nil
 }
 
 func SQLGet[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (E, error) {

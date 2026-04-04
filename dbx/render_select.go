@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
@@ -15,7 +16,7 @@ func (q *SelectQuery) Build(d dialect.Dialect) (BoundQuery, error) {
 	if q.FromItem.Name() == "" {
 		return BoundQuery{}, errors.New("dbx: select query requires FROM")
 	}
-	if len(q.Items) == 0 {
+	if q.Items.Len() == 0 {
 		return BoundQuery{}, errors.New("dbx: select query requires at least one item")
 	}
 
@@ -41,16 +42,18 @@ func renderSelectStatement(state *renderState, q *SelectQuery) error {
 }
 
 func renderSelectSet(state *renderState, q *SelectQuery) error {
-	if len(q.Unions) == 0 {
+	if q.Unions.Len() == 0 {
 		return renderSelectQuery(state, q)
 	}
 
 	if err := renderSelectQueryWithoutTail(state, q); err != nil {
 		return err
 	}
-	for _, union := range q.Unions {
+	var renderErr error
+	q.Unions.Range(func(_ int, union UnionClause) bool {
 		if union.Query == nil {
-			return errors.New("dbx: union query is nil")
+			renderErr = errors.New("dbx: union query is nil")
+			return false
 		}
 		if union.All {
 			state.writeString(" UNION ALL ")
@@ -58,23 +61,31 @@ func renderSelectSet(state *renderState, q *SelectQuery) error {
 			state.writeString(" UNION ")
 		}
 		if err := renderUnionQuery(state, union.Query); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
+		return true
+	})
+	if renderErr != nil {
+		return renderErr
 	}
 	return renderSelectTail(state, q)
 }
 
-func renderCTEs(state *renderState, ctes []CTE) error {
-	if len(ctes) == 0 {
+func renderCTEs(state *renderState, ctes collectionx.List[CTE]) error {
+	if ctes.Len() == 0 {
 		return nil
 	}
 	state.writeString("WITH ")
-	for index, cte := range ctes {
+	var renderErr error
+	ctes.Range(func(index int, cte CTE) bool {
 		if strings.TrimSpace(cte.Name) == "" {
-			return errors.New("dbx: cte name cannot be empty")
+			renderErr = errors.New("dbx: cte name cannot be empty")
+			return false
 		}
 		if cte.Query == nil {
-			return fmt.Errorf("dbx: cte %s requires query", cte.Name)
+			renderErr = fmt.Errorf("dbx: cte %s requires query", cte.Name)
+			return false
 		}
 		if index > 0 {
 			state.writeString(", ")
@@ -82,16 +93,21 @@ func renderCTEs(state *renderState, ctes []CTE) error {
 		state.writeQuotedIdent(strings.TrimSpace(cte.Name))
 		state.writeString(" AS (")
 		if err := renderSelectStatement(state, cte.Query); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
 		state.writeByte(')')
+		return true
+	})
+	if renderErr != nil {
+		return renderErr
 	}
 	state.writeByte(' ')
 	return nil
 }
 
 func renderUnionQuery(state *renderState, q *SelectQuery) error {
-	if len(q.CTEs) > 0 || len(q.Unions) > 0 || len(q.Orders) > 0 || q.LimitN != nil || q.OffsetN != nil {
+	if q.CTEs.Len() > 0 || q.Unions.Len() > 0 || q.Orders.Len() > 0 || q.LimitN != nil || q.OffsetN != nil {
 		state.writeByte('(')
 		if err := renderSelectStatement(state, q); err != nil {
 			return err
@@ -140,15 +156,18 @@ func renderSelectDistinct(state *renderState, q *SelectQuery) error {
 }
 
 func renderSelectItems(state *renderState, q *SelectQuery) error {
-	for i, item := range q.Items {
-		if i > 0 {
+	var renderErr error
+	q.Items.Range(func(index int, item SelectItem) bool {
+		if index > 0 {
 			state.writeString(", ")
 		}
 		if err := renderSelectItem(state, item); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return renderErr
 }
 
 func renderSelectFrom(state *renderState, q *SelectQuery) error {
@@ -158,20 +177,23 @@ func renderSelectFrom(state *renderState, q *SelectQuery) error {
 }
 
 func renderSelectJoins(state *renderState, q *SelectQuery) error {
-	for _, join := range q.Joins {
+	var renderErr error
+	q.Joins.Range(func(_ int, join Join) bool {
 		state.writeByte(' ')
 		state.writeString(string(join.Type))
 		state.writeString(" JOIN ")
 		state.renderTable(join.Table)
 		if join.Predicate == nil {
-			continue
+			return true
 		}
 		state.writeString(" ON ")
 		if err := renderPredicate(state, join.Predicate); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return renderErr
 }
 
 func renderSelectWhere(state *renderState, q *SelectQuery) error {
@@ -183,21 +205,24 @@ func renderSelectWhere(state *renderState, q *SelectQuery) error {
 }
 
 func renderSelectGroupBy(state *renderState, q *SelectQuery) error {
-	if len(q.Groups) == 0 {
+	if q.Groups.Len() == 0 {
 		return nil
 	}
 	state.writeString(" GROUP BY ")
-	for i, group := range q.Groups {
-		if i > 0 {
+	var renderErr error
+	q.Groups.Range(func(index int, group Expression) bool {
+		if index > 0 {
 			state.writeString(", ")
 		}
 		operand, err := renderOperandValue(state, group)
 		if err != nil {
-			return err
+			renderErr = err
+			return false
 		}
 		state.writeString(operand)
-	}
-	return nil
+		return true
+	})
+	return renderErr
 }
 
 func renderSelectHaving(state *renderState, q *SelectQuery) error {
@@ -215,20 +240,23 @@ func renderSelectTail(state *renderState, q *SelectQuery) error {
 	return renderSelectLimitOffset(state, q)
 }
 
-func renderSelectOrders(state *renderState, orders []Order) error {
-	if len(orders) == 0 {
+func renderSelectOrders(state *renderState, orders collectionx.List[Order]) error {
+	if orders.Len() == 0 {
 		return nil
 	}
 	state.writeString(" ORDER BY ")
-	for i, order := range orders {
-		if i > 0 {
+	var renderErr error
+	orders.Range(func(index int, order Order) bool {
+		if index > 0 {
 			state.writeString(", ")
 		}
 		if err := renderOrder(state, order); err != nil {
-			return err
+			renderErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return renderErr
 }
 
 func renderSelectLimitOffset(state *renderState, q *SelectQuery) error {

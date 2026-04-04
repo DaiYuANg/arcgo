@@ -74,7 +74,7 @@ mapper := dbx.MustStructMapperWithOptions[shared.Account](
 items, err := dbx.QueryAll(
     ctx,
     core,
-    dbx.Select(catalog.Accounts.AllColumns()...).From(catalog.Accounts),
+    dbx.Select(catalog.Accounts.AllColumns().Values()...).From(catalog.Accounts),
     mapper,
 )
 if err != nil {

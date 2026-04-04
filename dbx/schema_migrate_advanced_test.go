@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 type advancedRole struct {
@@ -84,15 +86,15 @@ func TestAutoMigrateAddsMissingForeignKeyAndCheck(t *testing.T) {
 	schemaDialect.tables["users"] = TableState{
 		Exists: true,
 		Name:   "users",
-		Columns: []ColumnState{
-			{Name: "id", Type: "bigint", Nullable: false},
-			{Name: "tenant_id", Type: "bigint", Nullable: false},
-			{Name: "username", Type: "text", Nullable: false},
-			{Name: "status", Type: "integer", Nullable: false},
-			{Name: "role_id", Type: "bigint", Nullable: false},
-		},
+		Columns: collectionx.NewList(
+			ColumnState{Name: "id", Type: "bigint", Nullable: false},
+			ColumnState{Name: "tenant_id", Type: "bigint", Nullable: false},
+			ColumnState{Name: "username", Type: "text", Nullable: false},
+			ColumnState{Name: "status", Type: "integer", Nullable: false},
+			ColumnState{Name: "role_id", Type: "bigint", Nullable: false},
+		),
 		Indexes:    toIndexStates(IndexesForTest(users)),
-		PrimaryKey: &PrimaryKeyState{Name: "pk_users", Columns: []string{"id", "tenant_id"}},
+		PrimaryKey: &PrimaryKeyState{Name: "pk_users", Columns: collectionx.NewList("id", "tenant_id")},
 	}
 	session := &fakeSession{dialect: schemaDialect}
 
@@ -103,10 +105,10 @@ func TestAutoMigrateAddsMissingForeignKeyAndCheck(t *testing.T) {
 	if !report.Valid() {
 		t.Fatalf("expected valid report: %+v", report)
 	}
-	if len(schemaDialect.tables["users"].ForeignKeys) != 1 {
+	if schemaDialect.tables["users"].ForeignKeys.Len() != 1 {
 		t.Fatalf("expected derived foreign key to be created: %+v", schemaDialect.tables["users"].ForeignKeys)
 	}
-	if len(schemaDialect.tables["users"].Checks) != 1 {
+	if schemaDialect.tables["users"].Checks.Len() != 1 {
 		t.Fatalf("expected check constraint to be created: %+v", schemaDialect.tables["users"].Checks)
 	}
 }
@@ -126,16 +128,15 @@ func (failingIndexDialect) NormalizeType(value string) string {
 	return strings.ToLower(strings.TrimSpace(value))
 }
 func (d failingIndexDialect) BuildCreateTable(spec TableSpec) (BoundQuery, error) {
-	parts := make([]string, 0, len(spec.Columns))
+	parts := make([]string, 0, spec.Columns.Len())
 	singlePK := ""
-	if spec.PrimaryKey != nil && len(spec.PrimaryKey.Columns) == 1 {
-		singlePK = spec.PrimaryKey.Columns[0]
+	if spec.PrimaryKey != nil && spec.PrimaryKey.Columns.Len() == 1 {
+		singlePK, _ = spec.PrimaryKey.Columns.GetFirst()
 	}
-	for i := range spec.Columns {
-		column := &spec.Columns[i]
+	for _, column := range spec.Columns.Values() {
 		typeName := column.SQLType
 		if typeName == "" {
-			typeName = InferTypeNameForTest(*column)
+			typeName = InferTypeNameForTest(column)
 		}
 		part := d.QuoteIdent(column.Name) + " " + strings.ToUpper(typeName)
 		if column.Name == singlePK {

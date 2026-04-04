@@ -20,7 +20,7 @@ func (r *Base[E, S]) defaultSelect() *dbx.SelectQuery {
 	items := collectionx.MapList(r.mapper.Fields(), func(_ int, field dbx.MappedField) dbx.SelectItem {
 		return dbx.NamedColumn[any](r.schema, field.Column)
 	})
-	return dbx.Select(items.Values()...).From(r.schema)
+	return dbx.SelectList(items).From(r.schema)
 }
 
 func (r *Base[E, S]) applySpecs(specs ...Spec) *dbx.SelectQuery {
@@ -78,8 +78,8 @@ func (r *Base[E, S]) primaryKeyColumns() []string {
 		PrimaryKey() (dbx.PrimaryKeyMeta, bool)
 	}
 	if provider, ok := any(r.schema).(primaryKeyProvider); ok {
-		if primary, ok := provider.PrimaryKey(); ok && len(primary.Columns) > 0 {
-			return append([]string(nil), primary.Columns...)
+		if primary, ok := provider.PrimaryKey(); ok && primary.Columns.Len() > 0 {
+			return primary.Columns.Values()
 		}
 	}
 	return []string{r.primaryColumnName()}

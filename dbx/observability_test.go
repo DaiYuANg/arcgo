@@ -6,6 +6,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 type memoryHandler struct {
@@ -154,9 +156,9 @@ func observedUserTableState(t *testing.T, users UserSchema) TableState {
 	return TableState{
 		Exists:      true,
 		Name:        "users",
-		Columns:     []ColumnState{columnStateAt(0), columnStateAt(1), columnStateAt(2), columnStateAt(3), columnStateAt(4)},
+		Columns:     collectionx.NewList(columnStateAt(0), columnStateAt(1), columnStateAt(2), columnStateAt(3), columnStateAt(4)),
 		Indexes:     toIndexStates(spec.Indexes),
-		PrimaryKey:  &PrimaryKeyState{Name: spec.PrimaryKey.Name, Columns: append([]string(nil), spec.PrimaryKey.Columns...)},
+		PrimaryKey:  &PrimaryKeyState{Name: spec.PrimaryKey.Name, Columns: spec.PrimaryKey.Columns.Clone()},
 		ForeignKeys: toForeignKeyStates(spec.ForeignKeys),
 	}
 }
@@ -244,11 +246,13 @@ func assertHookEventMetadata(t *testing.T, event *HookEvent, traceID, requestID 
 	if event == nil {
 		t.Fatal("AfterFunc was not called")
 	}
-	if event.Metadata["trace_id"] != traceID {
-		t.Fatalf("unexpected trace_id: %v", event.Metadata["trace_id"])
+	traceValue, _ := event.Metadata.Get("trace_id")
+	if traceValue != traceID {
+		t.Fatalf("unexpected trace_id: %v", traceValue)
 	}
-	if event.Metadata["request_id"] != requestID {
-		t.Fatalf("unexpected request_id: %v", event.Metadata["request_id"])
+	requestValue, _ := event.Metadata.Get("request_id")
+	if requestValue != requestID {
+		t.Fatalf("unexpected request_id: %v", requestValue)
 	}
 	if event.StartedAt.IsZero() {
 		t.Fatal("expected StartedAt to be set")

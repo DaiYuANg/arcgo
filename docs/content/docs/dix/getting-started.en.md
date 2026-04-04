@@ -112,6 +112,55 @@ go get github.com/DaiYuANg/arcgo/logx@latest
 go run .
 ```
 
+## Optional: resolve framework logger from DI (`logx`)
+
+If you want `dix` internal logs to use a logger produced by your module graph (instead of passing `dix.WithLogger(...)` at app creation), use `dix.WithLoggerFrom...`.
+
+```go
+package main
+
+import (
+	"context"
+	"log/slog"
+
+	"github.com/DaiYuANg/arcgo/dix"
+	"github.com/DaiYuANg/arcgo/logx"
+)
+
+type LogBundle struct {
+	Logger *slog.Logger
+}
+
+func main() {
+	logModule := dix.NewModule("logx",
+		dix.WithModuleProviders(
+			dix.Provider0(func() *LogBundle {
+				return &LogBundle{
+					Logger: logx.MustNew(logx.WithConsole(true), logx.WithDebugLevel()),
+				}
+			}),
+		),
+		dix.WithModuleHooks(
+			dix.OnStop(func(_ context.Context, logs *LogBundle) error {
+				return logx.Close(logs.Logger)
+			}),
+		),
+	)
+
+	app := dix.New(
+		"demo",
+		dix.WithModules(logModule /*, other modules... */),
+		dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
+			return logs.Logger
+		}),
+	)
+
+	_, _ = app.Build()
+}
+```
+
+This keeps logger wiring inside modules while still replacing the framework default logger.
+
 ## Validation notes
 
 - For typed-only apps, `app.Validate()` is usually enough.

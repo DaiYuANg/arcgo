@@ -23,6 +23,8 @@ func loadConfigFromOptions(ctx context.Context, opts *Options) (_ *Config, err e
 		"dotenv_files", len(opts.dotenvFiles),
 		"priority", len(opts.priority),
 		"env_prefix", opts.envPrefix,
+		"raw_args", len(opts.args),
+		"args_flags", changedFlagCount(opts.argsFlagSet),
 	)
 
 	ctx, obs, finish := beginConfigLoad(ctx, opts)
@@ -165,6 +167,20 @@ func loadConfiguredSource(
 			return loadEnv(k, opts.envPrefix, opts.envSeparator)
 		}); err != nil {
 			return fmt.Errorf("env source: %w", errors.Join(ErrLoad, err))
+		}
+		logDebug(opts, "configx source loaded", "source", src.String())
+
+	case SourceArgs:
+		logDebug(opts,
+			"configx source loading",
+			"source", src.String(),
+			"raw_args", len(opts.args),
+			"changed_flags", changedFlagCount(opts.argsFlagSet),
+		)
+		if err := loadSourceWithObservability(ctx, obs, src, func() error {
+			return loadArgs(k, opts.args, opts.argsFlagSet, opts.argsNameFunc)
+		}); err != nil {
+			return fmt.Errorf("args source: %w", errors.Join(ErrLoad, err))
 		}
 		logDebug(opts, "configx source loaded", "source", src.String())
 	}

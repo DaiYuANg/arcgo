@@ -13,7 +13,7 @@ import (
 )
 
 type scanPlan struct {
-	fields []MappedField
+	fields collectionx.List[MappedField]
 }
 
 func (m StructMapper[E]) ScanRows(rows *sql.Rows) (collectionx.List[E], error) {
@@ -151,7 +151,7 @@ func (m StructMapper[E]) scanPlan(columns []string) (*scanPlan, error) {
 		fields.Add(field)
 	}
 
-	plan := &scanPlan{fields: fields.Values()}
+	plan := &scanPlan{fields: fields}
 	if cached, ok := m.meta.scanPlans.Peek(signature); ok {
 		return cached, nil
 	}
@@ -172,7 +172,7 @@ func (m StructMapper[E]) scanMapper(plan *scanPlan) scanlib.Mapper[E] {
 
 func (m StructMapper[E]) scheduleScanState(plan *scanPlan) func(*scanlib.Row) (any, error) {
 	return func(row *scanlib.Row) (any, error) {
-		state := m.newRowScanState(len(plan.fields))
+		state := m.newRowScanState(plan.fields.Len())
 		if err := m.scheduleMappedFieldScans(plan, row, &state); err != nil {
 			return nil, err
 		}
@@ -201,12 +201,15 @@ func (m StructMapper[E]) newRowScanState(fieldCount int) rowScanState {
 }
 
 func (m StructMapper[E]) scheduleMappedFieldScans(plan *scanPlan, row *scanlib.Row, state *rowScanState) error {
-	for index := range plan.fields {
-		if err := m.scheduleMappedFieldScan(row, state, plan.fields[index], index); err != nil {
-			return err
+	var scanErr error
+	plan.fields.Range(func(index int, field MappedField) bool {
+		if err := m.scheduleMappedFieldScan(row, state, field, index); err != nil {
+			scanErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return scanErr
 }
 
 func (m StructMapper[E]) scheduleMappedFieldScan(row *scanlib.Row, state *rowScanState, field MappedField, index int) error {
@@ -223,12 +226,15 @@ func (m StructMapper[E]) scheduleMappedFieldScan(row *scanlib.Row, state *rowSca
 }
 
 func (m StructMapper[E]) decodeCodecFields(plan *scanPlan, state rowScanState) error {
-	for index := range plan.fields {
-		if err := m.decodeCodecField(state, plan.fields[index], index); err != nil {
-			return err
+	var decodeErr error
+	plan.fields.Range(func(index int, field MappedField) bool {
+		if err := m.decodeCodecField(state, field, index); err != nil {
+			decodeErr = err
+			return false
 		}
-	}
-	return nil
+		return true
+	})
+	return decodeErr
 }
 
 func (m StructMapper[E]) decodeCodecField(state rowScanState, field MappedField, index int) error {

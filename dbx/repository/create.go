@@ -7,7 +7,6 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
-	"github.com/samber/lo"
 )
 
 // Create inserts a single entity.
@@ -24,7 +23,7 @@ func (r *Base[E, S]) Create(ctx context.Context, entity *E) error {
 		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
 	}
-	_, err = dbx.Exec(ctx, r.session, dbx.InsertInto(r.schema).Values(assignments.Values()...))
+	_, err = dbx.Exec(ctx, r.session, dbx.InsertInto(r.schema).ValuesList(assignments))
 	if err != nil {
 		wrapped := wrapMutationError(err)
 		dbx.LogRuntimeNode(r.session, "repository.create.error", "table", r.schema.TableName(), "stage", "exec", "error", wrapped)
@@ -53,7 +52,7 @@ func (r *Base[E, S]) CreateMany(ctx context.Context, entities ...*E) error {
 			dbx.LogRuntimeNode(r.session, "repository.create_many.error", "table", r.schema.TableName(), "stage", "assignments", "index", index, "error", err)
 			return err
 		}
-		query.Values(assignments.Values()...)
+		query.ValuesList(assignments)
 	}
 	_, err := dbx.Exec(ctx, r.session, query)
 	if err != nil {
@@ -79,19 +78,19 @@ func (r *Base[E, S]) Upsert(ctx context.Context, entity *E, conflictColumns ...s
 		dbx.LogRuntimeNode(r.session, "repository.upsert.error", "table", r.schema.TableName(), "stage", "assignments", "error", err)
 		return err
 	}
-	query := dbx.InsertInto(r.schema).Values(assignments.Values()...)
+	query := dbx.InsertInto(r.schema).ValuesList(assignments)
 	targetColumns := normalizeConflictColumns(conflictColumns, r.primaryKeyColumns())
-	if len(targetColumns) == 0 {
+	if targetColumns.Len() == 0 {
 		return &ValidationError{Message: "upsert requires conflict columns"}
 	}
-	targetExpressions := lo.Map(targetColumns, func(column string, _ int) dbx.Expression {
+	targetExpressions := collectionx.MapList(targetColumns, func(_ int, column string) dbx.Expression {
 		return dbx.NamedColumn[any](r.schema, column)
 	})
 	updateAssignments := upsertUpdateAssignments(r.schema, r.mapper.Fields(), targetColumns)
-	if len(updateAssignments) == 0 {
-		query.OnConflict(targetExpressions...).DoNothing()
+	if updateAssignments.Len() == 0 {
+		query.OnConflictList(targetExpressions).DoNothing()
 	} else {
-		query.OnConflict(targetExpressions...).DoUpdateSet(updateAssignments...)
+		query.OnConflictList(targetExpressions).DoUpdateSetList(updateAssignments)
 	}
 	_, err = dbx.Exec(ctx, r.session, query)
 	if err != nil {
@@ -109,10 +108,10 @@ func (r *Base[E, S]) insertAssignments(entity *E) (collectionx.List[dbx.Assignme
 		return nil, fmt.Errorf("build insert assignments: %w", err)
 	}
 
-	return assignments, nil
+	return collectionx.NewList(assignments...), nil
 }
 
-func normalizeConflictColumns(columns, fallback []string) []string {
+func normalizeConflictColumns(columns, fallback []string) collectionx.List[string] {
 	if len(columns) == 0 {
 		columns = fallback
 	}
@@ -123,16 +122,24 @@ func normalizeConflictColumns(columns, fallback []string) []string {
 			ordered.Add(name)
 		}
 	}
-	return ordered.Values()
+	items := collectionx.NewListWithCapacity[string](ordered.Len())
+	ordered.Range(func(item string) bool {
+		items.Add(item)
+		return true
+	})
+	return items
 }
 
-func upsertUpdateAssignments[S dbx.TableSource](schema S, fields collectionx.List[dbx.MappedField], conflictColumns []string) []dbx.Assignment {
-	conflictSet := collectionx.NewSetWithCapacity[string](len(conflictColumns))
-	conflictSet.Add(conflictColumns...)
+func upsertUpdateAssignments[S dbx.TableSource](schema S, fields collectionx.List[dbx.MappedField], conflictColumns collectionx.List[string]) collectionx.List[dbx.Assignment] {
+	conflictSet := collectionx.NewSetWithCapacity[string](conflictColumns.Len())
+	conflictColumns.Range(func(_ int, column string) bool {
+		conflictSet.Add(column)
+		return true
+	})
 	return collectionx.FilterMapList(fields, func(_ int, field dbx.MappedField) (dbx.Assignment, bool) {
 		if conflictSet.Contains(field.Column) {
 			return nil, false
 		}
 		return dbx.NamedColumn[any](schema, field.Column).SetExcluded(), true
-	}).Values()
+	})
 }

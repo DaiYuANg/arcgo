@@ -5,12 +5,15 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/DaiYuANg/arcgo/observabilityx"
 	"github.com/go-playground/validator/v10"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
+	"github.com/spf13/pflag"
 )
 
 // Source identifies a configuration source.
@@ -23,6 +26,8 @@ const (
 	SourceFile
 	// SourceEnv reads values from OS environment variables.
 	SourceEnv
+	// SourceArgs reads values from raw command-line args and changed pflag flags.
+	SourceArgs
 )
 
 // String returns a human-readable name for the source.
@@ -34,6 +39,8 @@ func (s Source) String() string {
 		return "file"
 	case SourceEnv:
 		return "env"
+	case SourceArgs:
+		return "args"
 	default:
 		return "unknown"
 	}
@@ -67,6 +74,9 @@ type Options struct {
 	envSeparator    string
 	files           []string
 	priority        []Source
+	args            []string
+	argsFlagSet     *pflag.FlagSet
+	argsNameFunc    func(string) string
 	defaults        mo.Option[map[string]any]
 	typedDefaults   mo.Option[map[string]any]
 	ignoreDotenvErr bool
@@ -95,15 +105,17 @@ type Option func(*Options)
 
 // NewOptions returns an *Options pre-filled with sensible defaults.
 //
-// Default source priority: dotenv → file → env (later sources override earlier ones).
+// Default source priority: dotenv → file → env → args (later sources override earlier ones).
 // Default env separator: "_" (APP_DB_HOST → db.host).
+// Default flag name mapping: "--server-port" → "server.port".
 // Default watch debounce: 100 ms.
 // Dotenv errors are ignored by default (files are optional).
 func NewOptions() *Options {
 	return &Options{
 		dotenvFiles:     []string{".env", ".env.local"},
-		priority:        []Source{SourceDotenv, SourceFile, SourceEnv},
+		priority:        []Source{SourceDotenv, SourceFile, SourceEnv, SourceArgs},
 		envSeparator:    defaultEnvSeparator,
+		argsNameFunc:    defaultArgsName,
 		validateLevel:   ValidateLevelNone,
 		ignoreDotenvErr: true,
 		watchDebounce:   100 * time.Millisecond,
@@ -152,10 +164,53 @@ func WithFiles(files ...string) Option {
 }
 
 // WithPriority overrides the source loading order. Sources listed later
-// override sources listed earlier, so [SourceDotenv, SourceFile, SourceEnv]
-// means env vars win over file values which win over dotenv values.
+// override sources listed earlier, so
+// [SourceDotenv, SourceFile, SourceEnv, SourceArgs] means changed command-line
+// flags win over env vars which win over file values which win over dotenv values.
 func WithPriority(p ...Source) Option {
 	return func(o *Options) { o.priority = p }
+}
+
+// WithArgs loads raw long-form command-line arguments as the SourceArgs source.
+// Supported forms:
+//   - --server.port=8080
+//   - --server.port 8080
+//   - --debug
+//   - --no-debug
+//
+// Positional args are ignored. Parsing stops after a standalone "--".
+func WithArgs(args ...string) Option {
+	return func(o *Options) {
+		o.args = append([]string(nil), args...)
+	}
+}
+
+// WithOSArgs loads raw command-line arguments from os.Args[1:].
+func WithOSArgs() Option {
+	return WithArgs(os.Args[1:]...)
+}
+
+// WithFlagSet loads changed values from a pflag.FlagSet as the SourceArgs source.
+// Only flags explicitly set by the caller are loaded; pflag default values do not
+// override other sources.
+func WithFlagSet(fs *pflag.FlagSet) Option {
+	return func(o *Options) { o.argsFlagSet = fs }
+}
+
+// WithCommandLineFlags loads changed values from pflag.CommandLine.
+func WithCommandLineFlags() Option {
+	return WithFlagSet(pflag.CommandLine)
+}
+
+// WithArgsNameFunc maps a raw arg or pflag name to a config path.
+// The default mapping lowercases names and replaces "-" with ".":
+// "server-port" -> "server.port".
+func WithArgsNameFunc(fn func(string) string) Option {
+	return func(o *Options) {
+		if fn != nil {
+			o.argsNameFunc = fn
+		}
+	}
 }
 
 // WithDefaults sets in-memory default values loaded before any file or env
@@ -203,6 +258,14 @@ func typedDefaultsToMap(v any) (map[string]any, error) {
 		return nil, fmt.Errorf("%w: typed defaults must be an object-like value", ErrDefaults)
 	}
 	return out, nil
+}
+
+func defaultArgsName(name string) string {
+	clean := strings.TrimSpace(name)
+	if clean == "" {
+		return ""
+	}
+	return strings.ReplaceAll(strings.ToLower(clean), "-", ".")
 }
 
 // WithIgnoreDotenvError controls whether missing or malformed dotenv files

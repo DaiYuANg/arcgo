@@ -4,11 +4,8 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"slices"
-	"strings"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 type relationLookupValue struct {
@@ -21,7 +18,7 @@ type relationKeyPair struct {
 	target any
 }
 
-func collectSourceRelationKeys[E any](rt *relationRuntime, entities []E, mapper Mapper[E], schema schemaDefinition, meta RelationMeta) ([]any, []relationLookupValue, error) {
+func collectSourceRelationKeys[E any](rt *relationRuntime, entities []E, mapper Mapper[E], schema schemaDefinition, meta RelationMeta) (collectionx.List[any], []relationLookupValue, error) {
 	localColumn, err := relationSourceColumn(schemaAdapter[E]{def: schema}, meta)
 	if err != nil {
 		return nil, nil, err
@@ -52,7 +49,7 @@ func collectSourceRelationKeys[E any](rt *relationRuntime, entities []E, mapper 
 		seen.Set(key.key, struct{}{})
 		keys.Add(key.key)
 	}
-	return keys.Values(), lookup, nil
+	return keys, lookup, nil
 }
 
 func entityRelationKey[E any](mapper Mapper[E], entity *E, column string) (relationLookupValue, error) {
@@ -101,10 +98,10 @@ func relationTargetColumnForSchema(schema relationSchemaSource, meta RelationMet
 	name := meta.TargetColumn
 	if name == "" {
 		primaryKey := derivePrimaryKey(schema.schemaRef())
-		if primaryKey == nil || len(primaryKey.Columns) != 1 {
+		if primaryKey == nil || primaryKey.Columns.Len() != 1 {
 			return ColumnMeta{}, fmt.Errorf("dbx: relation %s requires target column or single-column primary key", meta.Name)
 		}
-		name = primaryKey.Columns[0]
+		name, _ = primaryKey.Columns.GetFirst()
 	}
 
 	column, ok := sourceColumnByName(schema.schemaRef(), name)
@@ -114,60 +111,71 @@ func relationTargetColumnForSchema(schema relationSchemaSource, meta RelationMet
 	return column, nil
 }
 
-func queryRelationTargets[E any](ctx context.Context, session Session, rt *relationRuntime, schema SchemaSource[E], mapper Mapper[E], targetColumn ColumnMeta, keys []any) ([]E, error) {
-	if len(keys) == 0 {
-		return nil, nil
+func queryRelationTargets[E any](ctx context.Context, session Session, rt *relationRuntime, schema SchemaSource[E], mapper Mapper[E], targetColumn ColumnMeta, keys collectionx.List[any]) (collectionx.List[E], error) {
+	if keys.Len() == 0 {
+		return collectionx.NewList[E](), nil
 	}
 	chunks := chunkRelationKeys(keys, relationChunkSize(session))
 	logRuntimeNode(session,
 		"relation.targets.query.start",
 		"table", schema.tableRef().TableName(),
 		"target_column", targetColumn.Name,
-		"keys", len(keys),
-		"chunks", len(chunks),
+		"keys", keys.Len(),
+		"chunks", chunks.Len(),
 	)
-	items := collectionx.NewListWithCapacity[E](len(keys))
-	for index, chunk := range chunks {
-		logRuntimeNode(session, "relation.targets.query.chunk", "index", index, "size", len(chunk))
+	items := collectionx.NewListWithCapacity[E](keys.Len())
+	var resultErr error
+	chunks.Range(func(index int, chunk collectionx.List[any]) bool {
+		logRuntimeNode(session, "relation.targets.query.chunk", "index", index, "size", chunk.Len())
 		bound, err := buildRelationTargetsBoundQuery(session, rt, schema, targetColumn, chunk)
 		if err != nil {
 			logRuntimeNode(session, "relation.targets.query.error", "stage", "build_bound", "error", err)
-			return nil, err
+			resultErr = err
+			return false
 		}
-		rows, err := QueryAllBound[E](ctx, session, bound, mapper)
+		rows, err := QueryAllBoundList[E](ctx, session, bound, mapper)
 		if err != nil {
 			logRuntimeNode(session, "relation.targets.query.error", "stage", "query_rows", "index", index, "error", err)
-			return nil, err
+			resultErr = err
+			return false
 		}
 		items.Merge(rows)
+		return true
+	})
+	if resultErr != nil {
+		return nil, resultErr
 	}
 	logRuntimeNode(session, "relation.targets.query.done", "table", schema.tableRef().TableName(), "items", items.Len())
-	return items.Values(), nil
+	return items, nil
 }
 
-func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema relationSchemaSource, targetColumn ColumnMeta, keys []any) (BoundQuery, error) {
+func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema relationSchemaSource, targetColumn ColumnMeta, keys collectionx.List[any]) (BoundQuery, error) {
 	def := schema.schemaRef()
 	dialectName := session.Dialect().Name()
 	tableName := schema.tableRef().Name()
-	selectSig := strings.Join(lo.Map(def.columns, func(c ColumnMeta, _ int) string { return c.Name }), ",")
-	cacheKey := fmt.Sprintf("rel:%s:%s:%s:%s:%d", dialectName, tableName, selectSig, targetColumn.Name, len(keys))
+	selectSigParts := collectionx.NewListWithCapacity[string](len(def.columns))
+	for _, column := range def.columns {
+		selectSigParts.Add(column.Name)
+	}
+	selectSig := selectSigParts.Join(",")
+	cacheKey := fmt.Sprintf("rel:%s:%s:%s:%s:%d", dialectName, tableName, selectSig, targetColumn.Name, keys.Len())
 	cachedSQL, ok, err := relationCachedQuery(rt, cacheKey)
 	if err != nil {
 		return BoundQuery{}, err
 	}
 	if ok {
-		logRuntimeNode(session, "relation.targets.bound.cache_hit", "table", tableName, "target_column", targetColumn.Name, "keys", len(keys))
-		return BoundQuery{SQL: cachedSQL, Args: slices.Clone(keys)}, nil
+		logRuntimeNode(session, "relation.targets.bound.cache_hit", "table", tableName, "target_column", targetColumn.Name, "keys", keys.Len())
+		return BoundQuery{SQL: cachedSQL, Args: keys.Clone()}, nil
 	}
-	logRuntimeNode(session, "relation.targets.bound.cache_miss", "table", tableName, "target_column", targetColumn.Name, "keys", len(keys))
-	query := Select(allSelectItems(def)...).
+	logRuntimeNode(session, "relation.targets.bound.cache_miss", "table", tableName, "target_column", targetColumn.Name, "keys", keys.Len())
+	query := SelectList(allSelectItems(def)).
 		From(schema).
 		Where(metadataComparisonPredicate{
 			left:  targetColumn,
 			op:    OpIn,
-			right: keys,
+			right: keys.Values(),
 		}).
-		OrderBy(relationTargetOrders(schema, targetColumn)...)
+		OrderByList(relationTargetOrders(schema, targetColumn))
 	bound, err := Build(session, query)
 	if err != nil {
 		logRuntimeNode(session, "relation.targets.bound.error", "table", tableName, "error", err)
@@ -177,43 +185,58 @@ func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema
 	return bound, nil
 }
 
-func allSelectItems(def schemaDefinition) []SelectItem {
-	return lo.Map(def.columns, func(column ColumnMeta, _ int) SelectItem {
-		return schemaSelectItem{meta: column}
-	})
+func allSelectItems(def schemaDefinition) collectionx.List[SelectItem] {
+	items := collectionx.NewListWithCapacity[SelectItem](len(def.columns))
+	for _, column := range def.columns {
+		items.Add(schemaSelectItem{meta: column})
+	}
+	return items
 }
 
-func indexRelationTargets[E any](targets []E, mapper Mapper[E], column, relationName string, enforceUnique bool) (map[any]E, error) {
-	indexed := make(map[any]E, len(targets))
-	counts := make(map[any]int, len(targets))
-	for index := range targets {
-		key, err := presentEntityRelationKey(mapper, &targets[index], column)
+func indexRelationTargets[E any](targets collectionx.List[E], mapper Mapper[E], column, relationName string, enforceUnique bool) (map[any]E, error) {
+	indexed := make(map[any]E, targets.Len())
+	counts := make(map[any]int, targets.Len())
+	var resultErr error
+	targets.Range(func(_ int, target E) bool {
+		key, err := presentEntityRelationKey(mapper, &target, column)
 		if err != nil {
-			return nil, err
+			resultErr = err
+			return false
 		}
 		if !key.ok {
-			continue
+			return true
 		}
 		counts[key.value]++
 		if enforceUnique && counts[key.value] > 1 {
-			return nil, &RelationCardinalityError{Relation: relationName, Key: key.value, Count: counts[key.value]}
+			resultErr = &RelationCardinalityError{Relation: relationName, Key: key.value, Count: counts[key.value]}
+			return false
 		}
-		indexed[key.value] = targets[index]
+		indexed[key.value] = target
+		return true
+	})
+	if resultErr != nil {
+		return nil, resultErr
 	}
 	return indexed, nil
 }
 
-func groupRelationTargets[E any](_ *relationRuntime, targets []E, mapper Mapper[E], column string) (collectionx.MultiMap[any, E], error) {
-	grouped := collectionx.NewMultiMapWithCapacity[any, E](len(targets))
-	for index := range targets {
-		key, err := presentEntityRelationKey(mapper, &targets[index], column)
+func groupRelationTargets[E any](_ *relationRuntime, targets collectionx.List[E], mapper Mapper[E], column string) (collectionx.MultiMap[any, E], error) {
+	grouped := collectionx.NewMultiMapWithCapacity[any, E](targets.Len())
+	var resultErr error
+	targets.Range(func(_ int, target E) bool {
+		key, err := presentEntityRelationKey(mapper, &target, column)
 		if err != nil {
-			return nil, err
+			resultErr = err
+			return false
 		}
 		if !key.ok {
-			continue
+			return true
 		}
-		grouped.Put(key.value, targets[index])
+		grouped.Put(key.value, target)
+		return true
+	})
+	if resultErr != nil {
+		return nil, resultErr
 	}
 	return grouped, nil
 }
@@ -221,10 +244,10 @@ func groupRelationTargets[E any](_ *relationRuntime, targets []E, mapper Mapper[
 func relationKeyTypeForMeta(def schemaDefinition, column string) reflect.Type {
 	if column == "" {
 		primaryKey := derivePrimaryKey(def)
-		if primaryKey == nil || len(primaryKey.Columns) != 1 {
+		if primaryKey == nil || primaryKey.Columns.Len() != 1 {
 			return nil
 		}
-		column = primaryKey.Columns[0]
+		column, _ = primaryKey.Columns.GetFirst()
 	}
 	columnMeta, ok := sourceColumnByName(def, column)
 	if !ok {

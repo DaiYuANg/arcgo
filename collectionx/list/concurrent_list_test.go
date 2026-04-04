@@ -106,3 +106,10 @@ func TestNewConcurrentListWithCapacity(t *testing.T) {
 	l.Add(4, 5, 6, 7, 8)
 	require.Equal(t, []int{1, 2, 3, 4, 5, 6, 7, 8}, l.Values())
 }
+
+func TestConcurrentList_Join(t *testing.T) {
+	t.Parallel()
+
+	l := list.NewConcurrentList("a", "b", "c")
+	require.Equal(t, "a,b,c", l.Join(","))
+}

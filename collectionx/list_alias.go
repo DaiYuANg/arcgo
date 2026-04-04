@@ -19,6 +19,32 @@ func NewListWithCapacity[T any](capacity int, items ...T) List[T] {
 	return list.NewListWithCapacity(capacity, items...)
 }
 
+// Grid is the root ordered two-dimensional container exposed by collectionx.
+type Grid[T any] = *list.Grid[T]
+
+// NewGrid creates a Grid populated with rows.
+func NewGrid[T any](rows ...[]T) Grid[T] {
+	return list.NewGrid(rows...)
+}
+
+// NewGridWithCapacity creates a Grid with preallocated row capacity and optional rows.
+func NewGridWithCapacity[T any](capacity int, rows ...[]T) Grid[T] {
+	return list.NewGridWithCapacity(capacity, rows...)
+}
+
+// ConcurrentGrid is the thread-safe root ordered two-dimensional container exposed by collectionx.
+type ConcurrentGrid[T any] = *list.ConcurrentGrid[T]
+
+// NewConcurrentGrid creates a ConcurrentGrid populated with rows.
+func NewConcurrentGrid[T any](rows ...[]T) ConcurrentGrid[T] {
+	return list.NewConcurrentGrid(rows...)
+}
+
+// NewConcurrentGridWithCapacity creates a ConcurrentGrid with preallocated row capacity and optional rows.
+func NewConcurrentGridWithCapacity[T any](capacity int, rows ...[]T) ConcurrentGrid[T] {
+	return list.NewConcurrentGridWithCapacity(capacity, rows...)
+}
+
 // RopeList aliases list.RopeList in the root collectionx package.
 type RopeList[T any] = *list.RopeList[T]
 

@@ -26,8 +26,8 @@ func TestSelectBuildSQLite(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected sqlite select SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{1, "a%"}) {
-		t.Fatalf("unexpected sqlite select args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{1, "a%"}) {
+		t.Fatalf("unexpected sqlite select args: %#v", bound.Args.Values())
 	}
 }
 
@@ -48,8 +48,8 @@ func TestSelectBuildPostgresWithAliasAndIn(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected postgres select SQL:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{int64(1), int64(2), int64(3)}) {
-		t.Fatalf("unexpected postgres select args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{int64(1), int64(2), int64(3)}) {
+		t.Fatalf("unexpected postgres select args: %#v", bound.Args.Values())
 	}
 }
 
@@ -66,8 +66,8 @@ func TestInsertUpdateDeleteBuildMySQL(t *testing.T) {
 	if insertBound.SQL != insertSQL {
 		t.Fatalf("unexpected mysql insert SQL:\nwant: %s\n got: %s", insertSQL, insertBound.SQL)
 	}
-	if !reflect.DeepEqual(insertBound.Args, []any{"alice", 1}) {
-		t.Fatalf("unexpected mysql insert args: %#v", insertBound.Args)
+	if !reflect.DeepEqual(insertBound.Args.Values(), []any{"alice", 1}) {
+		t.Fatalf("unexpected mysql insert args: %#v", insertBound.Args.Values())
 	}
 
 	updateBound, err := Update(users).
@@ -81,8 +81,8 @@ func TestInsertUpdateDeleteBuildMySQL(t *testing.T) {
 	if updateBound.SQL != updateSQL {
 		t.Fatalf("unexpected mysql update SQL:\nwant: %s\n got: %s", updateSQL, updateBound.SQL)
 	}
-	if !reflect.DeepEqual(updateBound.Args, []any{2, int64(10)}) {
-		t.Fatalf("unexpected mysql update args: %#v", updateBound.Args)
+	if !reflect.DeepEqual(updateBound.Args.Values(), []any{2, int64(10)}) {
+		t.Fatalf("unexpected mysql update args: %#v", updateBound.Args.Values())
 	}
 
 	deleteBound, err := DeleteFrom(users).
@@ -95,8 +95,8 @@ func TestInsertUpdateDeleteBuildMySQL(t *testing.T) {
 	if deleteBound.SQL != deleteSQL {
 		t.Fatalf("unexpected mysql delete SQL:\nwant: %s\n got: %s", deleteSQL, deleteBound.SQL)
 	}
-	if !reflect.DeepEqual(deleteBound.Args, []any{int64(10)}) {
-		t.Fatalf("unexpected mysql delete args: %#v", deleteBound.Args)
+	if !reflect.DeepEqual(deleteBound.Args.Values(), []any{int64(10)}) {
+		t.Fatalf("unexpected mysql delete args: %#v", deleteBound.Args.Values())
 	}
 }
 
@@ -162,8 +162,8 @@ func TestSelectBuildWithGroupByHavingAndAggregates(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected aggregate sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{int64(1)}) {
-		t.Fatalf("unexpected aggregate args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{int64(1)}) {
+		t.Fatalf("unexpected aggregate args: %#v", bound.Args.Values())
 	}
 }
 
@@ -198,7 +198,7 @@ func TestSelectBuildWithSubqueryAndExists(t *testing.T) {
 	if bound.SQL != expectedSQL {
 		t.Fatalf("unexpected subquery sql:\nwant: %s\n got: %s", expectedSQL, bound.SQL)
 	}
-	if !reflect.DeepEqual(bound.Args, []any{"admin", "admin"}) {
-		t.Fatalf("unexpected subquery args: %#v", bound.Args)
+	if !reflect.DeepEqual(bound.Args.Values(), []any{"admin", "admin"}) {
+		t.Fatalf("unexpected subquery args: %#v", bound.Args.Values())
 	}
 }

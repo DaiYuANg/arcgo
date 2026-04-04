@@ -31,5 +31,5 @@ func TestLookupPrefersFieldThenTag(t *testing.T) {
 	}, params, postgres.New())
 	require.NoError(t, err)
 	require.Equal(t, "name = $1 AND alias = $2 AND status = $3 AND id IN ($4, $5, $6)", result.Query)
-	require.Equal(t, []any{"alice", "alice", "ACTIVE", 1, 2, 3}, result.Args)
+	require.Equal(t, []any{"alice", "alice", "ACTIVE", 1, 2, 3}, result.Args.Values())
 }

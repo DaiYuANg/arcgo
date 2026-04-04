@@ -55,7 +55,7 @@ func scanPostgresIndex(rows *sql.Rows) (dbx.IndexState, bool, error) {
 
 	return dbx.IndexState{
 		Name:    name,
-		Columns: parseIndexColumns(definition),
+		Columns: collectionx.NewList(parseIndexColumns(definition)...),
 		Unique:  strings.Contains(upperDefinition, "CREATE UNIQUE INDEX"),
 	}, false, nil
 }
@@ -75,8 +75,8 @@ func scanPostgresForeignKey(rows *sql.Rows) (string, dbx.ForeignKeyState, error)
 	return name, dbx.ForeignKeyState{
 		Name:          name,
 		TargetTable:   targetTable,
-		Columns:       []string{column},
-		TargetColumns: []string{targetColumn},
+		Columns:       collectionx.NewList(column),
+		TargetColumns: collectionx.NewList(targetColumn),
 		OnDelete:      referentialAction(deleteRule),
 		OnUpdate:      referentialAction(updateRule),
 	}, nil
@@ -97,7 +97,7 @@ func postgresPrimaryKeyState(name string, columns []string) *dbx.PrimaryKeyState
 	if len(columns) == 0 {
 		return nil
 	}
-	return &dbx.PrimaryKeyState{Name: name, Columns: columns}
+	return &dbx.PrimaryKeyState{Name: name, Columns: collectionx.NewList(columns...)}
 }
 
 func postgresPrimaryColumn(columns map[string]struct{}, name string) bool {
@@ -111,8 +111,8 @@ func appendPostgresForeignKey(groups collectionx.OrderedMap[string, dbx.ForeignK
 		groups.Set(name, state)
 		return
 	}
-	current.Columns = append(current.Columns, state.Columns...)
-	current.TargetColumns = append(current.TargetColumns, state.TargetColumns...)
+	current.Columns.Merge(state.Columns)
+	current.TargetColumns.Merge(state.TargetColumns)
 	groups.Set(name, current)
 }
 

@@ -38,7 +38,7 @@ var bumpTaskSpecs = []bumpTaskSpec{
 
 func main() {
 	patch := defineBumpTasks()
-	defineModulePatchTasks()
+	defineModuleBumpTasks()
 
 	goyek.Define(goyek.Task{
 		Name:  "help",
@@ -88,7 +88,7 @@ func defineBumpTasks() *goyek.DefinedTask {
 
 func printUsage(w io.Writer) {
 	mustWriteString(w, "Usage: go run ./scripts/tagger [task]\n")
-	mustWriteString(w, "Tasks: patch, patch-push, minor, minor-push, major, major-push, modules-patch, modules-patch-push, modules-patch-dry-run, help\n")
+	mustWriteString(w, "Tasks: patch, patch-push, minor, minor-push, major, major-push, modules-patch, modules-patch-push, modules-patch-dry-run, modules-minor, modules-minor-push, modules-minor-dry-run, modules-major, modules-major-push, modules-major-dry-run, help\n")
 	mustWriteString(w, "Env: TAGGER_REMOTE=origin TAGGER_NAME=auto-tagger TAGGER_EMAIL=ci@local TAGGER_MODULE_SCOPE=libs|all\n")
 }
 

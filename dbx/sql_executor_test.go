@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 	"testing"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 func TestSQLListScansStructMapperAndPropagatesStatementName(t *testing.T) {
@@ -34,7 +36,7 @@ func TestSQLListScansStructMapperAndPropagatesStatementName(t *testing.T) {
 		}
 		return BoundQuery{
 			SQL:  `SELECT "id", "username" FROM "users" WHERE "status" = ?`,
-			Args: []any{value.Status},
+			Args: collectionx.NewList[any](value.Status),
 		}, nil
 	})
 
@@ -52,6 +54,33 @@ func TestSQLListScansStructMapperAndPropagatesStatementName(t *testing.T) {
 	}
 	if event.SQL != `SELECT "id", "username" FROM "users" WHERE "status" = ?` {
 		t.Fatalf("unexpected sql in hook event: %+v", event)
+	}
+}
+
+func TestSQLQueryListScansStructMapper(t *testing.T) {
+	sqlDB, cleanup := OpenTestSQLiteWithSchema(t,
+		`INSERT INTO "roles" ("id","name") VALUES (1,'r1')`,
+		`INSERT INTO "users" ("username","email_address","status","role_id") VALUES ('alice','a@x.com',1,1),('bob','b@x.com',1,1)`,
+	)
+	defer cleanup()
+
+	statement := NewSQLStatement("user.find_active", func(_ any) (BoundQuery, error) {
+		return BoundQuery{
+			SQL:  `SELECT "id", "username" FROM "users" WHERE "status" = ?`,
+			Args: collectionx.NewList[any](1),
+		}, nil
+	})
+
+	items, err := SQLQueryList(context.Background(), New(sqlDB, testSQLiteDialect{}), statement, nil, MustStructMapper[UserSummary]())
+	if err != nil {
+		t.Fatalf("SQLQueryList returned error: %v", err)
+	}
+	if items.Len() != 2 {
+		t.Fatalf("unexpected list size: %d", items.Len())
+	}
+	last, _ := items.GetLast()
+	if last.ID != 2 || last.Username != "bob" {
+		t.Fatalf("unexpected last item: %+v", last)
 	}
 }
 

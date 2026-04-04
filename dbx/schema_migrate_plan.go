@@ -3,7 +3,6 @@ package dbx
 import (
 	"context"
 	"fmt"
-	"slices"
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
@@ -44,7 +43,7 @@ func planSchemaChangesLegacy(ctx context.Context, session Session, schemas ...Sc
 			return MigrationPlan{}, err
 		}
 		reportTables.Add(diff)
-		actions.Add(buildLegacyMigrationActions(schemaDialect, schema, diff)...)
+		actions.Merge(buildLegacyMigrationActions(schemaDialect, schema, diff))
 	}
 
 	return MigrationPlan{
@@ -83,7 +82,7 @@ func logLegacyDiffSummary(session Session, diff TableDiff) {
 	)
 }
 
-func buildLegacyMigrationActions(schemaDialect SchemaDialect, schema SchemaResource, diff TableDiff) []MigrationAction {
+func buildLegacyMigrationActions(schemaDialect SchemaDialect, schema SchemaResource, diff TableDiff) collectionx.List[MigrationAction] {
 	spec := buildTableSpec(schema.schemaRef())
 	if diff.MissingTable {
 		return buildMissingTableActions(schemaDialect, spec)
@@ -91,32 +90,37 @@ func buildLegacyMigrationActions(schemaDialect SchemaDialect, schema SchemaResou
 	return buildExistingTableActions(schemaDialect, diff)
 }
 
-func buildMissingTableActions(schemaDialect SchemaDialect, spec TableSpec) []MigrationAction {
-	return slices.Concat(
-		[]MigrationAction{buildCreateTableAction(schemaDialect, spec)},
-		mappedMigrationActions(spec.Indexes, func(index IndexMeta) MigrationAction {
-			return buildCreateIndexAction(schemaDialect, index)
-		}),
-	)
+func buildMissingTableActions(schemaDialect SchemaDialect, spec TableSpec) collectionx.List[MigrationAction] {
+	actions := collectionx.NewList(buildCreateTableAction(schemaDialect, spec))
+	actions.Merge(mappedMigrationActions(spec.Indexes, func(index IndexMeta) MigrationAction {
+		return buildCreateIndexAction(schemaDialect, index)
+	}))
+	return actions
 }
 
-func buildExistingTableActions(schemaDialect SchemaDialect, diff TableDiff) []MigrationAction {
-	return slices.Concat(
-		mappedMigrationActionList(diff.MissingColumns, func(column ColumnMeta) MigrationAction {
-			return buildAddColumnAction(schemaDialect, diff.Table, column)
-		}),
-		mappedMigrationActionList(diff.MissingIndexes, func(index IndexMeta) MigrationAction {
-			return buildCreateIndexAction(schemaDialect, index)
-		}),
-		mappedMigrationActionList(diff.MissingForeignKeys, func(foreignKey ForeignKeyMeta) MigrationAction {
-			return buildAddForeignKeyAction(schemaDialect, diff.Table, foreignKey)
-		}),
-		mappedMigrationActionList(diff.MissingChecks, func(check CheckMeta) MigrationAction {
-			return buildAddCheckAction(schemaDialect, diff.Table, check)
-		}),
-		primaryKeyManualActions(diff),
-		columnDiffManualActions(diff),
+func buildExistingTableActions(schemaDialect SchemaDialect, diff TableDiff) collectionx.List[MigrationAction] {
+	actions := collectionx.NewListWithCapacity[MigrationAction](
+		diff.MissingColumns.Len() +
+			diff.MissingIndexes.Len() +
+			diff.MissingForeignKeys.Len() +
+			diff.MissingChecks.Len() +
+			diff.ColumnDiffs.Len() + 1,
 	)
+	actions.Merge(mappedMigrationActions(diff.MissingColumns, func(column ColumnMeta) MigrationAction {
+		return buildAddColumnAction(schemaDialect, diff.Table, column)
+	}))
+	actions.Merge(mappedMigrationActions(diff.MissingIndexes, func(index IndexMeta) MigrationAction {
+		return buildCreateIndexAction(schemaDialect, index)
+	}))
+	actions.Merge(mappedMigrationActions(diff.MissingForeignKeys, func(foreignKey ForeignKeyMeta) MigrationAction {
+		return buildAddForeignKeyAction(schemaDialect, diff.Table, foreignKey)
+	}))
+	actions.Merge(mappedMigrationActions(diff.MissingChecks, func(check CheckMeta) MigrationAction {
+		return buildAddCheckAction(schemaDialect, diff.Table, check)
+	}))
+	actions.Merge(primaryKeyManualActions(diff))
+	actions.Merge(columnDiffManualActions(diff))
+	return actions
 }
 
 func ValidateSchemas(ctx context.Context, session Session, schemas ...SchemaResource) (ValidationReport, error) {
@@ -217,13 +221,13 @@ func schemaNames(schemas []SchemaResource) string {
 	}), ",")
 }
 
-func primaryKeyManualActions(diff TableDiff) []MigrationAction {
+func primaryKeyManualActions(diff TableDiff) collectionx.List[MigrationAction] {
 	if diff.PrimaryKeyDiff == nil {
-		return nil
+		return collectionx.NewList[MigrationAction]()
 	}
-	return []MigrationAction{{
+	return collectionx.NewList(MigrationAction{
 		Kind:    MigrationActionManual,
 		Table:   diff.Table,
 		Summary: "manual primary key migration required",
-	}}
+	})
 }

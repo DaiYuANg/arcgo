@@ -26,28 +26,28 @@ type SchemaDialect interface {
 
 type TableSpec struct {
 	Name        string
-	Columns     []ColumnMeta
-	Indexes     []IndexMeta
+	Columns     collectionx.List[ColumnMeta]
+	Indexes     collectionx.List[IndexMeta]
 	PrimaryKey  *PrimaryKeyMeta
-	ForeignKeys []ForeignKeyMeta
-	Checks      []CheckMeta
+	ForeignKeys collectionx.List[ForeignKeyMeta]
+	Checks      collectionx.List[CheckMeta]
 }
 
 type IndexMeta struct {
 	Name    string
 	Table   string
-	Columns []string
+	Columns collectionx.List[string]
 	Unique  bool
 }
 
 type TableState struct {
 	Exists      bool
 	Name        string
-	Columns     []ColumnState
-	Indexes     []IndexState
+	Columns     collectionx.List[ColumnState]
+	Indexes     collectionx.List[IndexState]
 	PrimaryKey  *PrimaryKeyState
-	ForeignKeys []ForeignKeyState
-	Checks      []CheckState
+	ForeignKeys collectionx.List[ForeignKeyState]
+	Checks      collectionx.List[CheckState]
 }
 
 type ColumnState struct {
@@ -61,20 +61,20 @@ type ColumnState struct {
 
 type IndexState struct {
 	Name    string
-	Columns []string
+	Columns collectionx.List[string]
 	Unique  bool
 }
 
 type PrimaryKeyState struct {
 	Name    string
-	Columns []string
+	Columns collectionx.List[string]
 }
 
 type ForeignKeyState struct {
 	Name          string
-	Columns       []string
+	Columns       collectionx.List[string]
 	TargetTable   string
-	TargetColumns []string
+	TargetColumns collectionx.List[string]
 	OnDelete      ReferentialAction
 	OnUpdate      ReferentialAction
 }
@@ -189,7 +189,7 @@ func (e SchemaDriftError) Error() string {
 	if tables.Len() == 0 {
 		return "dbx: schema drift detected"
 	}
-	return "dbx: schema drift detected for tables: " + strings.Join(tables.Values(), ", ")
+	return "dbx: schema drift detected for tables: " + tables.Join(", ")
 }
 
 func (r ValidationReport) Valid() bool {

@@ -93,7 +93,7 @@ func main() {
 	items, err := dbx.QueryAll(
 		ctx,
 		core,
-		dbx.Select(Users.AllColumns()...).From(Users).Where(Users.Status.Eq(1)),
+		dbx.Select(Users.AllColumns().Values()...).From(Users).Where(Users.Status.Eq(1)),
 		mapper,
 	)
 	if err != nil {

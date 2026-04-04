@@ -1,6 +1,8 @@
 package dbx
 
-import "github.com/samber/lo"
+import (
+	"github.com/DaiYuANg/arcgo/collectionx"
+)
 
 type Expression interface {
 	expressionNode()
@@ -97,7 +99,7 @@ func (comparisonPredicate) predicateNode()  {}
 
 type logicalPredicate struct {
 	Op         LogicalOperator
-	Predicates []Predicate
+	Predicates collectionx.List[Predicate]
 }
 
 func (logicalPredicate) expressionNode() {}
@@ -139,17 +141,27 @@ type expressionOrder struct {
 func (expressionOrder) orderNode() {}
 
 func And(predicates ...Predicate) Predicate {
-	items := compactPredicates(predicates)
-	if len(items) == 1 {
-		return items[0]
+	return AndList(compactPredicates(predicates))
+}
+
+func Or(predicates ...Predicate) Predicate {
+	return OrList(compactPredicates(predicates))
+}
+
+func AndList(predicates collectionx.List[Predicate]) Predicate {
+	items := compactPredicatesList(predicates)
+	if items.Len() == 1 {
+		predicate, _ := items.GetFirst()
+		return predicate
 	}
 	return logicalPredicate{Op: LogicalAnd, Predicates: items}
 }
 
-func Or(predicates ...Predicate) Predicate {
-	items := compactPredicates(predicates)
-	if len(items) == 1 {
-		return items[0]
+func OrList(predicates collectionx.List[Predicate]) Predicate {
+	items := compactPredicatesList(predicates)
+	if items.Len() == 1 {
+		predicate, _ := items.GetFirst()
+		return predicate
 	}
 	return logicalPredicate{Op: LogicalOr, Predicates: items}
 }
@@ -170,14 +182,18 @@ func Exists(query *SelectQuery) Predicate {
 	return existsPredicate{Query: query}
 }
 
-func compactPredicates(predicates []Predicate) []Predicate {
-	return lo.Filter(predicates, func(predicate Predicate, _ int) bool {
+func compactPredicates(predicates []Predicate) collectionx.List[Predicate] {
+	return compactPredicatesList(collectionx.NewList(predicates...))
+}
+
+func compactPredicatesList(predicates collectionx.List[Predicate]) collectionx.List[Predicate] {
+	return collectionx.FilterList(predicates, func(_ int, predicate Predicate) bool {
 		return predicate != nil
 	})
 }
 
-func compactExpressions(expressions []Expression) []Expression {
-	return lo.Filter(expressions, func(expression Expression, _ int) bool {
+func compactExpressions(expressions []Expression) collectionx.List[Expression] {
+	return collectionx.FilterList(collectionx.NewList(expressions...), func(_ int, expression Expression) bool {
 		return expression != nil
 	})
 }

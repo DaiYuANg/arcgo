@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 func wrapDBError(op string, err error) error {
@@ -54,7 +56,7 @@ func observedQueryContext(
 		Operation: OperationQuery,
 		Statement: statement,
 		SQL:       query,
-		Args:      args,
+		Args:      collectionx.NewList(args...),
 	})
 	if err != nil {
 		observe.after(ctx, event)
@@ -81,7 +83,7 @@ func observedExecContext(
 		Operation: OperationExec,
 		Statement: statement,
 		SQL:       query,
-		Args:      args,
+		Args:      collectionx.NewList(args...),
 	})
 	if err != nil {
 		observe.after(ctx, event)

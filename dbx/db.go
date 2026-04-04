@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"log/slog"
-	"slices"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
@@ -28,7 +27,11 @@ func New(raw *sql.DB, d dialect.Dialect) *DB {
 }
 
 func NewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) (*DB, error) {
-	config, err := applyOptions(opts...)
+	return NewWithOptionsList(raw, d, collectionx.NewList(opts...))
+}
+
+func NewWithOptionsList(raw *sql.DB, d dialect.Dialect, opts collectionx.List[Option]) (*DB, error) {
+	config, err := applyOptionsList(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +39,7 @@ func NewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) (*DB, error)
 		"db.new.start",
 		"has_sql_db", raw != nil,
 		"dialect", dialectName(d),
-		"hooks", len(config.hooks),
+		"hooks", config.hooks.Len(),
 		"has_id_generator", config.idGenerator != nil,
 		"node_id", config.nodeID,
 	)
@@ -59,7 +62,7 @@ func NewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) (*DB, error)
 	logRuntimeNodeWithLogger(config.logger, config.debug,
 		"db.new.done",
 		"dialect", dialectName(d),
-		"hooks", len(config.hooks),
+		"hooks", config.hooks.Len(),
 		"node_id", config.nodeID,
 	)
 	return db, nil
@@ -67,6 +70,14 @@ func NewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) (*DB, error)
 
 func MustNewWithOptions(raw *sql.DB, d dialect.Dialect, opts ...Option) *DB {
 	db, err := NewWithOptions(raw, d, opts...)
+	if err != nil {
+		panic(err)
+	}
+	return db
+}
+
+func MustNewWithOptionsList(raw *sql.DB, d dialect.Dialect, opts collectionx.List[Option]) *DB {
+	db, err := NewWithOptionsList(raw, d, opts)
 	if err != nil {
 		panic(err)
 	}
@@ -106,7 +117,7 @@ func (db *DB) Logger() *slog.Logger {
 }
 
 func (db *DB) Hooks() collectionx.List[Hook] {
-	return collectionx.NewListWithCapacity(len(db.observe.hooks), slices.Clone(db.observe.hooks)...)
+	return db.observe.hooks.Clone()
 }
 
 func (db *DB) Debug() bool {
@@ -164,7 +175,7 @@ func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *R
 	if db.raw == nil {
 		return errorRow(ErrNilSQLDB)
 	}
-	ctx, event, err := db.observe.before(ctx, HookEvent{Operation: OperationQueryRow, SQL: query, Args: args})
+	ctx, event, err := db.observe.before(ctx, HookEvent{Operation: OperationQueryRow, SQL: query, Args: collectionx.NewList(args...)})
 	if err != nil {
 		db.observe.after(ctx, event)
 		return errorRow(err)
@@ -179,15 +190,15 @@ func (db *DB) QueryRowContext(ctx context.Context, query string, args ...any) *R
 }
 
 func (db *DB) Bound(rawSQL string, args ...any) BoundQuery {
-	return BoundQuery{SQL: rawSQL, Args: slices.Clone(args)}
+	return BoundQuery{SQL: rawSQL, Args: collectionx.NewList(args...)}
 }
 
 func (db *DB) QueryBoundContext(ctx context.Context, bound BoundQuery) (*sql.Rows, error) {
-	return db.queryContext(ctx, bound.Name, bound.SQL, bound.Args...)
+	return db.queryContext(ctx, bound.Name, bound.SQL, bound.Args.Values()...)
 }
 
 func (db *DB) ExecBoundContext(ctx context.Context, bound BoundQuery) (sql.Result, error) {
-	return db.execContext(ctx, bound.Name, bound.SQL, bound.Args...)
+	return db.execContext(ctx, bound.Name, bound.SQL, bound.Args.Values()...)
 }
 
 func (db *DB) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) {

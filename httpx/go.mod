@@ -4,7 +4,7 @@ go 1.26.1
 
 require (
 	github.com/danielgtaylor/huma/v2 v2.37.3
-	github.com/go-playground/validator/v10 v10.30.1
+	github.com/go-playground/validator/v10 v10.30.2
 	github.com/samber/lo v1.53.0
 	github.com/samber/mo v1.16.0
 	github.com/stretchr/testify v1.11.1

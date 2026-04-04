@@ -3,12 +3,23 @@ package scan
 import (
 	"errors"
 	"strings"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 // Scan tokenizes a SQL template string.
 func Scan(input string) ([]Token, error) {
+	tokens, err := ScanList(input)
+	if err != nil {
+		return nil, err
+	}
+	return tokens.Values(), nil
+}
+
+// ScanList tokenizes a SQL template string into a collectionx.List.
+func ScanList(input string) (collectionx.List[Token], error) {
 	var (
-		tokens  []Token
+		tokens  = collectionx.NewList[Token]()
 		textBuf strings.Builder
 	)
 

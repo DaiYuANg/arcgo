@@ -25,22 +25,37 @@ const (
 
 type frame struct {
 	kind frameKind
-	out  *[]Node
+	out  *collectionx.List[Node]
 }
 
 // Build converts scanned tokens into a parse tree.
 func Build(tokens []scan.Token) ([]Node, error) {
-	var nodes []Node
+	nodes, err := BuildList(collectionx.NewList(tokens...))
+	if err != nil {
+		return nil, err
+	}
+	return nodes.Values(), nil
+}
+
+// BuildList converts scanned tokens into a parse tree as a collectionx.List.
+func BuildList(tokens collectionx.List[scan.Token]) (collectionx.List[Node], error) {
+	nodes := collectionx.NewList[Node]()
 	stack := collectionx.NewListWithCapacity[frame](4, frame{kind: frameRoot, out: &nodes})
 
 	appendNode := func(n Node) {
 		appendFrameNode(stack, n)
 	}
 
-	for i := range tokens {
-		if err := consumeToken(tokens[i], stack, appendNode); err != nil {
-			return nil, err
+	var buildErr error
+	tokens.Range(func(_ int, token scan.Token) bool {
+		if err := consumeToken(token, stack, appendNode); err != nil {
+			buildErr = err
+			return false
 		}
+		return true
+	})
+	if buildErr != nil {
+		return nil, buildErr
 	}
 
 	if stack.Len() != 1 {
@@ -118,5 +133,8 @@ func popFrame(stack collectionx.List[frame]) error {
 func appendFrameNode(stack collectionx.List[frame], node Node) {
 	current, _ := stack.Get(stack.Len() - 1)
 	out := current.out
-	*out = append(*out, node)
+	if *out == nil {
+		*out = collectionx.NewList[Node]()
+	}
+	(*out).Add(node)
 }

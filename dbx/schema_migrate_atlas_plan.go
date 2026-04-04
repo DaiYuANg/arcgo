@@ -13,7 +13,6 @@ import (
 	atlassqlite "ariga.io/atlas/sql/sqlite"
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/hot"
-	"github.com/samber/lo"
 )
 
 var compiledSchemaCache = hot.NewHotCache[string, *atlasCompiledSchema](hot.LRU, 128).Build()
@@ -22,7 +21,7 @@ type atlasCompiledSchema struct {
 	schema    *atlasschema.Schema
 	tables    collectionx.Map[string, *atlasCompiledTable]
 	externals collectionx.Map[string, *atlasschema.Table]
-	order     []string
+	order     collectionx.List[string]
 }
 
 type atlasCompiledTable struct {
@@ -55,29 +54,33 @@ func writeSchemaFingerprint(buffer *renderBuffer, spec TableSpec) {
 	buffer.writeString("T:")
 	buffer.writeString(spec.Name)
 	buffer.writeString("|")
-	for i := range spec.Columns {
-		writeFingerprintColumn(buffer, spec.Columns[i])
-	}
-	for _, index := range spec.Indexes {
+	spec.Columns.Range(func(_ int, column ColumnMeta) bool {
+		writeFingerprintColumn(buffer, column)
+		return true
+	})
+	spec.Indexes.Range(func(_ int, index IndexMeta) bool {
 		writeFingerprintIndex(buffer, index)
-	}
+		return true
+	})
 	if spec.PrimaryKey != nil {
 		buffer.writeString("PK:")
-		buffer.writeString(strings.Join(spec.PrimaryKey.Columns, ","))
+		buffer.writeString(columnsKey(spec.PrimaryKey.Columns))
 		buffer.writeString("|")
 	}
-	for i := range spec.ForeignKeys {
+	spec.ForeignKeys.Range(func(_ int, foreignKey ForeignKeyMeta) bool {
 		buffer.writeString("FK:")
-		buffer.writeString(foreignKeyKey(spec.ForeignKeys[i]))
+		buffer.writeString(foreignKeyKey(foreignKey))
 		buffer.writeString("|")
-	}
-	for _, check := range spec.Checks {
+		return true
+	})
+	spec.Checks.Range(func(_ int, check CheckMeta) bool {
 		buffer.writeString("CK:")
 		buffer.writeString(check.Name)
 		buffer.writeString(":")
 		buffer.writeString(checkKey(check.Expression))
 		buffer.writeString("|")
-	}
+		return true
+	})
 }
 
 func writeFingerprintColumn(buffer *renderBuffer, column ColumnMeta) {
@@ -113,7 +116,7 @@ func writeFingerprintIndex(buffer *renderBuffer, index IndexMeta) {
 	buffer.writeString("I:")
 	buffer.writeString(index.Name)
 	buffer.writeString(":")
-	buffer.writeString(strings.Join(index.Columns, ","))
+	buffer.writeString(columnsKey(index.Columns))
 	buffer.writeString(":")
 	buffer.writeString(strconv.FormatBool(index.Unique))
 	buffer.writeString("|")
@@ -165,9 +168,10 @@ func validateAtlasPlanningSession(session Session) error {
 }
 
 func atlasCurrentSchema(ctx context.Context, driver atlasmigrate.Driver, session Session, schemas []SchemaResource) (*atlasschema.Schema, string, error) {
-	tableNames := lo.Map(schemas, func(schema SchemaResource, _ int) string {
-		return schema.tableRef().TableName()
-	})
+	tableNames := make([]string, 0, len(schemas))
+	for _, schema := range schemas {
+		tableNames = append(tableNames, schema.tableRef().TableName())
+	}
 	current, err := atlasInspectCurrentSchema(ctx, driver, tableNames)
 	if err != nil {
 		return nil, "", err

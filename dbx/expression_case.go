@@ -1,10 +1,6 @@
 package dbx
 
-import (
-	"slices"
-
-	"github.com/samber/lo"
-)
+import "github.com/DaiYuANg/arcgo/collectionx"
 
 type Aggregate[T any] struct {
 	Function AggregateFunction
@@ -14,11 +10,11 @@ type Aggregate[T any] struct {
 }
 
 type CaseBuilder[T any] struct {
-	branches []caseWhenBranch
+	branches collectionx.List[caseWhenBranch]
 }
 
 type CaseExpression[T any] struct {
-	Branches []caseWhenBranch
+	Branches collectionx.List[caseWhenBranch]
 	Else     any
 }
 
@@ -70,7 +66,7 @@ func (b *CaseBuilder[T]) When(predicate Predicate, value any) *CaseBuilder[T] {
 	if b == nil {
 		b = &CaseBuilder[T]{}
 	}
-	b.branches = lo.Concat(b.branches, []caseWhenBranch{{Predicate: predicate, Value: value}})
+	b.branches = mergeList(b.branches, collectionx.NewList(caseWhenBranch{Predicate: predicate, Value: value}))
 	return b
 }
 
@@ -79,7 +75,7 @@ func (b *CaseBuilder[T]) Else(value any) CaseExpression[T] {
 		return CaseExpression[T]{Else: value}
 	}
 	return CaseExpression[T]{
-		Branches: slices.Clone(b.branches),
+		Branches: b.branches.Clone(),
 		Else:     value,
 	}
 }
@@ -89,7 +85,7 @@ func (b *CaseBuilder[T]) End() CaseExpression[T] {
 		return CaseExpression[T]{}
 	}
 	return CaseExpression[T]{
-		Branches: slices.Clone(b.branches),
+		Branches: b.branches.Clone(),
 	}
 }
 

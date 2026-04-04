@@ -62,7 +62,7 @@ func queryActiveUsers(ctx context.Context, core *dbx.DB, catalog shared.Catalog)
 	users, err := dbx.QueryAll[shared.User](
 		ctx,
 		core,
-		dbx.Select(catalog.Users.AllColumns()...).
+		dbx.Select(catalog.Users.AllColumns().Values()...).
 			From(catalog.Users).
 			Where(catalog.Users.Status.Eq(1)).
 			OrderBy(catalog.Users.ID.Asc()),
@@ -133,7 +133,7 @@ func queryUsersByUsername(ctx context.Context, core *dbx.DB, catalog shared.Cata
 	users, err := dbx.QueryAll[shared.User](
 		ctx,
 		core,
-		dbx.Select(catalog.Users.AllColumns()...).
+		dbx.Select(catalog.Users.AllColumns().Values()...).
 			From(catalog.Users).
 			Where(catalog.Users.Username.Eq(username)),
 		userMapper,

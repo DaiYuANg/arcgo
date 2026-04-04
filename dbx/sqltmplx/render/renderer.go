@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 	"github.com/DaiYuANg/arcgo/dbx/sqltmplx/parse"
 	"github.com/expr-lang/expr/vm"
@@ -14,22 +15,33 @@ var errIfExpressionNotBool = errors.New("sqltmplx: if expression must return boo
 
 // Render renders parsed template nodes into SQL.
 func Render(nodes []parse.Node, params any, d dialect.Contract) (Result, error) {
+	return RenderList(collectionx.NewListWithCapacity(len(nodes), nodes...), params, d)
+}
+
+// RenderList renders parsed template nodes from a collectionx.List into SQL.
+func RenderList(nodes collectionx.List[parse.Node], params any, d dialect.Contract) (Result, error) {
 	st := newState(params, d)
 	query, err := renderNodes(nodes, st)
 	if err != nil {
 		return Result{}, err
 	}
-	return Result{Query: compactWhitespace(query), Args: st.args}, nil
+	return Result{Query: compactWhitespace(query), Args: st.args.Clone()}, nil
 }
 
-func renderNodes(nodes []parse.Node, st *state) (string, error) {
+func renderNodes(nodes collectionx.List[parse.Node], st *state) (string, error) {
 	var sb strings.Builder
-	for i := range nodes {
-		text, err := renderNode(nodes[i], st)
+	var renderErr error
+	nodes.Range(func(_ int, node parse.Node) bool {
+		text, err := renderNode(node, st)
 		if err != nil {
-			return "", err
+			renderErr = err
+			return false
 		}
 		writeBuilderString(&sb, text)
+		return true
+	})
+	if renderErr != nil {
+		return "", renderErr
 	}
 	return sb.String(), nil
 }
@@ -60,7 +72,7 @@ func renderIfNode(node *parse.IfNode, st *state) (string, error) {
 	return renderNodes(node.Body, st)
 }
 
-func renderCleanedBlock(body []parse.Node, st *state, cleanup func(string) string) (string, error) {
+func renderCleanedBlock(body collectionx.List[parse.Node], st *state, cleanup func(string) string) (string, error) {
 	text, err := renderNodes(body, st)
 	if err != nil {
 		return "", err

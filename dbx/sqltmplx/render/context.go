@@ -3,18 +3,19 @@ package render
 import (
 	"reflect"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx/dialect"
 )
 
 type state struct {
 	dialect dialect.Contract
 	params  any
-	args    []any
+	args    collectionx.List[any]
 	bindN   int
 }
 
 func newState(params any, d dialect.Contract) *state {
-	return &state{dialect: d, params: params}
+	return &state{dialect: d, params: params, args: collectionx.NewList[any]()}
 }
 
 func (s *state) nextBind() string {

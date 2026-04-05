@@ -79,9 +79,9 @@ func runModuleBumpTagger(a *goyek.A, mode bumpMode, push, dryRun bool) {
 		a.Fatal(err)
 	}
 
-	for i := range targets {
-		runModuleBumpTarget(a, repo, commit, cfg, &targets[i], push, dryRun)
-	}
+	lo.ForEach(targets, func(item releaseTarget, index int) {
+		runModuleBumpTarget(a, repo, commit, cfg, &targets[index], push, dryRun)
+	})
 
 	logModuleBumpSummary(a, len(targets), cfg.remote, push, dryRun)
 }

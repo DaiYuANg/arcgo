@@ -24,7 +24,7 @@ func collectSourceRelationKeys[E any](rt *relationRuntime, entities []E, mapper 
 		return nil, nil, err
 	}
 
-	lookup := make([]relationLookupValue, len(entities))
+	lookup := collectionx.NewListWithCapacity[relationLookupValue](len(entities))
 	keys := collectionx.NewListWithCapacity[any](len(entities))
 	seen, err := relationSeenSet(rt)
 	if err != nil {
@@ -39,7 +39,7 @@ func collectSourceRelationKeys[E any](rt *relationRuntime, entities []E, mapper 
 		if err != nil {
 			return nil, nil, err
 		}
-		lookup[index] = key
+		lookup.AddAt(index, key)
 		if !key.present {
 			continue
 		}
@@ -49,7 +49,7 @@ func collectSourceRelationKeys[E any](rt *relationRuntime, entities []E, mapper 
 		seen.Set(key.key, struct{}{})
 		keys.Add(key.key)
 	}
-	return keys, lookup, nil
+	return keys, lookup.Values(), nil
 }
 
 func entityRelationKey[E any](mapper Mapper[E], entity *E, column string) (relationLookupValue, error) {

@@ -13,7 +13,7 @@ tool (
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/go-git/go-git/v5 v5.17.1
+	github.com/go-git/go-git/v5 v5.17.2
 	github.com/goyek/goyek/v3 v3.0.1
 	github.com/goyek/x v0.4.0
 	github.com/samber/lo v1.53.0
@@ -242,7 +242,7 @@ require (
 	github.com/matoous/godox v1.1.0 // indirect
 	github.com/mattn/go-colorable v0.1.14 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
-	github.com/mattn/go-runewidth v0.0.21 // indirect
+	github.com/mattn/go-runewidth v0.0.22 // indirect
 	github.com/mattn/go-shellwords v1.0.12 // indirect
 	github.com/mattn/go-tty v0.0.7 // indirect
 	github.com/mgechev/revive v1.15.0 // indirect

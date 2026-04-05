@@ -3,6 +3,8 @@ package list
 import (
 	"fmt"
 	"strings"
+
+	"github.com/samber/lo"
 )
 
 // Join concatenates list items with sep.
@@ -19,12 +21,12 @@ func (l *List[T]) Join(sep string, formatters ...func(index int, item T) string)
 	}
 
 	var builder strings.Builder
-	for index, item := range l.items {
+	lo.ForEach(l.items, func(item T, index int) {
 		if index > 0 {
 			builder.WriteString(sep)
 		}
 		builder.WriteString(formatter(index, item))
-	}
+	})
 	return builder.String()
 }
 

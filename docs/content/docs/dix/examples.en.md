@@ -132,6 +132,33 @@ if err != nil {
 fmt.Println(svc.Request.RequestID)
 ```
 
+## Example: Error-returning Providers
+
+```go
+app := dix.NewApp("errors",
+    dix.NewModule("errors",
+        dix.WithModuleProviders(
+            dix.ProviderErr0(func() (*Config, error) {
+                return loadConfig()
+            }),
+        ),
+        dix.WithModuleSetups(
+            advanced.OverrideErr0(func() (*Config, error) {
+                return loadConfigFromFixture()
+            }),
+        ),
+    ),
+)
+
+requestScope := advanced.Scope(rt, "request-42", func(injector do.Injector) {
+    advanced.ProvideScopedNamedErr0(injector, "tenant.default", func() (string, error) {
+        return resolveTenantFromRequest()
+    })
+})
+```
+
+Use the `Err` suffixed helpers when construction can fail and the failure should flow through normal resolution.
+
 ## Example: Fine-Grained Inspection
 
 ```go

@@ -29,6 +29,7 @@ and a runtime model without forcing most users to deal with `do` directly.
 
 - Minimal module graph: [Getting Started](./getting-started)
 - Health checks and HTTP handlers: [Health and lifecycle](./health-and-lifecycle)
+- Fallible provider construction: [Error-returning providers](./error-providers)
 - Runnable example index: [dix examples](./examples)
 
 ## Install / Import

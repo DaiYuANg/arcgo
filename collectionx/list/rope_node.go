@@ -147,10 +147,7 @@ func (n *ropeNode[T]) rebalanceIfNeeded() *ropeNode[T] {
 
 	leftLen := n.left.nodeLen()
 	rightLen := n.right.nodeLen()
-	smaller := leftLen
-	if rightLen < smaller {
-		smaller = rightLen
-	}
+	smaller := min(leftLen, rightLen)
 	if smaller == 0 {
 		return n.compact()
 	}

@@ -1,123 +1,103 @@
-package list
+package list_test
 
-import "testing"
+import (
+	"testing"
+
+	list "github.com/DaiYuANg/arcgo/collectionx/list"
+	"github.com/stretchr/testify/require"
+)
 
 func TestGridAddValuesAndClone(t *testing.T) {
-	g := NewGrid[int]([]int{1, 2}, []int{3})
+	t.Parallel()
+
+	g := list.NewGrid[int]([]int{1, 2}, []int{3})
 	g.AddRow(4, 5)
 
-	if g.RowCount() != 3 {
-		t.Fatalf("expected row count 3, got %d", g.RowCount())
-	}
-	if g.Len() != 5 {
-		t.Fatalf("expected cell count 5, got %d", g.Len())
-	}
+	require.Equal(t, 3, g.RowCount())
+	require.Equal(t, 5, g.Len())
 
-	row, ok := g.GetRow(0)
-	if !ok || len(row) != 2 || row[0] != 1 || row[1] != 2 {
-		t.Fatalf("unexpected first row: %#v, ok=%v", row, ok)
-	}
-	row[0] = 99
+	firstRow, ok := g.GetRow(0)
+	require.True(t, ok)
+	require.Equal(t, []int{1, 2}, firstRow)
 
+	firstRow[0] = 99
 	values := g.Values()
 	values[1][0] = 88
-	if value, ok := g.Get(0, 0); !ok || value != 1 {
-		t.Fatalf("unexpected cell after row mutation: %v, ok=%v", value, ok)
-	}
-	if value, ok := g.Get(1, 0); !ok || value != 3 {
-		t.Fatalf("unexpected cell after values mutation: %v, ok=%v", value, ok)
-	}
+
+	assertGridCell(t, g, 0, 0, 1)
+	assertGridCell(t, g, 1, 0, 3)
 
 	cloned := g.Clone()
-	_ = cloned.Set(0, 0, 7)
-	_ = cloned.SetRow(1, 8, 9)
-	if value, _ := g.Get(0, 0); value != 1 {
-		t.Fatalf("unexpected original value after clone mutation: %v", value)
-	}
-	if row, _ := g.GetRow(1); len(row) != 1 || row[0] != 3 {
-		t.Fatalf("unexpected original row after clone mutation: %#v", row)
-	}
+	require.True(t, cloned.Set(0, 0, 7))
+	require.True(t, cloned.SetRow(1, 8, 9))
+
+	assertGridCell(t, g, 0, 0, 1)
+	assertGridRow(t, g, 1, []int{3})
 }
 
 func TestGridRemoveAndMerge(t *testing.T) {
-	g := NewGrid[int]()
+	t.Parallel()
+
+	g := list.NewGrid[int]()
 	g.AddRow(1)
 	g.AddRows([]int{2, 3}, []int{})
 
 	removed, ok := g.RemoveRow(1)
-	if !ok || len(removed) != 2 || removed[0] != 2 || removed[1] != 3 {
-		t.Fatalf("unexpected removed row: %#v, ok=%v", removed, ok)
-	}
+	require.True(t, ok)
+	require.Equal(t, []int{2, 3}, removed)
 
-	other := NewGrid[int]([]int{4, 5})
+	other := list.NewGrid[int]([]int{4, 5})
 	g.Merge(other)
-	if g.RowCount() != 3 {
-		t.Fatalf("expected row count 3 after merge, got %d", g.RowCount())
-	}
-	if g.Len() != 3 {
-		t.Fatalf("expected cell count 3 after merge, got %d", g.Len())
-	}
+
+	require.Equal(t, 3, g.RowCount())
+	require.Equal(t, 3, g.Len())
 
 	otherValues := other.Values()
 	otherValues[0][0] = 99
-	value, _ := g.Get(2, 0)
-	if value != 4 {
-		t.Fatalf("unexpected merged cell value: %v", value)
-	}
+	assertGridCell(t, g, 2, 0, 4)
 }
 
 func TestGridListRowHelpers(t *testing.T) {
-	g := NewGrid[int]()
-	g.AddRowList(NewList(1, 2))
-	g.AddRowsList(NewList(NewList(3), NewList(4, 5)))
+	t.Parallel()
 
-	if g.RowCount() != 3 {
-		t.Fatalf("expected row count 3, got %d", g.RowCount())
-	}
+	g := list.NewGrid[int]()
+	g.AddRowList(list.NewList(1, 2))
+	g.AddRowsList(list.NewList(list.NewList(3), list.NewList(4, 5)))
+
+	require.Equal(t, 3, g.RowCount())
 
 	row, ok := g.GetRowList(0)
-	if !ok || row.Len() != 2 {
-		t.Fatalf("unexpected row list: %#v ok=%v", row, ok)
-	}
-	_ = row.Set(0, 99)
-	value, _ := g.Get(0, 0)
-	if value != 1 {
-		t.Fatalf("expected copied row list, got %v", value)
-	}
+	require.True(t, ok)
+	require.Equal(t, 2, row.Len())
+
+	require.True(t, row.Set(0, 99))
+	assertGridCell(t, g, 0, 0, 1)
 }
 
-func TestGridRowFluentHelpers(t *testing.T) {
-	g := NewGrid[int]([]int{1}, []int{2, 3}, []int{4, 5, 6})
+func TestGridRowSelectors(t *testing.T) {
+	t.Parallel()
 
-	filtered := g.WhereRows(func(_ int, row []int) bool {
-		return len(row) >= 2
-	})
-	if filtered.RowCount() != 2 {
-		t.Fatalf("expected 2 filtered rows, got %d", filtered.RowCount())
-	}
-	if row, _ := filtered.GetRow(0); len(row) != 2 || row[0] != 2 || row[1] != 3 {
-		t.Fatalf("unexpected filtered first row: %#v", row)
-	}
+	g := list.NewGrid[int]([]int{1}, []int{2, 3}, []int{4, 5, 6})
 
-	rejected := g.RejectRows(func(index int, _ []int) bool {
-		return index == 0
-	})
-	if rejected.RowCount() != 2 {
-		t.Fatalf("expected 2 rejected rows, got %d", rejected.RowCount())
-	}
+	filtered := g.WhereRows(func(_ int, row []int) bool { return len(row) >= 2 })
+	require.Equal(t, 2, filtered.RowCount())
+	assertGridRow(t, filtered, 0, []int{2, 3})
+
+	rejected := g.RejectRows(func(index int, _ []int) bool { return index == 0 })
+	require.Equal(t, 2, rejected.RowCount())
 
 	taken := g.TakeRows(2)
-	if taken.RowCount() != 2 {
-		t.Fatalf("expected 2 taken rows, got %d", taken.RowCount())
-	}
+	require.Equal(t, 2, taken.RowCount())
 
 	dropped := g.DropRows(1)
-	if dropped.RowCount() != 2 {
-		t.Fatalf("expected 2 dropped rows, got %d", dropped.RowCount())
-	}
-	if row, _ := dropped.GetRow(0); len(row) != 2 || row[0] != 2 {
-		t.Fatalf("unexpected dropped first row: %#v", row)
-	}
+	require.Equal(t, 2, dropped.RowCount())
+	assertGridRow(t, dropped, 0, []int{2, 3})
+}
+
+func TestGridEachRowAndFirstRowWhere(t *testing.T) {
+	t.Parallel()
+
+	g := list.NewGrid[int]([]int{1}, []int{2, 3}, []int{4, 5, 6})
 
 	rowCount := 0
 	cellCount := 0
@@ -126,63 +106,49 @@ func TestGridRowFluentHelpers(t *testing.T) {
 		cellCount += len(row)
 		row[0] = 99
 	})
-	if returned != g {
-		t.Fatal("expected EachRow to return receiver")
-	}
-	if rowCount != 3 || cellCount != 6 {
-		t.Fatalf("unexpected EachRow counts: rows=%d cells=%d", rowCount, cellCount)
-	}
-	if value, _ := g.Get(0, 0); value != 1 {
-		t.Fatalf("expected EachRow callback row to be copied, got %v", value)
-	}
 
-	first, ok := g.FirstRowWhere(func(_ int, row []int) bool {
-		return len(row) == 3
-	}).Get()
-	if !ok || len(first) != 3 || first[0] != 4 {
-		t.Fatalf("unexpected first matching row: %#v, ok=%v", first, ok)
-	}
+	require.Same(t, g, returned)
+	require.Equal(t, 3, rowCount)
+	require.Equal(t, 6, cellCount)
+	assertGridCell(t, g, 0, 0, 1)
+
+	first, ok := g.FirstRowWhere(func(_ int, row []int) bool { return len(row) == 3 }).Get()
+	require.True(t, ok)
+	require.Equal(t, []int{4, 5, 6}, first)
+
 	first[0] = 77
-	if value, _ := g.Get(2, 0); value != 4 {
-		t.Fatalf("expected FirstRowWhere result row to be copied, got %v", value)
-	}
-
-	if !g.AnyRowMatch(func(_ int, row []int) bool { return len(row) == 1 }) {
-		t.Fatal("expected AnyRowMatch to find row")
-	}
-	if g.AnyRowMatch(func(_ int, row []int) bool { return len(row) == 4 }) {
-		t.Fatal("did not expect AnyRowMatch to find row")
-	}
-	if !g.AllRowsMatch(func(_ int, row []int) bool { return len(row) >= 1 }) {
-		t.Fatal("expected AllRowsMatch to pass")
-	}
-	if g.AllRowsMatch(func(_ int, row []int) bool { return len(row) >= 2 }) {
-		t.Fatal("did not expect AllRowsMatch to pass")
-	}
+	assertGridCell(t, g, 2, 0, 4)
 }
 
-func TestGridCellFluentHelpers(t *testing.T) {
-	g := NewGrid[int]([]int{1, 2}, []int{3, 4, 5}, []int{6})
+func TestGridRowPredicates(t *testing.T) {
+	t.Parallel()
 
-	filtered := g.WhereCells(func(_ int, _ int, value int) bool {
-		return value%2 == 0
-	})
-	if filtered.RowCount() != 3 {
-		t.Fatalf("expected 3 filtered rows, got %d", filtered.RowCount())
-	}
-	if row, _ := filtered.GetRow(1); len(row) != 1 || row[0] != 4 {
-		t.Fatalf("unexpected filtered second row: %#v", row)
-	}
+	g := list.NewGrid[int]([]int{1}, []int{2, 3}, []int{4, 5, 6})
 
-	rejected := g.RejectCells(func(rowIndex int, _ int, _ int) bool {
-		return rowIndex == 0
-	})
-	if rejected.RowCount() != 2 {
-		t.Fatalf("expected 2 rejected rows, got %d", rejected.RowCount())
-	}
-	if row, _ := rejected.GetRow(0); len(row) != 3 || row[0] != 3 {
-		t.Fatalf("unexpected rejected first row: %#v", row)
-	}
+	require.True(t, g.AnyRowMatch(func(_ int, row []int) bool { return len(row) == 1 }))
+	require.False(t, g.AnyRowMatch(func(_ int, row []int) bool { return len(row) == 4 }))
+	require.True(t, g.AllRowsMatch(func(_ int, row []int) bool { return len(row) >= 1 }))
+	require.False(t, g.AllRowsMatch(func(_ int, row []int) bool { return len(row) >= 2 }))
+}
+
+func TestGridCellSelectors(t *testing.T) {
+	t.Parallel()
+
+	g := list.NewGrid[int]([]int{1, 2}, []int{3, 4, 5}, []int{6})
+
+	filtered := g.WhereCells(func(_ int, _ int, value int) bool { return value%2 == 0 })
+	require.Equal(t, 3, filtered.RowCount())
+	assertGridRow(t, filtered, 1, []int{4})
+
+	rejected := g.RejectCells(func(rowIndex int, _ int, _ int) bool { return rowIndex == 0 })
+	require.Equal(t, 2, rejected.RowCount())
+	assertGridRow(t, rejected, 0, []int{3, 4, 5})
+}
+
+func TestGridEachCellAndFirstCellWhere(t *testing.T) {
+	t.Parallel()
+
+	g := list.NewGrid[int]([]int{1, 2}, []int{3, 4, 5}, []int{6})
 
 	cellCount := 0
 	sum := 0
@@ -190,33 +156,41 @@ func TestGridCellFluentHelpers(t *testing.T) {
 		cellCount++
 		sum += value + rowIndex + columnIndex
 	})
-	if returned != g {
-		t.Fatal("expected EachCell to return receiver")
-	}
-	if cellCount != 6 {
-		t.Fatalf("unexpected cell count from EachCell: %d", cellCount)
-	}
-	if sum != 30 {
-		t.Fatalf("unexpected accumulated sum from EachCell: %d", sum)
-	}
 
-	rowIndex, columnIndex, value, ok := g.FirstCellWhere(func(_ int, _ int, value int) bool {
-		return value == 4
-	})
-	if !ok || rowIndex != 1 || columnIndex != 1 || value != 4 {
-		t.Fatalf("unexpected first matching cell: row=%d col=%d value=%v ok=%v", rowIndex, columnIndex, value, ok)
-	}
+	require.Same(t, g, returned)
+	require.Equal(t, 6, cellCount)
+	require.Equal(t, 30, sum)
 
-	if !g.AnyCellMatch(func(_ int, _ int, value int) bool { return value == 6 }) {
-		t.Fatal("expected AnyCellMatch to find cell")
-	}
-	if g.AnyCellMatch(func(_ int, _ int, value int) bool { return value == 7 }) {
-		t.Fatal("did not expect AnyCellMatch to find cell")
-	}
-	if !g.AllCellsMatch(func(_ int, _ int, value int) bool { return value >= 1 }) {
-		t.Fatal("expected AllCellsMatch to pass")
-	}
-	if g.AllCellsMatch(func(_ int, _ int, value int) bool { return value%2 == 0 }) {
-		t.Fatal("did not expect AllCellsMatch to pass")
-	}
+	rowIndex, columnIndex, value, ok := g.FirstCellWhere(func(_ int, _ int, current int) bool { return current == 4 })
+	require.True(t, ok)
+	require.Equal(t, 1, rowIndex)
+	require.Equal(t, 1, columnIndex)
+	require.Equal(t, 4, value)
+}
+
+func TestGridCellPredicates(t *testing.T) {
+	t.Parallel()
+
+	g := list.NewGrid[int]([]int{1, 2}, []int{3, 4, 5}, []int{6})
+
+	require.True(t, g.AnyCellMatch(func(_ int, _ int, value int) bool { return value == 6 }))
+	require.False(t, g.AnyCellMatch(func(_ int, _ int, value int) bool { return value == 7 }))
+	require.True(t, g.AllCellsMatch(func(_ int, _ int, value int) bool { return value >= 1 }))
+	require.False(t, g.AllCellsMatch(func(_ int, _ int, value int) bool { return value%2 == 0 }))
+}
+
+func assertGridCell[T comparable](t *testing.T, g *list.Grid[T], rowIndex, columnIndex int, expected T) {
+	t.Helper()
+
+	value, ok := g.Get(rowIndex, columnIndex)
+	require.True(t, ok)
+	require.Equal(t, expected, value)
+}
+
+func assertGridRow[T comparable](t *testing.T, g *list.Grid[T], rowIndex int, expected []T) {
+	t.Helper()
+
+	row, ok := g.GetRow(rowIndex)
+	require.True(t, ok)
+	require.Equal(t, expected, row)
 }

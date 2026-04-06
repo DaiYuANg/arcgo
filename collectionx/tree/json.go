@@ -48,7 +48,8 @@ func (t *Tree[K, V]) toJSONNodes() []jsonNode[K, V] {
 	}
 
 	roots := make([]jsonNode[K, V], 0, t.roots.Len())
-	for index := 0; index < t.roots.Len(); index++ {
+	rootCount := t.roots.Len()
+	for index := range rootCount {
 		root, _ := t.roots.Get(index)
 		roots = append(roots, toJSONNode(root))
 	}
@@ -69,7 +70,8 @@ func toJSONNode[K comparable, V any](node *Node[K, V]) jsonNode[K, V] {
 	}
 
 	jsonNodeValue.Children = make([]jsonNode[K, V], 0, node.children.Len())
-	for index := 0; index < node.children.Len(); index++ {
+	childCount := node.children.Len()
+	for index := range childCount {
 		child, _ := node.children.Get(index)
 		jsonNodeValue.Children = append(jsonNodeValue.Children, toJSONNode(child))
 	}

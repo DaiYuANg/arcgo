@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/DaiYuANg/arcgo/collectionx"
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	"github.com/samber/do/v2"
 )
@@ -51,15 +50,9 @@ func (p *buildPlan) Build() (*Runtime, error) {
 	rt := newRuntime(p.spec, p)
 	registerRuntimeCoreServices(rt)
 
-	providersRegistered := false
-	if p.spec.loggerFromContainer != nil {
-		p.registerProviders(rt, nil, false)
-		providersRegistered = true
-		if resolvedLogger, err := p.resolveFrameworkLogger(rt); err != nil {
-			return nil, cleanupBuildFailure(rt, logger, err)
-		} else if resolvedLogger != nil {
-			logger = resolvedLogger
-		}
+	logger, providersRegistered, err := p.prepareBuildLogger(rt, logger)
+	if err != nil {
+		return nil, cleanupBuildFailure(rt, logger, err)
 	}
 
 	debugEnabled := logger.Enabled(context.Background(), slog.LevelDebug)
@@ -86,6 +79,20 @@ func (p *buildPlan) Build() (*Runtime, error) {
 	}
 	rt.logDebugInformation()
 	return rt, nil
+}
+
+func (p *buildPlan) prepareBuildLogger(rt *Runtime, logger *slog.Logger) (*slog.Logger, bool, error) {
+	if p == nil || p.spec == nil || p.spec.loggerFromContainer == nil {
+		return logger, false, nil
+	}
+
+	p.registerProviders(rt, nil, false)
+	resolvedLogger, err := p.resolveFrameworkLogger(rt)
+	if err != nil {
+		return logger, true, err
+	}
+
+	return resolvedLogger, true, nil
 }
 
 func cleanupBuildFailure(rt *Runtime, logger *slog.Logger, buildErr error) error {
@@ -127,7 +134,7 @@ func registerRuntimeCoreServices(rt *Runtime) {
 
 func (p *buildPlan) resolveFrameworkLogger(rt *Runtime) (*slog.Logger, error) {
 	if p == nil || p.spec == nil || rt == nil || p.spec.loggerFromContainer == nil {
-		return nil, nil
+		return nil, errors.New("resolve framework logger failed: resolver is not configured")
 	}
 
 	logger, err := p.spec.loggerFromContainer(rt.container)
@@ -283,69 +290,4 @@ func runModuleInvokes(mod *moduleSpec, rt *Runtime, logger *slog.Logger, debugEn
 		return fmt.Errorf("invoke failed in module %s: %w", mod.name, invokeErr)
 	}
 	return nil
-}
-
-func countModuleProviders(modules *collectionlist.List[*moduleSpec]) int {
-	total := 0
-	if modules == nil {
-		return total
-	}
-	modules.Range(func(_ int, mod *moduleSpec) bool {
-		if mod != nil {
-			total += mod.providers.Len()
-		}
-		return true
-	})
-	return total
-}
-
-func countModuleHooks(modules *collectionlist.List[*moduleSpec]) int {
-	total := 0
-	if modules == nil {
-		return total
-	}
-	modules.Range(func(_ int, mod *moduleSpec) bool {
-		if mod != nil {
-			total += mod.hooks.Len()
-		}
-		return true
-	})
-	return total
-}
-
-func countModuleSetups(modules *collectionlist.List[*moduleSpec]) int {
-	total := 0
-	if modules == nil {
-		return total
-	}
-	modules.Range(func(_ int, mod *moduleSpec) bool {
-		if mod != nil {
-			total += mod.setups.Len()
-		}
-		return true
-	})
-	return total
-}
-
-func countModuleInvokes(modules *collectionlist.List[*moduleSpec]) int {
-	total := 0
-	if modules == nil {
-		return total
-	}
-	modules.Range(func(_ int, mod *moduleSpec) bool {
-		if mod != nil {
-			total += mod.invokes.Len()
-		}
-		return true
-	})
-	return total
-}
-
-func serviceRefNames(refs collectionx.List[ServiceRef]) collectionx.List[string] {
-	if refs == nil || refs.Len() == 0 {
-		return collectionx.NewList[string]()
-	}
-	return collectionx.FilterMapList(refs, func(_ int, ref ServiceRef) (string, bool) {
-		return ref.Name, ref.Name != ""
-	})
 }

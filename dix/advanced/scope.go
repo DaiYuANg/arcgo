@@ -47,44 +47,69 @@ func ProvideScopedNamedValue[T any](injector do.Injector, name string, value T) 
 
 // ProvideScoped0 registers a typed scoped provider with no dependencies.
 func ProvideScoped0[T any](injector do.Injector, fn func() T) {
+	ProvideScopedErr0(injector, func() (T, error) { return fn(), nil })
+}
+
+// ProvideScopedErr0 registers a typed scoped provider with no dependencies.
+func ProvideScopedErr0[T any](injector do.Injector, fn func() (T, error)) {
 	do.ProvideNamed(injector, typedName[T](), func(do.Injector) (T, error) {
-		return fn(), nil
+		return fn()
 	})
 }
 
 // ProvideScopedNamed0 registers a named scoped provider with no dependencies.
 func ProvideScopedNamed0[T any](injector do.Injector, name string, fn func() T) {
+	ProvideScopedNamedErr0(injector, name, func() (T, error) { return fn(), nil })
+}
+
+// ProvideScopedNamedErr0 registers a named scoped provider with no dependencies.
+func ProvideScopedNamedErr0[T any](injector do.Injector, name string, fn func() (T, error)) {
 	do.ProvideNamed(injector, name, func(do.Injector) (T, error) {
-		return fn(), nil
+		return fn()
 	})
 }
 
 // ProvideScoped1 registers a typed scoped provider with one dependency.
 func ProvideScoped1[T, D1 any](injector do.Injector, fn func(D1) T) {
+	ProvideScopedErr1(injector, func(d1 D1) (T, error) { return fn(d1), nil })
+}
+
+// ProvideScopedErr1 registers a typed scoped provider with one dependency.
+func ProvideScopedErr1[T, D1 any](injector do.Injector, fn func(D1) (T, error)) {
 	do.ProvideNamed(injector, typedName[T](), func(i do.Injector) (T, error) {
 		d1, err := invokeTyped[D1](i)
 		if err != nil {
 			var zero T
 			return zero, err
 		}
-		return fn(d1), nil
+		return fn(d1)
 	})
 }
 
 // ProvideScopedNamed1 registers a named scoped provider with one dependency.
 func ProvideScopedNamed1[T, D1 any](injector do.Injector, name string, fn func(D1) T) {
+	ProvideScopedNamedErr1(injector, name, func(d1 D1) (T, error) { return fn(d1), nil })
+}
+
+// ProvideScopedNamedErr1 registers a named scoped provider with one dependency.
+func ProvideScopedNamedErr1[T, D1 any](injector do.Injector, name string, fn func(D1) (T, error)) {
 	do.ProvideNamed(injector, name, func(i do.Injector) (T, error) {
 		d1, err := invokeTyped[D1](i)
 		if err != nil {
 			var zero T
 			return zero, err
 		}
-		return fn(d1), nil
+		return fn(d1)
 	})
 }
 
 // ProvideScoped2 registers a typed scoped provider with two dependencies.
 func ProvideScoped2[T, D1, D2 any](injector do.Injector, fn func(D1, D2) T) {
+	ProvideScopedErr2(injector, func(d1 D1, d2 D2) (T, error) { return fn(d1, d2), nil })
+}
+
+// ProvideScopedErr2 registers a typed scoped provider with two dependencies.
+func ProvideScopedErr2[T, D1, D2 any](injector do.Injector, fn func(D1, D2) (T, error)) {
 	do.ProvideNamed(injector, typedName[T](), func(i do.Injector) (T, error) {
 		d1, err := invokeTyped[D1](i)
 		if err != nil {
@@ -96,12 +121,17 @@ func ProvideScoped2[T, D1, D2 any](injector do.Injector, fn func(D1, D2) T) {
 			var zero T
 			return zero, err
 		}
-		return fn(d1, d2), nil
+		return fn(d1, d2)
 	})
 }
 
 // ProvideScopedNamed2 registers a named scoped provider with two dependencies.
 func ProvideScopedNamed2[T, D1, D2 any](injector do.Injector, name string, fn func(D1, D2) T) {
+	ProvideScopedNamedErr2(injector, name, func(d1 D1, d2 D2) (T, error) { return fn(d1, d2), nil })
+}
+
+// ProvideScopedNamedErr2 registers a named scoped provider with two dependencies.
+func ProvideScopedNamedErr2[T, D1, D2 any](injector do.Injector, name string, fn func(D1, D2) (T, error)) {
 	do.ProvideNamed(injector, name, func(i do.Injector) (T, error) {
 		d1, err := invokeTyped[D1](i)
 		if err != nil {
@@ -113,12 +143,17 @@ func ProvideScopedNamed2[T, D1, D2 any](injector do.Injector, name string, fn fu
 			var zero T
 			return zero, err
 		}
-		return fn(d1, d2), nil
+		return fn(d1, d2)
 	})
 }
 
 // ProvideScoped3 registers a typed scoped provider with three dependencies.
 func ProvideScoped3[T, D1, D2, D3 any](injector do.Injector, fn func(D1, D2, D3) T) {
+	ProvideScopedErr3(injector, func(d1 D1, d2 D2, d3 D3) (T, error) { return fn(d1, d2, d3), nil })
+}
+
+// ProvideScopedErr3 registers a typed scoped provider with three dependencies.
+func ProvideScopedErr3[T, D1, D2, D3 any](injector do.Injector, fn func(D1, D2, D3) (T, error)) {
 	do.ProvideNamed(injector, typedName[T](), func(i do.Injector) (T, error) {
 		d1, err := invokeTyped[D1](i)
 		if err != nil {
@@ -135,12 +170,17 @@ func ProvideScoped3[T, D1, D2, D3 any](injector do.Injector, fn func(D1, D2, D3)
 			var zero T
 			return zero, err
 		}
-		return fn(d1, d2, d3), nil
+		return fn(d1, d2, d3)
 	})
 }
 
 // ProvideScopedNamed3 registers a named scoped provider with three dependencies.
 func ProvideScopedNamed3[T, D1, D2, D3 any](injector do.Injector, name string, fn func(D1, D2, D3) T) {
+	ProvideScopedNamedErr3(injector, name, func(d1 D1, d2 D2, d3 D3) (T, error) { return fn(d1, d2, d3), nil })
+}
+
+// ProvideScopedNamedErr3 registers a named scoped provider with three dependencies.
+func ProvideScopedNamedErr3[T, D1, D2, D3 any](injector do.Injector, name string, fn func(D1, D2, D3) (T, error)) {
 	do.ProvideNamed(injector, name, func(i do.Injector) (T, error) {
 		d1, err := invokeTyped[D1](i)
 		if err != nil {
@@ -157,7 +197,7 @@ func ProvideScopedNamed3[T, D1, D2, D3 any](injector do.Injector, name string, f
 			var zero T
 			return zero, err
 		}
-		return fn(d1, d2, d3), nil
+		return fn(d1, d2, d3)
 	})
 }
 

@@ -23,11 +23,17 @@ func (l *List[T]) Join(sep string, formatters ...func(index int, item T) string)
 	var builder strings.Builder
 	lo.ForEach(l.items, func(item T, index int) {
 		if index > 0 {
-			builder.WriteString(sep)
+			mustWriteString(&builder, sep)
 		}
-		builder.WriteString(formatter(index, item))
+		mustWriteString(&builder, formatter(index, item))
 	})
 	return builder.String()
+}
+
+func mustWriteString(builder *strings.Builder, value string) {
+	if _, err := builder.WriteString(value); err != nil {
+		panic(err)
+	}
 }
 
 func defaultListJoinFormatter[T any](_ int, item T) string {

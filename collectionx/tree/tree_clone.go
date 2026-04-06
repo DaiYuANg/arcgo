@@ -18,7 +18,7 @@ func (t *Tree[K, V]) Clone() *Tree[K, V] {
 	}
 
 	stack := make([]pair, 0, rootCount)
-	for index := 0; index < rootCount; index++ {
+	for index := range rootCount {
 		root, _ := t.roots.Get(index)
 		rootClone := newNode(root.ID(), root.Value())
 		cloned.roots.Add(rootClone)
@@ -30,7 +30,8 @@ func (t *Tree[K, V]) Clone() *Tree[K, V] {
 		current := stack[len(stack)-1]
 		stack = stack[:len(stack)-1]
 
-		for index := 0; index < current.source.children.Len(); index++ {
+		childCount := current.source.children.Len()
+		for index := range childCount {
 			sourceChild, _ := current.source.children.Get(index)
 			targetChild := newNode(sourceChild.ID(), sourceChild.Value())
 			targetChild.parent = current.target

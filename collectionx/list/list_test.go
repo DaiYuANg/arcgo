@@ -1,6 +1,7 @@
 package list_test
 
 import (
+	"strconv"
 	"testing"
 
 	list "github.com/DaiYuANg/arcgo/collectionx/list"
@@ -141,7 +142,7 @@ func TestList_Join(t *testing.T) {
 	require.Equal(t, "a,b,c", list.NewList("a", "b", "c").Join(","))
 	require.Equal(t, "1,2,3", list.NewList(1, 2, 3).Join(","))
 	require.Equal(t, "u1 | u2", list.NewList(1, 2).Join(" | ", func(_ int, item int) string {
-		return "u" + string(rune('0'+item))
+		return "u" + strconv.Itoa(item)
 	}))
 	require.Equal(t, "", list.NewList[string]().Join(","))
 }

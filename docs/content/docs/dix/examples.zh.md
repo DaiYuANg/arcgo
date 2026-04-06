@@ -132,6 +132,33 @@ if err != nil {
 fmt.Println(svc.Request.RequestID)
 ```
 
+## 示例：返回错误的 Provider
+
+```go
+app := dix.NewApp("errors",
+    dix.NewModule("errors",
+        dix.WithModuleProviders(
+            dix.ProviderErr0(func() (*Config, error) {
+                return loadConfig()
+            }),
+        ),
+        dix.WithModuleSetups(
+            advanced.OverrideErr0(func() (*Config, error) {
+                return loadConfigFromFixture()
+            }),
+        ),
+    ),
+)
+
+requestScope := advanced.Scope(rt, "request-42", func(injector do.Injector) {
+    advanced.ProvideScopedNamedErr0(injector, "tenant.default", func() (string, error) {
+        return resolveTenantFromRequest()
+    })
+})
+```
+
+当构造过程本身可能失败，并且你希望错误沿着正常解析链路向上传递时，优先使用带 `Err` 后缀的 helper。
+
 ## 示例：细粒度 Inspection
 
 ```go

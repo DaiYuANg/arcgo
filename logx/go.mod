@@ -6,7 +6,7 @@ require (
 	github.com/rs/zerolog v1.35.0
 	github.com/samber/lo v1.53.0
 	github.com/samber/oops v1.21.0
-	github.com/samber/oops/loggers/zerolog v0.0.0-20260402170550-f43e94be84d4
+	github.com/samber/oops/loggers/zerolog v0.0.0-20260406183847-bc13c7a828dc
 	github.com/samber/slog-zerolog/v2 v2.9.2
 	go.opentelemetry.io/otel/trace v1.43.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1

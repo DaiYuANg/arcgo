@@ -64,8 +64,7 @@ func (s *Store[E, S]) FindByKeyOption(ctx context.Context, key repository.Key) (
 		return mo.None[*Model[E, S]](), fmt.Errorf("find entity by key: %w", err)
 	}
 	return mapOption(entity, func(item E) *Model[E, S] {
-		entity := item
-		return s.newKeyedModel(&entity, key)
+		return s.newKeyedModel(new(item), key)
 	}), nil
 }
 

@@ -170,8 +170,7 @@ func cloneInt(value *int) *int {
 	if value == nil {
 		return nil
 	}
-	copyValue := *value
-	return &copyValue
+	return new(*value)
 }
 
 func compactSelectItems(items []SelectItem) collectionx.List[SelectItem] {

@@ -66,8 +66,7 @@ func cloneColumnMeta(meta ColumnMeta) ColumnMeta {
 	if meta.References == nil {
 		return meta
 	}
-	reference := *meta.References
-	meta.References = &reference
+	meta.References = new(*meta.References)
 	return meta
 }
 

@@ -17,8 +17,7 @@ func atlasReportFromChanges(changes []atlasschema.Change, compiled *atlasCompile
 func atlasReportDiffMap(order collectionx.List[string]) collectionx.OrderedMap[string, *TableDiff] {
 	diffs := collectionx.NewOrderedMapWithCapacity[string, *TableDiff](order.Len())
 	order.Range(func(_ int, name string) bool {
-		diff := newTableDiff(name)
-		diffs.Set(name, &diff)
+		diffs.Set(name, new(newTableDiff(name)))
 		return true
 	})
 	return diffs

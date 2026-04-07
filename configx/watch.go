@@ -125,8 +125,7 @@ func (w *Watcher) OnChange(fn ChangeHandler) {
 	defer w.subsMu.Unlock()
 
 	current := w.loadSubscribers()
-	next := changeHandlers(lo.Concat(current, []ChangeHandler{fn}))
-	w.subs.Store(&next)
+	w.subs.Store(new(changeHandlers(lo.Concat(current, []ChangeHandler{fn}))))
 }
 
 // Start begins watching config files for changes and blocks until ctx is

@@ -283,8 +283,7 @@ func TestAutoMigrateReturnsDriftForIncompatibleColumn(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected schema drift error")
 	}
-	var driftErr SchemaDriftError
-	if !errors.As(err, &driftErr) {
+	if _, ok := errors.AsType[SchemaDriftError](err); !ok {
 		t.Fatalf("unexpected error type: %T", err)
 	}
 	if report.Valid() {

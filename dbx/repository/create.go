@@ -7,6 +7,7 @@ import (
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dbx"
+	"github.com/samber/lo"
 )
 
 // Create inserts a single entity.
@@ -108,7 +109,7 @@ func (r *Base[E, S]) insertAssignments(entity *E) (collectionx.List[dbx.Assignme
 		return nil, fmt.Errorf("build insert assignments: %w", err)
 	}
 
-	return collectionx.NewList(assignments...), nil
+	return assignments, nil
 }
 
 func normalizeConflictColumns(columns, fallback []string) collectionx.List[string] {
@@ -116,12 +117,11 @@ func normalizeConflictColumns(columns, fallback []string) collectionx.List[strin
 		columns = fallback
 	}
 	ordered := collectionx.NewOrderedSet[string]()
-	for i := range columns {
-		column := columns[i]
+	lo.ForEach(columns, func(column string, _ int) {
 		if name := strings.TrimSpace(column); name != "" {
 			ordered.Add(name)
 		}
-	}
+	})
 	items := collectionx.NewListWithCapacity[string](ordered.Len())
 	ordered.Range(func(item string) bool {
 		items.Add(item)

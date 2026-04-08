@@ -3,6 +3,7 @@ package mapping
 import (
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	"github.com/samber/mo"
+	"slices"
 )
 
 // OrderedMap keeps insertion order of keys. Zero value is ready to use.
@@ -10,6 +11,12 @@ type OrderedMap[K comparable, V any] struct {
 	order collectionlist.List[K]
 	items Map[K, V]
 	index Map[K, int]
+
+	valuesCache []V
+	valuesDirty bool
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewOrderedMap creates an empty ordered map.
@@ -41,6 +48,8 @@ func (m *OrderedMap[K, V]) Set(key K, value V) {
 		m.index.Set(key, m.order.Len()-1)
 	}
 	m.items.Set(key, value)
+	m.invalidateValuesCache()
+	m.invalidateSerializationCache()
 }
 
 // Get returns value by key.
@@ -95,6 +104,8 @@ func (m *OrderedMap[K, V]) Delete(key K) bool {
 		nextKey, _ := m.order.Get(i)
 		m.index.Set(nextKey, i)
 	}
+	m.invalidateValuesCache()
+	m.invalidateSerializationCache()
 	return true
 }
 
@@ -119,6 +130,11 @@ func (m *OrderedMap[K, V]) Clear() {
 	m.order.Clear()
 	m.items.Clear()
 	m.index.Clear()
+	m.valuesCache = nil
+	m.valuesDirty = false
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = false
 }
 
 // Keys returns keys in insertion order.
@@ -138,13 +154,19 @@ func (m *OrderedMap[K, V]) Values() []V {
 	if m == nil || m.order.Len() == 0 {
 		return nil
 	}
+	if !m.valuesDirty && len(m.valuesCache) > 0 {
+		return slices.Clone(m.valuesCache)
+	}
+
 	values := make([]V, 0, m.order.Len())
 	m.order.Range(func(_ int, key K) bool {
 		value, _ := m.items.Get(key)
 		values = append(values, value)
 		return true
 	})
-	return values
+	m.valuesCache = values
+	m.valuesDirty = false
+	return slices.Clone(values)
 }
 
 // All returns copied unordered built-in map.
@@ -176,6 +198,32 @@ func (m *OrderedMap[K, V]) Clone() *OrderedMap[K, V] {
 	out.items.SetAll(m.items.All())
 	out.index.SetAll(m.index.All())
 	return out
+}
+
+func (m *OrderedMap[K, V]) invalidateValuesCache() {
+	if m == nil {
+		return
+	}
+	m.valuesCache = nil
+	m.valuesDirty = true
+}
+
+func (m *OrderedMap[K, V]) invalidateSerializationCache() {
+	if m == nil {
+		return
+	}
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = true
+}
+
+func (m *OrderedMap[K, V]) cacheSerializationData(data []byte) {
+	if m == nil {
+		return
+	}
+	m.jsonCache = data
+	m.stringCache = string(data)
+	m.jsonDirty = false
 }
 
 // WhereEntries returns a new ordered map containing only entries that match predicate.

@@ -12,6 +12,10 @@ import (
 type ConcurrentMultiMap[K comparable, V any] struct {
 	mu   sync.RWMutex
 	core *MultiMap[K, V]
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewConcurrentMultiMap creates an empty concurrent multimap.
@@ -40,6 +44,7 @@ func (m *ConcurrentMultiMap[K, V]) PutAll(key K, values ...V) {
 	defer m.mu.Unlock()
 	m.ensureInitLocked()
 	m.core.PutAll(key, values...)
+	m.invalidateSerializationCacheLocked()
 }
 
 // Set replaces all values for key.
@@ -52,6 +57,7 @@ func (m *ConcurrentMultiMap[K, V]) Set(key K, values ...V) {
 	defer m.mu.Unlock()
 	m.ensureInitLocked()
 	m.core.Set(key, values...)
+	m.invalidateSerializationCacheLocked()
 }
 
 // Get returns a read-only slice view for key.
@@ -100,7 +106,11 @@ func (m *ConcurrentMultiMap[K, V]) Delete(key K) bool {
 	if m.core == nil {
 		return false
 	}
-	return m.core.Delete(key)
+	removed := m.core.Delete(key)
+	if removed {
+		m.invalidateSerializationCacheLocked()
+	}
+	return removed
 }
 
 // DeleteValueIf removes values matching predicate under key and returns removed count.
@@ -113,7 +123,11 @@ func (m *ConcurrentMultiMap[K, V]) DeleteValueIf(key K, predicate func(value V) 
 	if m.core == nil {
 		return 0
 	}
-	return m.core.DeleteValueIf(key, predicate)
+	removed := m.core.DeleteValueIf(key, predicate)
+	if removed > 0 {
+		m.invalidateSerializationCacheLocked()
+	}
+	return removed
 }
 
 // ContainsKey reports whether key exists.
@@ -171,6 +185,9 @@ func (m *ConcurrentMultiMap[K, V]) Clear() {
 		return
 	}
 	m.core.Clear()
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = false
 }
 
 // Keys returns all keys.
@@ -278,4 +295,10 @@ func (m *ConcurrentMultiMap[K, V]) ensureInitLocked() {
 	if m.core == nil {
 		m.core = NewMultiMap[K, V]()
 	}
+}
+
+func (m *ConcurrentMultiMap[K, V]) invalidateSerializationCacheLocked() {
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = true
 }

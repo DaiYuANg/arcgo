@@ -10,6 +10,10 @@ import (
 // Zero value is ready to use.
 type List[T any] struct {
 	items []T
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewList creates a list and copies optional items.
@@ -39,6 +43,7 @@ func (l *List[T]) Add(items ...T) {
 		return
 	}
 	l.items = append(l.items, items...)
+	l.invalidateSerializationCache()
 }
 
 // Merge appends all items from other list.
@@ -50,6 +55,7 @@ func (l *List[T]) Merge(other *List[T]) *List[T] {
 		return l
 	}
 	l.items = append(l.items, other.items...)
+	l.invalidateSerializationCache()
 	return l
 }
 
@@ -82,6 +88,7 @@ func (l *List[T]) AddAllAt(index int, items ...T) bool {
 	l.items = append(l.items, items...)
 	copy(l.items[index+len(items):], l.items[index:len(l.items)-len(items)])
 	copy(l.items[index:], items)
+	l.invalidateSerializationCache()
 	return true
 }
 
@@ -133,6 +140,7 @@ func (l *List[T]) Set(index int, item T) bool {
 		return false
 	}
 	l.items[index] = item
+	l.invalidateSerializationCache()
 	return true
 }
 
@@ -156,6 +164,7 @@ func (l *List[T]) SetAllIndexed(mapper func(index int, item T) T) int {
 	for index, item := range l.items {
 		l.items[index] = mapper(index, item)
 	}
+	l.invalidateSerializationCache()
 	return len(l.items)
 }
 
@@ -169,6 +178,7 @@ func (l *List[T]) RemoveAt(index int) (T, bool) {
 	copy(l.items[index:], l.items[index+1:])
 	l.items[len(l.items)-1] = zero
 	l.items = l.items[:len(l.items)-1]
+	l.invalidateSerializationCache()
 	return removed, true
 }
 
@@ -206,6 +216,7 @@ func (l *List[T]) RemoveIf(predicate func(item T) bool) int {
 		l.items[index] = zero
 	}
 	l.items = l.items[:writeIndex]
+	l.invalidateSerializationCache()
 	return removed
 }
 
@@ -228,6 +239,9 @@ func (l *List[T]) Clear() {
 		return
 	}
 	l.items = nil
+	l.jsonCache = nil
+	l.stringCache = ""
+	l.jsonDirty = false
 }
 
 // Values returns a copy of items.
@@ -267,5 +281,24 @@ func (l *List[T]) Sort(compare func(left, right T) int) *List[T] {
 		return l
 	}
 	slices.SortFunc(l.items, compare)
+	l.invalidateSerializationCache()
 	return l
+}
+
+func (l *List[T]) invalidateSerializationCache() {
+	if l == nil {
+		return
+	}
+	l.jsonCache = nil
+	l.stringCache = ""
+	l.jsonDirty = true
+}
+
+func (l *List[T]) cacheSerializationData(data []byte) {
+	if l == nil {
+		return
+	}
+	l.jsonCache = data
+	l.stringCache = string(data)
+	l.jsonDirty = false
 }

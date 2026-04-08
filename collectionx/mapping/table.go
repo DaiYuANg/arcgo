@@ -3,8 +3,8 @@ package mapping
 import (
 	"maps"
 
-	"github.com/samber/lo"
 	"github.com/samber/mo"
+	"slices"
 )
 
 // Table is a 2D key-value structure: (rowKey, columnKey) -> value.
@@ -13,6 +13,12 @@ import (
 type Table[R comparable, C comparable, V any] struct {
 	data Map[R, map[C]V]
 	size int
+
+	columnKeysCache []C
+	columnKeysDirty bool
+	jsonCache       []byte
+	stringCache     string
+	jsonDirty       bool
 }
 
 // NewTable creates an empty table.
@@ -29,6 +35,8 @@ func (t *Table[R, C, V]) Put(rowKey R, columnKey C, value V) {
 	row := t.ensureRow(rowKey)
 	if _, existed := row[columnKey]; !existed {
 		t.size++
+		t.invalidateColumnKeysCache()
+		t.invalidateSerializationCache()
 	}
 	row[columnKey] = value
 }
@@ -68,12 +76,18 @@ func (t *Table[R, C, V]) SetRow(rowKey R, rowValues map[C]V) {
 	if len(rowValues) == 0 {
 		t.data.Delete(rowKey)
 		t.size -= oldSize
+		if oldSize > 0 {
+			t.invalidateColumnKeysCache()
+			t.invalidateSerializationCache()
+		}
 		return
 	}
 	rowCopy := make(map[C]V, len(rowValues))
 	maps.Copy(rowCopy, rowValues)
 	t.data.Set(rowKey, rowCopy)
 	t.size += len(rowValues) - oldSize
+	t.invalidateColumnKeysCache()
+	t.invalidateSerializationCache()
 }
 
 // Row returns one row as a copied map.
@@ -124,6 +138,8 @@ func (t *Table[R, C, V]) Delete(rowKey R, columnKey C) bool {
 	if len(row) == 0 {
 		t.data.Delete(rowKey)
 	}
+	t.invalidateColumnKeysCache()
+	t.invalidateSerializationCache()
 	return true
 }
 
@@ -136,6 +152,8 @@ func (t *Table[R, C, V]) DeleteRow(rowKey R) bool {
 	if existed {
 		t.size -= len(row)
 		t.data.Delete(rowKey)
+		t.invalidateColumnKeysCache()
+		t.invalidateSerializationCache()
 	}
 	return existed
 }
@@ -158,9 +176,13 @@ func (t *Table[R, C, V]) DeleteColumn(columnKey C) int {
 		}
 		return true
 	})
-	lo.ForEach(rowsToDelete, func(rowKey R, _ int) {
+	for _, rowKey := range rowsToDelete {
 		t.data.Delete(rowKey)
-	})
+	}
+	if removed > 0 {
+		t.invalidateColumnKeysCache()
+		t.invalidateSerializationCache()
+	}
 	return removed
 }
 
@@ -198,6 +220,11 @@ func (t *Table[R, C, V]) Clear() {
 	}
 	t.data.Clear()
 	t.size = 0
+	t.columnKeysCache = nil
+	t.columnKeysDirty = false
+	t.jsonCache = nil
+	t.stringCache = ""
+	t.jsonDirty = false
 }
 
 // RowKeys returns all row keys.
@@ -213,14 +240,25 @@ func (t *Table[R, C, V]) ColumnKeys() []C {
 	if t == nil || t.data.Len() == 0 {
 		return nil
 	}
+	if !t.columnKeysDirty && len(t.columnKeysCache) > 0 {
+		return slices.Clone(t.columnKeysCache)
+	}
+
 	set := make(map[C]struct{})
 	t.data.Range(func(_ R, row map[C]V) bool {
-		lo.ForEach(lo.Keys(row), func(columnKey C, _ int) {
+		for columnKey := range row {
 			set[columnKey] = struct{}{}
-		})
+		}
 		return true
 	})
-	return lo.Keys(set)
+
+	keys := make([]C, 0, len(set))
+	for columnKey := range set {
+		keys = append(keys, columnKey)
+	}
+	t.columnKeysCache = keys
+	t.columnKeysDirty = false
+	return slices.Clone(keys)
 }
 
 // All returns a deep-copied built-in map.
@@ -264,4 +302,30 @@ func (t *Table[R, C, V]) ensureRow(rowKey R) map[C]V {
 		t.data.Set(rowKey, row)
 	}
 	return row
+}
+
+func (t *Table[R, C, V]) invalidateColumnKeysCache() {
+	if t == nil {
+		return
+	}
+	t.columnKeysCache = nil
+	t.columnKeysDirty = true
+}
+
+func (t *Table[R, C, V]) invalidateSerializationCache() {
+	if t == nil {
+		return
+	}
+	t.jsonCache = nil
+	t.stringCache = ""
+	t.jsonDirty = true
+}
+
+func (t *Table[R, C, V]) cacheSerializationData(data []byte) {
+	if t == nil {
+		return
+	}
+	t.jsonCache = data
+	t.stringCache = string(data)
+	t.jsonDirty = false
 }

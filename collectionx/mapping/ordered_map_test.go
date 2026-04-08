@@ -79,3 +79,44 @@ func TestOrderedMap_ChainMethods(t *testing.T) {
 	require.True(t, values.AllEntryMatch(func(_ string, value int) bool { return value > 0 }))
 	require.True(t, values.AnyEntryMatch(func(key string, _ int) bool { return key == "b" }))
 }
+
+func TestOrderedMap_ValuesCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	m := mapping.NewOrderedMap[string, int]()
+	m.Set("a", 1)
+	m.Set("b", 2)
+
+	values := m.Values()
+	require.Equal(t, []int{1, 2}, values)
+
+	values[0] = 99
+	require.Equal(t, []int{1, 2}, m.Values())
+
+	m.Set("a", 3)
+	require.Equal(t, []int{3, 2}, m.Values())
+
+	require.True(t, m.Delete("b"))
+	require.Equal(t, []int{3}, m.Values())
+}
+
+func TestOrderedMap_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	m := mapping.NewOrderedMap[string, int]()
+	m.Set("a", 1)
+
+	data, err := m.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"a":1}`, string(data))
+	require.Equal(t, `{"a":1}`, m.String())
+
+	data[0] = '['
+	fresh, err := m.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"a":1}`, string(fresh))
+
+	m.Set("b", 2)
+	require.Contains(t, m.String(), `"a":1`)
+	require.Contains(t, m.String(), `"b":2`)
+}

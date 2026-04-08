@@ -3,16 +3,33 @@ package list
 import (
 	"encoding/json"
 	"fmt"
+	"slices"
 
 	common "github.com/DaiYuANg/arcgo/collectionx/internal"
 )
 
 // ToJSON serializes list values to JSON.
 func (l *List[T]) ToJSON() ([]byte, error) {
-	if l == nil {
-		return marshalListJSON([]T(nil), "list")
+	if l != nil && !l.jsonDirty && l.jsonCache != nil {
+		return slices.Clone(l.jsonCache), nil
 	}
-	return marshalListJSON(l.items, "list")
+
+	var (
+		data []byte
+		err  error
+	)
+	if l == nil {
+		data, err = marshalListJSON([]T(nil), "list")
+	} else {
+		data, err = marshalListJSON(l.items, "list")
+	}
+	if err != nil {
+		return nil, err
+	}
+	if l != nil {
+		l.cacheSerializationData(data)
+	}
+	return slices.Clone(data), nil
 }
 
 // MarshalJSON implements json.Marshaler.
@@ -22,7 +39,11 @@ func (l *List[T]) MarshalJSON() ([]byte, error) {
 
 // String implements fmt.Stringer.
 func (l *List[T]) String() string {
-	return common.StringFromToJSON(l.ToJSON, "[]")
+	if l != nil && !l.jsonDirty && l.stringCache != "" {
+		return l.stringCache
+	}
+	data, err := l.ToJSON()
+	return common.JSONResultString(data, err, "[]")
 }
 
 // ToJSON serializes grid rows to JSON.
@@ -62,12 +83,35 @@ func (l *ConcurrentList[T]) ToJSON() ([]byte, error) {
 	}
 
 	l.mu.RLock()
-	defer l.mu.RUnlock()
-
-	if l.core == nil {
-		return marshalListJSON([]T(nil), "concurrent list")
+	if !l.jsonDirty && l.jsonCache != nil {
+		data := slices.Clone(l.jsonCache)
+		l.mu.RUnlock()
+		return data, nil
 	}
-	return marshalListJSON(l.core.items, "concurrent list")
+	l.mu.RUnlock()
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	if !l.jsonDirty && l.jsonCache != nil {
+		return slices.Clone(l.jsonCache), nil
+	}
+
+	var (
+		data []byte
+		err  error
+	)
+	if l.core == nil {
+		data, err = marshalListJSON([]T(nil), "concurrent list")
+	} else {
+		data, err = marshalListJSON(l.core.items, "concurrent list")
+	}
+	if err != nil {
+		return nil, err
+	}
+	l.jsonCache = data
+	l.stringCache = string(data)
+	l.jsonDirty = false
+	return slices.Clone(data), nil
 }
 
 // MarshalJSON implements json.Marshaler.
@@ -77,7 +121,18 @@ func (l *ConcurrentList[T]) MarshalJSON() ([]byte, error) {
 
 // String implements fmt.Stringer.
 func (l *ConcurrentList[T]) String() string {
-	return common.StringFromToJSON(l.ToJSON, "[]")
+	if l == nil {
+		return "[]"
+	}
+	l.mu.RLock()
+	if !l.jsonDirty && l.stringCache != "" {
+		value := l.stringCache
+		l.mu.RUnlock()
+		return value
+	}
+	l.mu.RUnlock()
+	data, err := l.ToJSON()
+	return common.JSONResultString(data, err, "[]")
 }
 
 // ToJSON serializes deque values to JSON.

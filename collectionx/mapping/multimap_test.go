@@ -117,3 +117,23 @@ func TestMultiMap_FluentOps(t *testing.T) {
 	require.True(t, values.AllValuesMatch(func(_ string, value int) bool { return value > 0 }))
 	require.False(t, values.AllValuesMatch(func(_ string, value int) bool { return value%2 == 0 }))
 }
+
+func TestMultiMap_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	m := mapping.NewMultiMap[string, int]()
+	m.Put("a", 1)
+
+	data, err := m.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"a":[1]}`, string(data))
+	require.Equal(t, `{"a":[1]}`, m.String())
+
+	data[0] = '['
+	fresh, err := m.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"a":[1]}`, string(fresh))
+
+	m.Put("a", 2)
+	require.Equal(t, `{"a":[1,2]}`, m.String())
+}

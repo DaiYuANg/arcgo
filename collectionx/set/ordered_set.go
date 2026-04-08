@@ -5,6 +5,7 @@ import (
 	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
+	"slices"
 )
 
 // OrderedSet keeps insertion order of unique items.
@@ -13,6 +14,12 @@ type OrderedSet[T comparable] struct {
 	order collectionlist.List[T]
 	items collectionmapping.Map[T, struct{}]
 	index collectionmapping.Map[T, int]
+
+	valuesCache []T
+	valuesDirty bool
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewOrderedSet creates an ordered set with optional items.
@@ -49,6 +56,8 @@ func (s *OrderedSet[T]) Add(items ...T) {
 		s.items.Set(item, struct{}{})
 		s.index.Set(item, s.order.Len()-1)
 	})
+	s.invalidateValuesCache()
+	s.invalidateSerializationCache()
 }
 
 // Remove deletes item and reports whether it existed.
@@ -69,6 +78,8 @@ func (s *OrderedSet[T]) Remove(item T) bool {
 		nextItem, _ := s.order.Get(i)
 		s.index.Set(nextItem, i)
 	}
+	s.invalidateValuesCache()
+	s.invalidateSerializationCache()
 	return true
 }
 
@@ -102,6 +113,11 @@ func (s *OrderedSet[T]) Clear() {
 	s.order.Clear()
 	s.items.Clear()
 	s.index.Clear()
+	s.valuesCache = nil
+	s.valuesDirty = false
+	s.jsonCache = nil
+	s.stringCache = ""
+	s.jsonDirty = false
 }
 
 // Values returns items in insertion order.
@@ -109,11 +125,16 @@ func (s *OrderedSet[T]) Values() []T {
 	if s == nil {
 		return nil
 	}
+	if !s.valuesDirty && len(s.valuesCache) > 0 {
+		return slices.Clone(s.valuesCache)
+	}
 	values := s.order.Values()
 	if len(values) == 0 {
 		return nil
 	}
-	return values
+	s.valuesCache = values
+	s.valuesDirty = false
+	return slices.Clone(values)
 }
 
 // At returns item at insertion index.
@@ -283,4 +304,30 @@ func (s *OrderedSet[T]) AllMatch(predicate func(item T) bool) bool {
 		}
 	}
 	return true
+}
+
+func (s *OrderedSet[T]) invalidateValuesCache() {
+	if s == nil {
+		return
+	}
+	s.valuesCache = nil
+	s.valuesDirty = true
+}
+
+func (s *OrderedSet[T]) invalidateSerializationCache() {
+	if s == nil {
+		return
+	}
+	s.jsonCache = nil
+	s.stringCache = ""
+	s.jsonDirty = true
+}
+
+func (s *OrderedSet[T]) cacheSerializationData(data []byte) {
+	if s == nil {
+		return
+	}
+	s.jsonCache = data
+	s.stringCache = string(data)
+	s.jsonDirty = false
 }

@@ -92,3 +92,24 @@ func TestConcurrentTable_FluentOps(t *testing.T) {
 	require.True(t, tb.AnyCellMatch(func(_ string, columnKey string, _ int) bool { return columnKey == "c1" }))
 	require.True(t, tb.AllCellsMatch(func(_ string, _ string, value int) bool { return value > 0 }))
 }
+
+func TestConcurrentTable_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	tb := mapping.NewConcurrentTable[string, string, int]()
+	tb.Put("r1", "c1", 1)
+
+	data, err := tb.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"r1":{"c1":1}}`, string(data))
+	require.Equal(t, `{"r1":{"c1":1}}`, tb.String())
+
+	data[0] = '['
+	fresh, err := tb.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"r1":{"c1":1}}`, string(fresh))
+
+	tb.Put("r1", "c2", 2)
+	require.Contains(t, tb.String(), `"c1":1`)
+	require.Contains(t, tb.String(), `"c2":2`)
+}

@@ -87,3 +87,23 @@ func TestConcurrentSet_ChainMethods(t *testing.T) {
 		set.NewConcurrentSet(1, 2, 3).AnyMatch(func(item int) bool { return item == 2 }),
 	)
 }
+
+func TestConcurrentSet_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	s := set.NewConcurrentSet(1)
+
+	data, err := s.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `[1]`, string(data))
+	require.Equal(t, `[1]`, s.String())
+
+	data[0] = '{'
+	fresh, err := s.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `[1]`, string(fresh))
+
+	s.Add(2)
+	require.Contains(t, s.String(), "1")
+	require.Contains(t, s.String(), "2")
+}

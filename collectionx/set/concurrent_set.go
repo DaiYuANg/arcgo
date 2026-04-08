@@ -11,6 +11,10 @@ import (
 type ConcurrentSet[T comparable] struct {
 	mu   sync.RWMutex
 	core *Set[T]
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewConcurrentSet creates a new concurrent set.
@@ -41,6 +45,7 @@ func (s *ConcurrentSet[T]) Add(items ...T) {
 
 	s.ensureInitLocked()
 	s.core.Add(items...)
+	s.invalidateSerializationCacheLocked()
 }
 
 // Merge inserts all items from a normal set.
@@ -90,6 +95,7 @@ func (s *ConcurrentSet[T]) AddIfAbsent(item T) bool {
 		return false
 	}
 	s.core.Add(item)
+	s.invalidateSerializationCacheLocked()
 	return true
 }
 
@@ -103,7 +109,11 @@ func (s *ConcurrentSet[T]) Remove(item T) bool {
 	if s.core == nil {
 		return false
 	}
-	return s.core.Remove(item)
+	removed := s.core.Remove(item)
+	if removed {
+		s.invalidateSerializationCacheLocked()
+	}
+	return removed
 }
 
 // Contains reports whether item exists.
@@ -148,6 +158,9 @@ func (s *ConcurrentSet[T]) Clear() {
 		return
 	}
 	s.core.Clear()
+	s.jsonCache = nil
+	s.stringCache = ""
+	s.jsonDirty = false
 }
 
 // Values returns a snapshot of all items.
@@ -225,4 +238,10 @@ func (s *ConcurrentSet[T]) ensureInitLocked() {
 	if s.core == nil {
 		s.core = &Set[T]{}
 	}
+}
+
+func (s *ConcurrentSet[T]) invalidateSerializationCacheLocked() {
+	s.jsonCache = nil
+	s.stringCache = ""
+	s.jsonDirty = true
 }

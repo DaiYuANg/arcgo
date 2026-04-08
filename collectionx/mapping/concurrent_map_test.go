@@ -135,3 +135,24 @@ func TestConcurrentMap_ChainMethods(t *testing.T) {
 	require.True(t, values.AllEntryMatch(func(_ string, value int) bool { return value > 0 }))
 	require.True(t, values.AnyEntryMatch(func(key string, _ int) bool { return key == "a" }))
 }
+
+func TestConcurrentMap_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	m := mapping.NewConcurrentMap[string, int]()
+	m.Set("a", 1)
+
+	data, err := m.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"a":1}`, string(data))
+	require.Equal(t, `{"a":1}`, m.String())
+
+	data[0] = '['
+	fresh, err := m.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"a":1}`, string(fresh))
+
+	m.Set("b", 2)
+	require.Contains(t, m.String(), `"a":1`)
+	require.Contains(t, m.String(), `"b":2`)
+}

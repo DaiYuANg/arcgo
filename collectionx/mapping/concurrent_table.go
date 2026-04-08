@@ -11,6 +11,10 @@ import (
 type ConcurrentTable[R comparable, C comparable, V any] struct {
 	mu   sync.RWMutex
 	core *Table[R, C, V]
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewConcurrentTable creates an empty concurrent table.
@@ -29,6 +33,7 @@ func (t *ConcurrentTable[R, C, V]) Put(rowKey R, columnKey C, value V) {
 	defer t.mu.Unlock()
 	t.ensureInitLocked()
 	t.core.Put(rowKey, columnKey, value)
+	t.invalidateSerializationCacheLocked()
 }
 
 // Get returns value at (rowKey, columnKey).
@@ -64,6 +69,7 @@ func (t *ConcurrentTable[R, C, V]) SetRow(rowKey R, rowValues map[C]V) {
 	defer t.mu.Unlock()
 	t.ensureInitLocked()
 	t.core.SetRow(rowKey, rowValues)
+	t.invalidateSerializationCacheLocked()
 }
 
 // Row returns one row as a copied map.
@@ -102,7 +108,11 @@ func (t *ConcurrentTable[R, C, V]) Delete(rowKey R, columnKey C) bool {
 	if t.core == nil {
 		return false
 	}
-	return t.core.Delete(rowKey, columnKey)
+	removed := t.core.Delete(rowKey, columnKey)
+	if removed {
+		t.invalidateSerializationCacheLocked()
+	}
+	return removed
 }
 
 // DeleteRow removes one row and reports whether it existed.
@@ -115,7 +125,11 @@ func (t *ConcurrentTable[R, C, V]) DeleteRow(rowKey R) bool {
 	if t.core == nil {
 		return false
 	}
-	return t.core.DeleteRow(rowKey)
+	removed := t.core.DeleteRow(rowKey)
+	if removed {
+		t.invalidateSerializationCacheLocked()
+	}
+	return removed
 }
 
 // DeleteColumn removes one column from all rows and returns removed cell count.
@@ -128,7 +142,11 @@ func (t *ConcurrentTable[R, C, V]) DeleteColumn(columnKey C) int {
 	if t.core == nil {
 		return 0
 	}
-	return t.core.DeleteColumn(columnKey)
+	removed := t.core.DeleteColumn(columnKey)
+	if removed > 0 {
+		t.invalidateSerializationCacheLocked()
+	}
+	return removed
 }
 
 // Has reports whether cell exists.
@@ -179,6 +197,9 @@ func (t *ConcurrentTable[R, C, V]) Clear() {
 		return
 	}
 	t.core.Clear()
+	t.jsonCache = nil
+	t.stringCache = ""
+	t.jsonDirty = false
 }
 
 // RowKeys returns all row keys.
@@ -247,4 +268,10 @@ func (t *ConcurrentTable[R, C, V]) ensureInitLocked() {
 	if t.core == nil {
 		t.core = NewTable[R, C, V]()
 	}
+}
+
+func (t *ConcurrentTable[R, C, V]) invalidateSerializationCacheLocked() {
+	t.jsonCache = nil
+	t.stringCache = ""
+	t.jsonDirty = true
 }

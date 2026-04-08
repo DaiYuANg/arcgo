@@ -60,3 +60,28 @@ func TestOrderedSet_ChainMethods(t *testing.T) {
 	require.True(t, set.NewOrderedSet(2, 4, 6).AllMatch(func(item int) bool { return item%2 == 0 }))
 	require.True(t, set.NewOrderedSet(1, 2, 3).AnyMatch(func(item int) bool { return item == 2 }))
 }
+
+func TestOrderedSet_CachesReturnDefensiveCopies(t *testing.T) {
+	t.Parallel()
+
+	s := set.NewOrderedSet(1, 2, 3)
+
+	values := s.Values()
+	require.Equal(t, []int{1, 2, 3}, values)
+	values[0] = 99
+	require.Equal(t, []int{1, 2, 3}, s.Values())
+
+	data, err := s.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `[1,2,3]`, string(data))
+	require.Equal(t, `[1,2,3]`, s.String())
+
+	data[0] = '{'
+	fresh, err := s.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `[1,2,3]`, string(fresh))
+
+	s.Add(4)
+	require.Equal(t, []int{1, 2, 3, 4}, s.Values())
+	require.Equal(t, `[1,2,3,4]`, s.String())
+}

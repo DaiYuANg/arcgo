@@ -10,6 +10,10 @@ import (
 // Zero value is ready to use.
 type Map[K comparable, V any] struct {
 	items map[K]V
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewMap creates an empty map.
@@ -41,6 +45,7 @@ func (m *Map[K, V]) Set(key K, value V) {
 	}
 	m.ensureInit()
 	m.items[key] = value
+	m.invalidateSerializationCache()
 }
 
 // SetAll copies all entries from source.
@@ -50,6 +55,7 @@ func (m *Map[K, V]) SetAll(source map[K]V) {
 	}
 	m.ensureInit()
 	maps.Copy(m.items, source)
+	m.invalidateSerializationCache()
 }
 
 // Get returns the value for key.
@@ -88,6 +94,7 @@ func (m *Map[K, V]) Delete(key K) bool {
 	_, existed := m.items[key]
 	if existed {
 		delete(m.items, key)
+		m.invalidateSerializationCache()
 	}
 	return existed
 }
@@ -111,6 +118,9 @@ func (m *Map[K, V]) Clear() {
 		return
 	}
 	clear(m.items)
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = false
 }
 
 // Keys returns all keys.
@@ -263,4 +273,22 @@ func (m *Map[K, V]) ensureInit() {
 	if m.items == nil {
 		m.items = make(map[K]V)
 	}
+}
+
+func (m *Map[K, V]) invalidateSerializationCache() {
+	if m == nil {
+		return
+	}
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = true
+}
+
+func (m *Map[K, V]) cacheSerializationData(data []byte) {
+	if m == nil {
+		return
+	}
+	m.jsonCache = data
+	m.stringCache = string(data)
+	m.jsonDirty = false
 }

@@ -113,3 +113,22 @@ func TestConcurrentList_Join(t *testing.T) {
 	l := list.NewConcurrentList("a", "b", "c")
 	require.Equal(t, "a,b,c", l.Join(","))
 }
+
+func TestConcurrentList_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	l := list.NewConcurrentList(1, 2, 3)
+
+	data, err := l.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `[1,2,3]`, string(data))
+	require.Equal(t, `[1,2,3]`, l.String())
+
+	data[0] = '{'
+	fresh, err := l.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `[1,2,3]`, string(fresh))
+
+	require.True(t, l.Set(1, 9))
+	require.Equal(t, `[1,9,3]`, l.String())
+}

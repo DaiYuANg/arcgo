@@ -11,6 +11,10 @@ import (
 type ConcurrentList[T any] struct {
 	mu   sync.RWMutex
 	core *List[T]
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewConcurrentList creates a list and copies optional items.
@@ -40,6 +44,7 @@ func (l *ConcurrentList[T]) Add(items ...T) {
 	defer l.mu.Unlock()
 	l.ensureInitLocked()
 	l.core.Add(items...)
+	l.invalidateSerializationCacheLocked()
 }
 
 // Merge appends all items from a normal list.
@@ -76,7 +81,11 @@ func (l *ConcurrentList[T]) AddAllAt(index int, items ...T) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	l.ensureInitLocked()
-	return l.core.AddAllAt(index, items...)
+	added := l.core.AddAllAt(index, items...)
+	if added && len(items) > 0 {
+		l.invalidateSerializationCacheLocked()
+	}
+	return added
 }
 
 // Set replaces item at index.
@@ -86,7 +95,11 @@ func (l *ConcurrentList[T]) Set(index int, item T) bool {
 	if l.core == nil {
 		return false
 	}
-	return l.core.Set(index, item)
+	updated := l.core.Set(index, item)
+	if updated {
+		l.invalidateSerializationCacheLocked()
+	}
+	return updated
 }
 
 // SetAll applies mapper to each item and replaces all items in-place.
@@ -100,7 +113,11 @@ func (l *ConcurrentList[T]) SetAll(mapper func(item T) T) int {
 	if l.core == nil {
 		return 0
 	}
-	return l.core.SetAll(mapper)
+	updated := l.core.SetAll(mapper)
+	if updated > 0 {
+		l.invalidateSerializationCacheLocked()
+	}
+	return updated
 }
 
 // SetAllIndexed applies mapper(index, item) to each item and replaces all items in-place.
@@ -114,7 +131,11 @@ func (l *ConcurrentList[T]) SetAllIndexed(mapper func(index int, item T) T) int 
 	if l.core == nil {
 		return 0
 	}
-	return l.core.SetAllIndexed(mapper)
+	updated := l.core.SetAllIndexed(mapper)
+	if updated > 0 {
+		l.invalidateSerializationCacheLocked()
+	}
+	return updated
 }
 
 // RemoveAt removes and returns item at index.
@@ -125,7 +146,11 @@ func (l *ConcurrentList[T]) RemoveAt(index int) (T, bool) {
 	if l.core == nil {
 		return zero, false
 	}
-	return l.core.RemoveAt(index)
+	value, ok := l.core.RemoveAt(index)
+	if ok {
+		l.invalidateSerializationCacheLocked()
+	}
+	return value, ok
 }
 
 // RemoveAtOption removes item at index and returns it as mo.Option.
@@ -147,7 +172,11 @@ func (l *ConcurrentList[T]) RemoveIf(predicate func(item T) bool) int {
 	if l.core == nil {
 		return 0
 	}
-	return l.core.RemoveIf(predicate)
+	removed := l.core.RemoveIf(predicate)
+	if removed > 0 {
+		l.invalidateSerializationCacheLocked()
+	}
+	return removed
 }
 
 // Len returns item count.
@@ -173,6 +202,9 @@ func (l *ConcurrentList[T]) Clear() {
 		return
 	}
 	l.core.Clear()
+	l.jsonCache = nil
+	l.stringCache = ""
+	l.jsonDirty = false
 }
 
 // Values returns a snapshot of items.
@@ -212,6 +244,12 @@ func (l *ConcurrentList[T]) ensureInitLocked() {
 	if l.core == nil {
 		l.core = NewList[T]()
 	}
+}
+
+func (l *ConcurrentList[T]) invalidateSerializationCacheLocked() {
+	l.jsonCache = nil
+	l.stringCache = ""
+	l.jsonDirty = true
 }
 
 // Where returns a filtered snapshot list.

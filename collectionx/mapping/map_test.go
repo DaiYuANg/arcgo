@@ -116,3 +116,25 @@ func TestMap_ChainMethods(t *testing.T) {
 	require.True(t, mapping.NewMapFrom(map[string]int{"a": 2, "b": 4}).AllEntryMatch(func(_ string, value int) bool { return value%2 == 0 }))
 	require.True(t, mapping.NewMapFrom(map[string]int{"a": 1, "b": 2}).AnyEntryMatch(func(key string, _ int) bool { return key == "b" }))
 }
+
+func TestMap_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	m := mapping.NewMap[string, int]()
+	m.Set("a", 1)
+
+	data, err := m.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"a":1}`, string(data))
+	require.Equal(t, `{"a":1}`, m.String())
+
+	data[0] = '['
+
+	fresh, err := m.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"a":1}`, string(fresh))
+	require.Equal(t, `{"a":1}`, m.String())
+
+	m.Set("b", 2)
+	require.Contains(t, m.String(), `"b":2`)
+}

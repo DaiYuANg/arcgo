@@ -10,6 +10,10 @@ import (
 // Zero value is ready to use.
 type Set[T comparable] struct {
 	items collectionmapping.Map[T, struct{}]
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewSet creates a new set and fills it with optional items.
@@ -38,6 +42,7 @@ func (s *Set[T]) Add(items ...T) {
 	lo.ForEach(items, func(item T, _ int) {
 		s.items.Set(item, struct{}{})
 	})
+	s.invalidateSerializationCache()
 }
 
 // Merge inserts all items from other into set.
@@ -52,6 +57,7 @@ func (s *Set[T]) Merge(other *Set[T]) *Set[T] {
 		s.items.Set(item, struct{}{})
 		return true
 	})
+	s.invalidateSerializationCache()
 	return s
 }
 
@@ -69,7 +75,11 @@ func (s *Set[T]) Remove(item T) bool {
 	if s == nil {
 		return false
 	}
-	return s.items.Delete(item)
+	removed := s.items.Delete(item)
+	if removed {
+		s.invalidateSerializationCache()
+	}
+	return removed
 }
 
 // Contains reports whether item exists.
@@ -100,6 +110,9 @@ func (s *Set[T]) Clear() {
 		return
 	}
 	s.items.Clear()
+	s.jsonCache = nil
+	s.stringCache = ""
+	s.jsonDirty = false
 }
 
 // Values returns all items as a slice.
@@ -275,4 +288,22 @@ func (s *Set[T]) Difference(other *Set[T]) *Set[T] {
 		return true
 	})
 	return out
+}
+
+func (s *Set[T]) invalidateSerializationCache() {
+	if s == nil {
+		return
+	}
+	s.jsonCache = nil
+	s.stringCache = ""
+	s.jsonDirty = true
+}
+
+func (s *Set[T]) cacheSerializationData(data []byte) {
+	if s == nil {
+		return
+	}
+	s.jsonCache = data
+	s.stringCache = string(data)
+	s.jsonDirty = false
 }

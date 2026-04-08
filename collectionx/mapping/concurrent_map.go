@@ -11,6 +11,10 @@ import (
 type ConcurrentMap[K comparable, V any] struct {
 	mu   sync.RWMutex
 	core *Map[K, V]
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewConcurrentMap creates an empty concurrent map.
@@ -34,6 +38,7 @@ func (m *ConcurrentMap[K, V]) Set(key K, value V) {
 	defer m.mu.Unlock()
 	m.ensureInitLocked()
 	m.core.Set(key, value)
+	m.invalidateSerializationCacheLocked()
 }
 
 // SetAll copies all entries from source.
@@ -45,6 +50,7 @@ func (m *ConcurrentMap[K, V]) SetAll(source map[K]V) {
 	defer m.mu.Unlock()
 	m.ensureInitLocked()
 	m.core.SetAll(source)
+	m.invalidateSerializationCacheLocked()
 }
 
 // Get returns the value for key.
@@ -93,6 +99,7 @@ func (m *ConcurrentMap[K, V]) GetOrStore(key K, value V) (actual V, loaded bool)
 		return existing, true
 	}
 	m.core.Set(key, value)
+	m.invalidateSerializationCacheLocked()
 	return value, false
 }
 
@@ -106,7 +113,11 @@ func (m *ConcurrentMap[K, V]) Delete(key K) bool {
 	if m.core == nil {
 		return false
 	}
-	return m.core.Delete(key)
+	removed := m.core.Delete(key)
+	if removed {
+		m.invalidateSerializationCacheLocked()
+	}
+	return removed
 }
 
 // LoadAndDelete removes key and returns previous value.
@@ -125,6 +136,7 @@ func (m *ConcurrentMap[K, V]) LoadAndDelete(key K) (V, bool) {
 		return zero, false
 	}
 	_ = m.core.Delete(key)
+	m.invalidateSerializationCacheLocked()
 	return value, true
 }
 
@@ -166,6 +178,9 @@ func (m *ConcurrentMap[K, V]) Clear() {
 		return
 	}
 	m.core.Clear()
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = false
 }
 
 // Keys returns a snapshot of keys.
@@ -253,4 +268,10 @@ func (m *ConcurrentMap[K, V]) ensureInitLocked() {
 	if m.core == nil {
 		m.core = NewMap[K, V]()
 	}
+}
+
+func (m *ConcurrentMap[K, V]) invalidateSerializationCacheLocked() {
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = true
 }

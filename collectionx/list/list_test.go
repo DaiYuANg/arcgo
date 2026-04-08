@@ -146,3 +146,22 @@ func TestList_Join(t *testing.T) {
 	}))
 	require.Equal(t, "", list.NewList[string]().Join(","))
 }
+
+func TestList_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	l := list.NewList(1, 2, 3)
+
+	data, err := l.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `[1,2,3]`, string(data))
+	require.Equal(t, `[1,2,3]`, l.String())
+
+	data[0] = '{'
+	fresh, err := l.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `[1,2,3]`, string(fresh))
+
+	require.True(t, l.Set(1, 9))
+	require.Equal(t, `[1,9,3]`, l.String())
+}

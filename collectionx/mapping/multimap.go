@@ -11,6 +11,10 @@ import (
 type MultiMap[K comparable, V any] struct {
 	items      Map[K, []V]
 	valueCount int
+
+	jsonCache   []byte
+	stringCache string
+	jsonDirty   bool
 }
 
 // NewMultiMap creates an empty multimap.
@@ -45,6 +49,7 @@ func (m *MultiMap[K, V]) PutAll(key K, values ...V) {
 	next = append(next, values...)
 	m.items.Set(key, next)
 	m.valueCount += len(values)
+	m.invalidateSerializationCache()
 }
 
 // Set replaces all values for key.
@@ -60,10 +65,14 @@ func (m *MultiMap[K, V]) Set(key K, values ...V) {
 	if len(values) == 0 {
 		m.items.Delete(key)
 		m.valueCount -= oldCount
+		if oldCount > 0 {
+			m.invalidateSerializationCache()
+		}
 		return
 	}
 	m.items.Set(key, slices.Clone(values))
 	m.valueCount += len(values) - oldCount
+	m.invalidateSerializationCache()
 }
 
 // Get returns a read-only slice view for key.
@@ -106,6 +115,7 @@ func (m *MultiMap[K, V]) Delete(key K) bool {
 	if existed {
 		m.items.Delete(key)
 		m.valueCount -= len(values)
+		m.invalidateSerializationCache()
 	}
 	return existed
 }
@@ -140,6 +150,7 @@ func (m *MultiMap[K, V]) DeleteValueIf(key K, predicate func(value V) bool) int 
 		m.items.Set(key, next)
 	}
 	m.valueCount -= removed
+	m.invalidateSerializationCache()
 	return removed
 }
 
@@ -180,6 +191,9 @@ func (m *MultiMap[K, V]) Clear() {
 	}
 	m.items.Clear()
 	m.valueCount = 0
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = false
 }
 
 // Keys returns all keys.
@@ -228,6 +242,24 @@ func (m *MultiMap[K, V]) Range(fn func(key K, values []V) bool) {
 
 func (m *MultiMap[K, V]) ensureInit() {
 	m.items.ensureInit()
+}
+
+func (m *MultiMap[K, V]) invalidateSerializationCache() {
+	if m == nil {
+		return
+	}
+	m.jsonCache = nil
+	m.stringCache = ""
+	m.jsonDirty = true
+}
+
+func (m *MultiMap[K, V]) cacheSerializationData(data []byte) {
+	if m == nil {
+		return
+	}
+	m.jsonCache = data
+	m.stringCache = string(data)
+	m.jsonDirty = false
 }
 
 // NewMultiMapFromAll creates a multimap from a built-in deep map.

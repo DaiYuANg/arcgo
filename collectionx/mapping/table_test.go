@@ -1,6 +1,7 @@
 package mapping_test
 
 import (
+	"slices"
 	"testing"
 
 	mapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
@@ -103,4 +104,67 @@ func TestTable_FluentOps(t *testing.T) {
 	require.True(t, tb.AnyCellMatch(func(_ string, _ string, value int) bool { return value == 4 }))
 	require.True(t, tb.AllCellsMatch(func(_ string, _ string, value int) bool { return value > 0 }))
 	require.False(t, tb.AllCellsMatch(func(_ string, columnKey string, _ int) bool { return columnKey == "c1" }))
+}
+
+func TestTable_ColumnKeysCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	tb := mapping.NewTable[string, string, int]()
+	tb.Put("r1", "c1", 1)
+	tb.Put("r1", "c2", 2)
+	tb.Put("r2", "c1", 3)
+
+	keys := tb.ColumnKeys()
+	require.ElementsMatch(t, []string{"c1", "c2"}, keys)
+
+	keys[0] = "mutated"
+	require.ElementsMatch(t, []string{"c1", "c2"}, tb.ColumnKeys())
+
+	tb.Put("r2", "c3", 4)
+	require.ElementsMatch(t, []string{"c1", "c2", "c3"}, tb.ColumnKeys())
+
+	require.True(t, tb.Delete("r2", "c3"))
+	require.ElementsMatch(t, []string{"c1", "c2"}, tb.ColumnKeys())
+
+	tb.SetRow("r1", map[string]int{"c4": 10})
+	require.ElementsMatch(t, []string{"c1", "c4"}, tb.ColumnKeys())
+}
+
+func TestConcurrentTable_ColumnKeysUsesCoreCacheSafely(t *testing.T) {
+	t.Parallel()
+
+	tb := mapping.NewConcurrentTable[string, string, int]()
+	tb.Put("r1", "c1", 1)
+	tb.Put("r2", "c2", 2)
+
+	keys := tb.ColumnKeys()
+	require.ElementsMatch(t, []string{"c1", "c2"}, keys)
+
+	slices.Sort(keys)
+	keys[0] = "changed"
+	require.ElementsMatch(t, []string{"c1", "c2"}, tb.ColumnKeys())
+
+	tb.Put("r3", "c3", 3)
+	require.ElementsMatch(t, []string{"c1", "c2", "c3"}, tb.ColumnKeys())
+}
+
+func TestTable_JSONCacheReturnsDefensiveCopy(t *testing.T) {
+	t.Parallel()
+
+	tb := mapping.NewTable[string, string, int]()
+	tb.Put("r1", "c1", 1)
+
+	data, err := tb.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"r1":{"c1":1}}`, string(data))
+	require.Equal(t, `{"r1":{"c1":1}}`, tb.String())
+
+	data[0] = '['
+	fresh, err := tb.ToJSON()
+	require.NoError(t, err)
+	require.Equal(t, `{"r1":{"c1":1}}`, string(fresh))
+
+	tb.Put("r1", "c2", 2)
+	require.Contains(t, tb.String(), `"c1":1`)
+	require.Contains(t, tb.String(), `"c2":2`)
 }

@@ -112,6 +112,102 @@ func BenchmarkTableColumn(b *testing.B) {
 	}
 }
 
+func BenchmarkTableColumnKeys(b *testing.B) {
+	t := mapping.NewTable[int, int, int]()
+	for row := range benchTableDim {
+		for col := range benchTableDim {
+			t.Put(row, col, row+col)
+		}
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		_ = t.ColumnKeys()
+	}
+}
+
+func BenchmarkOrderedMapToJSON(b *testing.B) {
+	m := mapping.NewOrderedMapWithCapacity[int, int](benchMapKeySpace)
+	for i := range benchMapKeySpace {
+		m.Set(i, i)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if _, err := m.ToJSON(); err != nil {
+			b.Fatalf("ordered map to json failed: %v", err)
+		}
+	}
+}
+
+func BenchmarkMultiMapToJSON(b *testing.B) {
+	m := mapping.NewMultiMapWithCapacity[int, int](benchMapKeySpace)
+	for key := range benchMapKeySpace {
+		for value := range benchMultiMapValueSeed {
+			m.Put(key, value)
+		}
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if _, err := m.ToJSON(); err != nil {
+			b.Fatalf("multimap to json failed: %v", err)
+		}
+	}
+}
+
+func BenchmarkTableToJSON(b *testing.B) {
+	t := mapping.NewTable[int, int, int]()
+	for row := range benchTableDim {
+		for col := range benchTableDim {
+			t.Put(row, col, row+col)
+		}
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if _, err := t.ToJSON(); err != nil {
+			b.Fatalf("table to json failed: %v", err)
+		}
+	}
+}
+
+func BenchmarkConcurrentMapToJSON(b *testing.B) {
+	m := mapping.NewConcurrentMap[int, int]()
+	for i := range benchMapKeySpace {
+		m.Set(i, i)
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if _, err := m.ToJSON(); err != nil {
+			b.Fatalf("concurrent map to json failed: %v", err)
+		}
+	}
+}
+
+func BenchmarkConcurrentTableToJSON(b *testing.B) {
+	t := mapping.NewConcurrentTable[int, int, int]()
+	for row := range benchTableDim {
+		for col := range benchTableDim {
+			t.Put(row, col, row+col)
+		}
+	}
+
+	b.ReportAllocs()
+	b.ResetTimer()
+	for range b.N {
+		if _, err := t.ToJSON(); err != nil {
+			b.Fatalf("concurrent table to json failed: %v", err)
+		}
+	}
+}
+
 func BenchmarkTableDeleteRow(b *testing.B) {
 	t := mapping.NewTable[int, int, int]()
 	for row := range benchTableDim {

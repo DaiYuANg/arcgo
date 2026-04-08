@@ -29,6 +29,7 @@ weight: 2
 - First program (`Set` + `OrderedMap`): [Getting Started](./getting-started)
 - Sets, ordered types, `MultiMap`, `Table`, JSON helpers: [Maps, sets, and tables](./mapping-recipes)
 - Lists, intervals, trie, tree: [Lists and structured data](./structured-data)
+- Release notes: [collectionx v0.1.3](./release-v0.1.3)
 - Release notes: [collectionx v0.1.2](./release-v0.1.2)
 
 ## Install / Import

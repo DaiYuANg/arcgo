@@ -29,6 +29,7 @@ weight: 2
 - 第一个可运行程序（`Set` + `OrderedMap`）：[快速开始](./getting-started)
 - 集合、有序结构、`MultiMap`、`Table`、JSON：[映射、集合与表](./mapping-recipes)
 - 列表、区间、Trie、树：[列表与结构化数据](./structured-data)
+- 版本说明：[collectionx v0.1.3](./release-v0.1.3)
 - 版本说明：[collectionx v0.1.2](./release-v0.1.2)
 
 ## 安装 / 导入

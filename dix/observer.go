@@ -1,0 +1,214 @@
+package dix
+
+import (
+	"context"
+	"log/slog"
+	"time"
+)
+
+// Observer receives non-blocking framework lifecycle events emitted by dix.
+//
+// Observer callbacks must be safe for concurrent use. Implementations should
+// avoid blocking or panicking; dix recovers observer panics and continues.
+type Observer interface {
+	OnBuild(context.Context, BuildEvent)
+	OnStart(context.Context, StartEvent)
+	OnStop(context.Context, StopEvent)
+	OnHealthCheck(context.Context, HealthCheckEvent)
+	OnStateTransition(context.Context, StateTransitionEvent)
+}
+
+// BuildEvent describes a completed runtime build attempt.
+type BuildEvent struct {
+	Meta          AppMeta
+	Profile       Profile
+	ModuleCount   int
+	ProviderCount int
+	HookCount     int
+	SetupCount    int
+	InvokeCount   int
+	Duration      time.Duration
+	Err           error
+}
+
+// StartEvent describes a completed runtime start attempt.
+type StartEvent struct {
+	Meta             AppMeta
+	Profile          Profile
+	StartHookCount   int
+	StartedHookCount int
+	RolledBack       bool
+	Duration         time.Duration
+	Err              error
+}
+
+// StopEvent describes a completed runtime stop attempt.
+type StopEvent struct {
+	Meta               AppMeta
+	Profile            Profile
+	StopHookCount      int
+	HookError          bool
+	ShutdownErrorCount int
+	Duration           time.Duration
+	Err                error
+}
+
+// HealthCheckEvent describes a completed framework health check invocation.
+type HealthCheckEvent struct {
+	Meta     AppMeta
+	Profile  Profile
+	Kind     HealthKind
+	Name     string
+	Duration time.Duration
+	Err      error
+}
+
+// StateTransitionEvent describes an internal runtime state transition.
+type StateTransitionEvent struct {
+	Meta    AppMeta
+	Profile Profile
+	From    AppState
+	To      AppState
+	Reason  string
+}
+
+func (spec *appSpec) emitBuild(ctx context.Context, event BuildEvent) {
+	if spec == nil {
+		return
+	}
+	emitObservers(ctx, spec.logger, spec.observers, func(observer Observer) {
+		observer.OnBuild(ctx, event)
+	})
+}
+
+func (r *Runtime) emitStart(ctx context.Context, event StartEvent) {
+	if r == nil || r.spec == nil {
+		return
+	}
+	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
+		observer.OnStart(ctx, event)
+	})
+}
+
+func (r *Runtime) emitStop(ctx context.Context, event StopEvent) {
+	if r == nil || r.spec == nil {
+		return
+	}
+	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
+		observer.OnStop(ctx, event)
+	})
+}
+
+func (r *Runtime) emitHealthCheck(ctx context.Context, event HealthCheckEvent) {
+	if r == nil || r.spec == nil {
+		return
+	}
+	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
+		observer.OnHealthCheck(ctx, event)
+	})
+}
+
+func (r *Runtime) emitStateTransition(ctx context.Context, event StateTransitionEvent) {
+	if r == nil || r.spec == nil {
+		return
+	}
+	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
+		observer.OnStateTransition(ctx, event)
+	})
+}
+
+func emitObservers(ctx context.Context, logger *slog.Logger, observers []Observer, emit func(Observer)) {
+	if len(observers) == 0 || emit == nil {
+		return
+	}
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	for index, observer := range observers {
+		if observer == nil {
+			continue
+		}
+		func() {
+			defer func() {
+				if recovered := recover(); recovered != nil && logger != nil {
+					logger.Error("dix observer panicked", "observer_index", index, "panic", recovered)
+				}
+			}()
+			emit(observer)
+		}()
+	}
+}
+
+func (p *buildPlan) buildEvent(duration time.Duration, err error) BuildEvent {
+	if p == nil || p.spec == nil {
+		return BuildEvent{Duration: duration, Err: err}
+	}
+	return BuildEvent{
+		Meta:          p.spec.meta,
+		Profile:       p.spec.profile,
+		ModuleCount:   countModules(p.modules),
+		ProviderCount: countModuleProviders(p.modules),
+		HookCount:     countModuleHooks(p.modules),
+		SetupCount:    countModuleSetups(p.modules),
+		InvokeCount:   countModuleInvokes(p.modules),
+		Duration:      duration,
+		Err:           err,
+	}
+}
+
+func (r *Runtime) startEvent(duration time.Duration, startedHooks int, err error) StartEvent {
+	if r == nil {
+		return StartEvent{Duration: duration, Err: err}
+	}
+	startHookCount := 0
+	if r.lifecycle != nil {
+		startHookCount = r.lifecycle.startHooks.Len()
+	}
+	return StartEvent{
+		Meta:             r.Meta(),
+		Profile:          r.Profile(),
+		StartHookCount:   startHookCount,
+		StartedHookCount: startedHooks,
+		RolledBack:       err != nil && startedHooks > 0,
+		Duration:         duration,
+		Err:              err,
+	}
+}
+
+func (r *Runtime) stopEvent(duration time.Duration, report *StopReport, err error) StopEvent {
+	if r == nil {
+		return StopEvent{Duration: duration, Err: err}
+	}
+	stopHookCount := 0
+	if r.lifecycle != nil {
+		stopHookCount = r.lifecycle.stopHooks.Len()
+	}
+	return StopEvent{
+		Meta:               r.Meta(),
+		Profile:            r.Profile(),
+		StopHookCount:      stopHookCount,
+		HookError:          report != nil && report.HookError != nil,
+		ShutdownErrorCount: shutdownErrorCount(report),
+		Duration:           duration,
+		Err:                err,
+	}
+}
+
+func (r *Runtime) healthCheckEvent(check healthCheckEntry, duration time.Duration, err error) HealthCheckEvent {
+	if r == nil {
+		return HealthCheckEvent{
+			Kind:     check.kind,
+			Name:     check.name,
+			Duration: duration,
+			Err:      err,
+		}
+	}
+	return HealthCheckEvent{
+		Meta:     r.Meta(),
+		Profile:  r.Profile(),
+		Kind:     check.kind,
+		Name:     check.name,
+		Duration: duration,
+		Err:      err,
+	}
+}

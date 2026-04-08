@@ -21,11 +21,13 @@ weight: 6
 ## 包结构
 
 - 默认路径：`github.com/DaiYuANg/arcgo/dix`
+- 内部指标子包：`github.com/DaiYuANg/arcgo/dix/metrics`
 - 高级容器能力：`github.com/DaiYuANg/arcgo/dix/advanced`
 
 ## 文档导航
 
 - 最小模块图：[快速开始](./getting-started)
+- 运行时指标与可观测性：[指标与可观测性](./metrics-and-observability)
 - 健康检查与 HTTP handler：[健康检查与生命周期](./health-and-lifecycle)
 - 可失败的 provider 构造：[返回错误的 Provider](./error-providers)
 - 版本说明：[dix v0.3.0](./release-v0.3.0)
@@ -42,6 +44,7 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 - `dix.New(name, ...)` / `dix.NewDefault(...)`
 - `dix.NewModule(name, ...)`
 - `dix.Modules(...)`、`dix.UseProfile(...)`、`dix.Version(...)`、`dix.UseLogger(...)`
+- `dix.WithObserver(...)` / `dix.WithObservers(...)`
 - `dix.Providers(...)`、`dix.Hooks(...)`、`dix.Imports(...)`、`dix.Setups(...)`
 - `dix.WithModules(...)`、`dix.WithProfile(...)`、`dix.WithVersion(...)`、`dix.WithLogger(...)`
 - `dix.WithModuleProviders(...)`、`dix.WithModuleHooks(...)`、`dix.WithModuleImports(...)`
@@ -72,6 +75,7 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 
 - **configx**：启动加载一次强类型配置，并作为模块依赖注入。
 - **logx**：初始化进程级 logger，并注入各服务模块。
+- **observabilityx**：使用 `dix/metrics` 把 build/start/stop/health/state transition 指标输出到 Prometheus 或 OpenTelemetry。
 - **httpx**：在 setup/hook 阶段完成 HTTP bootstrap；路由注册保持在独立模块内。
 - **dbx / kvx**：把持久化初始化隔离到 infra 模块。
 

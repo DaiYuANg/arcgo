@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/samber/do/v2"
 	"github.com/samber/oops"
@@ -87,23 +88,33 @@ func (r *Runtime) Raw() do.Injector {
 }
 
 // Start executes lifecycle start hooks for the runtime.
-func (r *Runtime) Start(ctx context.Context) error {
+func (r *Runtime) Start(ctx context.Context) (err error) {
+	startedAt := time.Now()
+	startedHooks := 0
+	defer func() {
+		if r != nil {
+			r.emitStart(ctx, r.startEvent(time.Since(startedAt), startedHooks, err))
+		}
+	}()
+
 	if r == nil {
-		return oops.In("dix").
+		err = oops.In("dix").
 			With("op", "start").
 			New("runtime is nil")
+		return err
 	}
 	if r.state != AppStateBuilt {
-		return oops.In("dix").
+		err = oops.In("dix").
 			With("op", "start", "app", r.Name(), "state", r.state.String()).
 			Errorf("runtime must be built before starting")
+		return err
 	}
 
 	r.transitionState(ctx, AppStateStarting, "start requested")
 	if r.logger.Enabled(ctx, slog.LevelInfo) {
 		r.logger.Info("starting app", "app", r.Name())
 	}
-	startedHooks, err := r.lifecycle.executeStartHooks(ctx, r.container)
+	startedHooks, err = r.lifecycle.executeStartHooks(ctx, r.container)
 	if err != nil {
 		if r.logger.Enabled(ctx, slog.LevelDebug) {
 			r.logger.Debug("rolling back app start",
@@ -117,7 +128,8 @@ func (r *Runtime) Start(ctx context.Context) error {
 		startErr := errors.Join(err, rollbackErr, shutdownReport)
 		r.transitionState(ctx, AppStateStopped, "start failed")
 		r.logger.Error("app start failed", "app", r.Name(), "error", startErr)
-		return startErr
+		err = startErr
+		return err
 	}
 
 	r.transitionState(ctx, AppStateStarted, "start completed")
@@ -140,8 +152,15 @@ func (r *Runtime) Stop(ctx context.Context) error {
 }
 
 // StopWithReport executes runtime shutdown and returns a detailed stop report.
-func (r *Runtime) StopWithReport(ctx context.Context) (*StopReport, error) {
-	if err := r.validateStoppable(); err != nil {
+func (r *Runtime) StopWithReport(ctx context.Context) (report *StopReport, err error) {
+	startedAt := time.Now()
+	defer func() {
+		if r != nil {
+			r.emitStop(ctx, r.stopEvent(time.Since(startedAt), report, err))
+		}
+	}()
+
+	if err = r.validateStoppable(); err != nil {
 		return nil, err
 	}
 
@@ -157,7 +176,7 @@ func (r *Runtime) StopWithReport(ctx context.Context) (*StopReport, error) {
 		)
 	}
 
-	report := r.executeStopSequence(ctx)
+	report = r.executeStopSequence(ctx)
 	r.logStopReport(debugEnabled, report)
 
 	r.transitionState(ctx, AppStateStopped, "stop completed")
@@ -165,8 +184,8 @@ func (r *Runtime) StopWithReport(ctx context.Context) (*StopReport, error) {
 		r.logger.Info("app stopped", "app", r.Name())
 	}
 
-	stopErr := report.Err()
-	return report, stopErr
+	err = report.Err()
+	return report, err
 }
 
 func (r *Runtime) logDebugInformation() {
@@ -202,6 +221,15 @@ func (r *Runtime) transitionState(ctx context.Context, next AppState, reason str
 			"to", next.String(),
 			"reason", reason,
 		)
+	}
+	if prev != next {
+		r.emitStateTransition(ctx, StateTransitionEvent{
+			Meta:    r.Meta(),
+			Profile: r.Profile(),
+			From:    prev,
+			To:      next,
+			Reason:  reason,
+		})
 	}
 }
 

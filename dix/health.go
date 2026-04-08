@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/oops"
@@ -163,7 +164,9 @@ func (r *Runtime) checkHealthByKind(ctx context.Context, kind HealthKind) Health
 }
 
 func (r *Runtime) runHealthCheck(ctx context.Context, check healthCheckEntry) error {
+	startedAt := time.Now()
 	err := check.fn(ctx)
+	r.emitHealthCheck(ctx, r.healthCheckEvent(check, time.Since(startedAt), err))
 	r.logHealthCheck(check, err)
 	return err
 }

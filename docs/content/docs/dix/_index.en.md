@@ -23,11 +23,13 @@ and a runtime model without forcing most users to deal with `do` directly.
 ## Package layout
 
 - Default path: `github.com/DaiYuANg/arcgo/dix`
+- Runtime metrics subpackage: `github.com/DaiYuANg/arcgo/dix/metrics`
 - Advanced container features: `github.com/DaiYuANg/arcgo/dix/advanced`
 
 ## Documentation map
 
 - Minimal module graph: [Getting Started](./getting-started)
+- Runtime metrics and observability: [Metrics and observability](./metrics-and-observability)
 - Health checks and HTTP handlers: [Health and lifecycle](./health-and-lifecycle)
 - Fallible provider construction: [Error-returning providers](./error-providers)
 - Release notes: [dix v0.3.0](./release-v0.3.0)
@@ -44,6 +46,7 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 - `dix.New(name, ...)` / `dix.NewDefault(...)`
 - `dix.NewModule(name, ...)`
 - `dix.Modules(...)`, `dix.UseProfile(...)`, `dix.Version(...)`, `dix.UseLogger(...)`
+- `dix.WithObserver(...)` / `dix.WithObservers(...)`
 - `dix.Providers(...)`, `dix.Hooks(...)`, `dix.Imports(...)`, `dix.Setups(...)`
 - `dix.WithModules(...)`, `dix.WithProfile(...)`, `dix.WithVersion(...)`, `dix.WithLogger(...)`
 - `dix.WithModuleProviders(...)`, `dix.WithModuleHooks(...)`, `dix.WithModuleImports(...)`
@@ -74,6 +77,7 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 
 - **configx**: load typed config once, then provide it as dependencies in modules.
 - **logx**: initialize one process logger and inject into service modules.
+- **observabilityx**: use `dix/metrics` to emit build/start/stop/health/state-transition metrics to Prometheus or OpenTelemetry.
 - **httpx**: do HTTP bootstrap in setup/hook stages; keep route registration in dedicated modules.
 - **dbx / kvx**: isolate persistence setup into infra modules.
 

@@ -141,6 +141,22 @@ func WithModule(module Module) AppOption {
 	return WithModules(module)
 }
 
+// WithObservers appends runtime observers that receive internal dix events.
+func WithObservers(observers ...Observer) AppOption {
+	return func(spec *appSpec) {
+		for _, observer := range observers {
+			if observer != nil {
+				spec.observers = append(spec.observers, observer)
+			}
+		}
+	}
+}
+
+// WithObserver appends a single runtime observer.
+func WithObserver(observer Observer) AppOption {
+	return WithObservers(observer)
+}
+
 // WithDebugScopeTree logs do's scope tree after build.
 func WithDebugScopeTree(enabled bool) AppOption {
 	return func(spec *appSpec) { spec.debug.scopeTree = enabled }

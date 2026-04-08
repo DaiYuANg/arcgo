@@ -90,6 +90,7 @@ type appSpec struct {
 	modules             collectionlist.List[Module]
 	logger              *slog.Logger
 	loggerFromContainer func(*Container) (*slog.Logger, error)
+	observers           []Observer
 	debug               debugSettings
 }
 

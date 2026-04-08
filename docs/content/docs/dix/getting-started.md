@@ -178,5 +178,6 @@ if err := app.RunContext(ctx); err != nil {
 
 ## Next
 
+- Runtime metrics, Prometheus, and OTel: [Metrics and observability](./metrics-and-observability)
 - Health checks and `net/http` handlers: [Health and lifecycle](./health-and-lifecycle)
 - Advanced features (named/alias/scope/override): see [dix examples](./examples) and `dix/advanced`

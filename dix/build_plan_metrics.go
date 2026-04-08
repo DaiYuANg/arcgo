@@ -5,6 +5,13 @@ import (
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 )
 
+func countModules(modules *collectionlist.List[*moduleSpec]) int {
+	if modules == nil {
+		return 0
+	}
+	return modules.Len()
+}
+
 func countModuleProviders(modules *collectionlist.List[*moduleSpec]) int {
 	return sumModuleCounts(modules, func(mod *moduleSpec) int { return mod.providers.Len() })
 }

@@ -178,5 +178,6 @@ if err := app.RunContext(ctx); err != nil {
 
 ## Next
 
+- 运行时指标、Prometheus、OTel：[指标与可观测性](./metrics-and-observability)
 - 健康检查与 `net/http` handler：[健康检查与生命周期](./health-and-lifecycle)
 - 高级特性（named/alias/scope/override）：见 [dix 示例](./examples) 与 `dix/advanced`

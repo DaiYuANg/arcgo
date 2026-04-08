@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	"github.com/samber/do/v2"
@@ -46,11 +47,19 @@ func newUnvalidatedBuildPlan(app *App) (*buildPlan, error) {
 	return plan, nil
 }
 
-func (p *buildPlan) Build() (*Runtime, error) {
+func (p *buildPlan) Build() (_ *Runtime, err error) {
+	startedAt := time.Now()
+	defer func() {
+		if p != nil && p.spec != nil {
+			p.spec.emitBuild(context.Background(), p.buildEvent(time.Since(startedAt), err))
+		}
+	}()
+
 	if p == nil || p.spec == nil {
-		return nil, oops.In("dix").
+		err = oops.In("dix").
 			With("op", "build_runtime").
 			New("build plan is nil")
+		return nil, err
 	}
 
 	logger := p.spec.logger
@@ -63,7 +72,8 @@ func (p *buildPlan) Build() (*Runtime, error) {
 
 	logger, providersRegistered, err := p.prepareBuildLogger(rt, logger)
 	if err != nil {
-		return nil, cleanupBuildFailure(rt, logger, err)
+		err = cleanupBuildFailure(rt, logger, err)
+		return nil, err
 	}
 
 	debugEnabled := logger.Enabled(context.Background(), slog.LevelDebug)
@@ -77,14 +87,16 @@ func (p *buildPlan) Build() (*Runtime, error) {
 	}
 
 	if err := p.bindHooksAndRunSetups(rt, logger, debugEnabled); err != nil {
-		return nil, cleanupBuildFailure(rt, logger, err)
+		err = cleanupBuildFailure(rt, logger, err)
+		return nil, err
 	}
 
 	if err := p.runInvokes(rt, logger, debugEnabled); err != nil {
-		return nil, cleanupBuildFailure(rt, logger, err)
+		err = cleanupBuildFailure(rt, logger, err)
+		return nil, err
 	}
 
-	rt.state = AppStateBuilt
+	rt.transitionState(context.Background(), AppStateBuilt, "build completed")
 	if infoEnabled {
 		logger.Info("app built", "app", rt.Name(), "modules", p.modules.Len())
 	}

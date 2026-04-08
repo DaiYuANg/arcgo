@@ -91,12 +91,9 @@ func (pf *ProfileFilter) FilterModules(modules collectionx.List[Module]) collect
 	if err != nil {
 		return collectionx.NewList[Module]()
 	}
-	items := collectionx.NewListWithCapacity[Module](filtered.Len())
-	filtered.Range(func(_ int, spec *moduleSpec) bool {
-		items.Add(Module{spec: spec})
-		return true
+	return collectionx.MapList(filtered, func(_ int, spec *moduleSpec) Module {
+		return Module{spec: spec}
 	})
-	return items
 }
 
 // Profiles is the shared profile helper instance.

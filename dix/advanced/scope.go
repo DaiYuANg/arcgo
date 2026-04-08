@@ -1,9 +1,9 @@
 package advanced
 
 import (
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dix"
 	"github.com/samber/do/v2"
-	"github.com/samber/lo"
 )
 
 // ScopePackage configures a newly created do scope.
@@ -15,23 +15,25 @@ func Scope(rt *dix.Runtime, name string, packages ...ScopePackage) *do.Scope {
 		return nil
 	}
 
-	valid := lo.Filter(packages, func(pkg ScopePackage, _ int) bool { return pkg != nil })
-	switch len(valid) {
+	wrapped := collectionx.NewListWithCapacity[func(do.Injector)](len(packages))
+	for _, pkg := range packages {
+		if pkg == nil {
+			continue
+		}
+		current := pkg
+		wrapped.Add(func(injector do.Injector) {
+			current(injector)
+		})
+	}
+
+	switch wrapped.Len() {
 	case 0:
 		return rt.Raw().Scope(name)
 	case 1:
-		current := valid[0]
-		return rt.Raw().Scope(name, func(injector do.Injector) {
-			current(injector)
-		})
+		first, _ := wrapped.Get(0)
+		return rt.Raw().Scope(name, first)
 	default:
-		wrapped := lo.Map(valid, func(pkg ScopePackage, _ int) func(do.Injector) {
-			current := pkg
-			return func(injector do.Injector) {
-				current(injector)
-			}
-		})
-		return rt.Raw().Scope(name, wrapped...)
+		return rt.Raw().Scope(name, wrapped.Values()...)
 	}
 }
 

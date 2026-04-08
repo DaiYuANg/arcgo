@@ -2,7 +2,6 @@ package dix
 
 import (
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 // ServiceRef identifies a service in the container graph.
@@ -69,9 +68,13 @@ func ServiceRefs(refs ...ServiceRef) collectionx.List[ServiceRef] {
 	if len(refs) == 0 {
 		return collectionx.NewList[ServiceRef]()
 	}
-	return collectionx.NewList(lo.Filter(refs, func(ref ServiceRef, _ int) bool {
-		return ref.Name != ""
-	})...)
+	filtered := collectionx.NewListWithCapacity[ServiceRef](len(refs))
+	for _, ref := range refs {
+		if ref.Name != "" {
+			filtered.Add(ref)
+		}
+	}
+	return filtered
 }
 
 // NewProviderFunc constructs a provider registration from a callback and metadata.

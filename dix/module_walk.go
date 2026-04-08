@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	collectionlist "github.com/DaiYuANg/arcgo/collectionx/list"
 	collectionset "github.com/DaiYuANg/arcgo/collectionx/set"
 )
@@ -35,7 +36,7 @@ type moduleVisitorFuncs struct {
 type moduleWalkState struct {
 	visited    *collectionset.Set[*moduleSpec]
 	visiting   *collectionset.Set[*moduleSpec]
-	knownNames map[string]*moduleSpec
+	knownNames collectionx.Map[string, *moduleSpec]
 	stopped    bool
 	path       *collectionlist.List[string]
 	profile    Profile
@@ -100,7 +101,7 @@ func newModuleWalkState(profile Profile, visitor moduleVisitor) *moduleWalkState
 	return &moduleWalkState{
 		visited:    collectionset.NewSetWithCapacity[*moduleSpec](16),
 		visiting:   collectionset.NewSetWithCapacity[*moduleSpec](8),
-		knownNames: map[string]*moduleSpec{},
+		knownNames: collectionx.NewMapWithCapacity[string, *moduleSpec](8),
 		path:       collectionlist.NewListWithCapacity[string](8),
 		profile:    profile,
 		visitor:    visitor,
@@ -147,10 +148,10 @@ func (s *moduleWalkState) shouldSkip(spec *moduleSpec) bool {
 func (s *moduleWalkState) beginVisit(spec *moduleSpec) (string, bool, error) {
 	key := moduleKey(spec)
 	if spec.name != "" {
-		if known, ok := s.knownNames[spec.name]; ok && known != spec {
+		if known, ok := s.knownNames.Get(spec.name); ok && known != spec {
 			return "", false, fmt.Errorf("duplicate module name detected: %s", spec.name)
 		}
-		s.knownNames[spec.name] = spec
+		s.knownNames.Set(spec.name, spec)
 	}
 	if s.visited.Contains(spec) {
 		return key, true, nil

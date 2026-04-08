@@ -16,6 +16,11 @@ type buildPlan struct {
 }
 
 func newBuildPlan(app *App) (*buildPlan, error) {
+	plan, _, err := computeBuildPlan(app)
+	return plan, err
+}
+
+func newUnvalidatedBuildPlan(app *App) (*buildPlan, error) {
 	if app == nil || app.spec == nil {
 		return nil, errors.New("app is nil")
 	}
@@ -34,7 +39,7 @@ func newBuildPlan(app *App) (*buildPlan, error) {
 		modules: modules,
 	}
 
-	return plan, validateTypedGraph(plan)
+	return plan, nil
 }
 
 func (p *buildPlan) Build() (*Runtime, error) {

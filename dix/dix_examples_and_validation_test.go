@@ -197,6 +197,31 @@ func TestValidateReportUsesDeclaredRawMetadata(t *testing.T) {
 	assert.False(t, report.HasWarnings(), report.WarningSummary())
 }
 
+func TestValidateReportReturnsIndependentCollectionsAndStillBuilds(t *testing.T) {
+	app := dix.NewApp("warnings",
+		dix.NewModule("advanced",
+			dix.WithModuleProviders(
+				dix.RawProvider(func(*dix.Container) {}),
+			),
+		),
+	)
+
+	first := app.ValidateReport()
+	require.False(t, first.HasErrors())
+	require.True(t, first.HasWarnings())
+	baselineWarnings := first.Warnings.Len()
+
+	first.Warnings.Add(dix.ValidationWarning{Kind: "custom"})
+	assert.Equal(t, baselineWarnings+1, first.Warnings.Len())
+
+	second := app.ValidateReport()
+	assert.Equal(t, baselineWarnings, second.Warnings.Len())
+
+	rt, err := app.Build()
+	require.NoError(t, err)
+	assert.NotNil(t, rt)
+}
+
 func TestBuildFailureShutsDownResolvedServices(t *testing.T) {
 	svc := &cleanupService{}
 	app := dix.NewApp("cleanup",

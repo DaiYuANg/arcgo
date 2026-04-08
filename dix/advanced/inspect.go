@@ -4,7 +4,6 @@ import (
 	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/dix"
 	"github.com/samber/do/v2"
-	"github.com/samber/lo"
 )
 
 // Inspection summarizes advanced runtime inspection output.
@@ -70,11 +69,11 @@ func ExplainNamedDependencies(rt *dix.Runtime, namedServices ...string) collecti
 	}
 
 	dependencies := collectionx.NewMapWithCapacity[string, string](len(namedServices))
-	lo.ForEach(namedServices, func(name string, _ int) {
+	for _, name := range namedServices {
 		if desc, found := do.ExplainNamedService(rt.Raw(), name); found {
 			dependencies.Set(name, desc.String())
 		}
-	})
+	}
 
 	return dependencies
 }

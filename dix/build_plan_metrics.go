@@ -6,59 +6,31 @@ import (
 )
 
 func countModuleProviders(modules *collectionlist.List[*moduleSpec]) int {
-	total := 0
-	if modules == nil {
-		return total
-	}
-	modules.Range(func(_ int, mod *moduleSpec) bool {
-		if mod != nil {
-			total += mod.providers.Len()
-		}
-		return true
-	})
-	return total
+	return sumModuleCounts(modules, func(mod *moduleSpec) int { return mod.providers.Len() })
 }
 
 func countModuleHooks(modules *collectionlist.List[*moduleSpec]) int {
-	total := 0
-	if modules == nil {
-		return total
-	}
-	modules.Range(func(_ int, mod *moduleSpec) bool {
-		if mod != nil {
-			total += mod.hooks.Len()
-		}
-		return true
-	})
-	return total
+	return sumModuleCounts(modules, func(mod *moduleSpec) int { return mod.hooks.Len() })
 }
 
 func countModuleSetups(modules *collectionlist.List[*moduleSpec]) int {
-	total := 0
-	if modules == nil {
-		return total
-	}
-	modules.Range(func(_ int, mod *moduleSpec) bool {
-		if mod != nil {
-			total += mod.setups.Len()
-		}
-		return true
-	})
-	return total
+	return sumModuleCounts(modules, func(mod *moduleSpec) int { return mod.setups.Len() })
 }
 
 func countModuleInvokes(modules *collectionlist.List[*moduleSpec]) int {
-	total := 0
-	if modules == nil {
-		return total
+	return sumModuleCounts(modules, func(mod *moduleSpec) int { return mod.invokes.Len() })
+}
+
+func sumModuleCounts(modules *collectionlist.List[*moduleSpec], selector func(*moduleSpec) int) int {
+	if modules == nil || selector == nil {
+		return 0
 	}
-	modules.Range(func(_ int, mod *moduleSpec) bool {
-		if mod != nil {
-			total += mod.invokes.Len()
+	return collectionx.ReduceList(modules, 0, func(acc int, _ int, mod *moduleSpec) int {
+		if mod == nil {
+			return acc
 		}
-		return true
+		return acc + selector(mod)
 	})
-	return total
 }
 
 func serviceRefNames(refs collectionx.List[ServiceRef]) collectionx.List[string] {

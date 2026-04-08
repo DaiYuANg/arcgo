@@ -65,7 +65,8 @@ func (s AppState) String() string {
 
 // App is an immutable application specification.
 type App struct {
-	spec *appSpec
+	spec      *appSpec
+	planCache appPlanCache
 }
 
 // Runtime is a built application runtime produced from an App spec.

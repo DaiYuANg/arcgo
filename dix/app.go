@@ -179,7 +179,7 @@ func (a *App) Modules() collectionx.List[Module] {
 
 // Build compiles the immutable App spec into a Runtime.
 func (a *App) Build() (*Runtime, error) {
-	plan, err := newBuildPlan(a)
+	plan, _, err := a.cachedBuildPlan()
 	if err != nil {
 		return nil, err
 	}

@@ -14,11 +14,22 @@ func (a *App) Validate() error {
 
 // ValidateReport validates the app and returns the full validation report.
 func (a *App) ValidateReport() ValidationReport {
-	plan, err := newBuildPlan(a)
-	if err != nil {
-		return ValidationReport{Errors: collectionx.NewList(err)}
+	_, report, _ := a.cachedBuildPlan()
+	return report
+}
+
+func cloneValidationReport(report ValidationReport) ValidationReport {
+	return ValidationReport{
+		Errors:   cloneList(report.Errors),
+		Warnings: cloneList(report.Warnings),
 	}
-	return validateTypedGraphReport(plan)
+}
+
+func cloneList[T any](items collectionx.List[T]) collectionx.List[T] {
+	if items == nil || items.Len() == 0 {
+		return collectionx.NewList[T]()
+	}
+	return collectionx.NewListWithCapacity(items.Len(), items.Values()...)
 }
 
 // HasWarnings reports whether the validation report contains warnings.
@@ -45,8 +56,7 @@ func (r ValidationReport) WarningSummary() string {
 		return ""
 	}
 
-	lines := collectionx.NewListWithCapacity[string](r.Warnings.Len())
-	r.Warnings.Range(func(_ int, warning ValidationWarning) bool {
+	lines := collectionx.MapList(r.Warnings, func(_ int, warning ValidationWarning) string {
 		line := string(warning.Kind)
 		if warning.Module != "" {
 			line += " module=" + warning.Module
@@ -57,8 +67,7 @@ func (r ValidationReport) WarningSummary() string {
 		if warning.Details != "" {
 			line += " " + warning.Details
 		}
-		lines.Add(line)
-		return true
+		return line
 	})
 	return strings.Join(lines.Values(), "\n")
 }

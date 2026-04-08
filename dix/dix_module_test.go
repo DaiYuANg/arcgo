@@ -257,6 +257,42 @@ func TestModule_SingularOptionAliases(t *testing.T) {
 	require.NoError(t, rt.Stop(context.Background()))
 }
 
+func TestModule_ShortOptionAliases(t *testing.T) {
+	base := dix.NewModule("base",
+		dix.Providers(dix.Provider0(ProvideConfig)),
+	)
+
+	module := dix.NewModule("short-aliases",
+		dix.Imports(base),
+		dix.UseProfiles(dix.ProfileDev),
+		dix.ExcludeProfiles(dix.ProfileProd),
+		dix.Description("short module options"),
+		dix.Tags("api", "public"),
+		dix.Providers(dix.Provider1(ProvideDatabase)),
+		dix.Invokes(dix.Invoke1(func(*Database) {})),
+		dix.Hooks(dix.OnStart0(func(context.Context) error { return nil })),
+		dix.Setups(dix.Setup(func(*dix.Container, dix.Lifecycle) error { return nil })),
+	)
+
+	assert.Equal(t, "short module options", module.Description())
+	assert.ElementsMatch(t, []string{"api", "public"}, module.Tags().Values())
+
+	app := dix.New("short-aliases",
+		dix.WithProfile(dix.ProfileDev),
+		dix.WithModule(module),
+	)
+
+	require.NoError(t, app.Validate())
+	rt := buildRuntime(t, app)
+
+	db, err := dix.ResolveAs[*Database](rt.Container())
+	require.NoError(t, err)
+	assert.Equal(t, "sqlite://test.db", db.dsn)
+
+	require.NoError(t, rt.Start(context.Background()))
+	require.NoError(t, rt.Stop(context.Background()))
+}
+
 func TestContainerRegisterProviderDefinitionReturnsError(t *testing.T) {
 	rt := buildRuntime(t, dix.NewApp("test"))
 	err := rt.Container().Register(dix.Definition{Kind: dix.DefinitionProvider})

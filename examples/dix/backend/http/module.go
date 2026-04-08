@@ -19,8 +19,8 @@ import (
 
 // Module wires the backend example HTTP API server.
 var Module = dix.NewModule("http",
-	dix.WithModuleImports(config.Module, service.Module),
-	dix.WithModuleProviders(
+	dix.Imports(config.Module, service.Module),
+	dix.Providers(
 		dix.Provider2(func(svc service.UserService, log *slog.Logger) httpx.ServerRuntime {
 			router := chi.NewMux()
 			router.Use(middleware.Logger, middleware.Recoverer, middleware.RequestID)
@@ -42,7 +42,7 @@ var Module = dix.NewModule("http",
 			return server
 		}),
 	),
-	dix.WithModuleHooks(
+	dix.Hooks(
 		dix.OnStart3(func(_ context.Context, server httpx.ServerRuntime, cfg config.AppConfig, log *slog.Logger) error {
 			go func(port int) {
 				if err := server.ListenPort(port); err != nil {

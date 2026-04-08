@@ -11,7 +11,7 @@ import (
 
 // Module loads the backend example configuration and startup logs.
 var Module = dix.NewModule("config",
-	dix.WithModuleProviders(
+	dix.Providers(
 		dix.Provider1(func(log *slog.Logger) AppConfig {
 			var cfg AppConfig
 			loader := configx.New(
@@ -31,7 +31,7 @@ var Module = dix.NewModule("config",
 			return cfg
 		}),
 	),
-	dix.WithModuleInvokes(
+	dix.Invokes(
 		dix.Invoke2(func(cfg AppConfig, log *slog.Logger) {
 			addr := fmt.Sprintf(":%d", cfg.Server.Port)
 			log.Info("backend starting",

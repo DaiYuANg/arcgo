@@ -12,8 +12,8 @@ import (
 
 // Module wires the backend example database and schema services.
 var Module = dix.NewModule("db",
-	dix.WithModuleImports(config.Module),
-	dix.WithModuleProviders(
+	dix.Imports(config.Module),
+	dix.Providers(
 		dix.Provider2(func(cfg config.AppConfig, log *slog.Logger) *dbx.DB {
 			database, err := OpenSQLite(cfg.DB.DSN, DefaultOpts(log)...)
 			if err != nil {
@@ -31,7 +31,7 @@ var Module = dix.NewModule("db",
 			return dbx.MustSchema("users", s)
 		}),
 	),
-	dix.WithModuleHooks(
+	dix.Hooks(
 		dix.OnStop(func(_ context.Context, database *dbx.DB) error {
 			return database.Close()
 		}),

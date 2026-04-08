@@ -227,6 +227,36 @@ func TestLifecycleHookReceivesContext(t *testing.T) {
 	assert.Equal(t, "abc:value", received)
 }
 
+func TestModule_SingularOptionAliases(t *testing.T) {
+	base := dix.NewModule("base",
+		dix.WithModuleProvider(dix.Provider0(ProvideConfig)),
+	)
+
+	module := dix.NewModule("aliases",
+		dix.WithModuleImport(base),
+		dix.WithModuleProfile(dix.ProfileDev),
+		dix.WithModuleExcludeProfile(dix.ProfileProd),
+		dix.WithModuleProvider(dix.Provider1(ProvideDatabase)),
+		dix.WithModuleInvoke(dix.Invoke1(func(*Database) {})),
+		dix.WithModuleHook(dix.OnStart0(func(context.Context) error { return nil })),
+	)
+
+	app := dix.New("aliases",
+		dix.WithProfile(dix.ProfileDev),
+		dix.WithModule(module),
+	)
+
+	require.NoError(t, app.Validate())
+	rt := buildRuntime(t, app)
+
+	db, err := dix.ResolveAs[*Database](rt.Container())
+	require.NoError(t, err)
+	assert.Equal(t, "sqlite://test.db", db.dsn)
+
+	require.NoError(t, rt.Start(context.Background()))
+	require.NoError(t, rt.Stop(context.Background()))
+}
+
 func TestContainerRegisterProviderDefinitionReturnsError(t *testing.T) {
 	rt := buildRuntime(t, dix.NewApp("test"))
 	err := rt.Container().Register(dix.Definition{Kind: dix.DefinitionProvider})

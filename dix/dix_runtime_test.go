@@ -161,6 +161,27 @@ func TestNewDefault(t *testing.T) {
 	assert.Equal(t, dix.DefaultAppName, app.Name())
 }
 
+func TestApp_StartBuildsAndStartsRuntime(t *testing.T) {
+	app := dix.New("start",
+		dix.WithModule(
+			dix.NewModule("start",
+				dix.WithModuleProvider(dix.Provider0(func() string { return "value" })),
+				dix.WithModuleHook(dix.OnStart(func(context.Context, string) error { return nil })),
+			),
+		),
+	)
+
+	rt, err := app.Start(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, dix.AppStateStarted, rt.State())
+
+	value, err := dix.ResolveAs[string](rt.Container())
+	require.NoError(t, err)
+	assert.Equal(t, "value", value)
+
+	require.NoError(t, rt.Stop(context.Background()))
+}
+
 func TestWithLoggerFrom1_UsesDIProvidedLogger(t *testing.T) {
 	buf := &bytes.Buffer{}
 	diLogger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{

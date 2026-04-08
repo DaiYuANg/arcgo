@@ -186,16 +186,24 @@ func (a *App) Build() (*Runtime, error) {
 	return plan.Build()
 }
 
-// Run builds a Runtime, starts it, waits for shutdown signals, and stops it.
-func (a *App) Run() error {
+// Start builds a Runtime and starts it with the provided context.
+func (a *App) Start(ctx context.Context) (*Runtime, error) {
 	rt, err := a.Build()
 	if err != nil {
-		return fmt.Errorf("build failed: %w", err)
+		return nil, fmt.Errorf("build failed: %w", err)
 	}
-
-	ctx := context.Background()
 	if err := rt.Start(ctx); err != nil {
-		return fmt.Errorf("start failed: %w", err)
+		return nil, fmt.Errorf("start failed: %w", err)
+	}
+	return rt, nil
+}
+
+// Run builds a Runtime, starts it, waits for shutdown signals, and stops it.
+func (a *App) Run() error {
+	ctx := context.Background()
+	rt, err := a.Start(ctx)
+	if err != nil {
+		return err
 	}
 
 	waitForShutdown()

@@ -60,11 +60,7 @@ func main() {
 		dix.WithLogger(logger),
 	)
 
-	rt, err := app.Build()
-	if err != nil {
-		panic(err)
-	}
-	err = rt.Start(context.Background())
+	rt, err := app.Start(context.Background())
 	if err != nil {
 		panic(err)
 	}

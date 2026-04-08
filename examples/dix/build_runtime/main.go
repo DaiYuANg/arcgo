@@ -20,11 +20,9 @@ func main() {
 	}
 
 	module := dix.NewModule("greeting",
-		dix.WithModuleProviders(
-			dix.Provider0(func() greeting {
-				return greeting{Message: "hello runtime"}
-			}),
-		),
+		dix.WithModuleProvider(dix.Provider0(func() greeting {
+			return greeting{Message: "hello runtime"}
+		})),
 	)
 
 	app := dix.New(

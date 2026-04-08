@@ -40,11 +40,18 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 
 - `dix.New(name, ...)` / `dix.NewDefault(...)`
 - `dix.NewModule(name, ...)`
-- `dix.WithModuleProviders(...)`、`dix.ProviderN(...)`
-- `dix.WithModuleHooks(...)`、`dix.OnStart(...)`、`dix.OnStop(...)`
-- `dix.WithModuleSetup(...)` / `dix.WithModuleSetups(...)`
-- `app.Validate()`、`app.ValidateReport()`、`app.Build()`
+- `dix.Providers(...)`、`dix.Hooks(...)`、`dix.Imports(...)`、`dix.Setups(...)`
+- `dix.WithModuleProviders(...)`、`dix.WithModuleHooks(...)`、`dix.WithModuleImports(...)`
+- `dix.WithModuleProvider(...)`、`dix.WithModuleHook(...)`、`dix.WithModuleImport(...)`
+- `dix.ProviderN(...)`、`dix.OnStart(...)`、`dix.OnStop(...)`
+- `app.Validate()`、`app.ValidateReport()`、`app.Build()`、`app.Start(ctx)`
 - `rt.Start(ctx)`、`rt.Stop(ctx)`、`rt.StopWithReport(ctx)`
+
+## API 风格说明
+
+- `dix` 继续保留现有的 `WithModule*` option 家族，兼容旧写法。
+- 新代码可以优先使用更短的模块 option 别名，例如 `Providers(...)`、`Hooks(...)`、`Imports(...)`、`Invokes(...)`、`Setups(...)`、`Description(...)`、`Tags(...)`。
+- 对常见的“build 后立即 start”流程，优先用 `app.Start(ctx)`；只有在你需要显式拿到未启动的 runtime 时，再使用 `app.Build()`。
 
 ## 校验模型
 

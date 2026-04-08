@@ -11,8 +11,8 @@ This page shows a **self-contained** `dix` program:
 
 - define a couple of typed services
 - compose them into modules
-- `Build()` a runtime
-- `Start()` and `Stop()` cleanly
+- `Start()` a runtime directly from `App`
+- `Stop()` it cleanly
 
 ## 1) Install
 
@@ -45,19 +45,17 @@ type Server struct {
 
 func main() {
 	configModule := dix.NewModule("config",
-		dix.WithModuleProviders(
-			dix.Provider0(func() Config { return Config{Port: 8080} }),
-		),
+		dix.Providers(dix.Provider0(func() Config { return Config{Port: 8080} })),
 	)
 
 	serverModule := dix.NewModule("server",
-		dix.WithModuleImports(configModule),
-		dix.WithModuleProviders(
+		dix.Imports(configModule),
+		dix.Providers(
 			dix.Provider2(func(logger *slog.Logger, cfg Config) *Server {
 				return &Server{Logger: logger, Config: cfg}
 			}),
 		),
-		dix.WithModuleHooks(
+		dix.Hooks(
 			dix.OnStart(func(ctx context.Context, srv *Server) error {
 				srv.Logger.Info("server starting", "port", srv.Config.Port)
 				return nil
@@ -89,12 +87,8 @@ func main() {
 		logger.Warn("validation warning", "kind", warning.Kind, "module", warning.Module, "label", warning.Label)
 	}
 
-	rt, err := app.Build()
+	rt, err := app.Start(context.Background())
 	if err != nil {
-		panic(err)
-	}
-
-	if err := rt.Start(context.Background()); err != nil {
 		panic(err)
 	}
 	defer func() {
@@ -116,6 +110,8 @@ go run .
 
 If you want `dix` internal logs to use a logger produced by your module graph (instead of passing `dix.WithLogger(...)` at app creation), use `dix.WithLoggerFrom...`.
 
+The examples below use the newer short module option aliases. The older `WithModule*` forms remain valid.
+
 ```go
 package main
 
@@ -133,14 +129,14 @@ type LogBundle struct {
 
 func main() {
 	logModule := dix.NewModule("logx",
-		dix.WithModuleProviders(
+		dix.Providers(
 			dix.Provider0(func() *LogBundle {
 				return &LogBundle{
 					Logger: logx.MustNew(logx.WithConsole(true), logx.WithDebugLevel()),
 				}
 			}),
 		),
-		dix.WithModuleHooks(
+		dix.Hooks(
 			dix.OnStop(func(_ context.Context, logs *LogBundle) error {
 				return logx.Close(logs.Logger)
 			}),

@@ -24,7 +24,7 @@ go run ./inspect
 
 | 示例 | 关注点 | 目录 |
 | --- | --- | --- |
-| `basic` | 不可变 app spec、build/start/stop、health check、`logx` 集成 | [examples/dix/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/basic) |
+| `basic` | 不可变 app spec、`app.Start(ctx)`、health check、`logx` 集成 | [examples/dix/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/basic) |
 | `aggregate_params` | 多个 typed dependency 的 provider graph 组合 | [examples/dix/aggregate_params](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/aggregate_params) |
 | `build_runtime` | 显式 `Build()` 到 `Runtime` 的流程 | [examples/dix/build_runtime](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/build_runtime) |
 | `build_failure` | validation/build 失败路径 | [examples/dix/build_failure](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/build_failure) |
@@ -48,9 +48,7 @@ app := dix.New(
     dix.WithLogger(logger),
     dix.WithModule(
         dix.NewModule("config",
-            dix.WithModuleProviders(
-                dix.Provider0(func() Config { return Config{Port: 8080} }),
-            ),
+            dix.Providers(dix.Provider0(func() Config { return Config{Port: 8080} })),
         ),
     ),
 )
@@ -59,17 +57,13 @@ if err := app.Validate(); err != nil {
     panic(err)
 }
 
-rt, err := app.Build()
+rt, err := app.Start(context.Background())
 if err != nil {
     panic(err)
 }
 defer func() {
     _, _ = rt.StopWithReport(context.Background())
 }()
-
-if err := rt.Start(context.Background()); err != nil {
-    panic(err)
-}
 ```
 
 ## 示例：Raw Bridge 的 Validation Report
@@ -90,7 +84,7 @@ for _, warning := range report.Warnings {
 
 ```go
 module := dix.NewModule("bridge",
-    dix.WithModuleProviders(
+    dix.Providers(
         dix.Provider0(func() Config { return Config{Port: 8080} }),
         dix.RawProviderWithMetadata(func(c *dix.Container) {
             dix.ProvideValueT(c, &Server{})
@@ -100,7 +94,7 @@ module := dix.NewModule("bridge",
             Dependencies: []dix.ServiceRef{dix.TypedService[Config]()},
         }),
     ),
-    dix.WithModuleSetups(
+    dix.Setups(
         advanced.DoSetupWithMetadata(func(raw do.Injector) error {
             _ = raw
             return nil
@@ -137,12 +131,12 @@ fmt.Println(svc.Request.RequestID)
 ```go
 app := dix.NewApp("errors",
     dix.NewModule("errors",
-        dix.WithModuleProviders(
+        dix.Providers(
             dix.ProviderErr0(func() (*Config, error) {
                 return loadConfig()
             }),
         ),
-        dix.WithModuleSetups(
+        dix.Setups(
             advanced.OverrideErr0(func() (*Config, error) {
                 return loadConfigFromFixture()
             }),

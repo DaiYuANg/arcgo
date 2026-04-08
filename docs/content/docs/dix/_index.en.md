@@ -42,11 +42,18 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 
 - `dix.New(name, ...)` / `dix.NewDefault(...)`
 - `dix.NewModule(name, ...)`
-- `dix.WithModuleProviders(...)`, `dix.ProviderN(...)`
-- `dix.WithModuleHooks(...)`, `dix.OnStart(...)`, `dix.OnStop(...)`
-- `dix.WithModuleSetup(...)` / `dix.WithModuleSetups(...)`
-- `app.Validate()`, `app.ValidateReport()`, `app.Build()`
+- `dix.Providers(...)`, `dix.Hooks(...)`, `dix.Imports(...)`, `dix.Setups(...)`
+- `dix.WithModuleProviders(...)`, `dix.WithModuleHooks(...)`, `dix.WithModuleImports(...)`
+- `dix.WithModuleProvider(...)`, `dix.WithModuleHook(...)`, `dix.WithModuleImport(...)`
+- `dix.ProviderN(...)`, `dix.OnStart(...)`, `dix.OnStop(...)`
+- `app.Validate()`, `app.ValidateReport()`, `app.Build()`, `app.Start(ctx)`
 - `rt.Start(ctx)`, `rt.Stop(ctx)`, `rt.StopWithReport(ctx)`
+
+## API style notes
+
+- `dix` keeps the existing `WithModule*` option family for compatibility.
+- New code can prefer the shorter module option aliases such as `Providers(...)`, `Hooks(...)`, `Imports(...)`, `Invokes(...)`, `Setups(...)`, `Description(...)`, and `Tags(...)`.
+- When you want the common build-then-start flow, prefer `app.Start(ctx)`; use `app.Build()` when you need an explicit pre-start runtime handle.
 
 ## Validation model
 

@@ -24,7 +24,7 @@ go run ./inspect
 
 | Example | Focus | Directory |
 | --- | --- | --- |
-| `basic` | immutable app spec, build/start/stop, health checks, `logx` integration | [examples/dix/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/basic) |
+| `basic` | immutable app spec, `app.Start(ctx)`, health checks, `logx` integration | [examples/dix/basic](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/basic) |
 | `aggregate_params` | provider graph composition with multiple typed dependencies | [examples/dix/aggregate_params](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/aggregate_params) |
 | `build_runtime` | explicit `Build()` to `Runtime` flow | [examples/dix/build_runtime](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/build_runtime) |
 | `build_failure` | validation/build failure behavior | [examples/dix/build_failure](https://github.com/DaiYuANg/arcgo/tree/main/examples/dix/build_failure) |
@@ -69,9 +69,7 @@ app := dix.New(
     dix.WithLogger(logger),
     dix.WithModule(
         dix.NewModule("config",
-            dix.WithModuleProviders(
-                dix.Provider0(func() Config { return Config{Port: 8080} }),
-            ),
+            dix.Providers(dix.Provider0(func() Config { return Config{Port: 8080} })),
         ),
     ),
 )
@@ -80,17 +78,13 @@ if err := app.Validate(); err != nil {
     panic(err)
 }
 
-rt, err := app.Build()
+rt, err := app.Start(context.Background())
 if err != nil {
     panic(err)
 }
 defer func() {
     _, _ = rt.StopWithReport(context.Background())
 }()
-
-if err := rt.Start(context.Background()); err != nil {
-    panic(err)
-}
 ```
 
 ## Example: Validation Report For Raw Bridges
@@ -111,7 +105,7 @@ Use this path when the module graph intentionally includes raw bridges.
 
 ```go
 module := dix.NewModule("bridge",
-    dix.WithModuleProviders(
+    dix.Providers(
         dix.Provider0(func() Config { return Config{Port: 8080} }),
         dix.RawProviderWithMetadata(func(c *dix.Container) {
             dix.ProvideValueT(c, &Server{})
@@ -121,7 +115,7 @@ module := dix.NewModule("bridge",
             Dependencies: []dix.ServiceRef{dix.TypedService[Config]()},
         }),
     ),
-    dix.WithModuleSetups(
+    dix.Setups(
         advanced.DoSetupWithMetadata(func(raw do.Injector) error {
             _ = raw
             return nil
@@ -158,12 +152,12 @@ fmt.Println(svc.Request.RequestID)
 ```go
 app := dix.NewApp("errors",
     dix.NewModule("errors",
-        dix.WithModuleProviders(
+        dix.Providers(
             dix.ProviderErr0(func() (*Config, error) {
                 return loadConfig()
             }),
         ),
-        dix.WithModuleSetups(
+        dix.Setups(
             advanced.OverrideErr0(func() (*Config, error) {
                 return loadConfigFromFixture()
             }),

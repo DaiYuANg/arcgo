@@ -11,8 +11,8 @@ weight: 2
 
 - 定义若干强类型服务
 - 组装为模块
-- `Build()` 生成运行时
-- `Start()` / `Stop()` 管理生命周期
+- 直接从 `App` 调用 `Start()`
+- 再通过 `Stop()` 管理生命周期
 
 ## 1) Install
 
@@ -45,19 +45,17 @@ type Server struct {
 
 func main() {
 	configModule := dix.NewModule("config",
-		dix.WithModuleProviders(
-			dix.Provider0(func() Config { return Config{Port: 8080} }),
-		),
+		dix.Providers(dix.Provider0(func() Config { return Config{Port: 8080} })),
 	)
 
 	serverModule := dix.NewModule("server",
-		dix.WithModuleImports(configModule),
-		dix.WithModuleProviders(
+		dix.Imports(configModule),
+		dix.Providers(
 			dix.Provider2(func(logger *slog.Logger, cfg Config) *Server {
 				return &Server{Logger: logger, Config: cfg}
 			}),
 		),
-		dix.WithModuleHooks(
+		dix.Hooks(
 			dix.OnStart(func(ctx context.Context, srv *Server) error {
 				srv.Logger.Info("server starting", "port", srv.Config.Port)
 				return nil
@@ -89,12 +87,8 @@ func main() {
 		logger.Warn("validation warning", "kind", warning.Kind, "module", warning.Module, "label", warning.Label)
 	}
 
-	rt, err := app.Build()
+	rt, err := app.Start(context.Background())
 	if err != nil {
-		panic(err)
-	}
-
-	if err := rt.Start(context.Background()); err != nil {
 		panic(err)
 	}
 	defer func() {
@@ -116,6 +110,8 @@ go run .
 
 如果你希望 `dix` 框架内部日志使用模块图里构建的 logger（而不是在 `New` 时显式传 `dix.WithLogger(...)`），可以使用 `dix.WithLoggerFrom...`。
 
+下面的示例使用了新的短模块 option 写法；旧的 `WithModule*` 形式仍然兼容。
+
 ```go
 package main
 
@@ -133,14 +129,14 @@ type LogBundle struct {
 
 func main() {
 	logModule := dix.NewModule("logx",
-		dix.WithModuleProviders(
+		dix.Providers(
 			dix.Provider0(func() *LogBundle {
 				return &LogBundle{
 					Logger: logx.MustNew(logx.WithConsole(true), logx.WithDebugLevel()),
 				}
 			}),
 		),
-		dix.WithModuleHooks(
+		dix.Hooks(
 			dix.OnStop(func(_ context.Context, logs *LogBundle) error {
 				return logx.Close(logs.Logger)
 			}),

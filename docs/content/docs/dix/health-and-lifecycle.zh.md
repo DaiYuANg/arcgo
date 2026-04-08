@@ -13,7 +13,7 @@ weight: 3
 - 存活检查（`CheckLiveness`）
 - 就绪检查（`CheckReadiness`）
 
-通常在 `WithModuleSetup` 中通过 `*dix.Container` 注册检查。对 HTTP 场景，`Runtime` 也提供可直接挂载的 handler：
+通常在 `WithModuleSetup` 或 `Setups(...)` 中通过 `*dix.Container` 注册检查。对 HTTP 场景，`Runtime` 也提供可直接挂载的 handler：
 
 - `rt.HealthHandler()` → `/healthz`
 - `rt.LivenessHandler()` → `/livez`
@@ -55,9 +55,7 @@ type Server struct {
 
 func main() {
 	configModule := dix.NewModule("config",
-		dix.WithModuleProviders(
-			dix.Provider0(func() Config { return Config{Port: 8080} }),
-		),
+		dix.Providers(dix.Provider0(func() Config { return Config{Port: 8080} })),
 	)
 
 	logger, err := logx.NewDevelopment()
@@ -66,8 +64,8 @@ func main() {
 	}
 
 	serverModule := dix.NewModule("server",
-		dix.WithModuleImports(configModule),
-		dix.WithModuleProviders(
+		dix.Imports(configModule),
+		dix.Providers(
 			dix.Provider2(func(logger *slog.Logger, cfg Config) *Server {
 				return &Server{Logger: logger, Config: cfg}
 			}),
@@ -92,11 +90,8 @@ func main() {
 		dix.WithLogger(logger),
 	)
 
-	rt, err := app.Build()
+	rt, err := app.Start(context.Background())
 	if err != nil {
-		panic(err)
-	}
-	if err := rt.Start(context.Background()); err != nil {
 		panic(err)
 	}
 	defer func() { _ = rt.Stop(context.Background()) }()
@@ -124,14 +119,14 @@ type LogBundle struct {
 }
 
 logModule := dix.NewModule("logx",
-	dix.WithModuleProviders(
+	dix.Providers(
 		dix.Provider0(func() *LogBundle {
 			return &LogBundle{
 				Logger: logx.MustNew(logx.WithConsole(true), logx.WithDebugLevel()),
 			}
 		}),
 	),
-	dix.WithModuleHooks(
+	dix.Hooks(
 		dix.OnStop(func(_ context.Context, logs *LogBundle) error {
 			return logx.Close(logs.Logger)
 		}),

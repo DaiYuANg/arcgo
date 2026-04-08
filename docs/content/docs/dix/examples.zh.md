@@ -45,7 +45,7 @@ go run ./inspect
 ```go
 app := dix.New(
     "basic",
-    dix.WithLogger(logger),
+    dix.UseLogger(logger),
     dix.WithModule(
         dix.NewModule("config",
             dix.Providers(dix.Provider0(func() Config { return Config{Port: 8080} })),
@@ -165,3 +165,14 @@ fmt.Println("tenant graph known:", deps["tenant.default"] != "")
 
 如果你只需要某一个诊断视图，优先使用这些细粒度 helper。
 `InspectRuntime(...)` 依然方便，但它是更重的聚合路径。
+
+如果关闭时机由调用方控制，可以直接用这个 App 层入口：
+
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+if err := app.RunContext(ctx); err != nil {
+    panic(err)
+}
+```

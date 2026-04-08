@@ -74,9 +74,9 @@ func main() {
 
 	app := dix.New(
 		"demo",
-		dix.WithProfile(dix.ProfileDev),
-		dix.WithLogger(logger),
-		dix.WithModules(configModule, serverModule),
+		dix.UseProfile(dix.ProfileDev),
+		dix.UseLogger(logger),
+		dix.Modules(configModule, serverModule),
 	)
 
 	report := app.ValidateReport()
@@ -110,7 +110,7 @@ go run .
 
 If you want `dix` internal logs to use a logger produced by your module graph (instead of passing `dix.WithLogger(...)` at app creation), use `dix.WithLoggerFrom...`.
 
-The examples below use the newer short module option aliases. The older `WithModule*` forms remain valid.
+The examples below use the newer short module and app option aliases. The older `WithModule*` and `With*` app forms remain valid.
 
 ```go
 package main
@@ -145,7 +145,7 @@ func main() {
 
 	app := dix.New(
 		"demo",
-		dix.WithModules(logModule /*, other modules... */),
+		dix.Modules(logModule /*, other modules... */),
 		dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
 			return logs.Logger
 		}),
@@ -162,6 +162,19 @@ This keeps logger wiring inside modules while still replacing the framework defa
 - For typed-only apps, `app.Validate()` is usually enough.
 - When you use raw bridge APIs, prefer `app.ValidateReport()` so you can inspect warnings as well as hard errors.
 - If a raw path is intentional, declare its validation boundary with metadata-aware APIs instead of relying on a fully opaque escape hatch.
+
+## Optional: run with caller-owned context
+
+If your process already has a managed context, prefer `app.RunContext(ctx)` over `app.Run()`:
+
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+if err := app.RunContext(ctx); err != nil {
+	panic(err)
+}
+```
 
 ## Next
 

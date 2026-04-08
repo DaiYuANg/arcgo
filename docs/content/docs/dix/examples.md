@@ -66,7 +66,7 @@ go run ./examples/dix/backend
 ```go
 app := dix.New(
     "basic",
-    dix.WithLogger(logger),
+    dix.UseLogger(logger),
     dix.WithModule(
         dix.NewModule("config",
             dix.Providers(dix.Provider0(func() Config { return Config{Port: 8080} })),
@@ -186,3 +186,14 @@ fmt.Println("tenant graph known:", deps["tenant.default"] != "")
 
 Use the fine-grained inspection helpers when you only need one diagnostic view.
 `InspectRuntime(...)` remains convenient, but it is the heavier aggregation path.
+
+For caller-controlled shutdown, the app-level shortcut is:
+
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+if err := app.RunContext(ctx); err != nil {
+    panic(err)
+}
+```

@@ -74,9 +74,9 @@ func main() {
 
 	app := dix.New(
 		"demo",
-		dix.WithProfile(dix.ProfileDev),
-		dix.WithLogger(logger),
-		dix.WithModules(configModule, serverModule),
+		dix.UseProfile(dix.ProfileDev),
+		dix.UseLogger(logger),
+		dix.Modules(configModule, serverModule),
 	)
 
 	report := app.ValidateReport()
@@ -110,7 +110,7 @@ go run .
 
 如果你希望 `dix` 框架内部日志使用模块图里构建的 logger（而不是在 `New` 时显式传 `dix.WithLogger(...)`），可以使用 `dix.WithLoggerFrom...`。
 
-下面的示例使用了新的短模块 option 写法；旧的 `WithModule*` 形式仍然兼容。
+下面的示例使用了新的短模块 option 和 App option 写法；旧的 `WithModule*` 与 `With*` App 形式仍然兼容。
 
 ```go
 package main
@@ -145,7 +145,7 @@ func main() {
 
 	app := dix.New(
 		"demo",
-		dix.WithModules(logModule /*, other modules... */),
+		dix.Modules(logModule /*, other modules... */),
 		dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
 			return logs.Logger
 		}),
@@ -162,6 +162,19 @@ func main() {
 - 对纯 typed 应用来说，`app.Validate()` 通常已经足够。
 - 一旦用了 raw bridge API，更推荐 `app.ValidateReport()`，这样既能看到硬错误，也能看到 warning。
 - 如果 raw 路径是有意为之，优先使用带 metadata 的 API 显式声明校验边界，而不是完全不透明的 escape hatch。
+
+## 可选：由调用方控制运行上下文
+
+如果你的进程已经有统一管理的 context，优先使用 `app.RunContext(ctx)`，而不是 `app.Run()`：
+
+```go
+ctx, cancel := context.WithCancel(context.Background())
+defer cancel()
+
+if err := app.RunContext(ctx); err != nil {
+	panic(err)
+}
+```
 
 ## Next
 

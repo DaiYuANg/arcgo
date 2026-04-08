@@ -84,10 +84,10 @@ func main() {
 	)
 
 	app := dix.NewDefault(
-		dix.WithProfile(dix.ProfileDev),
-		dix.WithVersion("0.1.0"),
-		dix.WithModules(serverModule),
-		dix.WithLogger(logger),
+		dix.UseProfile(dix.ProfileDev),
+		dix.Version("0.1.0"),
+		dix.Modules(serverModule),
+		dix.UseLogger(logger),
 	)
 
 	rt, err := app.Start(context.Background())
@@ -134,7 +134,7 @@ logModule := dix.NewModule("logx",
 )
 
 app := dix.NewDefault(
-	dix.WithModules(logModule, serverModule),
+	dix.Modules(logModule, serverModule),
 	dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
 		return logs.Logger
 	}),

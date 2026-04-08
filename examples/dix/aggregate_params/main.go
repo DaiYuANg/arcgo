@@ -30,7 +30,7 @@ func main() {
 	}
 
 	module := dix.NewModule("repository",
-		dix.WithModuleProviders(
+		dix.Providers(
 			dix.Provider0(func() dbConfig { return dbConfig{DSN: "postgres://demo"} }),
 			dix.Provider2(func(logger *slog.Logger, cfg dbConfig) repositoryParams {
 				return repositoryParams{Logger: logger, Cfg: cfg}
@@ -41,12 +41,8 @@ func main() {
 		),
 	)
 
-	app := dix.New("aggregate-params", dix.WithModule(module), dix.WithLogger(logger))
-	rt, err := app.Build()
-	if err != nil {
-		panic(err)
-	}
-	err = rt.Start(context.Background())
+	app := dix.New("aggregate-params", dix.Modules(module), dix.UseLogger(logger))
+	rt, err := app.Start(context.Background())
 	if err != nil {
 		panic(err)
 	}

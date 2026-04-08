@@ -18,10 +18,10 @@ func main() {
 	counter := 0
 	app := dix.New(
 		"transient",
-		dix.WithLogger(logger),
+		dix.UseLogger(logger),
 		dix.WithModule(
 			dix.NewModule("transient",
-				dix.WithModuleProviders(
+				dix.Providers(
 					dixadvanced.TransientProvider0(func() int {
 						counter++
 						return counter

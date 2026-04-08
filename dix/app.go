@@ -56,9 +56,19 @@ func WithProfile(profile Profile) AppOption {
 	return func(spec *appSpec) { spec.profile = profile }
 }
 
+// UseProfile selects the runtime profile for the application.
+func UseProfile(profile Profile) AppOption {
+	return WithProfile(profile)
+}
+
 // WithVersion sets application version metadata.
 func WithVersion(version string) AppOption {
 	return func(spec *appSpec) { spec.meta.Version = version }
+}
+
+// Version sets application version metadata.
+func Version(version string) AppOption {
+	return WithVersion(version)
 }
 
 // WithAppDescription sets application description metadata.
@@ -73,6 +83,11 @@ func WithLogger(logger *slog.Logger) AppOption {
 			spec.logger = logger
 		}
 	}
+}
+
+// UseLogger sets the framework logger.
+func UseLogger(logger *slog.Logger) AppOption {
+	return WithLogger(logger)
 }
 
 // WithLoggerFrom resolves the framework logger from the built DI container.
@@ -114,6 +129,11 @@ func WithModules(modules ...Module) AppOption {
 	return func(spec *appSpec) {
 		spec.modules.Add(modules...)
 	}
+}
+
+// Modules appends application modules.
+func Modules(modules ...Module) AppOption {
+	return WithModules(modules...)
 }
 
 // WithModule appends a single application module.
@@ -198,25 +218,26 @@ func (a *App) Start(ctx context.Context) (*Runtime, error) {
 	return rt, nil
 }
 
-// Run builds a Runtime, starts it, waits for shutdown signals, and stops it.
-func (a *App) Run() error {
-	ctx := context.Background()
+// RunContext builds a Runtime, starts it, waits for the context to finish, and stops it.
+func (a *App) RunContext(ctx context.Context) error {
 	rt, err := a.Start(ctx)
 	if err != nil {
 		return err
 	}
 
-	waitForShutdown()
+	<-ctx.Done()
 
-	if err := rt.Stop(ctx); err != nil {
+	stopCtx := context.WithoutCancel(ctx)
+	if err := rt.Stop(stopCtx); err != nil {
 		return fmt.Errorf("stop failed: %w", err)
 	}
 
 	return nil
 }
 
-func waitForShutdown() {
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	<-sigCh
+// Run builds a Runtime, starts it, waits for shutdown signals, and stops it.
+func (a *App) Run() error {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	return a.RunContext(ctx)
 }

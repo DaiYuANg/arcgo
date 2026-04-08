@@ -21,9 +21,9 @@ func Run() {
 
 	a := dix.New(
 		"backend",
-		dix.WithVersion("0.1.0"),
-		dix.WithLogger(logger),
-		dix.WithModules(
+		dix.Version("0.1.0"),
+		dix.UseLogger(logger),
+		dix.Modules(
 			config.Module,
 			event.Module,
 			db.Module,

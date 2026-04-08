@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/DaiYuANg/arcgo/dix"
 	"github.com/stretchr/testify/assert"
@@ -180,6 +181,77 @@ func TestApp_StartBuildsAndStartsRuntime(t *testing.T) {
 	assert.Equal(t, "value", value)
 
 	require.NoError(t, rt.Stop(context.Background()))
+}
+
+func TestApp_RunContextStartsAndStopsRuntime(t *testing.T) {
+	started := make(chan struct{}, 1)
+	stopped := make(chan struct{}, 1)
+
+	app := dix.New("run-context",
+		dix.WithModule(
+			dix.NewModule("run-context",
+				dix.WithModuleProvider(dix.Provider0(func() string { return "value" })),
+				dix.WithModuleHooks(
+					dix.OnStart(func(context.Context, string) error {
+						started <- struct{}{}
+						return nil
+					}),
+					dix.OnStop(func(context.Context, string) error {
+						stopped <- struct{}{}
+						return nil
+					}),
+				),
+			),
+		),
+	)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	errCh := make(chan error, 1)
+	go func() {
+		errCh <- app.RunContext(ctx)
+	}()
+
+	select {
+	case <-started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("run context did not start runtime")
+	}
+
+	cancel()
+
+	select {
+	case err := <-errCh:
+		require.NoError(t, err)
+	case <-time.After(2 * time.Second):
+		t.Fatal("run context did not return")
+	}
+
+	select {
+	case <-stopped:
+	case <-time.After(2 * time.Second):
+		t.Fatal("run context did not stop runtime")
+	}
+}
+
+func TestApp_ShortOptionAliases(t *testing.T) {
+	app := dix.New("aliases",
+		dix.UseProfile(dix.ProfileDev),
+		dix.Version("1.2.3"),
+		dix.UseLogger(slog.Default()),
+		dix.Modules(DatabaseModule),
+	)
+
+	assert.Equal(t, dix.ProfileDev, app.Profile())
+	assert.Equal(t, "1.2.3", app.Meta().Version)
+	assert.NotNil(t, app.Logger())
+	assert.Equal(t, 1, app.Modules().Len())
+
+	rt := buildRuntime(t, app)
+	cfg, err := dix.ResolveAs[Config](rt.Container())
+	require.NoError(t, err)
+	assert.Equal(t, 8080, cfg.Port)
 }
 
 func TestWithLoggerFrom1_UsesDIProvidedLogger(t *testing.T) {

@@ -46,11 +46,11 @@ func recordAsyncEnqueueMetrics(
 	event string,
 	result string,
 ) {
-	obs.AddCounter(ctx, metricAsyncEnqueueTotal, 1,
+	obs.Counter(asyncEnqueueTotalSpec).Add(ctx, 1,
 		observabilityx.String("result", result),
 		observabilityx.String("event_name", event),
 	)
-	obs.RecordHistogram(ctx, metricAsyncEnqueueDurationMS, float64(time.Since(start).Milliseconds()),
+	obs.Histogram(asyncEnqueueDurationSpec).Record(ctx, float64(time.Since(start).Milliseconds()),
 		observabilityx.String("result", result),
 		observabilityx.String("event_name", event),
 	)

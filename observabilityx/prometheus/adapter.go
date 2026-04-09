@@ -20,16 +20,26 @@ type Adapter struct {
 	gatherer  prom.Gatherer
 	buckets   []float64
 
-	counters   *collectionmapping.ConcurrentMap[string, *counterInstrument]
-	histograms *collectionmapping.ConcurrentMap[string, *histInstrument]
+	counters       *collectionmapping.ConcurrentMap[string, *counterInstrument]
+	upDownCounters *collectionmapping.ConcurrentMap[string, *gaugeInstrument]
+	histograms     *collectionmapping.ConcurrentMap[string, *histInstrument]
+	gauges         *collectionmapping.ConcurrentMap[string, *gaugeInstrument]
 }
 
 type counterInstrument struct {
+	spec   observabilityx.CounterSpec
 	labels []string
 	vec    *prom.CounterVec
 }
 
+type gaugeInstrument struct {
+	spec   observabilityx.MetricSpec
+	labels []string
+	vec    *prom.GaugeVec
+}
+
 type histInstrument struct {
+	spec   observabilityx.HistogramSpec
 	labels []string
 	vec    *prom.HistogramVec
 }
@@ -40,13 +50,15 @@ func New(opts ...Option) *Adapter {
 	option.Apply(&cfg, opts...)
 
 	return &Adapter{
-		logger:     observabilityx.NormalizeLogger(cfg.logger),
-		namespace:  normalizeMetricSegment(cfg.namespace, defaultNamespace),
-		register:   cfg.register,
-		gatherer:   cfg.gatherer,
-		buckets:    cfg.buckets.Values(),
-		counters:   collectionmapping.NewConcurrentMap[string, *counterInstrument](),
-		histograms: collectionmapping.NewConcurrentMap[string, *histInstrument](),
+		logger:         observabilityx.NormalizeLogger(cfg.logger),
+		namespace:      normalizeMetricSegment(cfg.namespace, defaultNamespace),
+		register:       cfg.register,
+		gatherer:       cfg.gatherer,
+		buckets:        cfg.buckets.Values(),
+		counters:       collectionmapping.NewConcurrentMap[string, *counterInstrument](),
+		upDownCounters: collectionmapping.NewConcurrentMap[string, *gaugeInstrument](),
+		histograms:     collectionmapping.NewConcurrentMap[string, *histInstrument](),
+		gauges:         collectionmapping.NewConcurrentMap[string, *gaugeInstrument](),
 	}
 }
 
@@ -69,61 +81,138 @@ func (a *Adapter) StartSpan(
 	return ctx, noopSpan{}
 }
 
-// AddCounter records an increment for a named counter.
-func (a *Adapter) AddCounter(
-	ctx context.Context,
-	name string,
-	value int64,
-	attrs ...observabilityx.Attribute,
-) {
-	_ = ctx
-	if value == 0 {
-		return
-	}
-
-	metricName := a.normalizeMetricName(name)
-	metricLabels := attrsToLabelMap(attrs)
-	instrument, err := a.counter(metricName, metricLabels)
+// Counter returns a declared Prometheus counter handle.
+func (a *Adapter) Counter(spec observabilityx.CounterSpec) observabilityx.Counter {
+	instrument, err := a.counter(spec)
 	if err != nil {
-		a.Logger().Warn("prometheus counter setup failed", "metric", metricName, "error", err.Error())
-		return
+		a.Logger().Warn("prometheus counter setup failed", "metric", spec.Name, "error", err.Error())
+		return nopCounter{}
 	}
-
-	labelValues := toPromLabels(instrument.labels, metricLabels)
-	counter, err := instrument.vec.GetMetricWith(labelValues)
-	if err != nil {
-		a.Logger().Warn("prometheus counter labels mismatch", "metric", metricName, "error", err.Error())
-		return
-	}
-	counter.Add(float64(value))
+	return promCounter{logger: a.Logger(), instrument: instrument}
 }
 
-// RecordHistogram records a value for a named histogram.
-func (a *Adapter) RecordHistogram(
-	ctx context.Context,
-	name string,
-	value float64,
-	attrs ...observabilityx.Attribute,
-) {
-	_ = ctx
-	metricName := a.normalizeMetricName(name)
-	metricLabels := attrsToLabelMap(attrs)
-	instrument, err := a.histogram(metricName, metricLabels)
+// UpDownCounter returns a declared Prometheus up-down counter handle.
+func (a *Adapter) UpDownCounter(spec observabilityx.UpDownCounterSpec) observabilityx.UpDownCounter {
+	instrument, err := a.upDownCounter(spec)
 	if err != nil {
-		a.Logger().Warn("prometheus histogram setup failed", "metric", metricName, "error", err.Error())
-		return
+		a.Logger().Warn("prometheus up-down counter setup failed", "metric", spec.Name, "error", err.Error())
+		return nopUpDownCounter{}
 	}
+	return promUpDownCounter{logger: a.Logger(), instrument: instrument}
+}
 
-	labelValues := toPromLabels(instrument.labels, metricLabels)
-	histogram, err := instrument.vec.GetMetricWith(labelValues)
+// Histogram returns a declared Prometheus histogram handle.
+func (a *Adapter) Histogram(spec observabilityx.HistogramSpec) observabilityx.Histogram {
+	instrument, err := a.histogram(spec)
 	if err != nil {
-		a.Logger().Warn("prometheus histogram labels mismatch", "metric", metricName, "error", err.Error())
-		return
+		a.Logger().Warn("prometheus histogram setup failed", "metric", spec.Name, "error", err.Error())
+		return nopHistogram{}
 	}
-	histogram.Observe(value)
+	return promHistogram{logger: a.Logger(), instrument: instrument}
+}
+
+// Gauge returns a declared Prometheus gauge handle.
+func (a *Adapter) Gauge(spec observabilityx.GaugeSpec) observabilityx.Gauge {
+	instrument, err := a.gauge(spec)
+	if err != nil {
+		a.Logger().Warn("prometheus gauge setup failed", "metric", spec.Name, "error", err.Error())
+		return nopGauge{}
+	}
+	return promGauge{logger: a.Logger(), instrument: instrument}
 }
 
 // Handler returns HTTP metrics handler for the configured gatherer.
 func (a *Adapter) Handler() http.Handler {
 	return promhttp.HandlerFor(a.gatherer, promhttp.HandlerOpts{})
 }
+
+type promCounter struct {
+	logger     *slog.Logger
+	instrument *counterInstrument
+}
+
+func (c promCounter) Add(ctx context.Context, value int64, attrs ...observabilityx.Attribute) {
+	_ = ctx
+	if value <= 0 {
+		if value < 0 {
+			observabilityx.NormalizeLogger(c.logger).Warn("prometheus counter rejected negative value", "metric", c.instrument.spec.Name, "value", value)
+		}
+		return
+	}
+
+	labelValues := observabilityx.MetricLabelMap(c.instrument.spec.LabelKeys, attrs...)
+	counter, err := c.instrument.vec.GetMetricWith(toPromLabels(c.instrument.labels, labelValues))
+	if err != nil {
+		observabilityx.NormalizeLogger(c.logger).Warn("prometheus counter labels mismatch", "metric", c.instrument.spec.Name, "error", err.Error())
+		return
+	}
+	counter.Add(float64(value))
+}
+
+type promUpDownCounter struct {
+	logger     *slog.Logger
+	instrument *gaugeInstrument
+}
+
+func (c promUpDownCounter) Add(ctx context.Context, value int64, attrs ...observabilityx.Attribute) {
+	_ = ctx
+	if value == 0 {
+		return
+	}
+
+	labelValues := observabilityx.MetricLabelMap(c.instrument.spec.LabelKeys, attrs...)
+	gauge, err := c.instrument.vec.GetMetricWith(toPromLabels(c.instrument.labels, labelValues))
+	if err != nil {
+		observabilityx.NormalizeLogger(c.logger).Warn("prometheus up-down counter labels mismatch", "metric", c.instrument.spec.Name, "error", err.Error())
+		return
+	}
+	gauge.Add(float64(value))
+}
+
+type promHistogram struct {
+	logger     *slog.Logger
+	instrument *histInstrument
+}
+
+func (h promHistogram) Record(ctx context.Context, value float64, attrs ...observabilityx.Attribute) {
+	_ = ctx
+	labelValues := observabilityx.MetricLabelMap(h.instrument.spec.LabelKeys, attrs...)
+	histogram, err := h.instrument.vec.GetMetricWith(toPromLabels(h.instrument.labels, labelValues))
+	if err != nil {
+		observabilityx.NormalizeLogger(h.logger).Warn("prometheus histogram labels mismatch", "metric", h.instrument.spec.Name, "error", err.Error())
+		return
+	}
+	histogram.Observe(value)
+}
+
+type promGauge struct {
+	logger     *slog.Logger
+	instrument *gaugeInstrument
+}
+
+func (g promGauge) Set(ctx context.Context, value float64, attrs ...observabilityx.Attribute) {
+	_ = ctx
+	labelValues := observabilityx.MetricLabelMap(g.instrument.spec.LabelKeys, attrs...)
+	gauge, err := g.instrument.vec.GetMetricWith(toPromLabels(g.instrument.labels, labelValues))
+	if err != nil {
+		observabilityx.NormalizeLogger(g.logger).Warn("prometheus gauge labels mismatch", "metric", g.instrument.spec.Name, "error", err.Error())
+		return
+	}
+	gauge.Set(value)
+}
+
+type nopCounter struct{}
+
+func (nopCounter) Add(context.Context, int64, ...observabilityx.Attribute) {}
+
+type nopUpDownCounter struct{}
+
+func (nopUpDownCounter) Add(context.Context, int64, ...observabilityx.Attribute) {}
+
+type nopHistogram struct{}
+
+func (nopHistogram) Record(context.Context, float64, ...observabilityx.Attribute) {}
+
+type nopGauge struct{}
+
+func (nopGauge) Set(context.Context, float64, ...observabilityx.Attribute) {}

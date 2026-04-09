@@ -33,12 +33,12 @@ func (b *Bus) dispatch(ctx context.Context, event Event, handlers []HandlerFunc,
 
 	result := "success"
 	defer func() {
-		obs.AddCounter(ctx, metricDispatchTotal, 1,
+		obs.Counter(dispatchTotalSpec).Add(ctx, 1,
 			observabilityx.String("mode", mode),
 			observabilityx.String("result", result),
 			observabilityx.String("event_name", eventName(event)),
 		)
-		obs.RecordHistogram(ctx, metricDispatchDurationMS, float64(time.Since(start).Milliseconds()),
+		obs.Histogram(dispatchDurationSpec).Record(ctx, float64(time.Since(start).Milliseconds()),
 			observabilityx.String("mode", mode),
 			observabilityx.String("result", result),
 			observabilityx.String("event_name", eventName(event)),

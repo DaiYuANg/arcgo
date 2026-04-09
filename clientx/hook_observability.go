@@ -40,16 +40,25 @@ func NewObservabilityHook(obs observabilityx.Observability, opts ...Observabilit
 		metricPrefix: "clientx",
 	}
 	Apply(&cfg, opts...)
+	normalized := observabilityx.Normalize(obs, nil)
 
 	return &observabilityHook{
-		obs: observabilityx.Normalize(obs, nil),
-		cfg: cfg,
+		cfg:            cfg,
+		dialTotal:      normalized.Counter(dialTotalSpec(cfg.metricPrefix)),
+		dialDurationMS: normalized.Histogram(dialDurationSpec(cfg.metricPrefix)),
+		ioTotal:        normalized.Counter(ioTotalSpec(cfg.metricPrefix)),
+		ioDurationMS:   normalized.Histogram(ioDurationSpec(cfg.metricPrefix)),
+		ioBytesTotal:   normalized.Counter(ioBytesTotalSpec(cfg.metricPrefix)),
 	}
 }
 
 type observabilityHook struct {
-	obs observabilityx.Observability
-	cfg observabilityHookConfig
+	cfg            observabilityHookConfig
+	dialTotal      observabilityx.Counter
+	dialDurationMS observabilityx.Histogram
+	ioTotal        observabilityx.Counter
+	ioDurationMS   observabilityx.Histogram
+	ioBytesTotal   observabilityx.Counter
 }
 
 func (h *observabilityHook) OnDial(event DialEvent) {
@@ -67,8 +76,8 @@ func (h *observabilityHook) OnDial(event DialEvent) {
 	}
 
 	ctx := context.Background()
-	h.obs.AddCounter(ctx, h.metricName("dial_total"), 1, attrs.Values()...)
-	h.obs.RecordHistogram(ctx, h.metricName("dial_duration_ms"), float64(event.Duration.Milliseconds()), attrs.Values()...)
+	h.dialTotal.Add(ctx, 1, attrs.Values()...)
+	h.dialDurationMS.Record(ctx, float64(event.Duration.Milliseconds()), attrs.Values()...)
 }
 
 func (h *observabilityHook) OnIO(event IOEvent) {
@@ -85,15 +94,54 @@ func (h *observabilityHook) OnIO(event IOEvent) {
 	}
 
 	ctx := context.Background()
-	h.obs.AddCounter(ctx, h.metricName("io_total"), 1, attrs.Values()...)
-	h.obs.RecordHistogram(ctx, h.metricName("io_duration_ms"), float64(event.Duration.Milliseconds()), attrs.Values()...)
+	h.ioTotal.Add(ctx, 1, attrs.Values()...)
+	h.ioDurationMS.Record(ctx, float64(event.Duration.Milliseconds()), attrs.Values()...)
 	if event.Bytes > 0 {
-		h.obs.AddCounter(ctx, h.metricName("io_bytes_total"), int64(event.Bytes), attrs.Values()...)
+		h.ioBytesTotal.Add(ctx, int64(event.Bytes), attrs.Values()...)
 	}
 }
 
-func (h *observabilityHook) metricName(suffix string) string {
-	return h.cfg.metricPrefix + "_" + suffix
+func dialTotalSpec(prefix string) observabilityx.CounterSpec {
+	return observabilityx.NewCounterSpec(
+		prefix+"_dial_total",
+		observabilityx.WithDescription("Total number of dial operations."),
+		observabilityx.WithLabelKeys("protocol", "op", "network", "result", "addr", "error_kind"),
+	)
+}
+
+func dialDurationSpec(prefix string) observabilityx.HistogramSpec {
+	return observabilityx.NewHistogramSpec(
+		prefix+"_dial_duration_ms",
+		observabilityx.WithDescription("Duration of dial operations in milliseconds."),
+		observabilityx.WithUnit("ms"),
+		observabilityx.WithLabelKeys("protocol", "op", "network", "result", "addr", "error_kind"),
+	)
+}
+
+func ioTotalSpec(prefix string) observabilityx.CounterSpec {
+	return observabilityx.NewCounterSpec(
+		prefix+"_io_total",
+		observabilityx.WithDescription("Total number of client I/O operations."),
+		observabilityx.WithLabelKeys("protocol", "op", "result", "addr", "error_kind"),
+	)
+}
+
+func ioDurationSpec(prefix string) observabilityx.HistogramSpec {
+	return observabilityx.NewHistogramSpec(
+		prefix+"_io_duration_ms",
+		observabilityx.WithDescription("Duration of client I/O operations in milliseconds."),
+		observabilityx.WithUnit("ms"),
+		observabilityx.WithLabelKeys("protocol", "op", "result", "addr", "error_kind"),
+	)
+}
+
+func ioBytesTotalSpec(prefix string) observabilityx.CounterSpec {
+	return observabilityx.NewCounterSpec(
+		prefix+"_io_bytes_total",
+		observabilityx.WithDescription("Total number of bytes transferred through client I/O."),
+		observabilityx.WithUnit("By"),
+		observabilityx.WithLabelKeys("protocol", "op", "result", "addr", "error_kind"),
+	)
 }
 
 func resultOf(err error) string {

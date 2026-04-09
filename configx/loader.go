@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/DaiYuANg/arcgo/observabilityx"
 	"github.com/samber/mo"
 	"github.com/samber/oops"
 )
@@ -13,6 +14,31 @@ const (
 	metricConfigLoadDurationMS       = "configx_load_duration_ms"
 	metricConfigSourceLoadTotal      = "configx_source_load_total"
 	metricConfigSourceLoadDurationMS = "configx_source_load_duration_ms"
+)
+
+var (
+	configLoadTotalSpec = observabilityx.NewCounterSpec(
+		metricConfigLoadTotal,
+		observabilityx.WithDescription("Total number of config load operations."),
+		observabilityx.WithLabelKeys("result"),
+	)
+	configLoadDurationSpec = observabilityx.NewHistogramSpec(
+		metricConfigLoadDurationMS,
+		observabilityx.WithDescription("Duration of config load operations in milliseconds."),
+		observabilityx.WithUnit("ms"),
+		observabilityx.WithLabelKeys("result"),
+	)
+	configSourceLoadTotalSpec = observabilityx.NewCounterSpec(
+		metricConfigSourceLoadTotal,
+		observabilityx.WithDescription("Total number of config source load operations."),
+		observabilityx.WithLabelKeys("source", "result"),
+	)
+	configSourceLoadDurationSpec = observabilityx.NewHistogramSpec(
+		metricConfigSourceLoadDurationMS,
+		observabilityx.WithDescription("Duration of config source load operations in milliseconds."),
+		observabilityx.WithUnit("ms"),
+		observabilityx.WithLabelKeys("source", "result"),
+	)
 )
 
 // ─── Loader ───────────────────────────────────────────────────────────────────

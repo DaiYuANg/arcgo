@@ -67,15 +67,99 @@ func (m *multiObservability) StartSpan(
 	return nextCtx, multiSpan{spans: spans}
 }
 
-func (m *multiObservability) AddCounter(ctx context.Context, name string, value int64, attrs ...Attribute) {
+func (m *multiObservability) Counter(spec CounterSpec) Counter {
+	counters := collectionx.NewListWithCapacity[Counter](m.backends.Len())
 	m.backends.Each(func(_ int, backend Observability) {
-		backend.AddCounter(ctx, name, value, attrs...)
+		counter := backend.Counter(spec)
+		if counter != nil {
+			counters.Add(counter)
+		}
+	})
+	if counters.IsEmpty() {
+		return nopCounter{}
+	}
+	return multiCounter{counters: counters}
+}
+
+func (m *multiObservability) UpDownCounter(spec UpDownCounterSpec) UpDownCounter {
+	counters := collectionx.NewListWithCapacity[UpDownCounter](m.backends.Len())
+	m.backends.Each(func(_ int, backend Observability) {
+		counter := backend.UpDownCounter(spec)
+		if counter != nil {
+			counters.Add(counter)
+		}
+	})
+	if counters.IsEmpty() {
+		return nopUpDownCounter{}
+	}
+	return multiUpDownCounter{counters: counters}
+}
+
+func (m *multiObservability) Histogram(spec HistogramSpec) Histogram {
+	histograms := collectionx.NewListWithCapacity[Histogram](m.backends.Len())
+	m.backends.Each(func(_ int, backend Observability) {
+		histogram := backend.Histogram(spec)
+		if histogram != nil {
+			histograms.Add(histogram)
+		}
+	})
+	if histograms.IsEmpty() {
+		return nopHistogram{}
+	}
+	return multiHistogram{histograms: histograms}
+}
+
+func (m *multiObservability) Gauge(spec GaugeSpec) Gauge {
+	gauges := collectionx.NewListWithCapacity[Gauge](m.backends.Len())
+	m.backends.Each(func(_ int, backend Observability) {
+		gauge := backend.Gauge(spec)
+		if gauge != nil {
+			gauges.Add(gauge)
+		}
+	})
+	if gauges.IsEmpty() {
+		return nopGauge{}
+	}
+	return multiGauge{gauges: gauges}
+}
+
+type multiCounter struct {
+	counters collectionx.List[Counter]
+}
+
+func (m multiCounter) Add(ctx context.Context, value int64, attrs ...Attribute) {
+	m.counters.Each(func(_ int, counter Counter) {
+		counter.Add(ctx, value, attrs...)
 	})
 }
 
-func (m *multiObservability) RecordHistogram(ctx context.Context, name string, value float64, attrs ...Attribute) {
-	m.backends.Each(func(_ int, backend Observability) {
-		backend.RecordHistogram(ctx, name, value, attrs...)
+type multiUpDownCounter struct {
+	counters collectionx.List[UpDownCounter]
+}
+
+func (m multiUpDownCounter) Add(ctx context.Context, value int64, attrs ...Attribute) {
+	m.counters.Each(func(_ int, counter UpDownCounter) {
+		counter.Add(ctx, value, attrs...)
+	})
+}
+
+type multiHistogram struct {
+	histograms collectionx.List[Histogram]
+}
+
+func (m multiHistogram) Record(ctx context.Context, value float64, attrs ...Attribute) {
+	m.histograms.Each(func(_ int, histogram Histogram) {
+		histogram.Record(ctx, value, attrs...)
+	})
+}
+
+type multiGauge struct {
+	gauges collectionx.List[Gauge]
+}
+
+func (m multiGauge) Set(ctx context.Context, value float64, attrs ...Attribute) {
+	m.gauges.Each(func(_ int, gauge Gauge) {
+		gauge.Set(ctx, value, attrs...)
 	})
 }
 

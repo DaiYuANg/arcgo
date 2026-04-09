@@ -39,19 +39,63 @@ func (t *testObservability) StartSpan(ctx context.Context, name string, attrs ..
 	return ctx, testSpan{}
 }
 
-func (t *testObservability) AddCounter(ctx context.Context, name string, value int64, attrs ...observabilityx.Attribute) {
+func (t *testObservability) Counter(spec observabilityx.CounterSpec) observabilityx.Counter {
+	spec = observabilityx.NormalizeCounterSpec(spec)
+	return testCounter{parent: t, name: spec.Name}
+}
+
+func (t *testObservability) UpDownCounter(spec observabilityx.UpDownCounterSpec) observabilityx.UpDownCounter {
+	spec = observabilityx.NormalizeUpDownCounterSpec(spec)
+	return testCounter{parent: t, name: spec.Name}
+}
+
+func (t *testObservability) Histogram(spec observabilityx.HistogramSpec) observabilityx.Histogram {
+	spec = observabilityx.NormalizeHistogramSpec(spec)
+	return testHistogram{parent: t, name: spec.Name}
+}
+
+func (t *testObservability) Gauge(spec observabilityx.GaugeSpec) observabilityx.Gauge {
+	spec = observabilityx.NormalizeGaugeSpec(spec)
+	return testGauge{parent: t, name: spec.Name}
+}
+
+type testCounter struct {
+	parent *testObservability
+	name   string
+}
+
+func (t testCounter) Add(ctx context.Context, value int64, attrs ...observabilityx.Attribute) {
 	_ = ctx
-	t.counterCalls = append(t.counterCalls, counterCall{
-		name:  name,
+	t.parent.counterCalls = append(t.parent.counterCalls, counterCall{
+		name:  t.name,
 		value: value,
 		attrs: toAttrMap(attrs),
 	})
 }
 
-func (t *testObservability) RecordHistogram(ctx context.Context, name string, value float64, attrs ...observabilityx.Attribute) {
+type testHistogram struct {
+	parent *testObservability
+	name   string
+}
+
+func (t testHistogram) Record(ctx context.Context, value float64, attrs ...observabilityx.Attribute) {
 	_ = ctx
-	t.histCalls = append(t.histCalls, histCall{
-		name:  name,
+	t.parent.histCalls = append(t.parent.histCalls, histCall{
+		name:  t.name,
+		value: value,
+		attrs: toAttrMap(attrs),
+	})
+}
+
+type testGauge struct {
+	parent *testObservability
+	name   string
+}
+
+func (t testGauge) Set(ctx context.Context, value float64, attrs ...observabilityx.Attribute) {
+	_ = ctx
+	t.parent.histCalls = append(t.parent.histCalls, histCall{
+		name:  t.name,
 		value: value,
 		attrs: toAttrMap(attrs),
 	})

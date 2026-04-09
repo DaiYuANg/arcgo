@@ -34,19 +34,41 @@ func (n *nopObservability) StartSpan(ctx context.Context, name string, attrs ...
 	return ctx, nopSpan{}
 }
 
-func (n *nopObservability) AddCounter(ctx context.Context, name string, value int64, attrs ...Attribute) {
-	_ = ctx
-	_ = name
-	_ = value
-	_ = attrs
+func (n *nopObservability) Counter(spec CounterSpec) Counter {
+	_ = spec
+	return nopCounter{}
 }
 
-func (n *nopObservability) RecordHistogram(ctx context.Context, name string, value float64, attrs ...Attribute) {
-	_ = ctx
-	_ = name
-	_ = value
-	_ = attrs
+func (n *nopObservability) UpDownCounter(spec UpDownCounterSpec) UpDownCounter {
+	_ = spec
+	return nopUpDownCounter{}
 }
+
+func (n *nopObservability) Histogram(spec HistogramSpec) Histogram {
+	_ = spec
+	return nopHistogram{}
+}
+
+func (n *nopObservability) Gauge(spec GaugeSpec) Gauge {
+	_ = spec
+	return nopGauge{}
+}
+
+type nopCounter struct{}
+
+func (nopCounter) Add(context.Context, int64, ...Attribute) {}
+
+type nopUpDownCounter struct{}
+
+func (nopUpDownCounter) Add(context.Context, int64, ...Attribute) {}
+
+type nopHistogram struct{}
+
+func (nopHistogram) Record(context.Context, float64, ...Attribute) {}
+
+type nopGauge struct{}
+
+func (nopGauge) Set(context.Context, float64, ...Attribute) {}
 
 type nopSpan struct{}
 

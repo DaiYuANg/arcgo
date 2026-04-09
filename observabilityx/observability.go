@@ -43,14 +43,36 @@ type Span interface {
 	SetAttributes(attrs ...Attribute)
 }
 
+// Counter records increasing int64 measurements.
+type Counter interface {
+	Add(ctx context.Context, value int64, attrs ...Attribute)
+}
+
+// UpDownCounter records signed int64 measurements.
+type UpDownCounter interface {
+	Add(ctx context.Context, value int64, attrs ...Attribute)
+}
+
+// Histogram records float64 measurements.
+type Histogram interface {
+	Record(ctx context.Context, value float64, attrs ...Attribute)
+}
+
+// Gauge records instantaneous float64 measurements.
+type Gauge interface {
+	Set(ctx context.Context, value float64, attrs ...Attribute)
+}
+
 // Observability is the shared observability facade used by arcgo packages.
 //
 // Implementations are expected to be safe for concurrent use.
 type Observability interface {
 	Logger() *slog.Logger
 	StartSpan(ctx context.Context, name string, attrs ...Attribute) (context.Context, Span)
-	AddCounter(ctx context.Context, name string, value int64, attrs ...Attribute)
-	RecordHistogram(ctx context.Context, name string, value float64, attrs ...Attribute)
+	Counter(spec CounterSpec) Counter
+	UpDownCounter(spec UpDownCounterSpec) UpDownCounter
+	Histogram(spec HistogramSpec) Histogram
+	Gauge(spec GaugeSpec) Gauge
 }
 
 // Normalize returns a usable observability instance.

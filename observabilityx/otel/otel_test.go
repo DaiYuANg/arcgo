@@ -26,8 +26,14 @@ func TestAdapterMethods(t *testing.T) {
 	require.NotNil(t, ctx)
 	require.NotNil(t, span)
 
-	obs.AddCounter(ctx, "test_counter_total", 1, observabilityx.String("result", "ok"))
-	obs.RecordHistogram(ctx, "test_duration_ms", 12, observabilityx.String("result", "ok"))
+	obs.Counter(observabilityx.NewCounterSpec("test_counter_total", observabilityx.WithLabelKeys("result"))).
+		Add(ctx, 1, observabilityx.String("result", "ok"))
+	obs.UpDownCounter(observabilityx.NewUpDownCounterSpec("test_inflight", observabilityx.WithLabelKeys("result"))).
+		Add(ctx, 1, observabilityx.String("result", "ok"))
+	obs.Histogram(observabilityx.NewHistogramSpec("test_duration_ms", observabilityx.WithLabelKeys("result"))).
+		Record(ctx, 12, observabilityx.String("result", "ok"))
+	obs.Gauge(observabilityx.NewGaugeSpec("test_queue_depth", observabilityx.WithLabelKeys("result"))).
+		Set(ctx, 3, observabilityx.String("result", "ok"))
 
 	span.SetAttributes(observabilityx.Bool("done", true))
 	span.End()

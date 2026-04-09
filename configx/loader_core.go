@@ -72,10 +72,10 @@ func beginConfigLoad(
 			logDebug(opts, "configx load completed", "result", result)
 		}
 
-		obs.AddCounter(ctx, metricConfigLoadTotal, 1,
+		obs.Counter(configLoadTotalSpec).Add(ctx, 1,
 			observabilityx.String("result", result),
 		)
-		obs.RecordHistogram(ctx, metricConfigLoadDurationMS, float64(time.Since(start).Milliseconds()),
+		obs.Histogram(configLoadDurationSpec).Record(ctx, float64(time.Since(start).Milliseconds()),
 			observabilityx.String("result", result),
 		)
 		span.End()
@@ -225,11 +225,11 @@ func loadSourceWithObservability(
 	start := time.Now()
 	result := "success"
 	defer func() {
-		obs.AddCounter(sourceCtx, metricConfigSourceLoadTotal, 1,
+		obs.Counter(configSourceLoadTotalSpec).Add(sourceCtx, 1,
 			observabilityx.String("source", sourceName),
 			observabilityx.String("result", result),
 		)
-		obs.RecordHistogram(sourceCtx, metricConfigSourceLoadDurationMS, float64(time.Since(start).Milliseconds()),
+		obs.Histogram(configSourceLoadDurationSpec).Record(sourceCtx, float64(time.Since(start).Milliseconds()),
 			observabilityx.String("source", sourceName),
 			observabilityx.String("result", result),
 		)

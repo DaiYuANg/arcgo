@@ -89,7 +89,7 @@ func (b *Bus) executeTask(task publishTask) {
 		)
 	}
 	if err != nil {
-		b.observabilitySafe().AddCounter(task.ctx, metricAsyncDispatchErrorTotal, 1,
+		b.observabilitySafe().Counter(asyncDispatchErrorTotalSpec).Add(task.ctx, 1,
 			observabilityx.String("event_name", eventName(task.event)),
 		)
 	}

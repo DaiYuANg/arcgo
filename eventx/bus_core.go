@@ -39,6 +39,36 @@ const (
 	metricAsyncDispatchErrorTotal = "eventx_async_dispatch_error_total"
 )
 
+var (
+	dispatchTotalSpec = observabilityx.NewCounterSpec(
+		metricDispatchTotal,
+		observabilityx.WithDescription("Total number of event dispatch operations."),
+		observabilityx.WithLabelKeys("mode", "result", "event_name"),
+	)
+	dispatchDurationSpec = observabilityx.NewHistogramSpec(
+		metricDispatchDurationMS,
+		observabilityx.WithDescription("Duration of event dispatch operations in milliseconds."),
+		observabilityx.WithUnit("ms"),
+		observabilityx.WithLabelKeys("mode", "result", "event_name"),
+	)
+	asyncEnqueueTotalSpec = observabilityx.NewCounterSpec(
+		metricAsyncEnqueueTotal,
+		observabilityx.WithDescription("Total number of async enqueue attempts."),
+		observabilityx.WithLabelKeys("result", "event_name"),
+	)
+	asyncEnqueueDurationSpec = observabilityx.NewHistogramSpec(
+		metricAsyncEnqueueDurationMS,
+		observabilityx.WithDescription("Duration of async enqueue attempts in milliseconds."),
+		observabilityx.WithUnit("ms"),
+		observabilityx.WithLabelKeys("result", "event_name"),
+	)
+	asyncDispatchErrorTotalSpec = observabilityx.NewCounterSpec(
+		metricAsyncDispatchErrorTotal,
+		observabilityx.WithDescription("Total number of async dispatch failures."),
+		observabilityx.WithLabelKeys("event_name"),
+	)
+)
+
 // New creates a new Bus runtime.
 func New(opts ...Option) BusRuntime {
 	cfg := defaultOptions()

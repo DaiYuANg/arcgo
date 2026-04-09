@@ -20,8 +20,14 @@ func main() {
 	ctx, span := obs.StartSpan(context.TODO(), "demo.operation", observabilityx.String("feature", "multi-backend"))
 	defer span.End()
 
-	obs.AddCounter(ctx, "demo_counter_total", 1, observabilityx.String("result", "ok"))
-	obs.RecordHistogram(ctx, "demo_duration_ms", 12, observabilityx.String("result", "ok"))
+	obs.Counter(observabilityx.NewCounterSpec("demo_counter_total", observabilityx.WithLabelKeys("result"))).
+		Add(ctx, 1, observabilityx.String("result", "ok"))
+	obs.UpDownCounter(observabilityx.NewUpDownCounterSpec("demo_inflight", observabilityx.WithLabelKeys("result"))).
+		Add(ctx, 1, observabilityx.String("result", "ok"))
+	obs.Histogram(observabilityx.NewHistogramSpec("demo_duration_ms", observabilityx.WithUnit("ms"), observabilityx.WithLabelKeys("result"))).
+		Record(ctx, 12, observabilityx.String("result", "ok"))
+	obs.Gauge(observabilityx.NewGaugeSpec("demo_queue_depth", observabilityx.WithLabelKeys("result"))).
+		Set(ctx, 3, observabilityx.String("result", "ok"))
 
 	stdAdapter := std.New(nil, adapter.HumaOptions{DisableDocsRoutes: true})
 	metricsServer := httpx.New(

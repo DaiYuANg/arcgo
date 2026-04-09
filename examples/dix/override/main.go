@@ -21,7 +21,7 @@ func main() {
 
 	app := dix.New(
 		"override",
-		dix.WithLogger(logger),
+		dix.UseLogger(logger),
 		dix.WithModule(
 			dix.NewModule("override",
 				dix.WithModuleProviders(

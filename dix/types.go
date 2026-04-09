@@ -71,12 +71,13 @@ type App struct {
 
 // Runtime is a built application runtime produced from an App spec.
 type Runtime struct {
-	spec      *appSpec
-	plan      *buildPlan
-	container *Container
-	lifecycle *lifecycleImpl
-	logger    *slog.Logger
-	state     AppState
+	spec        *appSpec
+	plan        *buildPlan
+	container   *Container
+	lifecycle   *lifecycleImpl
+	logger      *slog.Logger
+	eventLogger EventLogger
+	state       AppState
 }
 
 // Module is an immutable module specification.
@@ -85,13 +86,15 @@ type Module struct {
 }
 
 type appSpec struct {
-	meta                AppMeta
-	profile             Profile
-	modules             collectionlist.List[Module]
-	logger              *slog.Logger
-	loggerFromContainer func(*Container) (*slog.Logger, error)
-	observers           []Observer
-	debug               debugSettings
+	meta                     AppMeta
+	profile                  Profile
+	modules                  collectionlist.List[Module]
+	logger                   *slog.Logger
+	loggerFromContainer      func(*Container) (*slog.Logger, error)
+	eventLogger              EventLogger
+	eventLoggerFromContainer func(*Container) (EventLogger, error)
+	observers                []Observer
+	debug                    debugSettings
 }
 
 type moduleSpec struct {

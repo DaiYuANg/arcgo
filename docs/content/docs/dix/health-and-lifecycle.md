@@ -13,7 +13,7 @@ weight: 3
 - liveness checks (`CheckLiveness`)
 - readiness checks (`CheckReadiness`)
 
-You register checks on `*dix.Container` (typically in `WithModuleSetup` or `Setups(...)`). For HTTP, `Runtime` exposes ready-to-use handlers:
+You register checks on `*dix.Container` (typically in `Setups(...)`, `SetupContainer(...)`, or `WithModuleSetup(...)`). For HTTP, `Runtime` exposes ready-to-use handlers:
 
 - `rt.HealthHandler()` → `/healthz`
 - `rt.LivenessHandler()` → `/livez`
@@ -70,7 +70,7 @@ func main() {
 				return &Server{Logger: logger, Config: cfg}
 			}),
 		),
-		dix.WithModuleSetup(func(c *dix.Container, _ dix.Lifecycle) error {
+		dix.Setups(dix.SetupContainer(func(c *dix.Container) error {
 			c.RegisterLivenessCheck("process", func(context.Context) error { return nil })
 			c.RegisterReadinessCheck("bootstrap", func(context.Context) error {
 				server, ok := dix.ResolveOptionalAs[*Server](c)
@@ -80,7 +80,7 @@ func main() {
 				return nil
 			})
 			return nil
-		}),
+		})),
 	)
 
 	app := dix.NewDefault(
@@ -135,7 +135,7 @@ logModule := dix.NewModule("logx",
 
 app := dix.NewDefault(
 	dix.Modules(logModule, serverModule),
-	dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
+	dix.UseLogger1(func(logs *LogBundle) *slog.Logger {
 		return logs.Logger
 	}),
 )

@@ -316,6 +316,56 @@ func TestModule_ValueAndInvokeAliases(t *testing.T) {
 	assert.True(t, invoked)
 }
 
+func TestSetup_Shortcuts(t *testing.T) {
+	started := false
+	stopped := false
+	setup0Called := false
+	setupValue := ""
+
+	module := dix.NewModule("setup-shortcuts",
+		dix.Providers(
+			dix.Value("setup-value"),
+		),
+		dix.Setups(
+			dix.Setup0(func() error {
+				setup0Called = true
+				return nil
+			}),
+			dix.Setup1(func(value string) error {
+				setupValue = value
+				return nil
+			}),
+			dix.SetupContainer(func(c *dix.Container) error {
+				c.RegisterHealthCheck("shortcut", func(context.Context) error { return nil })
+				return nil
+			}),
+			dix.SetupLifecycle(func(lc dix.Lifecycle) error {
+				lc.OnStart(func(context.Context) error {
+					started = true
+					return nil
+				})
+				lc.OnStop(func(context.Context) error {
+					stopped = true
+					return nil
+				})
+				return nil
+			}),
+		),
+	)
+
+	app := dix.New("setup-shortcuts", dix.Modules(module))
+	rt := buildRuntime(t, app)
+
+	assert.True(t, setup0Called)
+	assert.Equal(t, "setup-value", setupValue)
+	assert.True(t, rt.CheckHealth(context.Background()).Healthy())
+
+	require.NoError(t, rt.Start(context.Background()))
+	assert.True(t, started)
+	require.NoError(t, rt.Stop(context.Background()))
+	assert.True(t, stopped)
+}
+
 func TestContainerRegisterProviderDefinitionReturnsError(t *testing.T) {
 	rt := buildRuntime(t, dix.NewApp("test"))
 	err := rt.Container().Register(dix.Definition{Kind: dix.DefinitionProvider})

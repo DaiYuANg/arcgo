@@ -13,7 +13,7 @@ weight: 3
 - 存活检查（`CheckLiveness`）
 - 就绪检查（`CheckReadiness`）
 
-通常在 `WithModuleSetup` 或 `Setups(...)` 中通过 `*dix.Container` 注册检查。对 HTTP 场景，`Runtime` 也提供可直接挂载的 handler：
+通常在 `Setups(...)`、`SetupContainer(...)` 或 `WithModuleSetup(...)` 中通过 `*dix.Container` 注册检查。对 HTTP 场景，`Runtime` 也提供可直接挂载的 handler：
 
 - `rt.HealthHandler()` → `/healthz`
 - `rt.LivenessHandler()` → `/livez`
@@ -70,7 +70,7 @@ func main() {
 				return &Server{Logger: logger, Config: cfg}
 			}),
 		),
-		dix.WithModuleSetup(func(c *dix.Container, _ dix.Lifecycle) error {
+		dix.Setups(dix.SetupContainer(func(c *dix.Container) error {
 			c.RegisterLivenessCheck("process", func(context.Context) error { return nil })
 			c.RegisterReadinessCheck("bootstrap", func(context.Context) error {
 				server, ok := dix.ResolveOptionalAs[*Server](c)
@@ -80,7 +80,7 @@ func main() {
 				return nil
 			})
 			return nil
-		}),
+		})),
 	)
 
 	app := dix.NewDefault(
@@ -135,7 +135,7 @@ logModule := dix.NewModule("logx",
 
 app := dix.NewDefault(
 	dix.Modules(logModule, serverModule),
-	dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
+	dix.UseLogger1(func(logs *LogBundle) *slog.Logger {
 		return logs.Logger
 	}),
 )

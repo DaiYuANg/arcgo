@@ -167,19 +167,7 @@ func (r *Runtime) runHealthCheck(ctx context.Context, check healthCheckEntry) er
 	startedAt := time.Now()
 	err := check.fn(ctx)
 	r.emitHealthCheck(ctx, r.healthCheckEvent(check, time.Since(startedAt), err))
-	r.logHealthCheck(check, err)
 	return err
-}
-
-func (r *Runtime) logHealthCheck(check healthCheckEntry, err error) {
-	if r.logger == nil {
-		return
-	}
-	if err != nil {
-		r.logger.Warn("health check failed", "kind", check.kind, "check", check.name, "error", err)
-		return
-	}
-	r.logger.Debug("health check passed", "kind", check.kind, "check", check.name)
 }
 
 // HealthHandler returns a HTTP handler for general health checks.
@@ -220,8 +208,8 @@ func (r *Runtime) healthHandler(kind HealthKind) http.HandlerFunc {
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		if err := json.NewEncoder(w).Encode(report); err != nil && r.logger != nil {
-			r.logger.Error("write health response failed", "kind", kind, "error", err)
+		if err := json.NewEncoder(w).Encode(report); err != nil {
+			r.logMessage(ctx, EventLevelError, "write health response failed", "kind", kind, "error", err)
 		}
 	}
 }

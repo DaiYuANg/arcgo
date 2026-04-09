@@ -32,7 +32,7 @@ func main() {
 		"advanced-do-bridge",
 		dix.WithDebugScopeTree(true),
 		dix.WithDebugNamedServiceDependencies("tenant.default"),
-		dix.WithLogger(logger),
+		dix.UseLogger(logger),
 		dix.WithModule(module),
 	)
 

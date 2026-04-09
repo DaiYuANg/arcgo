@@ -108,9 +108,9 @@ go run .
 
 ## 可选：从 DI 解析框架 logger（结合 `logx`）
 
-如果你希望 `dix` 框架内部日志使用模块图里构建的 logger（而不是在 `New` 时显式传 `dix.WithLogger(...)`），可以使用 `dix.WithLoggerFrom...`。
+如果你希望 `dix` 框架内部日志直接使用模块图里构建的 logger，优先使用 `dix.UseLogger0/1/...`。
 
-下面的示例使用了新的短模块 option 和 App option 写法；旧的 `WithModule*` 与 `With*` App 形式仍然兼容。
+下面的示例使用了新的短模块 option 和 App option 写法；旧的 `WithModule*`、`With*` 以及 `WithLoggerFrom...` 形式仍然作为兼容入口保留。
 
 ```go
 package main
@@ -146,7 +146,7 @@ func main() {
 	app := dix.New(
 		"demo",
 		dix.Modules(logModule /*, other modules... */),
-		dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
+		dix.UseLogger1(func(logs *LogBundle) *slog.Logger {
 			return logs.Logger
 		}),
 	)
@@ -156,6 +156,28 @@ func main() {
 ```
 
 这样可以把 logger 的初始化和回收都放在模块里，同时覆盖掉框架默认 logger。
+
+## 可选：完全接管 dix 内部事件日志
+
+如果你希望完全控制 dix 内部 build/start/stop/health/debug 输出，可以使用 `dix.UseEventLogger...`。
+它和 `Observer` 不同，前者是主日志入口，后者更适合作为旁路订阅。
+
+```go
+type MyEventLogger struct{}
+
+func (l *MyEventLogger) LogEvent(ctx context.Context, event dix.Event) {
+	_ = ctx
+	_ = event
+}
+
+app := dix.New(
+	"demo",
+	dix.Modules(logModule),
+	dix.UseEventLogger0(func() dix.EventLogger {
+		return &MyEventLogger{}
+	}),
+)
+```
 
 ## 校验说明
 

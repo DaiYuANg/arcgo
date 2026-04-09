@@ -17,7 +17,7 @@ func main() {
 
 	app := dix.New(
 		"inspect",
-		dix.WithLogger(logger),
+		dix.UseLogger(logger),
 		dix.WithModule(
 			dix.NewModule("inspect",
 				dix.WithModuleProviders(

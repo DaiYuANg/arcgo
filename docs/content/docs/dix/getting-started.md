@@ -108,9 +108,9 @@ go run .
 
 ## Optional: resolve framework logger from DI (`logx`)
 
-If you want `dix` internal logs to use a logger produced by your module graph (instead of passing `dix.WithLogger(...)` at app creation), use `dix.WithLoggerFrom...`.
+If you want `dix` internal logs to use a logger produced by your module graph, prefer `dix.UseLogger0/1/...`.
 
-The examples below use the newer short module and app option aliases. The older `WithModule*` and `With*` app forms remain valid.
+The examples below use the newer short module and app option aliases. The older `WithModule*`, `With*`, and `WithLoggerFrom...` forms remain valid as compatibility entry points.
 
 ```go
 package main
@@ -146,7 +146,7 @@ func main() {
 	app := dix.New(
 		"demo",
 		dix.Modules(logModule /*, other modules... */),
-		dix.WithLoggerFrom1(func(logs *LogBundle) *slog.Logger {
+		dix.UseLogger1(func(logs *LogBundle) *slog.Logger {
 			return logs.Logger
 		}),
 	)
@@ -156,6 +156,28 @@ func main() {
 ```
 
 This keeps logger wiring inside modules while still replacing the framework default logger.
+
+## Optional: fully own dix internal event logging
+
+If you want full control over dix internal build/start/stop/health/debug output, use `dix.UseEventLogger...`.
+Unlike `Observer`, this replaces the primary dix logging path.
+
+```go
+type MyEventLogger struct{}
+
+func (l *MyEventLogger) LogEvent(ctx context.Context, event dix.Event) {
+	_ = ctx
+	_ = event
+}
+
+app := dix.New(
+	"demo",
+	dix.Modules(logModule),
+	dix.UseEventLogger0(func() dix.EventLogger {
+		return &MyEventLogger{}
+	}),
+)
+```
 
 ## Validation notes
 

@@ -32,6 +32,7 @@ and a runtime model without forcing most users to deal with `do` directly.
 - Runtime metrics and observability: [Metrics and observability](./metrics-and-observability)
 - Health checks and HTTP handlers: [Health and lifecycle](./health-and-lifecycle)
 - Fallible provider construction: [Error-returning providers](./error-providers)
+- Release notes: [dix v0.5.0](./release-v0.5.0)
 - Release notes: [dix v0.4.0](./release-v0.4.0)
 - Release notes: [dix v0.3.0](./release-v0.3.0)
 - Runnable example index: [dix examples](./examples)
@@ -46,7 +47,8 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 
 - `dix.New(name, ...)` / `dix.NewDefault(...)`
 - `dix.NewModule(name, ...)`
-- `dix.Modules(...)`, `dix.UseProfile(...)`, `dix.Version(...)`, `dix.UseLogger(...)`
+- `dix.Modules(...)`, `dix.UseProfile(...)`, `dix.Version(...)`, `dix.UseLogger(...)`, `dix.UseLogger0/1(...)`
+- `dix.UseEventLogger(...)`, `dix.UseEventLogger0/1(...)`
 - `dix.WithObserver(...)` / `dix.WithObservers(...)`
 - `dix.Providers(...)`, `dix.Hooks(...)`, `dix.Imports(...)`, `dix.Setups(...)`
 - `dix.WithModules(...)`, `dix.WithProfile(...)`, `dix.WithVersion(...)`, `dix.WithLogger(...)`
@@ -62,6 +64,9 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 - `dix` keeps the existing `WithModule*` option family for compatibility.
 - `dix` also keeps the existing `WithProfile` / `WithVersion` / `WithLogger` / `WithModules` app option family for compatibility.
 - New code can prefer the shorter module option aliases such as `Providers(...)`, `Hooks(...)`, `Imports(...)`, `Invokes(...)`, `Setups(...)`, `Description(...)`, and `Tags(...)`.
+- For framework logging, prefer `UseLogger(...)` for a plain `*slog.Logger`, `UseLogger0/1(...)` when the logger comes from DI, and `UseEventLogger...` when you want to fully control dix internal event logging.
+- `WithLoggerFrom...` remains supported as a compatibility path, but new code should prefer `UseLogger0/1/Err0/Err1`.
+- `Observers(...)` remain the extension path for sidecar consumers such as metrics, not the primary framework logger hook.
 - For zero-dependency registrations, `Value(...)` and `Invoke(...)` reduce the remaining boilerplate on the core path.
 - In `dix/advanced`, the shorter aliases such as `Named(...)`, `Alias(...)`, `Transient(...)`, and `Override(...)` keep the same semantics as the older explicit names.
 - When you want the common build-then-start flow, prefer `app.Start(ctx)`; use `app.Build()` when you need an explicit pre-start runtime handle.

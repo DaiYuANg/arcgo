@@ -30,6 +30,7 @@ weight: 6
 - 运行时指标与可观测性：[指标与可观测性](./metrics-and-observability)
 - 健康检查与 HTTP handler：[健康检查与生命周期](./health-and-lifecycle)
 - 可失败的 provider 构造：[返回错误的 Provider](./error-providers)
+- 版本说明：[dix v0.5.0](./release-v0.5.0)
 - 版本说明：[dix v0.4.0](./release-v0.4.0)
 - 版本说明：[dix v0.3.0](./release-v0.3.0)
 - 可运行示例导航：[dix 示例](./examples)
@@ -44,7 +45,8 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 
 - `dix.New(name, ...)` / `dix.NewDefault(...)`
 - `dix.NewModule(name, ...)`
-- `dix.Modules(...)`、`dix.UseProfile(...)`、`dix.Version(...)`、`dix.UseLogger(...)`
+- `dix.Modules(...)`、`dix.UseProfile(...)`、`dix.Version(...)`、`dix.UseLogger(...)`、`dix.UseLogger0/1(...)`
+- `dix.UseEventLogger(...)`、`dix.UseEventLogger0/1(...)`
 - `dix.WithObserver(...)` / `dix.WithObservers(...)`
 - `dix.Providers(...)`、`dix.Hooks(...)`、`dix.Imports(...)`、`dix.Setups(...)`
 - `dix.WithModules(...)`、`dix.WithProfile(...)`、`dix.WithVersion(...)`、`dix.WithLogger(...)`
@@ -60,6 +62,9 @@ go get github.com/DaiYuANg/arcgo/dix@latest
 - `dix` 继续保留现有的 `WithModule*` option 家族，兼容旧写法。
 - `dix` 也继续保留现有的 `WithProfile` / `WithVersion` / `WithLogger` / `WithModules` 这组 App option，兼容旧写法。
 - 新代码可以优先使用更短的模块 option 别名，例如 `Providers(...)`、`Hooks(...)`、`Imports(...)`、`Invokes(...)`、`Setups(...)`、`Description(...)`、`Tags(...)`。
+- 对框架日志，普通 `*slog.Logger` 优先用 `UseLogger(...)`；如果 logger 来自 DI，优先用 `UseLogger0/1(...)`；如果你要完全接管 dix 内部事件日志，使用 `UseEventLogger...`。
+- `WithLoggerFrom...` 仍然保留为兼容入口，但新代码更推荐 `UseLogger0/1/Err0/Err1`。
+- `Observers(...)` 继续定位为旁路订阅扩展，例如 metrics，而不是主框架 logger 入口。
 - 对零依赖注册，`Value(...)` 和 `Invoke(...)` 可以继续减少核心路径里的样板代码。
 - 在 `dix/advanced` 里，`Named(...)`、`Alias(...)`、`Transient(...)`、`Override(...)` 这些短别名和原来的显式命名保持同语义。
 - 对常见的“build 后立即 start”流程，优先用 `app.Start(ctx)`；只有在你需要显式拿到未启动的 runtime 时，再使用 `app.Build()`。

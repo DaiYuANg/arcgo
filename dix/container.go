@@ -15,6 +15,7 @@ type Container struct {
 	injector     do.Injector
 	healthChecks collectionlist.List[healthCheckEntry]
 	logger       *slog.Logger
+	eventLogger  EventLogger
 }
 
 func newContainer() *Container {
@@ -46,17 +47,13 @@ func (c *Container) ShutdownReport(ctx context.Context) *do.ShutdownReport {
 	if c == nil || c.injector == nil {
 		return nil
 	}
-	if c.logger != nil && c.logger.Enabled(ctx, slog.LevelDebug) {
-		c.logger.Debug("shutting down container")
-	}
+	logMessageEvent(ctx, c.eventLogger, EventLevelDebug, "shutting down container")
 	report := c.injector.ShutdownWithContext(ctx)
-	if c.logger != nil && c.logger.Enabled(ctx, slog.LevelDebug) {
-		errorsCount := 0
-		if report != nil {
-			errorsCount = len(report.Errors)
-		}
-		c.logger.Debug("container shutdown completed", "errors", errorsCount)
+	errorsCount := 0
+	if report != nil {
+		errorsCount = len(report.Errors)
 	}
+	logMessageEvent(ctx, c.eventLogger, EventLevelDebug, "container shutdown completed", "errors", errorsCount)
 	return report
 }
 

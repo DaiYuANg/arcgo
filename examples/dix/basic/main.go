@@ -40,7 +40,7 @@ func main() {
 				return &server{Logger: logger, Config: cfg}
 			}),
 		),
-		dix.WithModuleSetup(func(c *dix.Container, _ dix.Lifecycle) error {
+		dix.Setups(dix.SetupContainer(func(c *dix.Container) error {
 			c.RegisterLivenessCheck("process", func(context.Context) error { return nil })
 			c.RegisterReadinessCheck("bootstrap", func(context.Context) error {
 				server, ok := dix.ResolveOptionalAs[*server](c)
@@ -50,14 +50,14 @@ func main() {
 				return nil
 			})
 			return nil
-		}),
+		})),
 	)
 
 	app := dix.NewDefault(
-		dix.WithProfile(dix.ProfileDev),
-		dix.WithVersion("0.5.0"),
-		dix.WithModules(serverModule),
-		dix.WithLogger(logger),
+		dix.UseProfile(dix.ProfileDev),
+		dix.Version("0.5.0"),
+		dix.Modules(serverModule),
+		dix.UseLogger(logger),
 	)
 
 	rt, err := app.Start(context.Background())

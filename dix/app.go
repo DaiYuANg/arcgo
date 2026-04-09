@@ -76,6 +76,11 @@ func WithAppDescription(description string) AppOption {
 	return func(spec *appSpec) { spec.meta.Description = description }
 }
 
+// AppDescription sets application description metadata.
+func AppDescription(description string) AppOption {
+	return WithAppDescription(description)
+}
+
 // WithLogger sets the framework logger.
 func WithLogger(logger *slog.Logger) AppOption {
 	return func(spec *appSpec) {
@@ -90,6 +95,97 @@ func UseLogger(logger *slog.Logger) AppOption {
 	return WithLogger(logger)
 }
 
+// UseLogger0 resolves the framework logger from a zero-dependency callback.
+func UseLogger0(fn func() *slog.Logger) AppOption {
+	return WithLoggerFrom0(fn)
+}
+
+// UseLoggerErr0 resolves the framework logger from a zero-dependency callback that can fail.
+func UseLoggerErr0(fn func() (*slog.Logger, error)) AppOption {
+	if fn == nil {
+		return func(*appSpec) {}
+	}
+	return WithLoggerFrom(func(*Container) (*slog.Logger, error) {
+		return fn()
+	})
+}
+
+// UseLogger1 resolves the framework logger from a one-dependency callback.
+func UseLogger1[D1 any](fn func(D1) *slog.Logger) AppOption {
+	return WithLoggerFrom1(fn)
+}
+
+// UseLoggerErr1 resolves the framework logger from a one-dependency callback that can fail.
+func UseLoggerErr1[D1 any](fn func(D1) (*slog.Logger, error)) AppOption {
+	if fn == nil {
+		return func(*appSpec) {}
+	}
+	return WithLoggerFrom(func(c *Container) (*slog.Logger, error) {
+		d1, err := ResolveAs[D1](c)
+		if err != nil {
+			return nil, err
+		}
+		return fn(d1)
+	})
+}
+
+// UseEventLogger sets the framework event logger. When configured, dix internal logging routes through it.
+func UseEventLogger(logger EventLogger) AppOption {
+	return func(spec *appSpec) {
+		if logger != nil {
+			spec.eventLogger = logger
+		}
+	}
+}
+
+// UseEventLogger0 resolves the framework event logger from a zero-dependency callback.
+func UseEventLogger0(fn func() EventLogger) AppOption {
+	if fn == nil {
+		return func(*appSpec) {}
+	}
+	return UseEventLoggerErr0(func() (EventLogger, error) {
+		return fn(), nil
+	})
+}
+
+// UseEventLoggerErr0 resolves the framework event logger from a zero-dependency callback that can fail.
+func UseEventLoggerErr0(fn func() (EventLogger, error)) AppOption {
+	if fn == nil {
+		return func(*appSpec) {}
+	}
+	return func(spec *appSpec) {
+		spec.eventLoggerFromContainer = func(*Container) (EventLogger, error) {
+			return fn()
+		}
+	}
+}
+
+// UseEventLogger1 resolves the framework event logger from a one-dependency callback.
+func UseEventLogger1[D1 any](fn func(D1) EventLogger) AppOption {
+	if fn == nil {
+		return func(*appSpec) {}
+	}
+	return UseEventLoggerErr1(func(d1 D1) (EventLogger, error) {
+		return fn(d1), nil
+	})
+}
+
+// UseEventLoggerErr1 resolves the framework event logger from a one-dependency callback that can fail.
+func UseEventLoggerErr1[D1 any](fn func(D1) (EventLogger, error)) AppOption {
+	if fn == nil {
+		return func(*appSpec) {}
+	}
+	return func(spec *appSpec) {
+		spec.eventLoggerFromContainer = func(c *Container) (EventLogger, error) {
+			d1, err := ResolveAs[D1](c)
+			if err != nil {
+				return nil, err
+			}
+			return fn(d1)
+		}
+	}
+}
+
 // WithLoggerFrom resolves the framework logger from the built DI container.
 // The resolved logger overrides the default logger and updates runtime internals.
 func WithLoggerFrom(fn func(*Container) (*slog.Logger, error)) AppOption {
@@ -100,6 +196,11 @@ func WithLoggerFrom(fn func(*Container) (*slog.Logger, error)) AppOption {
 	}
 }
 
+// LoggerFrom resolves the framework logger from the built DI container.
+func LoggerFrom(fn func(*Container) (*slog.Logger, error)) AppOption {
+	return WithLoggerFrom(fn)
+}
+
 // WithLoggerFrom0 resolves the framework logger from a zero-dependency callback.
 func WithLoggerFrom0(fn func() *slog.Logger) AppOption {
 	if fn == nil {
@@ -108,6 +209,11 @@ func WithLoggerFrom0(fn func() *slog.Logger) AppOption {
 	return WithLoggerFrom(func(*Container) (*slog.Logger, error) {
 		return fn(), nil
 	})
+}
+
+// LoggerFrom0 resolves the framework logger from a zero-dependency callback.
+func LoggerFrom0(fn func() *slog.Logger) AppOption {
+	return WithLoggerFrom0(fn)
 }
 
 // WithLoggerFrom1 resolves the framework logger from a one-dependency callback.
@@ -122,6 +228,11 @@ func WithLoggerFrom1[D1 any](fn func(D1) *slog.Logger) AppOption {
 		}
 		return fn(d1), nil
 	})
+}
+
+// LoggerFrom1 resolves the framework logger from a one-dependency callback.
+func LoggerFrom1[D1 any](fn func(D1) *slog.Logger) AppOption {
+	return WithLoggerFrom1(fn)
 }
 
 // WithModules appends application modules.
@@ -152,6 +263,11 @@ func WithObservers(observers ...Observer) AppOption {
 	}
 }
 
+// Observers appends runtime observers that receive internal dix events.
+func Observers(observers ...Observer) AppOption {
+	return WithObservers(observers...)
+}
+
 // WithObserver appends a single runtime observer.
 func WithObserver(observer Observer) AppOption {
 	return WithObservers(observer)
@@ -162,11 +278,21 @@ func WithDebugScopeTree(enabled bool) AppOption {
 	return func(spec *appSpec) { spec.debug.scopeTree = enabled }
 }
 
+// DebugScopeTree logs do's scope tree after build.
+func DebugScopeTree(enabled bool) AppOption {
+	return WithDebugScopeTree(enabled)
+}
+
 // WithDebugNamedServiceDependencies logs dependency trees for named services after build.
 func WithDebugNamedServiceDependencies(names ...string) AppOption {
 	return func(spec *appSpec) {
 		spec.debug.namedServiceDependencies.Add(names...)
 	}
+}
+
+// DebugNamedServiceDependencies logs dependency trees for named services after build.
+func DebugNamedServiceDependencies(names ...string) AppOption {
+	return WithDebugNamedServiceDependencies(names...)
 }
 
 func defaultLogger() *slog.Logger {
@@ -195,6 +321,14 @@ func (a *App) Logger() *slog.Logger {
 		return nil
 	}
 	return a.spec.logger
+}
+
+// EventLogger returns the configured application event logger when one is explicitly configured.
+func (a *App) EventLogger() EventLogger {
+	if a == nil || a.spec == nil {
+		return nil
+	}
+	return a.spec.resolvedEventLogger()
 }
 
 // Meta returns the application metadata.

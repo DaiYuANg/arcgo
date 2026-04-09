@@ -49,9 +49,10 @@ func RawHookWithMetadata(fn func(*Container, Lifecycle), meta HookMetadata) Hook
 
 // lifecycleImpl is the internal implementation.
 type lifecycleImpl struct {
-	startHooks collectionlist.List[StartHook]
-	stopHooks  collectionlist.List[StopHook]
-	logger     *slog.Logger
+	startHooks  collectionlist.List[StartHook]
+	stopHooks   collectionlist.List[StopHook]
+	logger      *slog.Logger
+	eventLogger EventLogger
 }
 
 func newLifecycle() *lifecycleImpl {
@@ -77,9 +78,7 @@ func (l *lifecycleImpl) executeStartHooks(ctx context.Context, _ *Container) (in
 	l.startHooks.Range(func(i int, hook StartHook) bool {
 		l.logDebug(debugEnabled, "executing start hook", "index", i)
 		if err := hook(ctx); err != nil {
-			if l.logger != nil {
-				l.logger.Error("start hook failed", "index", i, "error", err)
-			}
+			logMessageEvent(ctx, l.eventLogger, EventLevelError, "start hook failed", "index", i, "error", err)
 			startErr = oops.In("dix").
 				With("op", "start_hook", "index", i).
 				Wrapf(err, "start hook %d failed", i)
@@ -113,9 +112,7 @@ func (l *lifecycleImpl) executeStopHooksSubset(ctx context.Context, count int) e
 		hook, _ := l.stopHooks.Get(i)
 		l.logDebug(debugEnabled, "executing stop hook", "index", count-1-i)
 		if err := hook(ctx); err != nil {
-			if l.logger != nil {
-				l.logger.Error("stop hook failed", "index", count-1-i, "error", err)
-			}
+			logMessageEvent(ctx, l.eventLogger, EventLevelError, "stop hook failed", "index", count-1-i, "error", err)
 			errs.Add(oops.In("dix").
 				With("op", "stop_hook", "index", count-1-i).
 				Wrapf(err, "stop hook %d failed", count-1-i))
@@ -127,12 +124,12 @@ func (l *lifecycleImpl) executeStopHooksSubset(ctx context.Context, count int) e
 }
 
 func (l *lifecycleImpl) debugEnabled(ctx context.Context) bool {
-	return l.logger != nil && l.logger.Enabled(ctx, slog.LevelDebug)
+	return eventLoggerEnabled(l.eventLogger, ctx, EventLevelDebug)
 }
 
 func (l *lifecycleImpl) logDebug(enabled bool, msg string, args ...any) {
 	if enabled {
-		l.logger.Debug(msg, args...)
+		logMessageEvent(context.Background(), l.eventLogger, EventLevelDebug, msg, args...)
 	}
 }
 
@@ -146,6 +143,13 @@ func OnStart0(fn func(context.Context) error) HookFunc {
 	})
 }
 
+// OnStartFunc registers a start hook with no resolved dependencies and no context usage.
+func OnStartFunc(fn func() error) HookFunc {
+	return OnStart0(func(context.Context) error {
+		return fn()
+	})
+}
+
 // OnStop0 registers a stop hook with no resolved dependencies.
 func OnStop0(fn func(context.Context) error) HookFunc {
 	return NewHookFunc(func(_ *Container, lc Lifecycle) {
@@ -153,6 +157,13 @@ func OnStop0(fn func(context.Context) error) HookFunc {
 	}, HookMetadata{
 		Label: "OnStop0",
 		Kind:  HookKindStop,
+	})
+}
+
+// OnStopFunc registers a stop hook with no resolved dependencies and no context usage.
+func OnStopFunc(fn func() error) HookFunc {
+	return OnStop0(func(context.Context) error {
+		return fn()
 	})
 }
 

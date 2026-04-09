@@ -24,7 +24,7 @@ func main() {
 
 	app := dix.New(
 		"build-failure",
-		dix.WithLogger(logger),
+		dix.UseLogger(logger),
 		dix.WithModule(
 			dix.NewModule("broken",
 				dix.WithModuleProviders(

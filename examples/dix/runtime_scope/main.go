@@ -32,7 +32,7 @@ func main() {
 
 	app := dix.New(
 		"runtime-scope",
-		dix.WithLogger(logger),
+		dix.UseLogger(logger),
 		dix.WithModule(
 			dix.NewModule("root",
 				dix.WithModuleProviders(

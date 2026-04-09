@@ -30,10 +30,7 @@ func newUnvalidatedBuildPlan(app *App) (*buildPlan, error) {
 
 	modules, err := flattenModuleList(&app.spec.modules, app.spec.profile)
 	if err != nil {
-		logger := app.spec.logger
-		if logger != nil {
-			logger.Error("module flatten failed", "app", app.Name(), "error", err)
-		}
+		logMessageEvent(context.Background(), app.spec.resolvedEventLogger(), EventLevelError, "module flatten failed", "app", app.Name(), "error", err)
 		return nil, oops.In("dix").
 			With("op", "flatten_modules", "app", app.Name()).
 			Wrapf(err, "module flatten failed")
@@ -49,9 +46,17 @@ func newUnvalidatedBuildPlan(app *App) (*buildPlan, error) {
 
 func (p *buildPlan) Build() (_ *Runtime, err error) {
 	startedAt := time.Now()
+	var rt *Runtime
 	defer func() {
 		if p != nil && p.spec != nil {
-			p.spec.emitBuild(context.Background(), p.buildEvent(time.Since(startedAt), err))
+			if rt != nil {
+				emitEventLogger(context.Background(), rt.eventLogger, p.buildEvent(time.Since(startedAt), err))
+				emitObservers(context.Background(), rt.logger, p.spec.observers, func(observer Observer) {
+					observer.OnBuild(context.Background(), p.buildEvent(time.Since(startedAt), err))
+				})
+			} else {
+				p.spec.emitBuild(context.Background(), p.buildEvent(time.Since(startedAt), err))
+			}
 		}
 	}()
 
@@ -62,63 +67,82 @@ func (p *buildPlan) Build() (_ *Runtime, err error) {
 		return nil, err
 	}
 
-	logger := p.spec.logger
-	if logger == nil {
-		logger = slog.Default()
-	}
-
-	rt := newRuntime(p.spec, p)
+	rt = newRuntime(p.spec, p)
 	registerRuntimeCoreServices(rt)
 
-	logger, providersRegistered, err := p.prepareBuildLogger(rt, logger)
+	providersRegistered, err := p.prepareBuildLogging(rt)
 	if err != nil {
-		err = cleanupBuildFailure(rt, logger, err)
+		err = cleanupBuildFailure(rt, err)
 		return nil, err
 	}
 
-	debugEnabled := logger.Enabled(context.Background(), slog.LevelDebug)
-	infoEnabled := logger.Enabled(context.Background(), slog.LevelInfo)
-	p.logBuildStart(logger, infoEnabled, debugEnabled)
+	debugEnabled := eventLoggerEnabled(rt.eventLogger, context.Background(), EventLevelDebug)
+	infoEnabled := eventLoggerEnabled(rt.eventLogger, context.Background(), EventLevelInfo)
+	p.logBuildStart(rt, infoEnabled, debugEnabled)
 
 	if providersRegistered {
-		p.logProviderRegistrations(logger, debugEnabled)
+		p.logProviderRegistrations(rt, debugEnabled)
 	} else {
-		p.registerProviders(rt, logger, debugEnabled)
+		p.registerProviders(rt, debugEnabled)
 	}
 
-	if err := p.bindHooksAndRunSetups(rt, logger, debugEnabled); err != nil {
-		err = cleanupBuildFailure(rt, logger, err)
+	if err := p.bindHooksAndRunSetups(rt, debugEnabled); err != nil {
+		err = cleanupBuildFailure(rt, err)
 		return nil, err
 	}
 
-	if err := p.runInvokes(rt, logger, debugEnabled); err != nil {
-		err = cleanupBuildFailure(rt, logger, err)
+	if err := p.runInvokes(rt, debugEnabled); err != nil {
+		err = cleanupBuildFailure(rt, err)
 		return nil, err
 	}
 
 	rt.transitionState(context.Background(), AppStateBuilt, "build completed")
-	if infoEnabled {
-		logger.Info("app built", "app", rt.Name(), "modules", p.modules.Len())
-	}
 	rt.logDebugInformation()
 	return rt, nil
 }
 
-func (p *buildPlan) prepareBuildLogger(rt *Runtime, logger *slog.Logger) (*slog.Logger, bool, error) {
-	if p == nil || p.spec == nil || p.spec.loggerFromContainer == nil {
-		return logger, false, nil
+func (p *buildPlan) prepareBuildLogging(rt *Runtime) (bool, error) {
+	if p == nil || p.spec == nil || rt == nil {
+		return false, nil
+	}
+	if p.spec.eventLoggerFromContainer == nil && p.spec.loggerFromContainer == nil {
+		return false, nil
 	}
 
-	p.registerProviders(rt, nil, false)
-	resolvedLogger, err := p.resolveFrameworkLogger(rt)
-	if err != nil {
-		return logger, true, err
+	p.registerProviders(rt, false)
+
+	if p.spec.eventLoggerFromContainer != nil {
+		resolvedEventLogger, err := p.resolveFrameworkEventLogger(rt)
+		if err != nil {
+			return true, err
+		}
+		rt.eventLogger = resolvedEventLogger
+		rt.container.eventLogger = resolvedEventLogger
+		rt.lifecycle.eventLogger = resolvedEventLogger
+		return true, nil
 	}
 
-	return resolvedLogger, true, nil
+	if p.spec.loggerFromContainer != nil {
+		resolvedLogger, err := p.resolveFrameworkLogger(rt)
+		if err != nil {
+			return true, err
+		}
+		rt.logger = resolvedLogger
+		rt.container.logger = resolvedLogger
+		rt.lifecycle.logger = resolvedLogger
+		if p.spec.eventLogger == nil {
+			resolvedEventLogger := NewSlogEventLogger(resolvedLogger)
+			rt.eventLogger = resolvedEventLogger
+			rt.container.eventLogger = resolvedEventLogger
+			rt.lifecycle.eventLogger = resolvedEventLogger
+		}
+		do.OverrideNamedValue(rt.container.Raw(), serviceNameOf[*slog.Logger](), resolvedLogger)
+	}
+
+	return true, nil
 }
 
-func cleanupBuildFailure(rt *Runtime, logger *slog.Logger, buildErr error) error {
+func cleanupBuildFailure(rt *Runtime, buildErr error) error {
 	if rt == nil || rt.container == nil {
 		return buildErr
 	}
@@ -127,18 +151,16 @@ func cleanupBuildFailure(rt *Runtime, logger *slog.Logger, buildErr error) error
 	if report == nil || len(report.Errors) == 0 {
 		return buildErr
 	}
-	if logger != nil {
-		logger.Error("build cleanup failed", "app", rt.Name(), "error", report)
-	}
+	rt.logMessage(context.Background(), EventLevelError, "build cleanup failed", "app", rt.Name(), "error", report)
 	return errors.Join(buildErr, report)
 }
 
-func (p *buildPlan) logBuildStart(logger *slog.Logger, infoEnabled, debugEnabled bool) {
+func (p *buildPlan) logBuildStart(rt *Runtime, infoEnabled, debugEnabled bool) {
 	if infoEnabled {
-		logger.Info("building app", "app", p.spec.meta.Name, "profile", p.spec.profile)
+		rt.logMessage(context.Background(), EventLevelInfo, "building app", "app", p.spec.meta.Name, "profile", p.spec.profile)
 	}
 	if debugEnabled {
-		logger.Debug("build plan ready",
+		rt.logMessage(context.Background(), EventLevelDebug, "build plan ready",
 			"app", p.spec.meta.Name,
 			"modules", p.modules.Len(),
 			"providers", countModuleProviders(p.modules),
@@ -174,17 +196,35 @@ func (p *buildPlan) resolveFrameworkLogger(rt *Runtime) (*slog.Logger, error) {
 			New("resolve framework logger failed: resolver returned nil logger")
 	}
 
-	rt.logger = logger
-	rt.container.logger = logger
-	rt.lifecycle.logger = logger
-	do.OverrideNamedValue(rt.container.Raw(), serviceNameOf[*slog.Logger](), logger)
 	return logger, nil
 }
 
-func (p *buildPlan) registerProviders(rt *Runtime, logger *slog.Logger, debugEnabled bool) {
+func (p *buildPlan) resolveFrameworkEventLogger(rt *Runtime) (EventLogger, error) {
+	if p == nil || p.spec == nil || rt == nil || p.spec.eventLoggerFromContainer == nil {
+		return nil, oops.In("dix").
+			With("op", "resolve_framework_event_logger").
+			New("resolve framework event logger failed: resolver is not configured")
+	}
+
+	logger, err := p.spec.eventLoggerFromContainer(rt.container)
+	if err != nil {
+		return nil, oops.In("dix").
+			With("op", "resolve_framework_event_logger", "app", rt.Name()).
+			Wrapf(err, "resolve framework event logger failed")
+	}
+	if logger == nil {
+		return nil, oops.In("dix").
+			With("op", "resolve_framework_event_logger", "app", rt.Name()).
+			New("resolve framework event logger failed: resolver returned nil event logger")
+	}
+
+	return logger, nil
+}
+
+func (p *buildPlan) registerProviders(rt *Runtime, debugEnabled bool) {
 	p.modules.Range(func(_ int, mod *moduleSpec) bool {
 		if debugEnabled {
-			logger.Debug("registering module",
+			rt.logMessage(context.Background(), EventLevelDebug, "registering module",
 				"module", mod.name,
 				"providers", mod.providers.Len(),
 				"hooks", mod.hooks.Len(),
@@ -194,7 +234,7 @@ func (p *buildPlan) registerProviders(rt *Runtime, logger *slog.Logger, debugEna
 		}
 		mod.providers.Range(func(_ int, provider ProviderFunc) bool {
 			if debugEnabled {
-				logger.Debug("registering provider",
+				rt.logMessage(context.Background(), EventLevelDebug, "registering provider",
 					"module", mod.name,
 					"label", provider.meta.Label,
 					"output", provider.meta.Output.Name,
@@ -209,12 +249,12 @@ func (p *buildPlan) registerProviders(rt *Runtime, logger *slog.Logger, debugEna
 	})
 }
 
-func (p *buildPlan) logProviderRegistrations(logger *slog.Logger, debugEnabled bool) {
+func (p *buildPlan) logProviderRegistrations(rt *Runtime, debugEnabled bool) {
 	if !debugEnabled {
 		return
 	}
 	p.modules.Range(func(_ int, mod *moduleSpec) bool {
-		logger.Debug("registering module",
+		rt.logMessage(context.Background(), EventLevelDebug, "registering module",
 			"module", mod.name,
 			"providers", mod.providers.Len(),
 			"hooks", mod.hooks.Len(),
@@ -222,7 +262,7 @@ func (p *buildPlan) logProviderRegistrations(logger *slog.Logger, debugEnabled b
 			"invokes", mod.invokes.Len(),
 		)
 		mod.providers.Range(func(_ int, provider ProviderFunc) bool {
-			logger.Debug("registering provider",
+			rt.logMessage(context.Background(), EventLevelDebug, "registering provider",
 				"module", mod.name,
 				"label", provider.meta.Label,
 				"output", provider.meta.Output.Name,
@@ -235,20 +275,20 @@ func (p *buildPlan) logProviderRegistrations(logger *slog.Logger, debugEnabled b
 	})
 }
 
-func (p *buildPlan) bindHooksAndRunSetups(rt *Runtime, logger *slog.Logger, debugEnabled bool) error {
+func (p *buildPlan) bindHooksAndRunSetups(rt *Runtime, debugEnabled bool) error {
 	var setupErr error
 	p.modules.Range(func(_ int, mod *moduleSpec) bool {
-		bindModuleHooks(mod, rt, logger, debugEnabled)
-		setupErr = runModuleSetups(mod, rt, logger, debugEnabled)
+		bindModuleHooks(mod, rt, debugEnabled)
+		setupErr = runModuleSetups(mod, rt, debugEnabled)
 		return setupErr == nil
 	})
 	return setupErr
 }
 
-func bindModuleHooks(mod *moduleSpec, rt *Runtime, logger *slog.Logger, debugEnabled bool) {
+func bindModuleHooks(mod *moduleSpec, rt *Runtime, debugEnabled bool) {
 	mod.hooks.Range(func(_ int, hook HookFunc) bool {
 		if debugEnabled {
-			logger.Debug("binding lifecycle hook",
+			rt.logMessage(context.Background(), EventLevelDebug, "binding lifecycle hook",
 				"module", mod.name,
 				"label", hook.meta.Label,
 				"kind", hook.meta.Kind,
@@ -261,11 +301,11 @@ func bindModuleHooks(mod *moduleSpec, rt *Runtime, logger *slog.Logger, debugEna
 	})
 }
 
-func runModuleSetups(mod *moduleSpec, rt *Runtime, logger *slog.Logger, debugEnabled bool) error {
+func runModuleSetups(mod *moduleSpec, rt *Runtime, debugEnabled bool) error {
 	var setupErr error
 	mod.setups.Range(func(_ int, setup SetupFunc) bool {
 		if debugEnabled {
-			logger.Debug("running module setup",
+			rt.logMessage(context.Background(), EventLevelDebug, "running module setup",
 				"module", mod.name,
 				"label", setup.meta.Label,
 				"dependencies", serviceRefNames(setup.meta.Dependencies),
@@ -276,34 +316,34 @@ func runModuleSetups(mod *moduleSpec, rt *Runtime, logger *slog.Logger, debugEna
 			)
 		}
 		if err := setup.apply(rt.container, rt.lifecycle); err != nil {
-			logger.Error("module setup failed", "module", mod.name, "label", setup.meta.Label, "error", err)
+			rt.logMessage(context.Background(), EventLevelError, "module setup failed", "module", mod.name, "label", setup.meta.Label, "error", err)
 			setupErr = oops.In("dix").
 				With("op", "module_setup", "module", mod.name, "label", setup.meta.Label).
 				Wrapf(err, "setup failed for module %s via %s", mod.name, setup.meta.Label)
 			return false
 		}
 		if debugEnabled {
-			logger.Debug("module setup completed", "module", mod.name, "label", setup.meta.Label)
+			rt.logMessage(context.Background(), EventLevelDebug, "module setup completed", "module", mod.name, "label", setup.meta.Label)
 		}
 		return true
 	})
 	return setupErr
 }
 
-func (p *buildPlan) runInvokes(rt *Runtime, logger *slog.Logger, debugEnabled bool) error {
+func (p *buildPlan) runInvokes(rt *Runtime, debugEnabled bool) error {
 	var buildErr error
 	p.modules.Range(func(_ int, mod *moduleSpec) bool {
-		buildErr = runModuleInvokes(mod, rt, logger, debugEnabled)
+		buildErr = runModuleInvokes(mod, rt, debugEnabled)
 		return buildErr == nil
 	})
 	return buildErr
 }
 
-func runModuleInvokes(mod *moduleSpec, rt *Runtime, logger *slog.Logger, debugEnabled bool) error {
+func runModuleInvokes(mod *moduleSpec, rt *Runtime, debugEnabled bool) error {
 	var invokeErr error
 	mod.invokes.Range(func(_ int, invoke InvokeFunc) bool {
 		if debugEnabled {
-			logger.Debug("running invoke",
+			rt.logMessage(context.Background(), EventLevelDebug, "running invoke",
 				"module", mod.name,
 				"label", invoke.meta.Label,
 				"dependencies", serviceRefNames(invoke.meta.Dependencies),
@@ -312,12 +352,12 @@ func runModuleInvokes(mod *moduleSpec, rt *Runtime, logger *slog.Logger, debugEn
 		}
 		invokeErr = invoke.apply(rt.container)
 		if invokeErr == nil && debugEnabled {
-			logger.Debug("invoke completed", "module", mod.name, "label", invoke.meta.Label)
+			rt.logMessage(context.Background(), EventLevelDebug, "invoke completed", "module", mod.name, "label", invoke.meta.Label)
 		}
 		return invokeErr == nil
 	})
 	if invokeErr != nil {
-		logger.Error("invoke failed", "module", mod.name, "error", invokeErr)
+		rt.logMessage(context.Background(), EventLevelError, "invoke failed", "module", mod.name, "error", invokeErr)
 		return oops.In("dix").
 			With("op", "module_invoke", "module", mod.name).
 			Wrapf(invokeErr, "invoke failed in module %s", mod.name)

@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -18,6 +19,40 @@ import (
 
 type frameworkLoggerCarrier struct {
 	logger *slog.Logger
+}
+
+type frameworkEventLoggerCarrier struct {
+	logger dix.EventLogger
+}
+
+type recordingEventLogger struct {
+	mu          sync.Mutex
+	messages    []dix.MessageEvent
+	builds      []dix.BuildEvent
+	starts      []dix.StartEvent
+	stops       []dix.StopEvent
+	health      []dix.HealthCheckEvent
+	transitions []dix.StateTransitionEvent
+}
+
+func (r *recordingEventLogger) LogEvent(_ context.Context, event dix.Event) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	switch e := event.(type) {
+	case dix.MessageEvent:
+		r.messages = append(r.messages, e)
+	case dix.BuildEvent:
+		r.builds = append(r.builds, e)
+	case dix.StartEvent:
+		r.starts = append(r.starts, e)
+	case dix.StopEvent:
+		r.stops = append(r.stops, e)
+	case dix.HealthCheckEvent:
+		r.health = append(r.health, e)
+	case dix.StateTransitionEvent:
+		r.transitions = append(r.transitions, e)
+	}
 }
 
 func TestBuildDebugLogging(t *testing.T) {
@@ -254,6 +289,43 @@ func TestApp_ShortOptionAliases(t *testing.T) {
 	assert.Equal(t, 8080, cfg.Port)
 }
 
+func TestApp_MoreShortOptionAliases(t *testing.T) {
+	observer := &recordingObserver{}
+	buf := &bytes.Buffer{}
+	baseLogger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	app := dix.New("more-aliases",
+		dix.AppDescription("alias app"),
+		dix.LoggerFrom0(func() *slog.Logger { return baseLogger }),
+		dix.Observers(observer),
+		dix.DebugScopeTree(true),
+		dix.DebugNamedServiceDependencies("tenant.default"),
+		dix.Modules(
+			dix.NewModule("more-aliases",
+				dix.Providers(
+					dix.Provider0(func() string { return "value" }),
+				),
+				dix.Hooks(
+					dix.OnStartFunc(func() error { return nil }),
+					dix.OnStopFunc(func() error { return nil }),
+				),
+			),
+		),
+	)
+
+	assert.Equal(t, "alias app", app.Meta().Description)
+
+	rt := buildRuntime(t, app)
+	require.NotNil(t, rt.Logger())
+	require.NoError(t, rt.Start(context.Background()))
+	require.NoError(t, rt.Stop(context.Background()))
+	assert.NotEmpty(t, observer.starts)
+	assert.NotEmpty(t, observer.stops)
+	assert.Contains(t, buf.String(), "scope tree")
+}
+
 func TestWithLoggerFrom1_UsesDIProvidedLogger(t *testing.T) {
 	buf := &bytes.Buffer{}
 	diLogger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{
@@ -296,6 +368,39 @@ func TestWithLoggerFrom1_UsesDIProvidedLogger(t *testing.T) {
 	assert.Contains(t, logs, "app stopped")
 }
 
+func TestLoggerFrom1Alias_UsesDIProvidedLogger(t *testing.T) {
+	buf := &bytes.Buffer{}
+	diLogger := slog.New(slog.NewTextHandler(buf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+
+	app := dix.New("di-logger-alias",
+		dix.LoggerFrom1(func(carrier *frameworkLoggerCarrier) *slog.Logger {
+			return carrier.logger
+		}),
+		dix.Modules(
+			dix.NewModule("logger",
+				dix.Providers(
+					dix.Provider0(func() *frameworkLoggerCarrier {
+						return &frameworkLoggerCarrier{logger: diLogger}
+					}),
+				),
+				dix.Hooks(
+					dix.OnStartFunc(func() error { return nil }),
+					dix.OnStopFunc(func() error { return nil }),
+				),
+			),
+		),
+	)
+
+	rt := buildRuntime(t, app)
+
+	resolved, err := dix.ResolveAs[*slog.Logger](rt.Container())
+	require.NoError(t, err)
+	assert.Same(t, diLogger, rt.Logger())
+	assert.Same(t, diLogger, resolved)
+}
+
 func TestWithLoggerFrom1_MissingDependencyFailsBuild(t *testing.T) {
 	app := dix.New("di-logger-missing",
 		dix.WithLoggerFrom1(func(*frameworkLoggerCarrier) *slog.Logger {
@@ -306,4 +411,72 @@ func TestWithLoggerFrom1_MissingDependencyFailsBuild(t *testing.T) {
 	_, err := app.Build()
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "resolve framework logger failed")
+}
+
+func TestUseEventLogger1_RoutesAllDixLogsThroughConfiguredLogger(t *testing.T) {
+	baseBuf := &bytes.Buffer{}
+	baseLogger := slog.New(slog.NewTextHandler(baseBuf, &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}))
+	eventLogger := &recordingEventLogger{}
+
+	app := dix.New("event-logger",
+		dix.UseEventLogger1(func(carrier *frameworkEventLoggerCarrier) dix.EventLogger {
+			return carrier.logger
+		}),
+		dix.UseLogger(baseLogger),
+		dix.Modules(
+			dix.NewModule("event-logger",
+				dix.Providers(
+					dix.Provider0(func() *frameworkEventLoggerCarrier {
+						return &frameworkEventLoggerCarrier{logger: eventLogger}
+					}),
+					dix.Provider0(func() string { return "value" }),
+				),
+				dix.Setups(
+					dix.SetupContainer(func(c *dix.Container) error {
+						c.RegisterHealthCheck("db", func(context.Context) error { return nil })
+						return nil
+					}),
+				),
+				dix.Hooks(
+					dix.OnStartFunc(func() error { return nil }),
+					dix.OnStopFunc(func() error { return nil }),
+				),
+			),
+		),
+	)
+
+	rt := buildRuntime(t, app)
+	require.NoError(t, rt.Start(context.Background()))
+	assert.True(t, rt.CheckHealth(context.Background()).Healthy())
+	require.NoError(t, rt.Stop(context.Background()))
+
+	assert.Empty(t, baseBuf.String())
+	assert.NotEmpty(t, eventLogger.messages)
+	assert.NotEmpty(t, eventLogger.builds)
+	assert.NotEmpty(t, eventLogger.starts)
+	assert.NotEmpty(t, eventLogger.stops)
+	assert.NotEmpty(t, eventLogger.health)
+	assert.NotEmpty(t, eventLogger.transitions)
+
+	messageTexts := make([]string, 0, len(eventLogger.messages))
+	for _, event := range eventLogger.messages {
+		messageTexts = append(messageTexts, event.Message)
+	}
+	assert.Contains(t, messageTexts, "registering provider")
+	assert.Contains(t, messageTexts, "starting app")
+	assert.Contains(t, messageTexts, "stopping app")
+}
+
+func TestUseEventLogger1_MissingDependencyFailsBuild(t *testing.T) {
+	app := dix.New("event-logger-missing",
+		dix.UseEventLogger1(func(*frameworkEventLoggerCarrier) dix.EventLogger {
+			return &recordingEventLogger{}
+		}),
+	)
+
+	_, err := app.Build()
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "resolve framework event logger failed")
 }

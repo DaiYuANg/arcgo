@@ -19,22 +19,22 @@ func main() {
 
 	app := dix.New(
 		"dix-metrics",
-		dix.WithVersion("0.0.1"),
+		dix.Version("0.0.1"),
 		dixmetrics.WithObservability(
 			prom,
 			dixmetrics.WithMetricPrefix("dix_runtime"),
 		),
 		dix.WithModule(
 			dix.NewModule("checks",
-				dix.Setups(dix.Setup(func(c *dix.Container, _ dix.Lifecycle) error {
+				dix.Setups(dix.SetupContainer(func(c *dix.Container) error {
 					c.RegisterHealthCheck("database", func(context.Context) error { return nil })
 					c.RegisterReadinessCheck("cache", func(context.Context) error { return nil })
 					c.RegisterLivenessCheck("process", func(context.Context) error { return nil })
 					return nil
 				})),
 				dix.Hooks(
-					dix.OnStart0(func(context.Context) error { return nil }),
-					dix.OnStop0(func(context.Context) error { return nil }),
+					dix.OnStartFunc(func() error { return nil }),
+					dix.OnStopFunc(func() error { return nil }),
 				),
 			),
 		),

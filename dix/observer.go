@@ -76,6 +76,7 @@ func (spec *appSpec) emitBuild(ctx context.Context, event BuildEvent) {
 	if spec == nil {
 		return
 	}
+	emitEventLogger(ctx, spec.resolvedEventLogger(), event)
 	emitObservers(ctx, spec.logger, spec.observers, func(observer Observer) {
 		observer.OnBuild(ctx, event)
 	})
@@ -85,6 +86,7 @@ func (r *Runtime) emitStart(ctx context.Context, event StartEvent) {
 	if r == nil || r.spec == nil {
 		return
 	}
+	emitEventLogger(ctx, r.eventLogger, event)
 	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
 		observer.OnStart(ctx, event)
 	})
@@ -94,6 +96,7 @@ func (r *Runtime) emitStop(ctx context.Context, event StopEvent) {
 	if r == nil || r.spec == nil {
 		return
 	}
+	emitEventLogger(ctx, r.eventLogger, event)
 	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
 		observer.OnStop(ctx, event)
 	})
@@ -103,6 +106,7 @@ func (r *Runtime) emitHealthCheck(ctx context.Context, event HealthCheckEvent) {
 	if r == nil || r.spec == nil {
 		return
 	}
+	emitEventLogger(ctx, r.eventLogger, event)
 	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
 		observer.OnHealthCheck(ctx, event)
 	})
@@ -112,6 +116,7 @@ func (r *Runtime) emitStateTransition(ctx context.Context, event StateTransition
 	if r == nil || r.spec == nil {
 		return
 	}
+	emitEventLogger(ctx, r.eventLogger, event)
 	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
 		observer.OnStateTransition(ctx, event)
 	})

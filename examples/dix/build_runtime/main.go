@@ -28,7 +28,7 @@ func main() {
 	app := dix.New(
 		"build-runtime",
 		dix.WithVersion("0.6.0"),
-		dix.WithLogger(logger),
+		dix.UseLogger(logger),
 		dix.WithModule(module),
 	)
 

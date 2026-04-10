@@ -42,6 +42,7 @@ type ServerRuntime interface {
 	GetRoutesByMethod(method string) collectionx.List[RouteInfo]
 	GetRoutesGroupedByMethod() collectionx.MultiMap[string, RouteInfo]
 	GetRoutesByPath(prefix string) collectionx.List[RouteInfo]
+	MatchRoute(method, path string) (RouteInfo, bool)
 	HasRoute(method, path string) bool
 	RouteCount() int
 	Register(endpoint Endpoint, hooks ...EndpointHooks)

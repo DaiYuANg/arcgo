@@ -29,3 +29,12 @@ func requestURL(r *http.Request) string {
 	}
 	return r.URL.String()
 }
+
+func routePattern(r *http.Request, cfg config) string {
+	if cfg.resolveRoutePattern != nil {
+		if route := cfg.resolveRoutePattern(r); route != "" {
+			return route
+		}
+	}
+	return requestPath(r)
+}

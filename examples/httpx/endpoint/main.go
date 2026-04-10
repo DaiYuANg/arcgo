@@ -13,6 +13,7 @@ import (
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
+	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
@@ -58,13 +59,23 @@ type listUsersOutput struct {
 }
 
 // RegisterRoutes registers the user routes on the server.
-func (e *UserEndpoint) RegisterRoutes(server httpx.ServerRuntime) {
-	api := server.Group("/api/v1/users")
+func (e *UserEndpoint) EndpointSpec() httpx.EndpointSpec {
+	return httpx.EndpointSpec{
+		Prefix:        "/api/v1/users",
+		Tags:          []string{"users", "v1"},
+		SummaryPrefix: "Users",
+		Description:   "User management endpoints",
+	}
+}
 
+// RegisterGroupRoutes registers the user routes on the endpoint group.
+func (e *UserEndpoint) RegisterGroupRoutes(api *httpx.Group) {
 	httpx.MustGroupGet(api, "", func(_ context.Context, _ *struct{}) (*listUsersOutput, error) {
 		out := &listUsersOutput{}
 		out.Body.Users = []string{"Alice", "Bob", "Charlie"}
 		return out, nil
+	}, func(op *huma.Operation) {
+		op.Summary = "List"
 	})
 
 	httpx.MustGroupGet(api, "/{id}", func(_ context.Context, input *getUserInput) (*getUserOutput, error) {
@@ -72,6 +83,8 @@ func (e *UserEndpoint) RegisterRoutes(server httpx.ServerRuntime) {
 		out.Body.ID = input.ID
 		out.Body.Name = "User-" + strconv.Itoa(input.ID)
 		return out, nil
+	}, func(op *huma.Operation) {
+		op.Summary = "Get"
 	})
 
 	httpx.MustGroupPost(api, "", func(_ context.Context, input *createUserInput) (*createUserOutput, error) {
@@ -80,6 +93,8 @@ func (e *UserEndpoint) RegisterRoutes(server httpx.ServerRuntime) {
 		out.Body.Name = input.Body.Name
 		out.Body.Email = input.Body.Email
 		return out, nil
+	}, func(op *huma.Operation) {
+		op.Summary = "Create"
 	})
 }
 
@@ -127,16 +142,25 @@ type createOrderOutput struct {
 	} `json:"body"`
 }
 
-// RegisterRoutes registers the order routes on the server.
-func (e *OrderEndpoint) RegisterRoutes(server httpx.ServerRuntime) {
-	api := server.Group("/api/v1/orders")
+func (e *OrderEndpoint) EndpointSpec() httpx.EndpointSpec {
+	return httpx.EndpointSpec{
+		Prefix:        "/api/v1/orders",
+		Tags:          []string{"orders", "v1"},
+		SummaryPrefix: "Orders",
+		Description:   "Order management endpoints",
+	}
+}
 
+// RegisterGroupRoutes registers the order routes on the endpoint group.
+func (e *OrderEndpoint) RegisterGroupRoutes(api *httpx.Group) {
 	httpx.MustGroupPost(api, "", func(_ context.Context, input *createOrderInput) (*createOrderOutput, error) {
 		out := &createOrderOutput{}
 		out.Body.OrderID = 5001
 		out.Body.ProductID = input.Body.ProductID
 		out.Body.Quantity = input.Body.Quantity
 		return out, nil
+	}, func(op *huma.Operation) {
+		op.Summary = "Create"
 	})
 }
 

@@ -53,7 +53,6 @@ func newServer(opts ...ServerOption) *Server {
 		humaMiddlewares:    list.NewConcurrentList[func(huma.Context, func(huma.Context))](),
 		operationModifiers: list.NewConcurrentList[func(*huma.Operation)](),
 	}
-
 	option.Apply(s, opts...)
 
 	if s.adapter == nil {

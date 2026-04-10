@@ -48,6 +48,11 @@ func (s *Server) GetRoutesByPath(prefix string) collectionx.List[RouteInfo] {
 	})...)
 }
 
+// MatchRoute resolves a request path to the registered route template when possible.
+func (s *Server) MatchRoute(method, path string) (RouteInfo, bool) {
+	return s.matchRoute(method, path)
+}
+
 // HasRoute reports whether a route has been registered.
 func (s *Server) HasRoute(method, path string) bool {
 	if s == nil {

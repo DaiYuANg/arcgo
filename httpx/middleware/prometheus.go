@@ -50,8 +50,9 @@ func (rw *responseWriter) WriteHeader(code int) {
 	rw.ResponseWriter.WriteHeader(code)
 }
 
-// PrometheusMiddleware documents related behavior.
-func PrometheusMiddleware(next http.Handler) http.Handler {
+// PrometheusMiddleware records HTTP metrics, optionally normalized by route pattern.
+func PrometheusMiddleware(next http.Handler, opts ...Option) http.Handler {
+	cfg := applyOptions(opts)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		httpRequestsInFlight.Inc()
@@ -61,7 +62,7 @@ func PrometheusMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(wrapped, r)
 
 		status := strconv.Itoa(wrapped.statusCode)
-		path := requestPath(r)
+		path := routePattern(r, cfg)
 		httpRequestsTotal.WithLabelValues(r.Method, path, status).Inc()
 		httpRequestDuration.WithLabelValues(r.Method, path).
 			Observe(time.Since(start).Seconds())

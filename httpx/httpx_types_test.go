@@ -22,9 +22,11 @@ type (
 	Server                 = httpx.Server
 	ServerRuntime          = httpx.ServerRuntime
 	Group                  = httpx.Group
+	BaseEndpoint           = httpx.BaseEndpoint
 	Error                  = httpx.Error
 	ConditionalParams      = httpx.ConditionalParams
 	RouteInfo              = httpx.RouteInfo
+	EndpointSpec           = httpx.EndpointSpec
 	RoutePolicy[I, O any]  = httpx.RoutePolicy[I, O]
 	TypedHandler[I, O any] = httpx.TypedHandler[I, O]
 	SSEHandler[I any]      = httpx.SSEHandler[I]
@@ -84,8 +86,16 @@ func Delete[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], 
 	return httpx.Delete(s, path, handler, operationOptions...)
 }
 
+func MustGet[I, O any](s ServerRuntime, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+	httpx.MustGet(s, path, handler, operationOptions...)
+}
+
 func GroupGet[I, O any](g *Group, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return httpx.GroupGet(g, path, handler, operationOptions...)
+}
+
+func MustGroupGet[I, O any](g *Group, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) {
+	httpx.MustGroupGet(g, path, handler, operationOptions...)
 }
 
 func GroupRoute[I, O any](g *Group, method, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {

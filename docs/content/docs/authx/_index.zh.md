@@ -19,14 +19,14 @@ weight: 1
 - **`Engine`** — 编排 `Check` / `Can`，可选 `Hook`。
 - **`ProviderManager`** — 按凭证动态类型分发到泛型 `AuthenticationProvider[C]`。
 - **`authx/http`** — `Guard` 从 `RequestInfo` 解析凭证与鉴权模型，再调用引擎。
-- **HTTP 中间件** — `authx/http/std`、`gin`、`echo`、`fiber` 适配常见栈。
+- **HTTP 中间件** — `authx/http/std`（chi + net/http）、`gin`、`echo`、`fiber` 适配常见栈。
 - **Context 辅助** — `WithPrincipal`、`PrincipalFromContext`、泛型 `PrincipalFromContextAs`。
 
 ## 包结构
 
 - 核心 API：`github.com/DaiYuANg/arcgo/authx`
 - HTTP Guard 与 `RequestInfo`：`github.com/DaiYuANg/arcgo/authx/http`
-- 标准库 `net/http`：`github.com/DaiYuANg/arcgo/authx/http/std`
+- std 中间件（`chi + net/http`）：`github.com/DaiYuANg/arcgo/authx/http/std`
 - Gin：`github.com/DaiYuANg/arcgo/authx/http/gin`
 - Echo：`github.com/DaiYuANg/arcgo/authx/http/echo`
 - Fiber：`github.com/DaiYuANg/arcgo/authx/http/fiber`
@@ -34,7 +34,7 @@ weight: 1
 ## 文档导航
 
 - 核心最小示例（`Check` / `Can`）：[快速开始](./getting-started)
-- `Guard` + `net/http`：[HTTP 集成](./http-integration)
+- `Guard` + std adapter（`chi + net/http`）：[HTTP 集成](./http-integration)
 - 版本说明（v0.3.0 重构）：[authx v0.3.0](./release-v0.3.0)
 
 ## 安装 / 导入
@@ -68,9 +68,9 @@ go get github.com/DaiYuANg/arcgo/authx/http/fiber@latest
 - **`WithCredentialResolverFunc`** — `(ctx, RequestInfo) → (credential any, err)`
 - **`WithAuthorizationResolverFunc`** — `(ctx, RequestInfo, principal) → (AuthorizationModel, err)`
 
-`Guard.Require` 依次执行 **Check** 与 **Can**。`authx/http/std` 中间件在成功时将 `Principal` 写入 `context`。
+`Guard.Require` 依次执行 **Check** 与 **Can**。`authx/http/std` 就是 std adapter（`chi + net/http`），成功时会将 `Principal` 写入 `context`。
 
-完整 `net/http` 示例见 [HTTP 集成](./http-integration)。
+完整 std adapter（`chi + net/http`）示例见 [HTTP 集成](./http-integration)。
 
 ## 错误与行为模型
 

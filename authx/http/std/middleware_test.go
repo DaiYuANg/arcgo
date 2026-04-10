@@ -11,6 +11,7 @@ import (
 	authhttp "github.com/DaiYuANg/arcgo/authx/http"
 	authstd "github.com/DaiYuANg/arcgo/authx/http/std"
 	"github.com/DaiYuANg/arcgo/collectionx"
+	"github.com/go-chi/chi/v5"
 )
 
 type middlewareCredential struct {
@@ -101,5 +102,57 @@ func TestRequireDenied(t *testing.T) {
 
 	if rec.Code != http.StatusForbidden {
 		t.Fatalf("expected status %d, got %d", http.StatusForbidden, rec.Code)
+	}
+}
+
+func TestRequireUsesCHIRouteMetadataByDefault(t *testing.T) {
+	manager := authx.NewProviderManager(
+		authx.NewAuthenticationProviderFunc(func(_ context.Context, credential middlewareCredential) (authx.AuthenticationResult, error) {
+			if credential.Token == "" {
+				return authx.AuthenticationResult{}, errors.New("missing token")
+			}
+			return authx.AuthenticationResult{Principal: authx.Principal{ID: credential.Token}}, nil
+		}),
+	)
+
+	engine := authx.NewEngine(
+		authx.WithAuthenticationManager(manager),
+		authx.WithAuthorizer(authx.AuthorizerFunc(func(_ context.Context, input authx.AuthorizationModel) (authx.Decision, error) {
+			if input.Action == "/orders/{id}" && input.Resource == "123" {
+				return authx.Decision{Allowed: true}, nil
+			}
+			return authx.Decision{Allowed: false, Reason: "missing_route_metadata"}, nil
+		})),
+	)
+
+	guard := authhttp.NewGuard(
+		engine,
+		authhttp.WithCredentialResolverFunc(func(_ context.Context, req authhttp.RequestInfo) (any, error) {
+			return middlewareCredential{Token: req.Header("Authorization")}, nil
+		}),
+		authhttp.WithAuthorizationResolverFunc(func(_ context.Context, req authhttp.RequestInfo, principal any) (authx.AuthorizationModel, error) {
+			return authx.AuthorizationModel{
+				Principal: principal,
+				Action:    req.RoutePattern,
+				Resource:  req.PathParam("id"),
+				Context:   collectionx.NewMapFrom(map[string]any{"path": req.Path}),
+			}, nil
+		}),
+	)
+
+	router := chi.NewRouter()
+	router.Use(authstd.Require(guard))
+	router.Get("/orders/{id}", func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/orders/123", http.NoBody)
+	req.Header.Set("Authorization", "user-1")
+
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("expected status %d, got %d", http.StatusNoContent, rec.Code)
 	}
 }

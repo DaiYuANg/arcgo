@@ -19,14 +19,14 @@ weight: 1
 - **`Engine`** — orchestrates `Check` / `Can` with optional hooks.
 - **`ProviderManager`** — routes `Authenticate` to typed `AuthenticationProvider[C]` by credential dynamic type.
 - **`authx/http`** — `Guard` resolves credentials and authorization from `RequestInfo`, then calls the engine.
-- **HTTP middleware** — `authx/http/std`, `authx/http/gin`, `authx/http/echo`, `authx/http/fiber` integrate with common stacks.
+- **HTTP middleware** — `authx/http/std` (chi + net/http), `authx/http/gin`, `authx/http/echo`, `authx/http/fiber` integrate with common stacks.
 - **Context helpers** — `WithPrincipal`, `PrincipalFromContext`, typed `PrincipalFromContextAs`.
 
 ## Package layout
 
 - Core API: `github.com/DaiYuANg/arcgo/authx`
 - HTTP guard and `RequestInfo`: `github.com/DaiYuANg/arcgo/authx/http`
-- `net/http` middleware: `github.com/DaiYuANg/arcgo/authx/http/std`
+- std middleware (`chi + net/http`): `github.com/DaiYuANg/arcgo/authx/http/std`
 - Gin: `github.com/DaiYuANg/arcgo/authx/http/gin`
 - Echo: `github.com/DaiYuANg/arcgo/authx/http/echo`
 - Fiber: `github.com/DaiYuANg/arcgo/authx/http/fiber`
@@ -34,7 +34,7 @@ weight: 1
 ## Documentation map
 
 - Minimal core (`Check` / `Can`): [Getting Started](./getting-started)
-- `Guard` + `net/http`: [HTTP integration](./http-integration)
+- `Guard` + std adapter (`chi + net/http`): [HTTP integration](./http-integration)
 - Release notes (v0.3.0 refactor): [authx v0.3.0](./release-v0.3.0)
 
 ## Install / Import
@@ -68,9 +68,9 @@ Runnable, import-complete examples are on [Getting Started](./getting-started).
 - **`WithCredentialResolverFunc`** — `(ctx, RequestInfo) → (credential any, err)`
 - **`WithAuthorizationResolverFunc`** — `(ctx, RequestInfo, principal) → (AuthorizationModel, err)`
 
-`Guard.Require` runs **Check** then **Can**. `authx/http/std` middleware injects `Principal` into `context` on success.
+`Guard.Require` runs **Check** then **Can**. `authx/http/std` is the std adapter (`chi + net/http`) and injects `Principal` into `context` on success.
 
-Full `net/http` sample: [HTTP integration](./http-integration).
+Full std adapter sample (`chi + net/http`): [HTTP integration](./http-integration).
 
 ## Error and behavior model
 

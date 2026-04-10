@@ -96,5 +96,5 @@ go run .
 
 ## 下一步
 
-- HTTP `Guard` 与 `net/http` 中间件：[HTTP 集成](./http-integration)
+- HTTP `Guard` 与 std adapter（`chi + net/http`）：[HTTP 集成](./http-integration)
 - 各框架适配与更多示例：见 [authx 文档首页](../) 的包布局与仓库示例链接

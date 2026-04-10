@@ -13,8 +13,8 @@ import (
 
 	"github.com/DaiYuANg/arcgo/authx"
 	authhttp "github.com/DaiYuANg/arcgo/authx/http"
-	"github.com/DaiYuANg/arcgo/collectionx"
 	authstd "github.com/DaiYuANg/arcgo/authx/http/std"
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/DaiYuANg/arcgo/examples/authx/shared"
 	"github.com/DaiYuANg/arcgo/logx"
 	"github.com/go-chi/chi/v5"
@@ -62,7 +62,6 @@ func main() {
 	}
 
 	router := chi.NewRouter()
-	router.Use(shared.CHIRouteMetaMiddleware)
 	router.Use(authstd.Require(newJWTGuard()))
 
 	router.Get("/orders/{id}", func(w http.ResponseWriter, r *http.Request) {

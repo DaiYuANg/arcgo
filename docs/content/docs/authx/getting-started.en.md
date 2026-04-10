@@ -96,5 +96,5 @@ go run .
 
 ## Next
 
-- HTTP `Guard` and `net/http` middleware: [HTTP integration](./http-integration)
+- HTTP `Guard` and the std adapter (`chi + net/http`): [HTTP integration](./http-integration)
 - Typed HTTP guard variants and framework adapters: see the [authx landing page](../) package layout

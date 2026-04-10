@@ -1,15 +1,15 @@
 ---
 title: 'authx HTTP 集成'
 linkTitle: 'http-integration'
-description: '使用 authx/http Guard 与 net/http 中间件'
+description: '使用 authx/http Guard 与 std（chi + net/http）中间件'
 weight: 3
 ---
 
 ## HTTP 集成
 
-`github.com/DaiYuANg/arcgo/authx/http` 提供 **Guard**：基于 HTTP 归一化后的 `RequestInfo` 调用 `Engine.Check` 与 `Engine.Can`。`github.com/DaiYuANg/arcgo/authx/http/std` 则把 Guard 接到标准库 `net/http`（`Require` / `RequireFast`）。
+`github.com/DaiYuANg/arcgo/authx/http` 提供 **Guard**：基于 HTTP 归一化后的 `RequestInfo` 调用 `Engine.Check` 与 `Engine.Can`。`github.com/DaiYuANg/arcgo/authx/http/std` 就是仓库里的 **std adapter**，语义是 **chi + net/http**（`Require` / `RequireFast`）。
 
-本页示例只依赖 **标准库** 与 `authx` 相关模块。
+这和 `httpx/adapter/std` 保持一致：`std` 默认就表示 router 语义来自 `chi`，只是 handler 仍然是 `net/http`。
 
 ## 1）安装
 
@@ -40,6 +40,7 @@ import (
 	"github.com/DaiYuANg/arcgo/authx"
 	authhttp "github.com/DaiYuANg/arcgo/authx/http"
 	"github.com/DaiYuANg/arcgo/authx/http/std"
+	"github.com/go-chi/chi/v5"
 )
 
 type bearerCredential struct {
@@ -82,10 +83,11 @@ func main() {
 		}),
 	)
 
-	mux := http.NewServeMux()
-	mux.Handle("/hello", std.Require(guard)(http.HandlerFunc(hello)))
+	router := chi.NewRouter()
+	router.Use(std.Require(guard))
+	router.Get("/hello", hello)
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 func hello(w http.ResponseWriter, r *http.Request) {

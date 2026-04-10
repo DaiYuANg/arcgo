@@ -83,7 +83,7 @@ func requireWithMode(guard *authhttp.Guard, fast bool, opts ...Option) func(http
 
 func requestInfoExtractor(fast bool) func(*http.Request) authhttp.RequestInfo {
 	if fast {
-		return authhttp.RequestInfoFromHTTPRequestFast
+		return requestInfoFromStdFast
 	}
-	return authhttp.RequestInfoFromHTTPRequest
+	return requestInfoFromStd
 }

@@ -21,7 +21,6 @@ func main() {
 	guard := shared.NewGuard()
 
 	router := chi.NewRouter()
-	router.Use(shared.CHIRouteMetaMiddleware)
 	router.Use(authstd.Require(guard))
 
 	router.Get("/orders/{id}", func(w http.ResponseWriter, r *http.Request) {

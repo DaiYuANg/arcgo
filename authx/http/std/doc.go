@@ -1,2 +1,2 @@
-// Package std provides net/http middleware adapters for authx.
+// Package std provides the std (chi + net/http) middleware adapter for authx.
 package std

@@ -77,7 +77,7 @@ decision, err := engine.Can(ctx, authx.AuthorizationModel{
 - `WithCredentialResolverFunc`
 - `WithAuthorizationResolverFunc`
 
-框架侧只需挂中间件：
+使用 std adapter（`chi + net/http`）时：
 
 ```go
 guard := authhttp.NewGuard(

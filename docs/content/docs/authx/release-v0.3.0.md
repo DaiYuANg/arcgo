@@ -76,7 +76,7 @@ Unified extension points:
 - `WithCredentialResolverFunc`
 - `WithAuthorizationResolverFunc`
 
-Middleware usage:
+Std adapter usage (`chi + net/http`):
 
 ```go
 guard := authhttp.NewGuard(

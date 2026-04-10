@@ -1,15 +1,15 @@
 ---
 title: 'authx HTTP Integration'
 linkTitle: 'http-integration'
-description: 'Use authx/http Guard with net/http middleware'
+description: 'Use authx/http Guard with the std (chi + net/http) middleware'
 weight: 3
 ---
 
 ## HTTP integration
 
-`github.com/DaiYuANg/arcgo/authx/http` exposes a **Guard** that runs `Engine.Check` and `Engine.Can` using HTTP-normalized `RequestInfo`. Package `github.com/DaiYuANg/arcgo/authx/http/std` wires that into `net/http` middleware (`Require` / `RequireFast`).
+`github.com/DaiYuANg/arcgo/authx/http` exposes a **Guard** that runs `Engine.Check` and `Engine.Can` using HTTP-normalized `RequestInfo`. Package `github.com/DaiYuANg/arcgo/authx/http/std` is the repo's **std adapter**, meaning **chi + net/http** (`Require` / `RequireFast`).
 
-This page uses **only** the Go standard library plus `authx` modules.
+This matches `httpx/adapter/std`: `std` means `chi` is the default router semantics while the handler type remains `net/http`.
 
 ## 1) Install
 
@@ -40,6 +40,7 @@ import (
 	"github.com/DaiYuANg/arcgo/authx"
 	authhttp "github.com/DaiYuANg/arcgo/authx/http"
 	"github.com/DaiYuANg/arcgo/authx/http/std"
+	"github.com/go-chi/chi/v5"
 )
 
 type bearerCredential struct {
@@ -82,10 +83,11 @@ func main() {
 		}),
 	)
 
-	mux := http.NewServeMux()
-	mux.Handle("/hello", std.Require(guard)(http.HandlerFunc(hello)))
+	router := chi.NewRouter()
+	router.Use(std.Require(guard))
+	router.Get("/hello", hello)
 
-	log.Fatal(http.ListenAndServe(":8080", mux))
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
 func hello(w http.ResponseWriter, r *http.Request) {

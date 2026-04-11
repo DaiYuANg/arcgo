@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit OTel adapter methods are kept together as one cohesive integration surface.
+
 package otel
 
 import (
@@ -134,142 +136,115 @@ func (a *adapter) Gauge(spec observabilityx.GaugeSpec) observabilityx.Gauge {
 }
 
 func (a *adapter) counter(spec observabilityx.CounterSpec) (metric.Int64Counter, error) {
-	if a == nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_counter").
-			New("adapter is nil")
-	}
-	clean := strings.TrimSpace(spec.Name)
-	if clean == "" {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_counter").
-			New("metric counter name is empty")
-	}
-	if a.meter == nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_counter", "metric", clean).
-			New("meter is nil")
-	}
-
 	key := observabilityx.NormalizeCounterSpec(spec)
-	cacheKey := cacheMetricSpecKey("counter", key.MetricSpec)
-	if existing, ok := a.counters.Get(cacheKey); ok {
-		return existing, nil
-	}
-
-	created, err := a.meter.Int64Counter(clean, counterOptions(spec)...)
-	if err != nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_counter", "metric", clean).
-			Wrapf(err, "create OTel counter")
-	}
-
-	actual, _ := a.counters.GetOrStore(cacheKey, created)
-	return actual, nil
+	return metricInstrument(
+		a,
+		"create_counter",
+		"counter",
+		"metric counter name is empty",
+		key.MetricSpec,
+		cacheMetricSpecKey("counter", key.MetricSpec),
+		func(adapter *adapter) *collectionmapping.ConcurrentMap[string, metric.Int64Counter] {
+			return adapter.counters
+		},
+		func(adapter *adapter, clean string) (metric.Int64Counter, error) {
+			return adapter.meter.Int64Counter(clean, counterOptions(key)...)
+		},
+	)
 }
 
 func (a *adapter) upDownCounter(spec observabilityx.UpDownCounterSpec) (metric.Int64UpDownCounter, error) {
-	if a == nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_up_down_counter").
-			New("adapter is nil")
-	}
-	clean := strings.TrimSpace(spec.Name)
-	if clean == "" {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_up_down_counter").
-			New("metric up-down counter name is empty")
-	}
-	if a.meter == nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_up_down_counter", "metric", clean).
-			New("meter is nil")
-	}
-
 	key := observabilityx.NormalizeUpDownCounterSpec(spec)
-	cacheKey := cacheMetricSpecKey("up_down_counter", key.MetricSpec)
-	if existing, ok := a.upDownCounters.Get(cacheKey); ok {
-		return existing, nil
-	}
-
-	created, err := a.meter.Int64UpDownCounter(clean, upDownCounterOptions(spec)...)
-	if err != nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_up_down_counter", "metric", clean).
-			Wrapf(err, "create OTel up-down counter")
-	}
-
-	actual, _ := a.upDownCounters.GetOrStore(cacheKey, created)
-	return actual, nil
+	return metricInstrument(
+		a,
+		"create_up_down_counter",
+		"up-down counter",
+		"metric up-down counter name is empty",
+		key.MetricSpec,
+		cacheMetricSpecKey("up_down_counter", key.MetricSpec),
+		func(adapter *adapter) *collectionmapping.ConcurrentMap[string, metric.Int64UpDownCounter] {
+			return adapter.upDownCounters
+		},
+		func(adapter *adapter, clean string) (metric.Int64UpDownCounter, error) {
+			return adapter.meter.Int64UpDownCounter(clean, upDownCounterOptions(key)...)
+		},
+	)
 }
 
 func (a *adapter) histogram(spec observabilityx.HistogramSpec) (metric.Float64Histogram, error) {
-	if a == nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_histogram").
-			New("adapter is nil")
-	}
-	clean := strings.TrimSpace(spec.Name)
-	if clean == "" {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_histogram").
-			New("metric histogram name is empty")
-	}
-	if a.meter == nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_histogram", "metric", clean).
-			New("meter is nil")
-	}
-
 	key := observabilityx.NormalizeHistogramSpec(spec)
-	cacheKey := cacheHistogramSpecKey(key)
-	if existing, ok := a.histograms.Get(cacheKey); ok {
-		return existing, nil
-	}
-
-	created, err := a.meter.Float64Histogram(clean, histogramOptions(spec)...)
-	if err != nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_histogram", "metric", clean).
-			Wrapf(err, "create OTel histogram")
-	}
-
-	actual, _ := a.histograms.GetOrStore(cacheKey, created)
-	return actual, nil
+	return metricInstrument(
+		a,
+		"create_histogram",
+		"histogram",
+		"metric histogram name is empty",
+		key.MetricSpec,
+		cacheHistogramSpecKey(key),
+		func(adapter *adapter) *collectionmapping.ConcurrentMap[string, metric.Float64Histogram] {
+			return adapter.histograms
+		},
+		func(adapter *adapter, clean string) (metric.Float64Histogram, error) {
+			return adapter.meter.Float64Histogram(clean, histogramOptions(key)...)
+		},
+	)
 }
 
 func (a *adapter) gauge(spec observabilityx.GaugeSpec) (metric.Float64Gauge, error) {
+	key := observabilityx.NormalizeGaugeSpec(spec)
+	return metricInstrument(
+		a,
+		"create_gauge",
+		"gauge",
+		"metric gauge name is empty",
+		key.MetricSpec,
+		cacheMetricSpecKey("gauge", key.MetricSpec),
+		func(adapter *adapter) *collectionmapping.ConcurrentMap[string, metric.Float64Gauge] {
+			return adapter.gauges
+		},
+		func(adapter *adapter, clean string) (metric.Float64Gauge, error) {
+			return adapter.meter.Float64Gauge(clean, gaugeOptions(key)...)
+		},
+	)
+}
+
+func metricInstrument[I any](
+	a *adapter,
+	op, kind, emptyNameMessage string,
+	spec observabilityx.MetricSpec,
+	cacheKey string,
+	cacheFor func(*adapter) *collectionmapping.ConcurrentMap[string, I],
+	create func(*adapter, string) (I, error),
+) (I, error) {
+	var zero I
 	if a == nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_gauge").
+		return zero, oops.In("observabilityx/otel").
+			With("op", op).
 			New("adapter is nil")
 	}
 	clean := strings.TrimSpace(spec.Name)
 	if clean == "" {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_gauge").
-			New("metric gauge name is empty")
+		return zero, oops.In("observabilityx/otel").
+			With("op", op).
+			New(emptyNameMessage)
 	}
 	if a.meter == nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_gauge", "metric", clean).
+		return zero, oops.In("observabilityx/otel").
+			With("op", op, "metric", clean).
 			New("meter is nil")
 	}
-
-	key := observabilityx.NormalizeGaugeSpec(spec)
-	cacheKey := cacheMetricSpecKey("gauge", key.MetricSpec)
-	if existing, ok := a.gauges.Get(cacheKey); ok {
+	cache := cacheFor(a)
+	if existing, ok := cache.Get(cacheKey); ok {
 		return existing, nil
 	}
 
-	created, err := a.meter.Float64Gauge(clean, gaugeOptions(spec)...)
+	created, err := create(a, clean)
 	if err != nil {
-		return nil, oops.In("observabilityx/otel").
-			With("op", "create_gauge", "metric", clean).
-			Wrapf(err, "create OTel gauge")
+		return zero, oops.In("observabilityx/otel").
+			With("op", op, "metric", clean).
+			Wrapf(err, "create OTel %s", kind)
 	}
 
-	actual, _ := a.gauges.GetOrStore(cacheKey, created)
+	actual, _ := cache.GetOrStore(cacheKey, created)
 	return actual, nil
 }
 

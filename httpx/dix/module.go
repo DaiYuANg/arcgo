@@ -198,7 +198,7 @@ func startBackground(server httpx.ServerRuntime, key string, value any, listen f
 	go func() {
 		if err := listen(); err != nil {
 			if logger != nil {
-				logger.Error("httpx/dix server stopped", key, value, slog.String("error", err.Error()))
+				logger.Error("httpx/dix server stopped", slog.Any(key, value), slog.String("error", err.Error()))
 			}
 		}
 	}()

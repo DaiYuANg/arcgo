@@ -130,6 +130,9 @@ linters:
           disabled: true
         - name: unused-parameter
           disabled: true
+    wrapcheck:
+      ignore-sig-regexps:
+        - 'github\.com/samber/oops\.OopsErrorBuilder\)\.(New|Errorf|Wrapf)\('
     staticcheck:
       checks:
         - all

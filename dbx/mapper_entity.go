@@ -53,25 +53,10 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate
 		if !column.PrimaryKey {
 			return true
 		}
-		field, ok := m.byColumn.Get(column.Name)
-		if !ok {
-			resultErr = &PrimaryKeyUnmappedError{Column: column.Name}
-			return false
-		}
-		fieldValue, err := fieldValueForRead(value, field)
+		predicate, err = m.primaryColumnPredicate(value, column)
 		if err != nil {
 			resultErr = err
 			return false
-		}
-		boundValue, err := boundFieldValue(field, fieldValue)
-		if err != nil {
-			resultErr = err
-			return false
-		}
-		predicate = metadataComparisonPredicate{
-			left:  column,
-			op:    OpEq,
-			right: boundValue,
 		}
 		return false
 	})
@@ -83,6 +68,26 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate
 	}
 
 	return nil, ErrNoPrimaryKey
+}
+
+func (m Mapper[E]) primaryColumnPredicate(value reflect.Value, column ColumnMeta) (Predicate, error) {
+	field, ok := m.byColumn.Get(column.Name)
+	if !ok {
+		return nil, &PrimaryKeyUnmappedError{Column: column.Name}
+	}
+	fieldValue, err := fieldValueForRead(value, field)
+	if err != nil {
+		return nil, err
+	}
+	boundValue, err := boundFieldValue(field, fieldValue)
+	if err != nil {
+		return nil, err
+	}
+	return metadataComparisonPredicate{
+		left:  column,
+		op:    OpEq,
+		right: boundValue,
+	}, nil
 }
 
 func (m Mapper[E]) entityAssignments(ctx context.Context, schema SchemaResource, entity *E, generator IDGenerator, include func(column ColumnMeta, field MappedField) bool) (collectionx.List[Assignment], error) {

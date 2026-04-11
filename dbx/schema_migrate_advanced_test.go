@@ -133,7 +133,9 @@ func (d failingIndexDialect) BuildCreateTable(spec TableSpec) (BoundQuery, error
 	if spec.PrimaryKey != nil && spec.PrimaryKey.Columns.Len() == 1 {
 		singlePK, _ = spec.PrimaryKey.Columns.GetFirst()
 	}
-	for _, column := range spec.Columns.Values() {
+	columns := spec.Columns.Values()
+	for index := range columns {
+		column := columns[index]
 		typeName := column.SQLType
 		if typeName == "" {
 			typeName = InferTypeNameForTest(column)

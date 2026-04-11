@@ -1,6 +1,7 @@
 package dix
 
 import (
+	"context"
 	"errors"
 	"strings"
 
@@ -14,7 +15,10 @@ func (a *App) Validate() error {
 
 // ValidateReport validates the app and returns the full validation report.
 func (a *App) ValidateReport() ValidationReport {
-	_, report, _ := a.cachedBuildPlan()
+	_, report, err := a.cachedBuildPlan(context.Background())
+	if err != nil && (report.Errors == nil || report.Errors.IsEmpty()) {
+		report.Errors = collectionx.NewList(err)
+	}
 	return report
 }
 

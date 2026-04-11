@@ -98,7 +98,9 @@ func writeFull(w io.Writer, data []byte) error {
 	for len(data) > 0 {
 		n, err := w.Write(data)
 		if err != nil {
-			return err
+			return oops.In("clientx/codec").
+				With("op", "write_full", "remaining_bytes", len(data)).
+				Wrapf(err, "write frame bytes")
 		}
 		data = data[n:]
 	}

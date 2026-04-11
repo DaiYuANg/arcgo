@@ -9,10 +9,6 @@ import (
 	"github.com/samber/oops"
 )
 
-func validateTypedGraph(plan *buildPlan) error {
-	return validateTypedGraphReport(plan).Err()
-}
-
 func validateTypedGraphReport(plan *buildPlan) ValidationReport {
 	if plan == nil || plan.modules == nil {
 		return ValidationReport{}

@@ -71,12 +71,12 @@ func (l *lifecycleImpl) OnStop(hook StopHook) {
 
 func (l *lifecycleImpl) executeStartHooks(ctx context.Context, _ *Container) (int, error) {
 	debugEnabled := l.debugEnabled(ctx)
-	l.logDebug(debugEnabled, "executing start hooks", "count", l.startHooks.Len())
+	l.logDebug(ctx, debugEnabled, "executing start hooks", "count", l.startHooks.Len())
 
 	completed := 0
 	var startErr error
 	l.startHooks.Range(func(i int, hook StartHook) bool {
-		l.logDebug(debugEnabled, "executing start hook", "index", i)
+		l.logDebug(ctx, debugEnabled, "executing start hook", "index", i)
 		if err := hook(ctx); err != nil {
 			logMessageEvent(ctx, l.eventLogger, EventLevelError, "start hook failed", "index", i, "error", err)
 			startErr = oops.In("dix").
@@ -84,7 +84,7 @@ func (l *lifecycleImpl) executeStartHooks(ctx context.Context, _ *Container) (in
 				Wrapf(err, "start hook %d failed", i)
 			return false
 		}
-		l.logDebug(debugEnabled, "start hook completed", "index", i)
+		l.logDebug(ctx, debugEnabled, "start hook completed", "index", i)
 		completed++
 		return true
 	})
@@ -105,12 +105,12 @@ func (l *lifecycleImpl) executeStopHooksSubset(ctx context.Context, count int) e
 		count = registered
 	}
 	debugEnabled := l.debugEnabled(ctx)
-	l.logDebug(debugEnabled, "executing stop hooks", "count", count, "registered", registered)
+	l.logDebug(ctx, debugEnabled, "executing stop hooks", "count", count, "registered", registered)
 
 	errs := collectionx.NewListWithCapacity[error](1)
 	for i := count - 1; i >= 0; i-- {
 		hook, _ := l.stopHooks.Get(i)
-		l.logDebug(debugEnabled, "executing stop hook", "index", count-1-i)
+		l.logDebug(ctx, debugEnabled, "executing stop hook", "index", count-1-i)
 		if err := hook(ctx); err != nil {
 			logMessageEvent(ctx, l.eventLogger, EventLevelError, "stop hook failed", "index", count-1-i, "error", err)
 			errs.Add(oops.In("dix").
@@ -118,18 +118,18 @@ func (l *lifecycleImpl) executeStopHooksSubset(ctx context.Context, count int) e
 				Wrapf(err, "stop hook %d failed", count-1-i))
 			continue
 		}
-		l.logDebug(debugEnabled, "stop hook completed", "index", count-1-i)
+		l.logDebug(ctx, debugEnabled, "stop hook completed", "index", count-1-i)
 	}
 	return errors.Join(errs.Values()...)
 }
 
 func (l *lifecycleImpl) debugEnabled(ctx context.Context) bool {
-	return eventLoggerEnabled(l.eventLogger, ctx, EventLevelDebug)
+	return eventLoggerEnabled(ctx, l.eventLogger, EventLevelDebug)
 }
 
-func (l *lifecycleImpl) logDebug(enabled bool, msg string, args ...any) {
+func (l *lifecycleImpl) logDebug(ctx context.Context, enabled bool, msg string, args ...any) {
 	if enabled {
-		logMessageEvent(context.Background(), l.eventLogger, EventLevelDebug, msg, args...)
+		logMessageEvent(ctx, l.eventLogger, EventLevelDebug, msg, args...)
 	}
 }
 

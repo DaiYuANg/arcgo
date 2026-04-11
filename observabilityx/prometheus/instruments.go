@@ -20,7 +20,7 @@ func (a *Adapter) counter(spec observabilityx.CounterSpec) (*counterInstrument, 
 	spec = observabilityx.NormalizeCounterSpec(spec)
 	spec.Name = a.normalizeMetricName(spec.Name)
 	cacheKey := observabilityx.NormalizeCounterSpec(spec)
-	key := cacheKey.MetricSpec.Name + "|" + metricSpecKey(cacheKey.MetricSpec)
+	key := cacheKey.Name + "|" + metricSpecKey(cacheKey.MetricSpec)
 	if existing, ok := a.counters.Get(key); ok {
 		return existing, nil
 	}
@@ -164,7 +164,7 @@ func (a *Adapter) registerGaugeInstrument(op string, spec observabilityx.MetricS
 	}, nil
 }
 
-func helpText(description string, metricName string) string {
+func helpText(description, metricName string) string {
 	if description != "" {
 		return description
 	}
@@ -178,13 +178,13 @@ func histogramBuckets(defaultBuckets []float64, specBuckets collectionx.List[flo
 	return specBuckets.Values()
 }
 
-func wrapRegistrationError(op string, metricName string, labelCount int, err error) error {
+func wrapRegistrationError(op, metricName string, labelCount int, err error) error {
 	return oops.In("observabilityx/prometheus").
 		With("op", op, "metric", metricName, "label_count", labelCount).
 		Wrapf(err, "register prometheus metric")
 }
 
-func unexpectedCollectorType(op string, metricName string, labelCount int, collector any) error {
+func unexpectedCollectorType(op, metricName string, labelCount int, collector any) error {
 	return oops.In("observabilityx/prometheus").
 		With("op", op, "metric", metricName, "label_count", labelCount, "collector_type", fmt.Sprintf("%T", collector)).
 		Errorf("prometheus metric has unexpected collector type")

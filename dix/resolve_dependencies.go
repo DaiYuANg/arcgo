@@ -49,6 +49,7 @@ func resolveDependencies4[D1, D2, D3, D4 any](injector do.Injector) (D1, D2, D3,
 	return d1, d2, d3, d4, nil
 }
 
+//nolint:gocritic // Typed DI helpers intentionally return each dependency plus an error for generated hook signatures.
 func resolveDependencies5[D1, D2, D3, D4, D5 any](injector do.Injector) (D1, D2, D3, D4, D5, error) {
 	d1, d2, d3, d4, err := resolveDependencies4[D1, D2, D3, D4](injector)
 	if err != nil {
@@ -63,6 +64,7 @@ func resolveDependencies5[D1, D2, D3, D4, D5 any](injector do.Injector) (D1, D2,
 	return d1, d2, d3, d4, d5, nil
 }
 
+//nolint:gocritic // Typed DI helpers intentionally return each dependency plus an error for generated hook signatures.
 func resolveDependencies6[D1, D2, D3, D4, D5, D6 any](injector do.Injector) (D1, D2, D3, D4, D5, D6, error) {
 	d1, d2, d3, d4, d5, err := resolveDependencies5[D1, D2, D3, D4, D5](injector)
 	if err != nil {

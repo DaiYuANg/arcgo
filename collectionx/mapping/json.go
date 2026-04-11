@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit JSON mapping helpers are kept together to preserve the collection API surface.
+
 package mapping
 
 import (

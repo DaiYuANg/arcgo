@@ -218,30 +218,18 @@ func (d Dialect) joinQuotedIdentifiers(items collectionx.List[string]) string {
 	if items.Len() == 0 {
 		return ""
 	}
-	var builder strings.Builder
-	items.Range(func(index int, item string) bool {
-		if index > 0 {
-			builder.WriteString(", ")
-		}
-		builder.WriteString(d.QuoteIdent(item))
-		return true
-	})
-	return builder.String()
+	quoted := items.Values()
+	for index, item := range quoted {
+		quoted[index] = d.QuoteIdent(item)
+	}
+	return strings.Join(quoted, ", ")
 }
 
 func joinPostgresStrings(items collectionx.List[string], sep string) string {
 	if items.Len() == 0 {
 		return ""
 	}
-	var builder strings.Builder
-	items.Range(func(index int, item string) bool {
-		if index > 0 {
-			builder.WriteString(sep)
-		}
-		builder.WriteString(item)
-		return true
-	})
-	return builder.String()
+	return strings.Join(items.Values(), sep)
 }
 
 func referentialAction(value string) dbx.ReferentialAction {

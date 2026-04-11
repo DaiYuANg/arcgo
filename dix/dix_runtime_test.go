@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Runtime tests intentionally keep related behavior scenarios in one file.
+
 package dix_test
 
 import (

@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Set methods are kept together to preserve the collection API surface.
+
 package set
 
 import (

@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Config tests intentionally keep related behavior scenarios in one file.
+
 package configx_test
 
 import (

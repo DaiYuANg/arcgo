@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Mutation rendering helpers are kept together to preserve related SQL behavior.
+
 package dbx
 
 import (
@@ -233,7 +235,7 @@ func resolveInsertColumns(q *InsertQuery, rows collectionx.Grid[Assignment]) (co
 	}
 	row, ok := rows.FirstRowWhere(func(_ int, _ []Assignment) bool { return true }).Get()
 	if !ok {
-		return nil, nil
+		return collectionx.NewList[ColumnMeta](), nil
 	}
 	return assignmentColumns(row)
 }

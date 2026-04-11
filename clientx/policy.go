@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Client policy options are kept together as one cohesive API surface.
+
 package clientx
 
 import (

@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Route registration helpers are kept together as one cohesive API surface.
+
 package httpx
 
 import (

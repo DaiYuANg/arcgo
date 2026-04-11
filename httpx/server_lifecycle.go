@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Server lifecycle helpers are kept together to preserve related runtime behavior.
+
 package httpx
 
 import (
@@ -129,7 +131,7 @@ func (s *Server) ListenAndServeContext(ctx context.Context, addr string) error {
 	ctx = normalizeServerContext(ctx)
 
 	name := "unknown"
-	if s != nil && s.adapter != nil {
+	if s.adapter != nil {
 		name = s.adapter.Name()
 	}
 

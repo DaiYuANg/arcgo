@@ -38,12 +38,6 @@ func normalizeMetricSegment(raw, fallback string) string {
 	return replaced
 }
 
-func normalizePromSpec(spec observabilityx.MetricSpec) observabilityx.MetricSpec {
-	spec = observabilityx.NormalizeMetricSpec(spec)
-	spec.Name = normalizeMetricSegment(spec.Name, "metric")
-	return spec
-}
-
 func sortedLabelKeys(spec observabilityx.MetricSpec) []string {
 	labelKeys := spec.LabelKeys.Values()
 	slices.Sort(labelKeys)

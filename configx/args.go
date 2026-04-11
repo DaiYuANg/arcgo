@@ -25,9 +25,7 @@ func loadArgs(k *koanf.Koanf, args []string, fs *pflag.FlagSet, nameFunc func(st
 	if len(args) == 0 && fs == nil {
 		return nil
 	}
-	if nameFunc == nil {
-		nameFunc = defaultArgsName
-	}
+	nameFunc = normalizeArgsNameFunc(nameFunc)
 
 	rawEntries, err := parseRawArgs(args, nameFunc)
 	if err != nil {
@@ -56,19 +54,23 @@ func loadArgs(k *koanf.Koanf, args []string, fs *pflag.FlagSet, nameFunc func(st
 	return nil
 }
 
+func normalizeArgsNameFunc(nameFunc func(string) string) func(string) string {
+	if nameFunc != nil {
+		return nameFunc
+	}
+	return defaultArgsName
+}
+
 func parseRawArgs(args []string, nameFunc func(string) string) (collectionx.List[argEntry], error) {
 	tokens := collectionx.NewListWithCapacity[string](len(args), args...)
 	entries := collectionx.NewListWithCapacity[argEntry](tokens.Len())
 
 	for index := 0; index < tokens.Len(); index++ {
-		token, ok := tokens.Get(index)
-		if !ok {
+		token, stop := rawArgToken(tokens, index)
+		if stop {
 			break
 		}
-		if token == "--" {
-			break
-		}
-		if !strings.HasPrefix(token, "--") || len(token) <= 2 {
+		if !rawArgFlag(token) {
 			continue
 		}
 
@@ -85,6 +87,18 @@ func parseRawArgs(args []string, nameFunc func(string) string) (collectionx.List
 	return entries, nil
 }
 
+func rawArgToken(tokens collectionx.List[string], index int) (string, bool) {
+	token, ok := tokens.Get(index)
+	if !ok || token == "--" {
+		return "", true
+	}
+	return token, false
+}
+
+func rawArgFlag(token string) bool {
+	return strings.HasPrefix(token, "--") && len(token) > 2
+}
+
 func parseRawArgEntry(tokens collectionx.List[string], index int, nameFunc func(string) string) (argEntry, bool, error) {
 	token, ok := tokens.Get(index)
 	if !ok {
@@ -98,9 +112,9 @@ func parseRawArgEntry(tokens collectionx.List[string], index int, nameFunc func(
 	value := any(true)
 	consumedNext := false
 
-	if eqIndex := strings.Index(raw, "="); eqIndex >= 0 {
-		name = raw[:eqIndex]
-		value = raw[eqIndex+1:]
+	if before, after, ok := strings.Cut(raw, "="); ok {
+		name = before
+		value = after
 	} else if strings.HasPrefix(raw, "no-") && len(raw) > len("no-") {
 		name = strings.TrimPrefix(raw, "no-")
 		value = false

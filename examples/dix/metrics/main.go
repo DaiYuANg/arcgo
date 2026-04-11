@@ -53,7 +53,7 @@ func main() {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", prom.Handler())
 
-	req := httptest.NewRequest(http.MethodGet, "/metrics", nil)
+	req := httptest.NewRequestWithContext(context.Background(), http.MethodGet, "/metrics", http.NoBody)
 	resp := httptest.NewRecorder()
 	mux.ServeHTTP(resp, req)
 
@@ -77,7 +77,7 @@ func stopOrPanic(rt *dix.Runtime) {
 }
 
 func printMetricLine(body, metricName string) {
-	for _, line := range strings.Split(body, "\n") {
+	for line := range strings.SplitSeq(body, "\n") {
 		if strings.HasPrefix(line, metricName) {
 			printLine(line)
 			return

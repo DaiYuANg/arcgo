@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Config options are kept together as one cohesive API surface.
+
 package configx
 
 import (

@@ -15,7 +15,7 @@ func newRuntime(spec *appSpec, plan *buildPlan) *Runtime {
 	if spec != nil && spec.logger != nil {
 		logger = spec.logger
 	}
-	eventLogger := EventLogger(NewSlogEventLogger(logger))
+	eventLogger := NewSlogEventLogger(logger)
 	if spec != nil && spec.eventLogger != nil {
 		eventLogger = spec.eventLogger
 	}
@@ -167,11 +167,11 @@ func (r *Runtime) StopWithReport(ctx context.Context) (report *StopReport, err e
 		}
 	}()
 
-	if err = r.validateStoppable(); err != nil {
-		return nil, err
+	if validateErr := r.validateStoppable(); validateErr != nil {
+		return nil, validateErr
 	}
 
-	debugEnabled := eventLoggerEnabled(r.eventLogger, ctx, EventLevelDebug)
+	debugEnabled := eventLoggerEnabled(ctx, r.eventLogger, EventLevelDebug)
 	r.logMessage(ctx, EventLevelInfo, "stopping app", "app", r.Name())
 	r.logMessage(ctx, EventLevelDebug, "executing runtime stop",
 		"app", r.Name(),
@@ -179,7 +179,7 @@ func (r *Runtime) StopWithReport(ctx context.Context) (report *StopReport, err e
 	)
 
 	report = r.executeStopSequence(ctx)
-	r.logStopReport(debugEnabled, report)
+	r.logStopReport(ctx, debugEnabled, report)
 
 	r.transitionState(ctx, AppStateStopped, "stop completed")
 
@@ -187,21 +187,21 @@ func (r *Runtime) StopWithReport(ctx context.Context) (report *StopReport, err e
 	return report, err
 }
 
-func (r *Runtime) logDebugInformation() {
+func (r *Runtime) logDebugInformation(ctx context.Context) {
 	if r == nil || r.spec == nil {
 		return
 	}
 
 	if r.spec.debug.scopeTree {
 		injector := do.ExplainInjector(r.container.Raw())
-		r.logMessage(context.Background(), EventLevelInfo, "do scope tree", "app", r.Name(), "tree", injector.String())
+		r.logMessage(ctx, EventLevelInfo, "do scope tree", "app", r.Name(), "tree", injector.String())
 	}
 
 	r.spec.debug.namedServiceDependencies.Range(func(name string) bool {
 		if desc, found := do.ExplainNamedService(r.container.Raw(), name); found {
-			r.logMessage(context.Background(), EventLevelInfo, "do named service dependencies", "app", r.Name(), "name", name, "dependencies", desc.String())
+			r.logMessage(ctx, EventLevelInfo, "do named service dependencies", "app", r.Name(), "name", name, "dependencies", desc.String())
 		} else {
-			r.logMessage(context.Background(), EventLevelWarn, "do named service not found", "app", r.Name(), "name", name)
+			r.logMessage(ctx, EventLevelWarn, "do named service not found", "app", r.Name(), "name", name)
 		}
 		return true
 	})
@@ -257,11 +257,11 @@ func (r *Runtime) executeStopSequence(ctx context.Context) *StopReport {
 	return report
 }
 
-func (r *Runtime) logStopReport(debugEnabled bool, report *StopReport) {
+func (r *Runtime) logStopReport(ctx context.Context, debugEnabled bool, report *StopReport) {
 	if !debugEnabled {
 		return
 	}
-	r.logMessage(context.Background(), EventLevelDebug, "runtime stop report",
+	r.logMessage(ctx, EventLevelDebug, "runtime stop report",
 		"app", r.Name(),
 		"hook_error", report.HookError != nil,
 		"shutdown_errors", shutdownErrorCount(report),

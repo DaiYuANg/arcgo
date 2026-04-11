@@ -50,7 +50,32 @@ func (r *recordingObserver) OnStateTransition(_ context.Context, event dix.State
 
 func TestObserverReceivesLifecycleEvents(t *testing.T) {
 	observer := &recordingObserver{}
-	app := dix.New("observer-app",
+	app := newObserverLifecycleApp(observer)
+
+	rt, err := app.Build()
+	if err != nil {
+		t.Fatalf("build failed: %v", err)
+	}
+	if err := rt.Start(context.Background()); err != nil {
+		t.Fatalf("start failed: %v", err)
+	}
+	report := rt.CheckHealth(context.Background())
+	if !report.Healthy() {
+		t.Fatalf("expected healthy report, got %v", report.Error())
+	}
+	if err := rt.Stop(context.Background()); err != nil {
+		t.Fatalf("stop failed: %v", err)
+	}
+
+	assertObserverBuild(t, observer)
+	assertObserverStart(t, observer)
+	assertObserverHealth(t, observer)
+	assertObserverStop(t, observer)
+	assertObserverTransitions(t, observer)
+}
+
+func newObserverLifecycleApp(observer dix.Observer) *dix.App {
+	return dix.New("observer-app",
 		dix.WithObserver(observer),
 		dix.WithModule(
 			dix.NewModule("health",
@@ -65,24 +90,10 @@ func TestObserverReceivesLifecycleEvents(t *testing.T) {
 			),
 		),
 	)
+}
 
-	rt, err := app.Build()
-	if err != nil {
-		t.Fatalf("build failed: %v", err)
-	}
-	if err := rt.Start(context.Background()); err != nil {
-		t.Fatalf("start failed: %v", err)
-	}
-
-	report := rt.CheckHealth(context.Background())
-	if !report.Healthy() {
-		t.Fatalf("expected healthy report, got %v", report.Error())
-	}
-
-	if err := rt.Stop(context.Background()); err != nil {
-		t.Fatalf("stop failed: %v", err)
-	}
-
+func assertObserverBuild(t *testing.T, observer *recordingObserver) {
+	t.Helper()
 	if len(observer.builds) != 1 {
 		t.Fatalf("expected 1 build event, got %d", len(observer.builds))
 	}
@@ -96,7 +107,10 @@ func TestObserverReceivesLifecycleEvents(t *testing.T) {
 	if build.Err != nil {
 		t.Fatalf("expected successful build event, got %v", build.Err)
 	}
+}
 
+func assertObserverStart(t *testing.T, observer *recordingObserver) {
+	t.Helper()
 	if len(observer.starts) != 1 {
 		t.Fatalf("expected 1 start event, got %d", len(observer.starts))
 	}
@@ -107,7 +121,10 @@ func TestObserverReceivesLifecycleEvents(t *testing.T) {
 	if start.Err != nil {
 		t.Fatalf("expected successful start event, got %v", start.Err)
 	}
+}
 
+func assertObserverHealth(t *testing.T, observer *recordingObserver) {
+	t.Helper()
 	if len(observer.health) != 1 {
 		t.Fatalf("expected 1 health event, got %d", len(observer.health))
 	}
@@ -118,7 +135,10 @@ func TestObserverReceivesLifecycleEvents(t *testing.T) {
 	if health.Err != nil {
 		t.Fatalf("expected successful health event, got %v", health.Err)
 	}
+}
 
+func assertObserverStop(t *testing.T, observer *recordingObserver) {
+	t.Helper()
 	if len(observer.stops) != 1 {
 		t.Fatalf("expected 1 stop event, got %d", len(observer.stops))
 	}
@@ -129,7 +149,10 @@ func TestObserverReceivesLifecycleEvents(t *testing.T) {
 	if stop.Err != nil {
 		t.Fatalf("expected successful stop event, got %v", stop.Err)
 	}
+}
 
+func assertObserverTransitions(t *testing.T, observer *recordingObserver) {
+	t.Helper()
 	if len(observer.transitions) != 4 {
 		t.Fatalf("expected 4 transitions, got %d", len(observer.transitions))
 	}

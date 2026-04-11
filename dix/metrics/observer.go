@@ -181,7 +181,7 @@ func (o *observer) withResultAttrs(meta dix.AppMeta, profile dix.Profile, err er
 	return append(attrs, observabilityx.String("result", resultOf(err)))
 }
 
-func counterSpec(prefix string, suffix string, description string, labelKeys ...string) observabilityx.CounterSpec {
+func counterSpec(prefix, suffix, description string, labelKeys ...string) observabilityx.CounterSpec {
 	return observabilityx.NewCounterSpec(
 		prefix+"_"+suffix,
 		observabilityx.WithDescription(description),
@@ -189,7 +189,7 @@ func counterSpec(prefix string, suffix string, description string, labelKeys ...
 	)
 }
 
-func histogramSpec(prefix string, suffix string, description string, unit string, labelKeys ...string) observabilityx.HistogramSpec {
+func histogramSpec(prefix, suffix, description, unit string, labelKeys ...string) observabilityx.HistogramSpec {
 	return observabilityx.NewHistogramSpec(
 		prefix+"_"+suffix,
 		observabilityx.WithDescription(description),

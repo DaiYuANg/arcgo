@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Mapper scan helpers are kept together to preserve related scan behavior.
+
 package dbx
 
 import (

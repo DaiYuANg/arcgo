@@ -1,14 +1,8 @@
 package repository
 
-import (
-	"context"
-	"errors"
-)
+import "context"
 
-type hashDeleteState struct {
-	key           string
-	removeEntries []string
-}
+type hashDeleteState = repositoryDeleteState
 
 // Delete removes an entity and all of its index entries.
 func (r *HashRepository[T]) Delete(ctx context.Context, id string) error {
@@ -38,31 +32,18 @@ func (r *HashRepository[T]) DeleteBatch(ctx context.Context, ids []string) error
 }
 
 func (r *HashRepository[T]) prepareHashDelete(ctx context.Context, id string) (hashDeleteState, bool, error) {
-	key := r.base.keyFromID(id)
-	r.logDebug("kvx hash delete started", "key", key)
-
-	entity, err := r.findByKey(ctx, key)
-	if errors.Is(err, ErrNotFound) {
-		return hashDeleteState{key: key}, false, nil
-	}
-	if err != nil {
-		return hashDeleteState{key: key}, false, wrapRepositoryError(err, "load hash entity for delete", "op", "load_hash_entity_for_delete", "id", id, "key", key)
-	}
-
-	metadata, err := r.base.metadata(entity)
-	if err != nil {
-		return hashDeleteState{key: key}, false, err
-	}
-
-	removeEntries, err := r.base.indexer.EntityIndexEntries(entity, metadata, key)
-	if err != nil {
-		return hashDeleteState{key: key}, false, wrapRepositoryError(err, "collect hash index entries for delete", "op", "collect_hash_index_entries_for_delete", "id", id, "key", key)
-	}
-
-	return hashDeleteState{
-		key:           key,
-		removeEntries: removeEntries,
-	}, true, nil
+	return prepareRepositoryDelete(
+		ctx,
+		r.base,
+		id,
+		r.findByKey,
+		r.logDebug,
+		"kvx hash delete started",
+		"load_hash_entity_for_delete",
+		"load hash entity for delete",
+		"collect_hash_index_entries_for_delete",
+		"collect hash index entries for delete",
+	)
 }
 
 func (r *HashRepository[T]) persistHashDelete(ctx context.Context, state hashDeleteState) error {

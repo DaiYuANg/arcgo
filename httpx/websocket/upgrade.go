@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit WebSocket upgrade and connection helpers are kept together for cohesive behavior.
+
 package websocket
 
 import (

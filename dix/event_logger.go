@@ -86,37 +86,13 @@ func (l *slogEventLogger) LogEvent(ctx context.Context, event Event) {
 	case MessageEvent:
 		l.logMessage(ctx, e)
 	case BuildEvent:
-		if e.Err != nil {
-			l.logger.Error("app build failed", "app", e.Meta.Name, "profile", e.Profile, "error", e.Err)
-			return
-		}
-		l.logger.Info("app built",
-			"app", e.Meta.Name,
-			"profile", e.Profile,
-			"modules", e.ModuleCount,
-			"providers", e.ProviderCount,
-			"hooks", e.HookCount,
-			"setups", e.SetupCount,
-			"invokes", e.InvokeCount,
-		)
+		l.logBuild(e)
 	case StartEvent:
-		if e.Err != nil {
-			l.logger.Error("app start failed", "app", e.Meta.Name, "error", e.Err)
-			return
-		}
-		l.logger.Info("app started", "app", e.Meta.Name)
+		l.logStart(e)
 	case StopEvent:
-		if e.Err != nil {
-			l.logger.Error("app stop failed", "app", e.Meta.Name, "error", e.Err)
-			return
-		}
-		l.logger.Info("app stopped", "app", e.Meta.Name)
+		l.logStop(e)
 	case HealthCheckEvent:
-		if e.Err != nil {
-			l.logger.Warn("health check failed", "kind", e.Kind, "check", e.Name, "error", e.Err)
-			return
-		}
-		l.logger.Debug("health check passed", "kind", e.Kind, "check", e.Name)
+		l.logHealthCheck(e)
 	case StateTransitionEvent:
 		l.logger.Debug("runtime state transition",
 			"app", e.Meta.Name,
@@ -125,6 +101,46 @@ func (l *slogEventLogger) LogEvent(ctx context.Context, event Event) {
 			"reason", e.Reason,
 		)
 	}
+}
+
+func (l *slogEventLogger) logBuild(event BuildEvent) {
+	if event.Err != nil {
+		l.logger.Error("app build failed", "app", event.Meta.Name, "profile", event.Profile, "error", event.Err)
+		return
+	}
+	l.logger.Info("app built",
+		"app", event.Meta.Name,
+		"profile", event.Profile,
+		"modules", event.ModuleCount,
+		"providers", event.ProviderCount,
+		"hooks", event.HookCount,
+		"setups", event.SetupCount,
+		"invokes", event.InvokeCount,
+	)
+}
+
+func (l *slogEventLogger) logStart(event StartEvent) {
+	if event.Err != nil {
+		l.logger.Error("app start failed", "app", event.Meta.Name, "error", event.Err)
+		return
+	}
+	l.logger.Info("app started", "app", event.Meta.Name)
+}
+
+func (l *slogEventLogger) logStop(event StopEvent) {
+	if event.Err != nil {
+		l.logger.Error("app stop failed", "app", event.Meta.Name, "error", event.Err)
+		return
+	}
+	l.logger.Info("app stopped", "app", event.Meta.Name)
+}
+
+func (l *slogEventLogger) logHealthCheck(event HealthCheckEvent) {
+	if event.Err != nil {
+		l.logger.Warn("health check failed", "kind", event.Kind, "check", event.Name, "error", event.Err)
+		return
+	}
+	l.logger.Debug("health check passed", "kind", event.Kind, "check", event.Name)
 }
 
 func (l *slogEventLogger) logMessage(ctx context.Context, event MessageEvent) {
@@ -150,7 +166,7 @@ func contextOrBackground(ctx context.Context) context.Context {
 	return ctx
 }
 
-func eventLoggerEnabled(logger EventLogger, ctx context.Context, level EventLevel) bool {
+func eventLoggerEnabled(ctx context.Context, logger EventLogger, level EventLevel) bool {
 	if logger == nil {
 		return false
 	}
@@ -168,7 +184,7 @@ func emitEventLogger(ctx context.Context, logger EventLogger, event Event) {
 }
 
 func logMessageEvent(ctx context.Context, logger EventLogger, level EventLevel, message string, args ...any) {
-	if !eventLoggerEnabled(logger, ctx, level) {
+	if !eventLoggerEnabled(ctx, logger, level) {
 		return
 	}
 	emitEventLogger(ctx, logger, MessageEvent{

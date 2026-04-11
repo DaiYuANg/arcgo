@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit List methods are kept together to preserve the collection API surface.
+
 package list
 
 import (

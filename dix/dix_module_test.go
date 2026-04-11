@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Module tests intentionally keep related behavior scenarios in one file.
+
 package dix_test
 
 import (

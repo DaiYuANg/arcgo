@@ -2,6 +2,7 @@ package httpx
 
 import (
 	"strings"
+	"unicode"
 
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/danielgtaylor/huma/v2/casing"
@@ -180,13 +181,20 @@ func splitAutoRouteTokens(remainder string) (string, []string, error) {
 	}
 
 	resourcePart := strings.Join(tokens[:byIndex], "")
-	paramTokens := tokens[byIndex+1:]
+	parts, err := splitAutoRouteParamTokens(remainder, tokens[byIndex+1:])
+	if err != nil {
+		return "", nil, err
+	}
+	return resourcePart, parts, nil
+}
+
+func splitAutoRouteParamTokens(remainder string, paramTokens []string) ([]string, error) {
 	parts := make([]string, 0, 2)
 	current := make([]string, 0, 2)
 	for _, token := range paramTokens {
 		if token == "And" {
 			if len(current) == 0 {
-				return "", nil, oops.In("httpx").
+				return nil, oops.In("httpx").
 					With("remainder", remainder).
 					Wrapf(ErrInvalidHandlerName, "validate auto route params")
 			}
@@ -197,13 +205,13 @@ func splitAutoRouteTokens(remainder string) (string, []string, error) {
 		current = append(current, token)
 	}
 	if len(current) == 0 {
-		return "", nil, oops.In("httpx").
+		return nil, oops.In("httpx").
 			With("remainder", remainder).
 			Wrapf(ErrInvalidHandlerName, "validate auto route params")
 	}
 	parts = append(parts, strings.Join(current, ""))
 
-	return resourcePart, parts, nil
+	return parts, nil
 }
 
 func buildAutoRoutePath(resourcePart string, paramParts []string) (string, error) {
@@ -235,5 +243,14 @@ func buildAutoRouteSummary(verbSummary, resourcePart string) string {
 		return verbSummary
 	}
 
-	return verbSummary + " " + casing.Join(casing.Split(resourcePart), " ", strings.ToLower, strings.Title, casing.Initialism) //nolint:staticcheck
+	return verbSummary + " " + casing.Join(casing.Split(resourcePart), " ", strings.ToLower, titleAutoRoutePart, casing.Initialism)
+}
+
+func titleAutoRoutePart(part string) string {
+	if part == "" {
+		return ""
+	}
+	runes := []rune(part)
+	runes[0] = unicode.ToTitle(runes[0])
+	return string(runes)
 }

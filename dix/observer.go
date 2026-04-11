@@ -77,7 +77,7 @@ func (spec *appSpec) emitBuild(ctx context.Context, event BuildEvent) {
 		return
 	}
 	emitEventLogger(ctx, spec.resolvedEventLogger(), event)
-	emitObservers(ctx, spec.logger, spec.observers, func(observer Observer) {
+	emitObservers(ctx, spec.logger, spec.observers, func(ctx context.Context, observer Observer) {
 		observer.OnBuild(ctx, event)
 	})
 }
@@ -87,7 +87,7 @@ func (r *Runtime) emitStart(ctx context.Context, event StartEvent) {
 		return
 	}
 	emitEventLogger(ctx, r.eventLogger, event)
-	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
+	emitObservers(ctx, r.logger, r.spec.observers, func(ctx context.Context, observer Observer) {
 		observer.OnStart(ctx, event)
 	})
 }
@@ -97,7 +97,7 @@ func (r *Runtime) emitStop(ctx context.Context, event StopEvent) {
 		return
 	}
 	emitEventLogger(ctx, r.eventLogger, event)
-	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
+	emitObservers(ctx, r.logger, r.spec.observers, func(ctx context.Context, observer Observer) {
 		observer.OnStop(ctx, event)
 	})
 }
@@ -107,7 +107,7 @@ func (r *Runtime) emitHealthCheck(ctx context.Context, event HealthCheckEvent) {
 		return
 	}
 	emitEventLogger(ctx, r.eventLogger, event)
-	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
+	emitObservers(ctx, r.logger, r.spec.observers, func(ctx context.Context, observer Observer) {
 		observer.OnHealthCheck(ctx, event)
 	})
 }
@@ -117,31 +117,31 @@ func (r *Runtime) emitStateTransition(ctx context.Context, event StateTransition
 		return
 	}
 	emitEventLogger(ctx, r.eventLogger, event)
-	emitObservers(ctx, r.logger, r.spec.observers, func(observer Observer) {
+	emitObservers(ctx, r.logger, r.spec.observers, func(ctx context.Context, observer Observer) {
 		observer.OnStateTransition(ctx, event)
 	})
 }
 
-func emitObservers(ctx context.Context, logger *slog.Logger, observers []Observer, emit func(Observer)) {
+func emitObservers(ctx context.Context, logger *slog.Logger, observers []Observer, emit func(context.Context, Observer)) {
 	if len(observers) == 0 || emit == nil {
 		return
 	}
-	if ctx == nil {
-		ctx = context.Background()
-	}
+	ctx = contextOrBackground(ctx)
 	for index, observer := range observers {
 		if observer == nil {
 			continue
 		}
-		func() {
-			defer func() {
-				if recovered := recover(); recovered != nil && logger != nil {
-					logger.Error("dix observer panicked", "observer_index", index, "panic", recovered)
-				}
-			}()
-			emit(observer)
-		}()
+		emitObserver(ctx, logger, index, observer, emit)
 	}
+}
+
+func emitObserver(ctx context.Context, logger *slog.Logger, index int, observer Observer, emit func(context.Context, Observer)) {
+	defer func() {
+		if recovered := recover(); recovered != nil && logger != nil {
+			logger.Error("dix observer panicked", "observer_index", index, "panic", recovered)
+		}
+	}()
+	emit(ctx, observer)
 }
 
 func (p *buildPlan) buildEvent(duration time.Duration, err error) BuildEvent {

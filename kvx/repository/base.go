@@ -20,6 +20,46 @@ type repositoryBase[T any] struct {
 	indexer    *Indexer[T]
 }
 
+type repositoryDeleteState struct {
+	key           string
+	removeEntries []string
+}
+
+func prepareRepositoryDelete[T any](
+	ctx context.Context,
+	base repositoryBase[T],
+	id string,
+	findByKey func(context.Context, string) (*T, error),
+	logDebug func(string, ...any),
+	startMessage string,
+	loadOp string,
+	loadMessage string,
+	collectOp string,
+	collectMessage string,
+) (repositoryDeleteState, bool, error) {
+	key := base.keyFromID(id)
+	logDebug(startMessage, "key", key)
+
+	entity, err := findByKey(ctx, key)
+	if errors.Is(err, ErrNotFound) {
+		return repositoryDeleteState{key: key}, false, nil
+	}
+	if err != nil {
+		return repositoryDeleteState{key: key}, false, wrapRepositoryError(err, loadMessage, "op", loadOp, "id", id, "key", key)
+	}
+
+	metadata, err := base.metadata(entity)
+	if err != nil {
+		return repositoryDeleteState{key: key}, false, err
+	}
+	removeEntries, err := base.indexer.EntityIndexEntries(entity, metadata, key)
+	if err != nil {
+		return repositoryDeleteState{key: key}, false, wrapRepositoryError(err, collectMessage, "op", collectOp, "id", id, "key", key)
+	}
+
+	return repositoryDeleteState{key: key, removeEntries: removeEntries}, true, nil
+}
+
 func (b repositoryBase[T]) metadata(entity *T) (*mapping.EntityMetadata, error) {
 	metadata, err := b.tagParser.ParseType(entity)
 	return wrapRepositoryResult(metadata, err, "parse entity metadata", "op", "parse_entity_metadata")

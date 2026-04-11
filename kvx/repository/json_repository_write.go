@@ -21,10 +21,7 @@ type jsonFieldUpdateState struct {
 	addEntries    []string
 }
 
-type jsonDeleteState struct {
-	key           string
-	removeEntries []string
-}
+type jsonDeleteState = repositoryDeleteState
 
 // Save stores an entity in the JSON repository without setting a TTL.
 func (r *JSONRepository[T]) Save(ctx context.Context, entity *T) error {
@@ -184,31 +181,18 @@ func (r *JSONRepository[T]) persistJSONSave(ctx context.Context, state jsonSaveS
 }
 
 func (r *JSONRepository[T]) prepareJSONDelete(ctx context.Context, id string) (jsonDeleteState, bool, error) {
-	key := r.base.keyFromID(id)
-	r.logDebug("kvx json delete started", "key", key)
-
-	entity, err := r.findByKey(ctx, key)
-	if errors.Is(err, ErrNotFound) {
-		return jsonDeleteState{key: key}, false, nil
-	}
-	if err != nil {
-		return jsonDeleteState{key: key}, false, wrapRepositoryError(err, "load JSON entity for delete", "op", "load_json_entity_for_delete", "id", id, "key", key)
-	}
-
-	metadata, err := r.base.metadata(entity)
-	if err != nil {
-		return jsonDeleteState{key: key}, false, err
-	}
-
-	removeEntries, err := r.base.indexer.EntityIndexEntries(entity, metadata, key)
-	if err != nil {
-		return jsonDeleteState{key: key}, false, wrapRepositoryError(err, "collect JSON index entries for delete", "op", "collect_json_index_entries_for_delete", "id", id, "key", key)
-	}
-
-	return jsonDeleteState{
-		key:           key,
-		removeEntries: removeEntries,
-	}, true, nil
+	return prepareRepositoryDelete(
+		ctx,
+		r.base,
+		id,
+		r.findByKey,
+		r.logDebug,
+		"kvx json delete started",
+		"load_json_entity_for_delete",
+		"load JSON entity for delete",
+		"collect_json_index_entries_for_delete",
+		"collect JSON index entries for delete",
+	)
 }
 
 func (r *JSONRepository[T]) persistJSONDelete(ctx context.Context, state jsonDeleteState) error {

@@ -1,4 +1,6 @@
 // Package lock provides distributed lock functionality.
+//
+//revive:disable:file-length-limit Lock module operations are kept together as one cohesive API surface.
 package lock
 
 import (

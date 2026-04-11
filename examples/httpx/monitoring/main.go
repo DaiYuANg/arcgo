@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 
 	"github.com/DaiYuANg/arcgo/examples/httpx/shared"
@@ -31,7 +32,14 @@ func main() {
 	slogLogger := logger
 
 	router := chi.NewMux()
-	router.Use(middleware.PrometheusMiddleware, middleware.OpenTelemetryMiddleware)
+	router.Use(
+		func(next http.Handler) http.Handler {
+			return middleware.PrometheusMiddleware(next)
+		},
+		func(next http.Handler) http.Handler {
+			return middleware.OpenTelemetryMiddleware(next)
+		},
+	)
 
 	stdAdapter := std.New(router, adapter.HumaOptions{
 		Title:       "ArcGo Monitoring API",

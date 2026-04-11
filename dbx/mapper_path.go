@@ -45,7 +45,7 @@ func walkFieldValue(root reflect.Value, field MappedField, createPointers bool) 
 	if path.Len() == 0 {
 		return reflect.Value{}, fmt.Errorf("dbx: field path for %s is empty", field.Name)
 	}
-	for i := 0; i < path.Len(); i++ {
+3	for i := range path.Len() {
 		index, _ := path.Get(i)
 		current = current.Field(index)
 		if i == path.Len()-1 {

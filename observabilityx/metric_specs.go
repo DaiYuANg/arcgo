@@ -1,7 +1,6 @@
 package observabilityx
 
 import (
-	"fmt"
 	"strings"
 	"unicode"
 
@@ -220,16 +219,4 @@ func normalizeMetricLabelKey(raw string) string {
 		replaced = "_" + replaced
 	}
 	return replaced
-}
-
-func metricSpecKey(kind string, spec MetricSpec) string {
-	labelKeys := valuesOrEmpty(spec.LabelKeys)
-	return fmt.Sprintf("%s|%s|%s|%s|%s", kind, spec.Name, spec.Description, spec.Unit, strings.Join(labelKeys, ","))
-}
-
-func histogramSpecKey(spec HistogramSpec) string {
-	buckets := lo.Map(valuesOrEmpty(spec.Buckets), func(bucket float64, _ int) string {
-		return fmt.Sprintf("%g", bucket)
-	})
-	return metricSpecKey("histogram", spec.MetricSpec) + "|" + strings.Join(buckets, ",")
 }

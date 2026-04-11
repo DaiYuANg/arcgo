@@ -1,4 +1,6 @@
 // Package json provides JSON document operations.
+//
+//revive:disable:file-length-limit JSON module operations are kept together as one cohesive API surface.
 package json
 
 import (

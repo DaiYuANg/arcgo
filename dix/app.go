@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit App configuration and runtime entrypoints are kept together as one API surface.
+
 package dix
 
 import (
@@ -349,16 +351,20 @@ func (a *App) Modules() collectionx.List[Module] {
 
 // Build compiles the immutable App spec into a Runtime.
 func (a *App) Build() (*Runtime, error) {
-	plan, _, err := a.cachedBuildPlan()
+	return a.buildWithContext(context.Background())
+}
+
+func (a *App) buildWithContext(ctx context.Context) (*Runtime, error) {
+	plan, _, err := a.cachedBuildPlan(ctx)
 	if err != nil {
 		return nil, err
 	}
-	return plan.Build()
+	return plan.Build(ctx)
 }
 
 // Start builds a Runtime and starts it with the provided context.
 func (a *App) Start(ctx context.Context) (*Runtime, error) {
-	rt, err := a.Build()
+	rt, err := a.buildWithContext(ctx)
 	if err != nil {
 		return nil, oops.In("dix").
 			With("op", "start", "app", a.Name()).

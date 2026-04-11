@@ -1,3 +1,5 @@
+//revive:disable:file-length-limit Concurrent multimap methods are kept together to preserve the collection API surface.
+
 package mapping
 
 import (

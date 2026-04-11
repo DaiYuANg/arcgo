@@ -1,9 +1,6 @@
 package dbx
 
-import (
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
-)
+import "github.com/DaiYuANg/arcgo/collectionx"
 
 type fieldMapper interface {
 	Fields() collectionx.List[MappedField]
@@ -39,19 +36,16 @@ func MustSelectMapped(schema SchemaResource, mapper fieldMapper) *SelectQuery {
 
 func projectionOfDefinition(definition schemaDefinition, mapper fieldMapper) (collectionx.List[SelectItem], error) {
 	fields := mapper.Fields()
-	columns := lo.Associate(definition.columns, func(column ColumnMeta) (string, ColumnMeta) {
-		return column.Name, column
-	})
 
 	if unmapped, ok := collectionx.FindList(fields, func(_ int, field MappedField) bool {
-		_, ok := columns[field.Column]
+		_, ok := definition.columnByName(field.Column)
 		return !ok
 	}); ok {
 		return nil, &UnmappedColumnError{Column: unmapped.Column}
 	}
 
 	return collectionx.FilterMapList(fields, func(_ int, field MappedField) (SelectItem, bool) {
-		column, ok := columns[field.Column]
+		column, ok := definition.columnByName(field.Column)
 		if !ok {
 			return nil, false
 		}

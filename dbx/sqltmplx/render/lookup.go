@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/lo"
 	"github.com/samber/mo"
 )
@@ -33,35 +34,64 @@ func lookupOne(params any, name string) mo.Option[any] {
 		return mo.None[any]()
 	}
 	if v.Kind() == reflect.Map {
-		for _, key := range []string{name, strings.ToLower(name), strings.ToUpper(name)} {
-			mv := v.MapIndex(reflect.ValueOf(key))
-			if mv.IsValid() {
-				return mo.Some(mv.Interface())
-			}
-		}
-		return mo.None[any]()
+		return lookupMapValue(v, name)
 	}
 	if v.Kind() == reflect.Struct {
 		meta := cachedStructMetadata(v.Type())
-		if field, exists := meta.lookup[strings.ToLower(name)]; exists {
+		if field, exists := meta.lookup.Get(strings.ToLower(name)); exists {
 			return mo.Some(v.Field(field.index).Interface())
 		}
 	}
 	return mo.None[any]()
 }
 
-func fieldAliases(f reflect.StructField) []string {
-	return lo.Uniq(lo.FlatMap([]string{"sqltmpl", "db", "json"}, func(tagKey string, _ int) []string {
+func lookupMapValue(v reflect.Value, name string) mo.Option[any] {
+	if v.Type().Key().Kind() != reflect.String {
+		return mo.None[any]()
+	}
+	if value, ok := reflectMapStringValue(v, name); ok {
+		return mo.Some(value)
+	}
+	if value, ok := reflectMapStringValue(v, strings.ToLower(name)); ok {
+		return mo.Some(value)
+	}
+	if value, ok := reflectMapStringValue(v, strings.ToUpper(name)); ok {
+		return mo.Some(value)
+	}
+	return mo.None[any]()
+}
+
+func reflectMapStringValue(v reflect.Value, key string) (any, bool) {
+	mapKey := reflect.ValueOf(key)
+	if keyType := v.Type().Key(); mapKey.Type() != keyType && mapKey.Type().ConvertibleTo(keyType) {
+		mapKey = mapKey.Convert(keyType)
+	}
+	mv := v.MapIndex(mapKey)
+	if !mv.IsValid() {
+		return nil, false
+	}
+	return mv.Interface(), true
+}
+
+func fieldAliases(f reflect.StructField) collectionx.List[string] {
+	aliases := collectionx.NewListWithCapacity[string](3)
+	seen := collectionx.NewSetWithCapacity[string](3)
+	for _, tagKey := range [...]string{"sqltmpl", "db", "json"} {
 		raw := strings.TrimSpace(f.Tag.Get(tagKey))
 		if raw == "" || raw == "-" {
-			return nil
+			continue
 		}
 		alias := strings.TrimSpace(strings.Split(raw, ",")[0])
 		if alias == "" || alias == "-" {
-			return nil
+			continue
 		}
-		return []string{alias}
-	}))
+		if seen.Contains(alias) {
+			continue
+		}
+		seen.Add(alias)
+		aliases.Add(alias)
+	}
+	return aliases
 }
 
 func isEmpty(v any) bool {

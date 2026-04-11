@@ -1,9 +1,6 @@
 package dbx
 
-import (
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
-)
+import "github.com/DaiYuANg/arcgo/collectionx"
 
 type schemaSelectItem struct {
 	meta ColumnMeta
@@ -16,13 +13,13 @@ func (s schemaSelectItem) columnRef() ColumnMeta {
 }
 
 func (s Schema[E]) AllColumns() collectionx.List[SelectItem] {
-	return collectionx.MapList(collectionx.NewListWithCapacity(len(s.def.columns), s.def.columns...), func(_ int, column ColumnMeta) SelectItem {
+	return collectionx.MapList(s.def.columns, func(_ int, column ColumnMeta) SelectItem {
 		return schemaSelectItem{meta: cloneColumnMeta(column)}
 	})
 }
 
 func (s Schema[E]) PrimaryColumn() (ColumnMeta, bool) {
-	column, ok := lo.Find(s.def.columns, func(column ColumnMeta) bool {
+	column, ok := collectionx.FindList(s.def.columns, func(_ int, column ColumnMeta) bool {
 		return column.PrimaryKey
 	})
 	if !ok {
@@ -32,9 +29,7 @@ func (s Schema[E]) PrimaryColumn() (ColumnMeta, bool) {
 }
 
 func (s Schema[E]) ColumnByName(name string) (ColumnMeta, bool) {
-	column, ok := lo.Find(s.def.columns, func(column ColumnMeta) bool {
-		return column.Name == name
-	})
+	column, ok := s.def.columnByName(name)
 	if !ok {
 		return ColumnMeta{}, false
 	}

@@ -5,7 +5,6 @@ import (
 	"reflect"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 // RowsScanner is the schema-less contract for mapping query result rows to entities.
@@ -108,17 +107,16 @@ func NewMapperWithOptions[E any](schema SchemaResource, opts ...MapperOption) (M
 		return Mapper[E]{}, err
 	}
 
-	mappedFields := lo.FilterMap(schema.schemaRef().columns, func(column ColumnMeta, _ int) (MappedField, bool) {
+	mappedFields := collectionx.FilterMapList(schema.schemaRef().columns, func(_ int, column ColumnMeta) (MappedField, bool) {
 		return structMapper.meta.byColumn.Get(column.Name)
 	})
-	fields := collectionx.NewListWithCapacity[MappedField](len(mappedFields), mappedFields...)
-	byColumn := collectionx.NewMapFrom(lo.Associate(mappedFields, func(field MappedField) (string, MappedField) {
+	byColumn := collectionx.AssociateList(mappedFields, func(_ int, field MappedField) (string, MappedField) {
 		return field.Column, field
-	}))
+	})
 
 	return Mapper[E]{
 		StructMapper: structMapper,
-		fields:       fields,
+		fields:       mappedFields.Clone(),
 		byColumn:     byColumn,
 	}, nil
 }

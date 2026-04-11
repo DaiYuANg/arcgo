@@ -5,17 +5,20 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/DaiYuANg/arcgo/collectionx"
 )
 
 type schemaBindingState struct {
-	binder      schemaBinder
-	binderField reflect.Value
-	defTable    tableDefinition
-	columns     []ColumnMeta
-	relations   []RelationMeta
-	indexes     []IndexMeta
-	checks      []CheckMeta
-	primaryKey  *PrimaryKeyMeta
+	binder        schemaBinder
+	binderField   reflect.Value
+	defTable      tableDefinition
+	columns       collectionx.List[ColumnMeta]
+	columnsByName collectionx.Map[string, ColumnMeta]
+	relations     collectionx.List[RelationMeta]
+	indexes       collectionx.List[IndexMeta]
+	checks        collectionx.List[CheckMeta]
+	primaryKey    *PrimaryKeyMeta
 }
 
 func bindSchema[S any](name, alias string, schema S) (S, error) {
@@ -47,10 +50,11 @@ func newSchemaBindingState(schemaType reflect.Type, name, alias string, fieldCou
 			alias:      strings.TrimSpace(alias),
 			schemaType: schemaType,
 		},
-		columns:   make([]ColumnMeta, 0, fieldCount),
-		relations: make([]RelationMeta, 0, fieldCount),
-		indexes:   make([]IndexMeta, 0, fieldCount),
-		checks:    make([]CheckMeta, 0, fieldCount),
+		columns:       collectionx.NewListWithCapacity[ColumnMeta](fieldCount),
+		columnsByName: collectionx.NewMapWithCapacity[string, ColumnMeta](fieldCount),
+		relations:     collectionx.NewListWithCapacity[RelationMeta](fieldCount),
+		indexes:       collectionx.NewListWithCapacity[IndexMeta](fieldCount),
+		checks:        collectionx.NewListWithCapacity[CheckMeta](fieldCount),
 	}
 }
 
@@ -95,11 +99,13 @@ func (s *schemaBindingState) bindColumnField(fieldType reflect.StructField, fiel
 	}
 	bound := candidate.bindColumn(columnBinding{meta: meta})
 	fieldValue.Set(reflect.ValueOf(bound))
+	column := meta
 	if accessor, ok := bound.(columnAccessor); ok {
-		s.columns = append(s.columns, accessor.columnRef())
-		return true, nil
+		column = accessor.columnRef()
 	}
-	s.columns = append(s.columns, meta)
+	column = cloneColumnMeta(column)
+	s.columns.Add(column)
+	s.columnsByName.Set(column.Name, column)
 	return true, nil
 }
 
@@ -110,7 +116,7 @@ func (s *schemaBindingState) bindRelationField(fieldType reflect.StructField, fi
 	}
 	meta := resolveRelationMeta(s.defTable, fieldType, candidate)
 	fieldValue.Set(reflect.ValueOf(candidate.bindRelation(relationBinding{meta: meta})))
-	s.relations = append(s.relations, meta)
+	s.relations.Add(meta)
 	return true
 }
 
@@ -124,12 +130,12 @@ func (s *schemaBindingState) bindConstraintField(fieldType reflect.StructField, 
 		return true, err
 	}
 	fieldValue.Set(reflect.ValueOf(candidate.bindConstraint(binding)))
-	s.indexes = append(s.indexes, binding.indexes...)
+	s.indexes.Add(binding.indexes...)
 	if binding.primaryKey != nil {
 		s.primaryKey = new(clonePrimaryKeyMeta(*binding.primaryKey))
 	}
 	if binding.check != nil {
-		s.checks = append(s.checks, *binding.check)
+		s.checks.Add(*binding.check)
 	}
 	return true, nil
 }
@@ -138,13 +144,19 @@ func (s *schemaBindingState) definition(schemaType reflect.Type) (schemaDefiniti
 	if s.binder == nil {
 		return schemaDefinition{}, fmt.Errorf("dbx: schema %s must embed dbx.Schema[T]", schemaType.Name())
 	}
+	columns := cloneColumnMetas(s.columns)
+	columnsByName := s.columnsByName.Clone()
+	if columnsByName.Len() == 0 && columns.Len() > 0 {
+		columnsByName = indexColumnsByName(columns)
+	}
 	return schemaDefinition{
-		table:      s.defTable,
-		columns:    s.columns,
-		relations:  s.relations,
-		indexes:    s.indexes,
-		primaryKey: s.primaryKey,
-		checks:     s.checks,
+		table:         s.defTable,
+		columns:       columns,
+		columnsByName: columnsByName,
+		relations:     s.relations.Clone(),
+		indexes:       cloneIndexMetas(s.indexes),
+		primaryKey:    clonePrimaryKeyMetaPtr(s.primaryKey),
+		checks:        cloneCheckMetas(s.checks),
 	}, nil
 }
 

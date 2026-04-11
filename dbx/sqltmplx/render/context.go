@@ -59,17 +59,19 @@ func mapEnv(value reflect.Value) map[string]any {
 
 func structEnv(value reflect.Value) map[string]any {
 	meta := cachedStructMetadata(value.Type())
-	out := make(map[string]any, len(meta.fields)*2)
-	for _, field := range meta.fields {
+	out := make(map[string]any, meta.fields.Len()*2)
+	meta.fields.Range(func(_ int, field structFieldMetadata) bool {
 		assignStructField(out, field, value.Field(field.index).Interface())
-	}
+		return true
+	})
 	return out
 }
 
 func assignStructField(out map[string]any, field structFieldMetadata, value any) {
 	out[field.name] = value
 	out[field.foldedName] = value
-	for _, alias := range field.aliases {
+	field.aliases.Range(func(_ int, alias string) bool {
 		out[alias] = value
-	}
+		return true
+	})
 }

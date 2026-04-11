@@ -115,11 +115,7 @@ func SQLList[E any](ctx context.Context, session Session, statement SQLStatement
 // SQLQueryList executes a SQL statement source and returns mapped rows as a collectionx.List.
 // This is the collectionx.List companion to SQLList.
 func SQLQueryList[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (collectionx.List[E], error) {
-	items, err := SQLList(ctx, session, statement, params, mapper)
-	if err != nil {
-		return nil, err
-	}
-	return collectionx.NewList(items.Values()...), nil
+	return SQLList(ctx, session, statement, params, mapper)
 }
 
 func SQLGet[E any](ctx context.Context, session Session, statement SQLStatementSource, params any, mapper RowsScanner[E]) (E, error) {

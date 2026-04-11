@@ -152,11 +152,7 @@ func QueryAllBound[E any](ctx context.Context, session Session, bound BoundQuery
 
 // QueryAllBoundList executes a pre-built BoundQuery and maps all rows into a collectionx.List.
 func QueryAllBoundList[E any](ctx context.Context, session Session, bound BoundQuery, mapper RowsScanner[E]) (collectionx.List[E], error) {
-	items, err := QueryAllBound(ctx, session, bound, mapper)
-	if err != nil {
-		return nil, err
-	}
-	return collectionx.NewList(items.Values()...), nil
+	return QueryAllBound(ctx, session, bound, mapper)
 }
 
 func capacityHintScannerFor[E any](mapper RowsScanner[E], capacityHint int) (CapacityHintScanner[E], bool) {

@@ -153,10 +153,11 @@ func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema
 	def := schema.schemaRef()
 	dialectName := session.Dialect().Name()
 	tableName := schema.tableRef().Name()
-	selectSigParts := collectionx.NewListWithCapacity[string](len(def.columns))
-	for _, column := range def.columns {
+	selectSigParts := collectionx.NewListWithCapacity[string](def.columns.Len())
+	def.columns.Range(func(_ int, column ColumnMeta) bool {
 		selectSigParts.Add(column.Name)
-	}
+		return true
+	})
 	selectSig := selectSigParts.Join(",")
 	cacheKey := fmt.Sprintf("rel:%s:%s:%s:%s:%d", dialectName, tableName, selectSig, targetColumn.Name, keys.Len())
 	cachedSQL, ok, err := relationCachedQuery(rt, cacheKey)
@@ -186,10 +187,11 @@ func buildRelationTargetsBoundQuery(session Session, rt *relationRuntime, schema
 }
 
 func allSelectItems(def schemaDefinition) collectionx.List[SelectItem] {
-	items := collectionx.NewListWithCapacity[SelectItem](len(def.columns))
-	for _, column := range def.columns {
+	items := collectionx.NewListWithCapacity[SelectItem](def.columns.Len())
+	def.columns.Range(func(_ int, column ColumnMeta) bool {
 		items.Add(schemaSelectItem{meta: column})
-	}
+		return true
+	})
 	return items
 }
 

@@ -47,29 +47,39 @@ func (m Mapper[E]) PrimaryPredicate(schema SchemaResource, entity *E) (Predicate
 		return nil, err
 	}
 
-	cols := schema.schemaRef().columns
-	for i := range cols {
-		column := &cols[i]
+	var predicate Predicate
+	var resultErr error
+	schema.schemaRef().columns.Range(func(_ int, column ColumnMeta) bool {
 		if !column.PrimaryKey {
-			continue
+			return true
 		}
 		field, ok := m.byColumn.Get(column.Name)
 		if !ok {
-			return nil, &PrimaryKeyUnmappedError{Column: column.Name}
+			resultErr = &PrimaryKeyUnmappedError{Column: column.Name}
+			return false
 		}
 		fieldValue, err := fieldValueForRead(value, field)
 		if err != nil {
-			return nil, err
+			resultErr = err
+			return false
 		}
 		boundValue, err := boundFieldValue(field, fieldValue)
 		if err != nil {
-			return nil, err
+			resultErr = err
+			return false
 		}
-		return metadataComparisonPredicate{
-			left:  *column,
+		predicate = metadataComparisonPredicate{
+			left:  column,
 			op:    OpEq,
 			right: boundValue,
-		}, nil
+		}
+		return false
+	})
+	if resultErr != nil {
+		return nil, resultErr
+	}
+	if predicate != nil {
+		return predicate, nil
 	}
 
 	return nil, ErrNoPrimaryKey
@@ -81,21 +91,26 @@ func (m Mapper[E]) entityAssignments(ctx context.Context, schema SchemaResource,
 		return nil, err
 	}
 
-	assignments := collectionx.NewListWithCapacity[Assignment](len(schema.schemaRef().columns))
-	cols := schema.schemaRef().columns
-	for i := range cols {
-		column := &cols[i]
+	def := schema.schemaRef()
+	assignments := collectionx.NewListWithCapacity[Assignment](def.columns.Len())
+	var resultErr error
+	def.columns.Range(func(_ int, column ColumnMeta) bool {
 		field, ok := m.byColumn.Get(column.Name)
-		if !ok || !include(*column, field) {
-			continue
+		if !ok || !include(column, field) {
+			return true
 		}
-		assignment, ok, err := m.buildAssignment(ctx, value, *column, field, generator)
+		assignment, ok, err := m.buildAssignment(ctx, value, column, field, generator)
 		if err != nil {
-			return nil, err
+			resultErr = err
+			return false
 		}
 		if ok {
 			assignments.Add(assignment)
 		}
+		return true
+	})
+	if resultErr != nil {
+		return nil, resultErr
 	}
 
 	return assignments, nil

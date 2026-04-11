@@ -5,14 +5,14 @@ import (
 	"strings"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 func deriveIndexes(def schemaDefinition) []IndexMeta {
 	indexes := collectionx.NewOrderedMap[string, IndexMeta]()
-	for _, index := range def.indexes {
+	def.indexes.Range(func(_ int, index IndexMeta) bool {
 		indexes.Set(indexKey(index.Unique, index.Columns), cloneIndexMeta(index))
-	}
+		return true
+	})
 	deriveColumnIndexes(def, indexes)
 	items := make([]IndexMeta, 0, indexes.Len())
 	indexes.Range(func(_ string, value IndexMeta) bool {
@@ -23,22 +23,22 @@ func deriveIndexes(def schemaDefinition) []IndexMeta {
 }
 
 func deriveColumnIndexes(def schemaDefinition, indexes collectionx.OrderedMap[string, IndexMeta]) {
-	for i := range def.columns {
-		column := &def.columns[i]
+	def.columns.Range(func(_ int, column ColumnMeta) bool {
 		if !shouldDeriveColumnIndex(column) {
-			continue
+			return true
 		}
 		meta := IndexMeta{
-			Name:    indexNameForColumn(def.table.name, *column),
+			Name:    indexNameForColumn(def.table.name, column),
 			Table:   def.table.name,
 			Columns: collectionx.NewList(column.Name),
 			Unique:  column.Unique,
 		}
 		indexes.Set(indexKey(meta.Unique, meta.Columns), meta)
-	}
+		return true
+	})
 }
 
-func shouldDeriveColumnIndex(column *ColumnMeta) bool {
+func shouldDeriveColumnIndex(column ColumnMeta) bool {
 	return !column.PrimaryKey && (column.Unique || column.Indexed)
 }
 
@@ -62,16 +62,16 @@ func derivePrimaryKey(def schemaDefinition) *PrimaryKeyMeta {
 		return &copyPrimary
 	}
 
-	columns := lo.FilterMap(def.columns, func(column ColumnMeta, _ int) (string, bool) {
+	columns := collectionx.FilterMapList(def.columns, func(_ int, column ColumnMeta) (string, bool) {
 		return column.Name, column.PrimaryKey
 	})
-	if len(columns) == 0 {
+	if columns.Len() == 0 {
 		return nil
 	}
 	return &PrimaryKeyMeta{
 		Name:    "pk_" + def.table.name,
 		Table:   def.table.name,
-		Columns: collectionx.NewList(columns...),
+		Columns: columns,
 	}
 }
 
@@ -89,10 +89,9 @@ func deriveForeignKeys(def schemaDefinition) []ForeignKeyMeta {
 }
 
 func deriveExplicitForeignKeys(def schemaDefinition, foreignKeys collectionx.OrderedMap[string, ForeignKeyMeta], explicitColumns collectionx.Set[string]) {
-	for i := range def.columns {
-		column := &def.columns[i]
+	def.columns.Range(func(_ int, column ColumnMeta) bool {
 		if column.References == nil {
-			continue
+			return true
 		}
 		explicitColumns.Add(column.Name)
 		meta := ForeignKeyMeta{
@@ -105,14 +104,14 @@ func deriveExplicitForeignKeys(def schemaDefinition, foreignKeys collectionx.Ord
 			OnUpdate:      column.References.OnUpdate,
 		}
 		foreignKeys.Set(foreignKeyKey(meta), meta)
-	}
+		return true
+	})
 }
 
 func deriveRelationForeignKeys(def schemaDefinition, foreignKeys collectionx.OrderedMap[string, ForeignKeyMeta], explicitColumns collectionx.Set[string]) {
-	for i := range def.relations {
-		relation := def.relations[i]
-		if !shouldDeriveRelationForeignKey(def.columns, relation, explicitColumns) {
-			continue
+	def.relations.Range(func(_ int, relation RelationMeta) bool {
+		if !shouldDeriveRelationForeignKey(def, relation, explicitColumns) {
+			return true
 		}
 		meta := ForeignKeyMeta{
 			Name:          "fk_" + def.table.name + "_" + relation.LocalColumn,
@@ -125,10 +124,11 @@ func deriveRelationForeignKeys(def schemaDefinition, foreignKeys collectionx.Ord
 		if _, exists := foreignKeys.Get(key); !exists {
 			foreignKeys.Set(key, meta)
 		}
-	}
+		return true
+	})
 }
 
-func shouldDeriveRelationForeignKey(columns []ColumnMeta, relation RelationMeta, explicitColumns collectionx.Set[string]) bool {
+func shouldDeriveRelationForeignKey(def schemaDefinition, relation RelationMeta, explicitColumns collectionx.Set[string]) bool {
 	if relation.Kind != RelationBelongsTo {
 		return false
 	}
@@ -138,19 +138,14 @@ func shouldDeriveRelationForeignKey(columns []ColumnMeta, relation RelationMeta,
 	if explicitColumns.Contains(relation.LocalColumn) {
 		return false
 	}
-	return hasColumn(columns, relation.LocalColumn)
+	_, ok := def.columnByName(relation.LocalColumn)
+	return ok
 }
 
 func deriveChecks(def schemaDefinition) []CheckMeta {
-	return lo.Map(def.checks, func(check CheckMeta, _ int) CheckMeta {
+	return collectionx.MapList(def.checks, func(_ int, check CheckMeta) CheckMeta {
 		return cloneCheckMeta(check)
-	})
-}
-
-func hasColumn(columns []ColumnMeta, name string) bool {
-	return lo.SomeBy(columns, func(column ColumnMeta) bool {
-		return column.Name == name
-	})
+	}).Values()
 }
 
 func normalizeExpectedType(schemaDialect SchemaDialect, column ColumnMeta) string {

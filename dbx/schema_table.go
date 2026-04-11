@@ -33,12 +33,13 @@ type tableDefinition struct {
 }
 
 type schemaDefinition struct {
-	table      tableDefinition
-	columns    []ColumnMeta
-	relations  []RelationMeta
-	indexes    []IndexMeta
-	primaryKey *PrimaryKeyMeta
-	checks     []CheckMeta
+	table         tableDefinition
+	columns       collectionx.List[ColumnMeta]
+	columnsByName collectionx.Map[string, ColumnMeta]
+	relations     collectionx.List[RelationMeta]
+	indexes       collectionx.List[IndexMeta]
+	primaryKey    *PrimaryKeyMeta
+	checks        collectionx.List[CheckMeta]
 }
 
 type Schema[E any] struct {
@@ -97,19 +98,15 @@ func (s Schema[E]) EntityType() reflect.Type {
 }
 
 func (s Schema[E]) Columns() collectionx.List[ColumnMeta] {
-	return collectionx.MapList(collectionx.NewListWithCapacity(len(s.def.columns), s.def.columns...), func(_ int, column ColumnMeta) ColumnMeta {
-		return cloneColumnMeta(column)
-	})
+	return cloneColumnMetas(s.def.columns)
 }
 
 func (s Schema[E]) Relations() collectionx.List[RelationMeta] {
-	return collectionx.NewListWithCapacity(len(s.def.relations), s.def.relations...)
+	return s.def.relations.Clone()
 }
 
 func (s Schema[E]) Indexes() collectionx.List[IndexMeta] {
-	return collectionx.MapList(collectionx.NewListWithCapacity(len(s.def.indexes), s.def.indexes...), func(_ int, item IndexMeta) IndexMeta {
-		return cloneIndexMeta(item)
-	})
+	return cloneIndexMetas(s.def.indexes)
 }
 
 func (s Schema[E]) PrimaryKey() (PrimaryKeyMeta, bool) {
@@ -120,9 +117,7 @@ func (s Schema[E]) PrimaryKey() (PrimaryKeyMeta, bool) {
 }
 
 func (s Schema[E]) Checks() collectionx.List[CheckMeta] {
-	return collectionx.MapList(collectionx.NewListWithCapacity(len(s.def.checks), s.def.checks...), func(_ int, item CheckMeta) CheckMeta {
-		return cloneCheckMeta(item)
-	})
+	return cloneCheckMetas(s.def.checks)
 }
 
 func (s Schema[E]) ForeignKeys() collectionx.List[ForeignKeyMeta] {
@@ -195,4 +190,37 @@ func NamedTable(name string) Table {
 		panic("dbx: named table cannot be empty")
 	}
 	return Table{def: tableDefinition{name: trimmed}}
+}
+
+func (d schemaDefinition) columnByName(name string) (ColumnMeta, bool) {
+	if d.columnsByName != nil && d.columnsByName.Len() > 0 {
+		return d.columnsByName.Get(name)
+	}
+	return collectionx.FindList(d.columns, func(_ int, column ColumnMeta) bool {
+		return column.Name == name
+	})
+}
+
+func cloneColumnMetas(items collectionx.List[ColumnMeta]) collectionx.List[ColumnMeta] {
+	return collectionx.MapList(items, func(_ int, column ColumnMeta) ColumnMeta {
+		return cloneColumnMeta(column)
+	})
+}
+
+func cloneIndexMetas(items collectionx.List[IndexMeta]) collectionx.List[IndexMeta] {
+	return collectionx.MapList(items, func(_ int, item IndexMeta) IndexMeta {
+		return cloneIndexMeta(item)
+	})
+}
+
+func cloneCheckMetas(items collectionx.List[CheckMeta]) collectionx.List[CheckMeta] {
+	return collectionx.MapList(items, func(_ int, item CheckMeta) CheckMeta {
+		return cloneCheckMeta(item)
+	})
+}
+
+func indexColumnsByName(columns collectionx.List[ColumnMeta]) collectionx.Map[string, ColumnMeta] {
+	return collectionx.AssociateList(columns, func(_ int, column ColumnMeta) (string, ColumnMeta) {
+		return column.Name, column
+	})
 }

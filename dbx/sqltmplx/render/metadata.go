@@ -4,22 +4,22 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/samber/hot"
-	"github.com/samber/lo"
 )
 
 var structMetadataCache = hot.NewHotCache[reflect.Type, *structMetadata](hot.LRU, 256).Build()
 
 type structMetadata struct {
-	fields []structFieldMetadata
-	lookup map[string]structFieldMetadata
+	fields collectionx.List[structFieldMetadata]
+	lookup collectionx.Map[string, structFieldMetadata]
 }
 
 type structFieldMetadata struct {
 	index      int
 	name       string
 	foldedName string
-	aliases    []string
+	aliases    collectionx.List[string]
 }
 
 func cachedStructMetadata(t reflect.Type) *structMetadata {
@@ -36,26 +36,29 @@ func cachedStructMetadata(t reflect.Type) *structMetadata {
 }
 
 func buildStructMetadata(t reflect.Type) *structMetadata {
-	fields := lo.FilterMap(lo.Range(t.NumField()), func(index int, _ int) (structFieldMetadata, bool) {
+	fields := collectionx.NewListWithCapacity[structFieldMetadata](t.NumField())
+	for index := range t.NumField() {
 		field := t.Field(index)
 		if !field.IsExported() {
-			return structFieldMetadata{}, false
+			continue
 		}
 
-		return structFieldMetadata{
+		fields.Add(structFieldMetadata{
 			index:      index,
 			name:       field.Name,
 			foldedName: strings.ToLower(field.Name),
 			aliases:    fieldAliases(field),
-		}, true
-	})
-
-	lookup := make(map[string]structFieldMetadata, len(fields)*3)
-	lo.ForEach(fields, func(field structFieldMetadata, _ int) {
-		lookup[field.foldedName] = field
-		lo.ForEach(field.aliases, func(alias string, _ int) {
-			lookup[strings.ToLower(alias)] = field
 		})
+	}
+
+	lookup := collectionx.NewMapWithCapacity[string, structFieldMetadata](fields.Len() * 3)
+	fields.Range(func(_ int, field structFieldMetadata) bool {
+		lookup.Set(field.foldedName, field)
+		field.aliases.Range(func(_ int, alias string) bool {
+			lookup.Set(strings.ToLower(alias), field)
+			return true
+		})
+		return true
 	})
 
 	return &structMetadata{

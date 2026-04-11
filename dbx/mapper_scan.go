@@ -13,7 +13,13 @@ import (
 )
 
 type scanPlan struct {
-	fields collectionx.List[MappedField]
+	fields      collectionx.List[MappedField]
+	codecFields collectionx.List[scanCodecField]
+}
+
+type scanCodecField struct {
+	index int
+	field MappedField
 }
 
 func (m StructMapper[E]) ScanRows(rows *sql.Rows) (collectionx.List[E], error) {
@@ -40,14 +46,10 @@ func (m StructMapper[E]) scanRowsWithCapacity(rows *sql.Rows, capacityHint int) 
 	if err != nil {
 		return nil, err
 	}
-	if capacityHint > 0 {
-		return m.collectRowsWithCapacity(context.Background(), plan, rows, capacityHint)
+	if capacityHint < 0 {
+		capacityHint = 0
 	}
-	items, err := scanlib.AllFromRows[E](context.Background(), m.scanMapper(plan), rows)
-	if err != nil {
-		return nil, wrapDBError("scan all rows", err)
-	}
-	return collectionx.NewListWithCapacity(len(items), items...), nil
+	return m.collectRowsWithCapacity(context.Background(), plan, rows, capacityHint)
 }
 
 func (m StructMapper[E]) collectRowsWithCapacity(ctx context.Context, plan *scanPlan, rows *sql.Rows, capacityHint int) (_ collectionx.List[E], err error) {
@@ -151,12 +153,21 @@ func (m StructMapper[E]) scanPlan(columns []string) (*scanPlan, error) {
 		fields.Add(field)
 	}
 
-	plan := &scanPlan{fields: fields}
+	plan := newScanPlan(fields)
 	if cached, ok := m.meta.scanPlans.Peek(signature); ok {
 		return cached, nil
 	}
 	m.meta.scanPlans.Set(signature, plan)
 	return plan, nil
+}
+
+func newScanPlan(fields collectionx.List[MappedField]) *scanPlan {
+	return &scanPlan{
+		fields: fields,
+		codecFields: collectionx.FilterMapList(fields, func(index int, field MappedField) (scanCodecField, bool) {
+			return scanCodecField{index: index, field: field}, field.codec != nil
+		}),
+	}
 }
 
 type rowScanState struct {
@@ -172,7 +183,7 @@ func (m StructMapper[E]) scanMapper(plan *scanPlan) scanlib.Mapper[E] {
 
 func (m StructMapper[E]) scheduleScanState(plan *scanPlan) func(*scanlib.Row) (any, error) {
 	return func(row *scanlib.Row) (any, error) {
-		state := m.newRowScanState(plan.fields.Len())
+		state := m.newRowScanState(plan)
 		if err := m.scheduleMappedFieldScans(plan, row, &state); err != nil {
 			return nil, err
 		}
@@ -193,11 +204,14 @@ func (m StructMapper[E]) decodeScanState(plan *scanPlan) func(any) (E, error) {
 	}
 }
 
-func (m StructMapper[E]) newRowScanState(fieldCount int) rowScanState {
-	return rowScanState{
-		value:        reflect.New(m.meta.entityType).Elem(),
-		codecSources: make([]any, fieldCount),
+func (m StructMapper[E]) newRowScanState(plan *scanPlan) rowScanState {
+	state := rowScanState{
+		value: reflect.New(m.meta.entityType).Elem(),
 	}
+	if plan.codecFields.Len() > 0 {
+		state.codecSources = make([]any, plan.fields.Len())
+	}
+	return state
 }
 
 func (m StructMapper[E]) scheduleMappedFieldScans(plan *scanPlan, row *scanlib.Row, state *rowScanState) error {
@@ -226,9 +240,12 @@ func (m StructMapper[E]) scheduleMappedFieldScan(row *scanlib.Row, state *rowSca
 }
 
 func (m StructMapper[E]) decodeCodecFields(plan *scanPlan, state rowScanState) error {
+	if plan.codecFields.Len() == 0 {
+		return nil
+	}
 	var decodeErr error
-	plan.fields.Range(func(index int, field MappedField) bool {
-		if err := m.decodeCodecField(state, field, index); err != nil {
+	plan.codecFields.Range(func(_ int, item scanCodecField) bool {
+		if err := m.decodeCodecField(state, item.field, item.index); err != nil {
 			decodeErr = err
 			return false
 		}

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/samber/lo"
 )
 
 type relationSchemaSource interface {
@@ -175,7 +174,5 @@ func relationTargetColumn(target Table, meta RelationMeta) (ColumnMeta, error) {
 }
 
 func sourceColumnByName(def schemaDefinition, name string) (ColumnMeta, bool) {
-	return lo.Find(def.columns, func(column ColumnMeta) bool {
-		return column.Name == name
-	})
+	return def.columnByName(name)
 }

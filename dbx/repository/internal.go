@@ -3,6 +3,7 @@ package repository
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"slices"
 	"strings"
 
@@ -42,6 +43,34 @@ func cloneForCount(query *dbx.SelectQuery) *dbx.SelectQuery {
 	cloned.LimitN = nil
 	cloned.OffsetN = nil
 	return cloned
+}
+
+func countQueryRequiresWrap(query *dbx.SelectQuery) bool {
+	return query != nil &&
+		(query.Distinct || query.Groups.Len() > 0 || query.HavingExp != nil || query.Unions.Len() > 0)
+}
+
+func wrappedCountBound(session dbx.Session, query *dbx.SelectQuery) (dbx.BoundQuery, error) {
+	source := cloneForCount(query)
+	bound, err := dbx.Build(session, source)
+	if err != nil {
+		return dbx.BoundQuery{}, fmt.Errorf("build wrapped count query: %w", err)
+	}
+	quotedCount := session.Dialect().QuoteIdent("count")
+	quotedAlias := session.Dialect().QuoteIdent("dbx_count_source")
+	return dbx.BoundQuery{
+		SQL:          "SELECT COUNT(*) AS " + quotedCount + " FROM (" + bound.SQL + ") AS " + quotedAlias,
+		Args:         bound.Args,
+		CapacityHint: 1,
+	}, nil
+}
+
+func firstCount(rows collectionx.List[countRow]) int64 {
+	if rows.IsEmpty() {
+		return 0
+	}
+	row, _ := rows.GetFirst()
+	return row.Count
 }
 
 func cloneOrDefault[E any, S EntitySchema[E]](r *Base[E, S], query *dbx.SelectQuery) *dbx.SelectQuery {

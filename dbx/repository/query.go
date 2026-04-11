@@ -61,24 +61,41 @@ func (r *Base[E, S]) Count(ctx context.Context, query *dbx.SelectQuery) (int64, 
 	if r == nil || r.session == nil {
 		return 0, dbx.ErrNilDB
 	}
+	dbx.LogRuntimeNode(r.session, "repository.count.start", "table", r.schema.TableName(), "has_query", query != nil)
+	if countQueryRequiresWrap(query) {
+		total, err := r.countWrapped(ctx, query)
+		if err != nil {
+			dbx.LogRuntimeNode(r.session, "repository.count.error", "table", r.schema.TableName(), "error", err)
+			return 0, err
+		}
+		dbx.LogRuntimeNode(r.session, "repository.count.done", "table", r.schema.TableName(), "count", total)
+		return total, nil
+	}
 	countQuery := r.defaultSelect()
 	if query != nil {
 		countQuery = cloneForCount(query)
 	}
-	dbx.LogRuntimeNode(r.session, "repository.count.start", "table", r.schema.TableName(), "has_query", query != nil)
 	countQuery.Items = collectionx.NewList[dbx.SelectItem](dbx.CountAll().As("count"))
 	rows, err := dbx.QueryAll[countRow](ctx, r.session, countQuery, dbx.MustStructMapper[countRow]())
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.count.error", "table", r.schema.TableName(), "error", err)
 		return 0, err
 	}
-	if rows.IsEmpty() {
-		dbx.LogRuntimeNode(r.session, "repository.count.done", "table", r.schema.TableName(), "count", 0)
-		return 0, nil
+	total := firstCount(rows)
+	dbx.LogRuntimeNode(r.session, "repository.count.done", "table", r.schema.TableName(), "count", total)
+	return total, nil
+}
+
+func (r *Base[E, S]) countWrapped(ctx context.Context, query *dbx.SelectQuery) (int64, error) {
+	bound, err := wrappedCountBound(r.session, query)
+	if err != nil {
+		return 0, err
 	}
-	row, _ := rows.GetFirst()
-	dbx.LogRuntimeNode(r.session, "repository.count.done", "table", r.schema.TableName(), "count", row.Count)
-	return row.Count, nil
+	rows, err := dbx.QueryAllBound[countRow](ctx, r.session, bound, dbx.MustStructMapper[countRow]())
+	if err != nil {
+		return 0, err
+	}
+	return firstCount(rows), nil
 }
 
 // CountSpec returns the number of rows matched by the provided specs.
@@ -105,30 +122,40 @@ func (r *Base[E, S]) ExistsSpec(ctx context.Context, specs ...Spec) (bool, error
 
 // ListPage returns one page of results together with the total row count.
 func (r *Base[E, S]) ListPage(ctx context.Context, query *dbx.SelectQuery, page, pageSize int) (PageResult[E], error) {
-	if page < 1 {
-		page = 1
+	return r.ListPageRequest(ctx, query, dbx.NewPageRequest(page, pageSize))
+}
+
+// ListPageRequest returns one page of results using a shared page request.
+func (r *Base[E, S]) ListPageRequest(ctx context.Context, query *dbx.SelectQuery, request PageRequest) (PageResult[E], error) {
+	if r == nil || r.session == nil {
+		return PageResult[E]{}, dbx.ErrNilDB
 	}
-	if pageSize < 1 {
-		pageSize = 20
-	}
-	dbx.LogRuntimeNode(r.session, "repository.list_page.start", "table", r.schema.TableName(), "page", page, "page_size", pageSize)
+	request = request.Normalize()
+	dbx.LogRuntimeNode(r.session, "repository.list_page.start", "table", r.schema.TableName(), "page", request.Page, "page_size", request.PageSize)
 	total, err := r.Count(ctx, query)
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.list_page.error", "table", r.schema.TableName(), "stage", "count", "error", err)
 		return PageResult[E]{}, err
 	}
 	pagedQuery := cloneOrDefault(r, query)
-	offset := (page - 1) * pageSize
-	items, err := r.List(ctx, pagedQuery.Limit(pageSize).Offset(offset))
+	items, err := r.List(ctx, request.Apply(pagedQuery))
 	if err != nil {
 		dbx.LogRuntimeNode(r.session, "repository.list_page.error", "table", r.schema.TableName(), "stage", "list", "error", err)
 		return PageResult[E]{}, err
 	}
 	dbx.LogRuntimeNode(r.session, "repository.list_page.done", "table", r.schema.TableName(), "items", items.Len(), "total", total)
-	return PageResult[E]{Items: items, Total: total, Page: page, PageSize: pageSize}, nil
+	return dbx.NewPageResult(items, total, request), nil
 }
 
 // ListPageSpec returns one page of results for the provided specs.
 func (r *Base[E, S]) ListPageSpec(ctx context.Context, page, pageSize int, specs ...Spec) (PageResult[E], error) {
-	return r.ListPage(ctx, r.applySpecs(specs...), page, pageSize)
+	return r.ListPageSpecRequest(ctx, dbx.NewPageRequest(page, pageSize), specs...)
+}
+
+// ListPageSpecRequest returns one page of results for the provided specs and page request.
+func (r *Base[E, S]) ListPageSpecRequest(ctx context.Context, request PageRequest, specs ...Spec) (PageResult[E], error) {
+	if r == nil || r.session == nil {
+		return PageResult[E]{}, dbx.ErrNilDB
+	}
+	return r.ListPageRequest(ctx, r.applySpecs(specs...), request)
 }

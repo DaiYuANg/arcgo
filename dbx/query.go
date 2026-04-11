@@ -120,6 +120,16 @@ func (q *SelectQuery) Offset(offset int) *SelectQuery {
 	return q
 }
 
+// Page applies a normalized page request to the query.
+func (q *SelectQuery) Page(request PageRequest) *SelectQuery {
+	return request.Apply(q)
+}
+
+// PageBy applies page and page size values to the query.
+func (q *SelectQuery) PageBy(page, pageSize int) *SelectQuery {
+	return q.Page(NewPageRequest(page, pageSize))
+}
+
 func (q *SelectQuery) Union(query *SelectQuery) *SelectQuery {
 	q.Unions = mergeList(q.Unions, collectionx.NewList(UnionClause{Query: query}))
 	return q

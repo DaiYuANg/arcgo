@@ -48,6 +48,8 @@ type MigrationPlan = dbx.MigrationPlan
 type NodeIDOutOfRangeError = dbx.NodeIDOutOfRangeError
 type Operation = dbx.Operation
 type Option = dbx.Option
+type PageRequest = dbx.PageRequest
+type PageResult[E any] = dbx.PageResult[E]
 type Predicate = dbx.Predicate
 type PrimaryKeyMeta = dbx.PrimaryKeyMeta
 type PrimaryKeyState = dbx.PrimaryKeyState
@@ -79,6 +81,8 @@ type ValidationReport = dbx.ValidationReport
 
 const (
 	DefaultNodeID              = dbx.DefaultNodeID
+	DefaultPage                = dbx.DefaultPage
+	DefaultPageSize            = dbx.DefaultPageSize
 	DefaultUUIDVersion         = dbx.DefaultUUIDVersion
 	IDStrategyDBAuto           = dbx.IDStrategyDBAuto
 	IDStrategySnowflake        = dbx.IDStrategySnowflake

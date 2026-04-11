@@ -74,6 +74,30 @@ func TestStoreFindOptionAPIs(t *testing.T) {
 	require.Equal(t, model.Entity().ID, again.Entity().ID)
 }
 
+func TestStoreListPageBy(t *testing.T) {
+	ctx, store := openUserStore(t, "file:activerecord_page_test?mode=memory&cache=shared")
+	users := store.Repository().Schema()
+
+	for _, name := range []string{"alice", "bob"} {
+		model := store.Wrap(&User{Name: name})
+		require.NoError(t, model.Save(ctx))
+	}
+
+	page, err := store.ListPageBy(ctx, 2, 1, repository.OrderBy(users.Name.Asc()))
+	require.NoError(t, err)
+	require.EqualValues(t, 2, page.Total)
+	require.Equal(t, 2, page.Page)
+	require.Equal(t, 1, page.PageSize)
+	require.Equal(t, 1, page.Offset)
+	require.False(t, page.HasNext)
+	require.True(t, page.HasPrevious)
+	require.Equal(t, 1, page.Items.Len())
+
+	model, ok := page.Items.GetFirst()
+	require.True(t, ok)
+	require.Equal(t, "bob", model.Entity().Name)
+}
+
 func openUserStore(tb testing.TB, dsn string) (context.Context, *activerecord.Store[User, UserSchema]) {
 	tb.Helper()
 

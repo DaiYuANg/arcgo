@@ -1,9 +1,6 @@
 package repository
 
-import (
-	"github.com/DaiYuANg/arcgo/collectionx"
-	"github.com/DaiYuANg/arcgo/dbx"
-)
+import "github.com/DaiYuANg/arcgo/dbx"
 
 // EntitySchema is the schema contract required by repository generic code.
 type EntitySchema[E any] interface {
@@ -31,10 +28,8 @@ func (r *Base[E, S]) Mapper() dbx.Mapper[E] {
 	return r.mapper
 }
 
+// PageRequest is the shared offset-pagination request model.
+type PageRequest = dbx.PageRequest
+
 // PageResult contains the items and metadata for a paginated query.
-type PageResult[E any] struct {
-	Items    collectionx.List[E]
-	Total    int64
-	Page     int
-	PageSize int
-}
+type PageResult[E any] = dbx.PageResult[E]

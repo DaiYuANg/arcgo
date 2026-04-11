@@ -126,6 +126,10 @@ func TestBaseGetByIDCountExistsUpdateDeleteByIDAndListPage(t *testing.T) {
 	require.EqualValues(t, 2, page.Total)
 	require.Equal(t, 1, page.Page)
 	require.Equal(t, 1, page.PageSize)
+	require.Equal(t, 0, page.Offset)
+	require.Equal(t, 2, page.TotalPages)
+	require.True(t, page.HasNext)
+	require.False(t, page.HasPrevious)
 	require.Equal(t, 1, page.Items.Len())
 
 	_, err = repo.DeleteByID(ctx, alice.ID)

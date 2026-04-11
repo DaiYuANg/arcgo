@@ -22,7 +22,14 @@ func WithAuthorizer(authorizer Authorizer) EngineOption {
 // WithHook appends hook to the Engine lifecycle hooks.
 func WithHook(hook Hook) EngineOption {
 	return func(engine *Engine) {
-		engine.AddHook(hook)
+		engine.RegisterHook(hook)
+	}
+}
+
+// WithHooks appends hooks to the Engine lifecycle hooks.
+func WithHooks(hooks ...Hook) EngineOption {
+	return func(engine *Engine) {
+		engine.RegisterHook(hooks...)
 	}
 }
 

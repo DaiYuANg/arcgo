@@ -78,6 +78,51 @@ func TestEngineCheckManagerMissing(t *testing.T) {
 	assert.ErrorIs(t, err, authx.ErrAuthenticationManagerNotConfigured)
 }
 
+func TestEngineRegisterProviderCreatesDefaultManager(t *testing.T) {
+	engine := authx.NewEngine()
+	err := engine.RegisterProvider(authx.NewAuthenticationProviderFunc[credentialA](
+		func(_ context.Context, credential credentialA) (authx.AuthenticationResult, error) {
+			return authx.AuthenticationResult{Principal: authx.Principal{ID: credential.ID}}, nil
+		},
+	))
+	require.NoError(t, err)
+
+	result, err := engine.Check(context.Background(), credentialA{ID: "u1"})
+	require.NoError(t, err)
+	assert.Equal(t, authx.Principal{ID: "u1"}, result.Principal)
+}
+
+func TestRegisterProviderFunc(t *testing.T) {
+	engine := authx.NewEngine()
+	err := authx.RegisterProviderFunc[credentialA](
+		engine,
+		func(_ context.Context, credential credentialA) (authx.AuthenticationResult, error) {
+			return authx.AuthenticationResult{Principal: credential.ID}, nil
+		},
+	)
+	require.NoError(t, err)
+
+	result, err := engine.Check(context.Background(), credentialA{ID: "u1"})
+	require.NoError(t, err)
+	assert.Equal(t, "u1", result.Principal)
+}
+
+func TestEngineRegisterProviderRejectsUnsupportedManager(t *testing.T) {
+	engine := authx.NewEngine(authx.WithAuthenticationManager(authx.AuthenticationManagerFunc(
+		func(_ context.Context, _ any) (authx.AuthenticationResult, error) {
+			return authx.AuthenticationResult{}, nil
+		},
+	)))
+
+	err := engine.RegisterProvider(authx.NewAuthenticationProviderFunc[credentialA](
+		func(_ context.Context, _ credentialA) (authx.AuthenticationResult, error) {
+			return authx.AuthenticationResult{}, nil
+		},
+	))
+	require.Error(t, err)
+	assert.ErrorIs(t, err, authx.ErrAuthenticationProviderRegistrationUnsupported)
+}
+
 func TestEngineCanAuthorizerMissing(t *testing.T) {
 	provider := authx.NewAuthenticationProviderFunc[credentialA](func(_ context.Context, credential credentialA) (authx.AuthenticationResult, error) {
 		return authx.AuthenticationResult{Principal: authx.Principal{ID: credential.ID}}, nil
@@ -119,6 +164,35 @@ func TestEngineHooks(t *testing.T) {
 	assert.Equal(t, 1, hook.afterCheck)
 	assert.Equal(t, 1, hook.beforeCan)
 	assert.Equal(t, 1, hook.afterCan)
+}
+
+func TestEngineRegisterHookVariadic(t *testing.T) {
+	hookA := &hookRecorder{}
+	hookB := &hookRecorder{}
+	provider := authx.NewAuthenticationProviderFunc[credentialA](func(_ context.Context, credential credentialA) (authx.AuthenticationResult, error) {
+		return authx.AuthenticationResult{Principal: authx.Principal{ID: credential.ID}}, nil
+	})
+	engine := authx.NewEngine(
+		authx.WithAuthenticationManager(authx.NewProviderManager(provider)),
+		authx.WithAuthorizer(authx.AuthorizerFunc(func(_ context.Context, _ authx.AuthorizationModel) (authx.Decision, error) {
+			return authx.Decision{Allowed: true}, nil
+		})),
+	)
+	authx.RegisterHook(engine, hookA, nil, hookB)
+
+	authn, err := engine.Check(context.Background(), credentialA{ID: "u1"})
+	require.NoError(t, err)
+	_, err = engine.Can(context.Background(), authx.AuthorizationModel{
+		Principal: authn.Principal,
+		Action:    "read",
+		Resource:  "orders",
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, 1, hookA.beforeCheck)
+	assert.Equal(t, 1, hookB.beforeCheck)
+	assert.Equal(t, 1, hookA.beforeCan)
+	assert.Equal(t, 1, hookB.beforeCan)
 }
 
 func TestEngineValidation(t *testing.T) {

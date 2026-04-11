@@ -40,6 +40,45 @@ func (engine *Engine) SetAuthenticationManager(manager AuthenticationManager) {
 	engine.logDebug("authentication manager configured", "manager_type", reflect.TypeOf(manager))
 }
 
+// RegisterProvider appends providers to the engine's provider-backed authentication manager.
+func (engine *Engine) RegisterProvider(providers ...AuthenticationProvider) error {
+	if engine == nil {
+		return oops.In("authx").
+			With("op", "register_provider", "stage", "validate_engine").
+			Wrapf(ErrNilEngine, "validate engine")
+	}
+	if len(providers) == 0 {
+		return nil
+	}
+
+	registrar, err := engine.resolveProviderRegistrar()
+	if err != nil {
+		return err
+	}
+	registrar.Register(providers...)
+	engine.logDebug("authentication providers registered", "providers", len(providers), "registrar_type", reflect.TypeOf(registrar))
+	return nil
+}
+
+func (engine *Engine) resolveProviderRegistrar() (ProviderRegistrar, error) {
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
+
+	if engine.authn == nil {
+		manager := NewProviderManager()
+		engine.authn = manager
+		return manager, nil
+	}
+
+	registrar, ok := engine.authn.(ProviderRegistrar)
+	if !ok {
+		return nil, oops.In("authx").
+			With("op", "register_provider", "stage", "resolve_registrar", "manager_type", reflect.TypeOf(engine.authn)).
+			Wrapf(ErrAuthenticationProviderRegistrationUnsupported, "resolve provider registrar")
+	}
+	return registrar, nil
+}
+
 // SetAuthorizer updates the authorizer used by Can.
 func (engine *Engine) SetAuthorizer(authorizer Authorizer) {
 	if engine == nil {
@@ -53,14 +92,27 @@ func (engine *Engine) SetAuthorizer(authorizer Authorizer) {
 
 // AddHook appends hook to the engine lifecycle hooks.
 func (engine *Engine) AddHook(hook Hook) {
-	if engine == nil || hook == nil {
+	engine.RegisterHook(hook)
+}
+
+// RegisterHook appends hooks to the engine lifecycle hooks.
+func (engine *Engine) RegisterHook(hooks ...Hook) {
+	if engine == nil || len(hooks) == 0 {
 		return
 	}
+
+	added := 0
 	engine.mu.Lock()
-	engine.hooks = append(engine.hooks, hook)
+	for _, hook := range hooks {
+		if hook == nil {
+			continue
+		}
+		engine.hooks = append(engine.hooks, hook)
+		added++
+	}
 	hookCount := len(engine.hooks)
 	engine.mu.Unlock()
-	engine.logDebug("authx hook added", "hook_type", reflect.TypeOf(hook), "hooks", hookCount)
+	engine.logDebug("authx hooks registered", "hooks_added", added, "hooks", hookCount)
 }
 
 // Check authenticates credential and returns principal.

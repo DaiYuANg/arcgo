@@ -17,6 +17,11 @@ type AuthenticationManager interface {
 	Authenticate(ctx context.Context, credential any) (AuthenticationResult, error)
 }
 
+// ProviderRegistrar registers authentication providers into a manager-compatible registry.
+type ProviderRegistrar interface {
+	Register(providers ...AuthenticationProvider)
+}
+
 // Authorizer evaluates access decision from principal + resource tuple.
 type Authorizer interface {
 	Authorize(ctx context.Context, input AuthorizationModel) (Decision, error)

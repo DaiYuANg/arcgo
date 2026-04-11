@@ -19,26 +19,36 @@ const (
 )
 
 type (
-	Server                 = httpx.Server
-	ServerRuntime          = httpx.ServerRuntime
-	Group                  = httpx.Group
-	BaseEndpoint           = httpx.BaseEndpoint
-	Error                  = httpx.Error
-	ConditionalParams      = httpx.ConditionalParams
-	RouteInfo              = httpx.RouteInfo
-	EndpointSpec           = httpx.EndpointSpec
-	RoutePolicy[I, O any]  = httpx.RoutePolicy[I, O]
-	TypedHandler[I, O any] = httpx.TypedHandler[I, O]
-	SSEHandler[I any]      = httpx.SSEHandler[I]
-	SSESender              = httpx.SSESender
-	SecurityOptions        = httpx.SecurityOptions
-	OperationOption        = httpx.OperationOption
-	ServerOption           = httpx.ServerOption
-	SSERoutePolicy[I any]  = httpx.SSERoutePolicy[I]
+	Server                      = httpx.Server
+	ServerRuntime               = httpx.ServerRuntime
+	Group                       = httpx.Group
+	Registrar                   = httpx.Registrar
+	BaseEndpoint                = httpx.BaseEndpoint
+	Error                       = httpx.Error
+	ConditionalParams           = httpx.ConditionalParams
+	RouteInfo                   = httpx.RouteInfo
+	EndpointSpec                = httpx.EndpointSpec
+	OpenAPITags                 = httpx.OpenAPITags
+	OpenAPITagDefinitions       = httpx.OpenAPITagDefinitions
+	OpenAPIParameters           = httpx.OpenAPIParameters
+	OpenAPIExtensions           = httpx.OpenAPIExtensions
+	OpenAPISecuritySchemes      = httpx.OpenAPISecuritySchemes
+	OpenAPISecurityRequirement  = httpx.OpenAPISecurityRequirement
+	OpenAPISecurityRequirements = httpx.OpenAPISecurityRequirements
+	AutoRoute                   = httpx.AutoRoute
+	RoutePolicy[I, O any]       = httpx.RoutePolicy[I, O]
+	TypedHandler[I, O any]      = httpx.TypedHandler[I, O]
+	SSEHandler[I any]           = httpx.SSEHandler[I]
+	SSESender                   = httpx.SSESender
+	SecurityOptions             = httpx.SecurityOptions
+	OperationOption             = httpx.OperationOption
+	ServerOption                = httpx.ServerOption
+	SSERoutePolicy[I any]       = httpx.SSERoutePolicy[I]
 )
 
 var (
 	ErrAdapterNotFound    = httpx.ErrAdapterNotFound
+	ErrInvalidHandlerName = httpx.ErrInvalidHandlerName
 	ErrRouteAlreadyExists = httpx.ErrRouteAlreadyExists
 	ErrServerFrozen       = httpx.ErrServerFrozen
 	NewError              = httpx.NewError
@@ -53,6 +63,14 @@ var (
 	BindGracefulShutdownHooks = httpx.BindGracefulShutdownHooks
 	OperationConditionalRead  = httpx.OperationConditionalRead
 	OperationConditionalWrite = httpx.OperationConditionalWrite
+	Tags                      = httpx.Tags
+	TagDefinitions            = httpx.TagDefinitions
+	Parameters                = httpx.Parameters
+	Extensions                = httpx.Extensions
+	SecuritySchemes           = httpx.SecuritySchemes
+	SecurityRequirement       = httpx.SecurityRequirement
+	SecurityRequirementMap    = httpx.SecurityRequirementMap
+	SecurityRequirements      = httpx.SecurityRequirements
 	WithGlobalHeaders         = httpx.WithGlobalHeaders
 	WithAdapter               = httpx.WithAdapter
 	WithAccessLog             = httpx.WithAccessLog
@@ -100,6 +118,18 @@ func MustGroupGet[I, O any](g *Group, path string, handler TypedHandler[I, O], o
 
 func GroupRoute[I, O any](g *Group, method, path string, handler TypedHandler[I, O], operationOptions ...OperationOption) error {
 	return httpx.GroupRoute(g, method, path, handler, operationOptions...)
+}
+
+func Auto[I, O any](handler TypedHandler[I, O], operationOptions ...OperationOption) AutoRoute {
+	return httpx.Auto(handler, operationOptions...)
+}
+
+func RegisterAuto(registrar Registrar, routes ...AutoRoute) error {
+	return httpx.RegisterAuto(registrar, routes...)
+}
+
+func MustAuto(registrar Registrar, routes ...AutoRoute) {
+	httpx.MustAuto(registrar, routes...)
 }
 
 func GetSSE[I any](s ServerRuntime, path string, eventTypeMap map[string]any, handler SSEHandler[I], operationOptions ...OperationOption) error {

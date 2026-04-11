@@ -11,22 +11,22 @@ import (
 func TestServer_SecurityComponentsAndGlobalHeader(t *testing.T) {
 	server := newServer(
 		WithSecurity(SecurityOptions{
-			Schemes: map[string]*huma.SecurityScheme{
+			Schemes: SecuritySchemes(map[string]*huma.SecurityScheme{
 				"bearerAuth": {
 					Type:   "http",
 					Scheme: "bearer",
 				},
-			},
-			Requirements: []map[string][]string{
-				{"bearerAuth": {}},
-			},
+			}),
+			Requirements: SecurityRequirements(
+				SecurityRequirement("bearerAuth"),
+			),
 		}),
-		WithGlobalHeaders(&huma.Param{
+		WithGlobalHeaders(Parameters(&huma.Param{
 			Name:        "X-Request-Id",
 			In:          "header",
 			Description: "request correlation id",
 			Schema:      &huma.Schema{Type: "string"},
-		}),
+		})),
 	)
 
 	server.RegisterComponentParameter("Locale", &huma.Param{
@@ -104,10 +104,8 @@ func TestGroup_DefaultTagsAndSecurity(t *testing.T) {
 	})
 
 	group := server.Group("/admin")
-	group.DefaultTags("admin", "protected")
-	group.DefaultSecurity(map[string][]string{
-		"apiKey": {},
-	})
+	group.DefaultTags(Tags("admin", "protected"))
+	group.DefaultSecurity(SecurityRequirements(SecurityRequirement("apiKey")))
 
 	err := GroupGet(group, "/stats", func(_ context.Context, _ *struct{}) (*pingOutput, error) {
 		out := &pingOutput{}

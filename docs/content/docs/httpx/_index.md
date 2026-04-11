@@ -20,7 +20,7 @@ go get github.com/DaiYuANg/arcgo/httpx@latest
 
 - Unified typed route registration across adapters (`Get`, `Post`, `Put`, `Patch`, `Delete`...)
 - Adapter-based runtime integration (`std`, `gin`, `echo`, `fiber`)
-- Endpoint/module organization with scoped metadata defaults (`Endpoint`, `GroupEndpoint`, `EndpointSpec`)
+- Endpoint/module organization with scoped registrars, metadata defaults, and limited auto route sugar (`Endpoint`, `Registrar`, `EndpointSpec`, `Auto`)
 - First-class OpenAPI and documentation control (docs route exposure is adapter-owned)
 - Typed Server-Sent Events (SSE) (`GetSSE`, `GroupGetSSE`)
 - Policy-based route capabilities (`RouteWithPolicies`, `GroupRouteWithPolicies`)

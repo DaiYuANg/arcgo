@@ -85,39 +85,34 @@ func WithHumaMiddleware(middlewares ...func(huma.Context, func(huma.Context))) S
 // WithSecurity registers security schemes and default top-level requirements.
 func WithSecurity(opts SecurityOptions) ServerOption {
 	return func(s *Server) {
-		lo.ForEach(lo.Entries(opts.Schemes), func(entry lo.Entry[string, *huma.SecurityScheme], _ int) {
+		lo.ForEach(expandSecuritySchemes(opts.Schemes), func(entry lo.Entry[string, *huma.SecurityScheme], _ int) {
 			if entry.Key == "" || entry.Value == nil {
 				return
 			}
+			scheme := cloneSecurityScheme(entry.Value)
 			s.openAPIPatches.Add(func(doc *huma.OpenAPI) {
 				components := ensureComponents(doc)
 				if components.SecuritySchemes == nil {
 					components.SecuritySchemes = map[string]*huma.SecurityScheme{}
 				}
-				components.SecuritySchemes[entry.Key] = cloneSecurityScheme(entry.Value)
+				components.SecuritySchemes[entry.Key] = cloneSecurityScheme(scheme)
 			})
 		})
 
-		if len(opts.Requirements) > 0 {
-			requirements := cloneSecurityRequirements(opts.Requirements)
+		if !opts.Requirements.IsEmpty() {
+			requirements := expandSecurityRequirements(opts.Requirements)
 			s.openAPIPatches.Add(func(doc *huma.OpenAPI) {
-				doc.Security = cloneSecurityRequirements(requirements)
+				doc.Security = cloneBuiltInSecurityRequirements(requirements)
 			})
 		}
 	}
 }
 
 // WithGlobalHeaders adds header parameters to future operations.
-func WithGlobalHeaders(headers ...*huma.Param) ServerOption {
+func WithGlobalHeaders(headers OpenAPIParameters) ServerOption {
 	return func(s *Server) {
-		lo.ForEach(lo.FilterMap(headers, func(header *huma.Param, _ int) (*huma.Param, bool) {
-			if header == nil {
-				return nil, false
-			}
-			cloned := cloneParam(header)
-			cloned.In = "header"
-			return cloned, true
-		}), func(header *huma.Param, _ int) {
+		lo.ForEach(expandParameters(headers), func(header *huma.Param, _ int) {
+			header.In = "header"
 			s.operationModifiers.Add(func(op *huma.Operation) {
 				appendOperationParameter(op, header)
 			})

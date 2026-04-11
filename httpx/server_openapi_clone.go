@@ -3,6 +3,7 @@ package httpx
 import (
 	"maps"
 
+	"github.com/DaiYuANg/arcgo/collectionx"
 	"github.com/danielgtaylor/huma/v2"
 	"github.com/samber/lo"
 )
@@ -68,7 +69,99 @@ func cloneExtensions(values map[string]any) map[string]any {
 	return cloned
 }
 
-func cloneSecurityRequirements(requirements []map[string][]string) []map[string][]string {
+func expandTags(tags OpenAPITags) []string {
+	if tags.IsEmpty() {
+		return nil
+	}
+	return collectionx.FilterList(tags, func(_ int, tag string) bool {
+		return tag != ""
+	}).Values()
+}
+
+func expandTagDefinitions(tags OpenAPITagDefinitions) []*huma.Tag {
+	if tags.IsEmpty() {
+		return nil
+	}
+	return collectionx.FilterMapList(tags, func(_ int, tag *huma.Tag) (*huma.Tag, bool) {
+		if tag == nil {
+			return nil, false
+		}
+		return cloneTag(tag), true
+	}).Values()
+}
+
+func expandParameters(params OpenAPIParameters) []*huma.Param {
+	if params.IsEmpty() {
+		return nil
+	}
+	return collectionx.FilterMapList(params, func(_ int, param *huma.Param) (*huma.Param, bool) {
+		if param == nil {
+			return nil, false
+		}
+		return cloneParam(param), true
+	}).Values()
+}
+
+func expandExtensions(values OpenAPIExtensions) map[string]any {
+	if values.IsEmpty() {
+		return nil
+	}
+	return cloneExtensions(values.All())
+}
+
+func expandSecuritySchemes(schemes OpenAPISecuritySchemes) []lo.Entry[string, *huma.SecurityScheme] {
+	if schemes.IsEmpty() {
+		return nil
+	}
+	entries := collectionx.NewListWithCapacity[lo.Entry[string, *huma.SecurityScheme]](schemes.Len())
+	schemes.Range(func(name string, scheme *huma.SecurityScheme) bool {
+		if name != "" && scheme != nil {
+			entries.Add(lo.Entry[string, *huma.SecurityScheme]{
+				Key:   name,
+				Value: scheme,
+			})
+		}
+		return true
+	})
+	return entries.Values()
+}
+
+func expandSecurityRequirements(requirements OpenAPISecurityRequirements) []map[string][]string {
+	if requirements.IsEmpty() {
+		return nil
+	}
+	return collectionx.FilterMapList(requirements, func(_ int, req OpenAPISecurityRequirement) (map[string][]string, bool) {
+		expanded := expandSecurityRequirement(req)
+		return expanded, len(expanded) > 0
+	}).Values()
+}
+
+func expandSecurityRequirement(requirement OpenAPISecurityRequirement) map[string][]string {
+	if requirement.IsEmpty() {
+		return nil
+	}
+	expanded := make(map[string][]string, requirement.Len())
+	requirement.Range(func(name string, scopes OpenAPISecurityScopes) bool {
+		if name == "" {
+			return true
+		}
+		expanded[name] = expandSecurityScopes(scopes)
+		return true
+	})
+	if len(expanded) == 0 {
+		return nil
+	}
+	return expanded
+}
+
+func expandSecurityScopes(scopes OpenAPISecurityScopes) []string {
+	if scopes.IsEmpty() {
+		return []string{}
+	}
+	return scopes.Values()
+}
+
+func cloneBuiltInSecurityRequirements(requirements []map[string][]string) []map[string][]string {
 	if len(requirements) == 0 {
 		return nil
 	}

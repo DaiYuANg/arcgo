@@ -11,12 +11,12 @@ import (
 func TestGroup_DefaultParametersSummaryAndDescription(t *testing.T) {
 	server := newServer()
 	group := server.Group("/reports")
-	group.DefaultParameters(&huma.Param{
+	group.DefaultParameters(Parameters(&huma.Param{
 		Name:        "X-Tenant",
 		In:          "header",
 		Description: "tenant header",
 		Schema:      &huma.Schema{Type: "string"},
-	})
+	}))
 	group.DefaultSummaryPrefix("Reports")
 	group.DefaultDescription("Shared reporting endpoints")
 
@@ -43,18 +43,18 @@ func TestGroup_DefaultParametersSummaryAndDescription(t *testing.T) {
 func TestGroup_RegisterTagsExternalDocsAndExtensions(t *testing.T) {
 	server := newServer()
 	group := server.Group("/admin")
-	group.RegisterTags(
+	group.RegisterTags(TagDefinitions(
 		&huma.Tag{Name: "admin", Description: "Administrative endpoints"},
 		&huma.Tag{Name: "ops", Description: "Operations"},
-	)
-	group.DefaultTags("admin", "ops")
+	))
+	group.DefaultTags(Tags("admin", "ops"))
 	group.DefaultExternalDocs(&huma.ExternalDocs{
 		Description: "Admin guide",
 		URL:         "https://example.com/admin",
 	})
-	group.DefaultExtensions(map[string]any{
+	group.DefaultExtensions(Extensions(map[string]any{
 		"x-group": "admin",
-	})
+	}))
 
 	err := GroupGet(group, "/health", func(_ context.Context, _ *struct{}) (*pingOutput, error) {
 		out := &pingOutput{}

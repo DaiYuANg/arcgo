@@ -13,7 +13,6 @@ import (
 	"github.com/DaiYuANg/arcgo/httpx/adapter"
 	"github.com/DaiYuANg/arcgo/httpx/adapter/std"
 	"github.com/DaiYuANg/arcgo/pkg/randomport"
-	"github.com/danielgtaylor/huma/v2"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
@@ -22,9 +21,7 @@ import (
 // ==================== User Endpoint ====================
 
 // UserEndpoint registers demo user routes.
-type UserEndpoint struct {
-	httpx.BaseEndpoint
-}
+type UserEndpoint struct{}
 
 type createUserInput struct {
 	Body struct {
@@ -58,52 +55,49 @@ type listUsersOutput struct {
 	} `json:"body"`
 }
 
-// RegisterRoutes registers the user routes on the server.
 func (e *UserEndpoint) EndpointSpec() httpx.EndpointSpec {
 	return httpx.EndpointSpec{
 		Prefix:        "/api/v1/users",
-		Tags:          []string{"users", "v1"},
+		Tags:          httpx.Tags("users", "v1"),
 		SummaryPrefix: "Users",
 		Description:   "User management endpoints",
 	}
 }
 
-// RegisterGroupRoutes registers the user routes on the endpoint group.
-func (e *UserEndpoint) RegisterGroupRoutes(api *httpx.Group) {
-	httpx.MustGroupGet(api, "", func(_ context.Context, _ *struct{}) (*listUsersOutput, error) {
-		out := &listUsersOutput{}
-		out.Body.Users = []string{"Alice", "Bob", "Charlie"}
-		return out, nil
-	}, func(op *huma.Operation) {
-		op.Summary = "List"
-	})
+// Register registers the user routes on the endpoint scope.
+func (e *UserEndpoint) Register(registrar httpx.Registrar) {
+	httpx.MustAuto(registrar,
+		httpx.Auto(e.List),
+		httpx.Auto(e.GetByID),
+		httpx.Auto(e.Create),
+	)
+}
 
-	httpx.MustGroupGet(api, "/{id}", func(_ context.Context, input *getUserInput) (*getUserOutput, error) {
-		out := &getUserOutput{}
-		out.Body.ID = input.ID
-		out.Body.Name = "User-" + strconv.Itoa(input.ID)
-		return out, nil
-	}, func(op *huma.Operation) {
-		op.Summary = "Get"
-	})
+func (e *UserEndpoint) List(_ context.Context, _ *struct{}) (*listUsersOutput, error) {
+	out := &listUsersOutput{}
+	out.Body.Users = []string{"Alice", "Bob", "Charlie"}
+	return out, nil
+}
 
-	httpx.MustGroupPost(api, "", func(_ context.Context, input *createUserInput) (*createUserOutput, error) {
-		out := &createUserOutput{}
-		out.Body.ID = 1001
-		out.Body.Name = input.Body.Name
-		out.Body.Email = input.Body.Email
-		return out, nil
-	}, func(op *huma.Operation) {
-		op.Summary = "Create"
-	})
+func (e *UserEndpoint) GetByID(_ context.Context, input *getUserInput) (*getUserOutput, error) {
+	out := &getUserOutput{}
+	out.Body.ID = input.ID
+	out.Body.Name = "User-" + strconv.Itoa(input.ID)
+	return out, nil
+}
+
+func (e *UserEndpoint) Create(_ context.Context, input *createUserInput) (*createUserOutput, error) {
+	out := &createUserOutput{}
+	out.Body.ID = 1001
+	out.Body.Name = input.Body.Name
+	out.Body.Email = input.Body.Email
+	return out, nil
 }
 
 // ==================== Health Endpoint ====================
 
 // HealthEndpoint registers the health check route.
-type HealthEndpoint struct {
-	httpx.BaseEndpoint
-}
+type HealthEndpoint struct{}
 
 type healthOutput struct {
 	Body struct {
@@ -111,21 +105,21 @@ type healthOutput struct {
 	} `json:"body"`
 }
 
-// RegisterRoutes registers the health route on the server.
-func (e *HealthEndpoint) RegisterRoutes(server httpx.ServerRuntime) {
-	httpx.MustGet(server, "/health", func(_ context.Context, _ *struct{}) (*healthOutput, error) {
-		out := &healthOutput{}
-		out.Body.Status = "ok"
-		return out, nil
-	})
+// Register registers the health route on the root scope.
+func (e *HealthEndpoint) Register(registrar httpx.Registrar) {
+	httpx.MustAuto(registrar, httpx.Auto(e.GetHealth))
+}
+
+func (e *HealthEndpoint) GetHealth(_ context.Context, _ *struct{}) (*healthOutput, error) {
+	out := &healthOutput{}
+	out.Body.Status = "ok"
+	return out, nil
 }
 
 // ==================== Order Endpoint (with hooks) ====================
 
 // OrderEndpoint registers demo order routes.
-type OrderEndpoint struct {
-	httpx.BaseEndpoint
-}
+type OrderEndpoint struct{}
 
 type createOrderInput struct {
 	Body struct {
@@ -145,23 +139,23 @@ type createOrderOutput struct {
 func (e *OrderEndpoint) EndpointSpec() httpx.EndpointSpec {
 	return httpx.EndpointSpec{
 		Prefix:        "/api/v1/orders",
-		Tags:          []string{"orders", "v1"},
+		Tags:          httpx.Tags("orders", "v1"),
 		SummaryPrefix: "Orders",
 		Description:   "Order management endpoints",
 	}
 }
 
-// RegisterGroupRoutes registers the order routes on the endpoint group.
-func (e *OrderEndpoint) RegisterGroupRoutes(api *httpx.Group) {
-	httpx.MustGroupPost(api, "", func(_ context.Context, input *createOrderInput) (*createOrderOutput, error) {
-		out := &createOrderOutput{}
-		out.Body.OrderID = 5001
-		out.Body.ProductID = input.Body.ProductID
-		out.Body.Quantity = input.Body.Quantity
-		return out, nil
-	}, func(op *huma.Operation) {
-		op.Summary = "Create"
-	})
+// Register registers the order routes on the endpoint scope.
+func (e *OrderEndpoint) Register(registrar httpx.Registrar) {
+	httpx.MustAuto(registrar, httpx.Auto(e.Create))
+}
+
+func (e *OrderEndpoint) Create(_ context.Context, input *createOrderInput) (*createOrderOutput, error) {
+	out := &createOrderOutput{}
+	out.Body.OrderID = 5001
+	out.Body.ProductID = input.Body.ProductID
+	out.Body.Quantity = input.Body.Quantity
+	return out, nil
 }
 
 func main() {
@@ -198,16 +192,18 @@ func main() {
 
 	// 方式 2: 使用 Register 带 hook 注册单个 endpoint
 	// server.Register(&HealthEndpoint{})
-	// server.Register(&UserEndpoint{}, func(s *httpx.Server, e httpx.Endpoint) {
-	// 	fmt.Println("Registering UserEndpoint...")
+	// server.Register(&UserEndpoint{}, httpx.EndpointHooks{
+	// 	Before: func(_ httpx.ServerRuntime, _ any) {
+	// 		fmt.Println("Registering UserEndpoint...")
+	// 	},
 	// })
 	// server.Register(&OrderEndpoint{},
-	// 	func(s *httpx.Server, e httpx.Endpoint) {
+	// 	httpx.EndpointHooks{Before: func(_ httpx.ServerRuntime, _ any) {
 	// 		fmt.Println("Before OrderEndpoint registration")
-	// 	},
-	// 	func(s *httpx.Server, e httpx.Endpoint) {
+	// 	}},
+	// 	httpx.EndpointHooks{After: func(_ httpx.ServerRuntime, _ any) {
 	// 		fmt.Println("After OrderEndpoint registration")
-	// 	},
+	// 	}},
 	// )
 
 	port := randomport.MustFind()

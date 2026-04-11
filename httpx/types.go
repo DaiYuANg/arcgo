@@ -8,6 +8,7 @@ import (
 	"github.com/danielgtaylor/huma/v2"
 	humaconditional "github.com/danielgtaylor/huma/v2/conditional"
 	humasse "github.com/danielgtaylor/huma/v2/sse"
+	"github.com/samber/lo"
 )
 
 // Docs renderer constants mirror Huma's built-in renderer options.
@@ -60,8 +61,76 @@ type SSEHandler[I any] func(ctx context.Context, input *I, send SSESender)
 // OperationOption mutates a Huma operation before registration.
 type OperationOption func(*huma.Operation)
 
+// OpenAPI collection aliases keep public config typed on collectionx.
+type (
+	OpenAPITags                 = collectionx.List[string]
+	OpenAPITagDefinitions       = collectionx.List[*huma.Tag]
+	OpenAPIParameters           = collectionx.List[*huma.Param]
+	OpenAPIExtensions           = collectionx.Map[string, any]
+	OpenAPISecurityScopes       = collectionx.List[string]
+	OpenAPISecurityRequirement  = collectionx.Map[string, OpenAPISecurityScopes]
+	OpenAPISecurityRequirements = collectionx.List[OpenAPISecurityRequirement]
+	OpenAPISecuritySchemes      = collectionx.Map[string, *huma.SecurityScheme]
+)
+
+// Tags creates an OpenAPI tag list backed by collectionx.
+func Tags(values ...string) OpenAPITags {
+	return collectionx.NewList(values...)
+}
+
+// TagDefinitions creates OpenAPI tag metadata definitions backed by collectionx.
+func TagDefinitions(values ...*huma.Tag) OpenAPITagDefinitions {
+	return collectionx.NewList(values...)
+}
+
+// Parameters creates an OpenAPI parameter list backed by collectionx.
+func Parameters(values ...*huma.Param) OpenAPIParameters {
+	return collectionx.NewList(values...)
+}
+
+// Extensions creates an OpenAPI extension map backed by collectionx.
+func Extensions(values map[string]any) OpenAPIExtensions {
+	return collectionx.NewMapFrom(values)
+}
+
+// SecurityScopes creates an OpenAPI scope list backed by collectionx.
+func SecurityScopes(values ...string) OpenAPISecurityScopes {
+	return collectionx.NewList(values...)
+}
+
+// SecurityRequirement creates one OpenAPI security requirement entry.
+func SecurityRequirement(name string, scopes ...string) OpenAPISecurityRequirement {
+	requirement := collectionx.NewMap[string, OpenAPISecurityScopes]()
+	if name != "" {
+		requirement.Set(name, SecurityScopes(scopes...))
+	}
+	return requirement
+}
+
+// SecurityRequirementMap creates one OpenAPI security requirement from a built-in map.
+func SecurityRequirementMap(values map[string][]string) OpenAPISecurityRequirement {
+	requirement := collectionx.NewMapWithCapacity[string, OpenAPISecurityScopes](len(values))
+	lo.ForEach(lo.Entries(values), func(entry lo.Entry[string, []string], _ int) {
+		if entry.Key == "" {
+			return
+		}
+		requirement.Set(entry.Key, SecurityScopes(entry.Value...))
+	})
+	return requirement
+}
+
+// SecurityRequirements creates a list of OpenAPI security requirements backed by collectionx.
+func SecurityRequirements(values ...OpenAPISecurityRequirement) OpenAPISecurityRequirements {
+	return collectionx.NewList(values...)
+}
+
+// SecuritySchemes creates an OpenAPI security scheme map backed by collectionx.
+func SecuritySchemes(values map[string]*huma.SecurityScheme) OpenAPISecuritySchemes {
+	return collectionx.NewMapFrom(values)
+}
+
 // SecurityOptions configures OpenAPI security schemes and default requirements.
 type SecurityOptions struct {
-	Schemes      map[string]*huma.SecurityScheme
-	Requirements []map[string][]string
+	Schemes      OpenAPISecuritySchemes
+	Requirements OpenAPISecurityRequirements
 }

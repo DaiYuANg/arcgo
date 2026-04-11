@@ -100,15 +100,16 @@ func (s *Server) RegisterSecurityScheme(name string, scheme *huma.SecurityScheme
 }
 
 // SetDefaultSecurity configures top-level OpenAPI security requirements.
-func (s *Server) SetDefaultSecurity(requirements ...map[string][]string) {
+func (s *Server) SetDefaultSecurity(requirements OpenAPISecurityRequirements) {
 	if s == nil {
 		return
 	}
 	if !s.allowConfigMutation("SetDefaultSecurity") {
 		return
 	}
+	expanded := expandSecurityRequirements(requirements)
 	s.ConfigureOpenAPI(func(doc *huma.OpenAPI) {
-		doc.Security = cloneSecurityRequirements(requirements)
+		doc.Security = cloneBuiltInSecurityRequirements(expanded)
 	})
 }
 

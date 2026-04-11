@@ -74,7 +74,7 @@ func newAuthServer() httpx.ServerRuntime {
 		httpx.WithBasePath("/api"),
 		httpx.WithOpenAPIInfo("httpx auth example", "1.0.0", "Authentication, security schemes, and custom headers"),
 		httpx.WithSecurity(httpx.SecurityOptions{
-			Schemes: map[string]*huma.SecurityScheme{
+			Schemes: httpx.SecuritySchemes(map[string]*huma.SecurityScheme{
 				"BearerAuth": {
 					Type:         "http",
 					Scheme:       "bearer",
@@ -87,7 +87,7 @@ func newAuthServer() httpx.ServerRuntime {
 					Name:        "X-API-Key",
 					Description: "API key authentication",
 				},
-			},
+			}),
 		}),
 	)
 }
@@ -107,14 +107,14 @@ func registerAuthRoutes(server httpx.ServerRuntime) {
 	}, huma.OperationTags("system"))
 
 	secure := server.Group("/secure")
-	secure.RegisterTags(
+	secure.RegisterTags(httpx.TagDefinitions(
 		&huma.Tag{Name: "auth", Description: "Authentication examples"},
-	)
-	secure.DefaultTags("auth")
-	secure.DefaultSecurity(
-		map[string][]string{"BearerAuth": {}},
-		map[string][]string{"ApiKeyAuth": {}},
-	)
+	))
+	secure.DefaultTags(httpx.Tags("auth"))
+	secure.DefaultSecurity(httpx.SecurityRequirements(
+		httpx.SecurityRequirement("BearerAuth"),
+		httpx.SecurityRequirement("ApiKeyAuth"),
+	))
 	secure.DefaultDescription("Endpoints demonstrating documented authentication headers")
 
 	httpx.MustGroupGet(secure, "/profile", func(_ context.Context, input *profileInput) (*profileOutput, error) {

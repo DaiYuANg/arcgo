@@ -70,15 +70,15 @@ func newOrganizationServer() httpx.ServerRuntime {
 		httpx.WithBasePath("/api"),
 		httpx.WithOpenAPIInfo("httpx organization example", "1.0.0", "Docs, security, and group defaults"),
 		httpx.WithSecurity(httpx.SecurityOptions{
-			Schemes: map[string]*huma.SecurityScheme{
+			Schemes: httpx.SecuritySchemes(map[string]*huma.SecurityScheme{
 				"bearerAuth": {
 					Type:   "http",
 					Scheme: "bearer",
 				},
-			},
-			Requirements: []map[string][]string{
-				{"bearerAuth": {}},
-			},
+			}),
+			Requirements: httpx.SecurityRequirements(
+				httpx.SecurityRequirement("bearerAuth"),
+			),
 		}),
 	)
 }
@@ -110,25 +110,25 @@ func registerOrganizationRoutes(server httpx.ServerRuntime) {
 }
 
 func configureAdminGroup(admin *httpx.Group) {
-	admin.RegisterTags(
+	admin.RegisterTags(httpx.TagDefinitions(
 		&huma.Tag{Name: "admin", Description: "Administrative APIs"},
 		&huma.Tag{Name: "tenants", Description: "Tenant management"},
-	)
-	admin.DefaultTags("admin", "tenants")
-	admin.DefaultSecurity(map[string][]string{"bearerAuth": {}})
-	admin.DefaultParameters(&huma.Param{
+	))
+	admin.DefaultTags(httpx.Tags("admin", "tenants"))
+	admin.DefaultSecurity(httpx.SecurityRequirements(httpx.SecurityRequirement("bearerAuth")))
+	admin.DefaultParameters(httpx.Parameters(&huma.Param{
 		Name:        "X-Tenant",
 		In:          "header",
 		Description: "tenant scope",
 		Schema:      &huma.Schema{Type: "string"},
-	})
+	}))
 	admin.DefaultSummaryPrefix("Admin")
 	admin.DefaultDescription("Administrative operations with shared docs metadata")
 	admin.DefaultExternalDocs(&huma.ExternalDocs{
 		Description: "Admin handbook",
 		URL:         "https://example.com/admin-handbook",
 	})
-	admin.DefaultExtensions(map[string]any{
+	admin.DefaultExtensions(httpx.Extensions(map[string]any{
 		"x-owner": "platform",
-	})
+	}))
 }

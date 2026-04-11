@@ -20,7 +20,7 @@ go get github.com/DaiYuANg/arcgo/httpx@latest
 
 - 跨适配器统一的强类型路由注册（`Get`/`Post`/`Put`/`Patch`/`Delete`...）
 - 运行时适配器集成（`std`、`gin`、`echo`、`fiber`）
-- endpoint/module 组织能力，支持作用域级默认元信息（`Endpoint`、`GroupEndpoint`、`EndpointSpec`）
+- endpoint/module 组织能力，支持作用域 registrar、默认元信息和受限 auto 语法糖（`Endpoint`、`Registrar`、`EndpointSpec`、`Auto`）
 - 一等 OpenAPI 与文档控制（文档路由暴露由 adapter 负责）
 - 强类型 SSE（`GetSSE`、`GroupGetSSE`）
 - 基于 policy 的路由能力（`RouteWithPolicies`、`GroupRouteWithPolicies`）

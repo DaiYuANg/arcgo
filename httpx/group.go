@@ -15,8 +15,30 @@ type Group struct {
 	humaGroup *huma.Group
 }
 
+var _ Registrar = (*Group)(nil)
+
 // Group creates a prefixed route group under the server base path.
 func (s *Server) Group(prefix string) *Group {
+	return newServerGroup(s, prefix)
+}
+
+// Scope returns the current group scope.
+func (g *Group) Scope() *Group {
+	if g == nil {
+		return nil
+	}
+	return g
+}
+
+// Group creates a nested group under the current scope.
+func (g *Group) Group(prefix string) *Group {
+	if g == nil {
+		return nil
+	}
+	return newNestedGroup(g, prefix)
+}
+
+func newServerGroup(s *Server, prefix string) *Group {
 	normalizedPrefix := normalizeRoutePrefix(prefix)
 	var humaGroup *huma.Group
 	if api := s.HumaAPI(); api != nil {
@@ -25,6 +47,25 @@ func (s *Server) Group(prefix string) *Group {
 	return &Group{
 		server:    s,
 		prefix:    normalizedPrefix,
+		humaGroup: humaGroup,
+	}
+}
+
+func newNestedGroup(parent *Group, prefix string) *Group {
+	normalizedPrefix := normalizeRoutePrefix(prefix)
+	fullPrefix := joinRoutePath(parent.prefix, normalizedPrefix)
+
+	var humaGroup *huma.Group
+	switch {
+	case parent.humaGroup != nil:
+		humaGroup = huma.NewGroup(parent.humaGroup, normalizedPrefix)
+	case parent.server != nil && parent.server.HumaAPI() != nil:
+		humaGroup = huma.NewGroup(parent.server.HumaAPI(), joinRoutePath(parent.server.basePath, fullPrefix))
+	}
+
+	return &Group{
+		server:    parent.server,
+		prefix:    fullPrefix,
 		humaGroup: humaGroup,
 	}
 }
@@ -82,16 +123,20 @@ func (g *Group) UseResponseTransformer(transformers ...huma.Transformer) {
 }
 
 // DefaultTags applies group-level default tags to future operations.
-func (g *Group) DefaultTags(tags ...string) {
-	if g == nil || g.humaGroup == nil || len(tags) == 0 {
+func (g *Group) DefaultTags(tags OpenAPITags) {
+	if g == nil || g.humaGroup == nil || tags.IsEmpty() {
 		return
 	}
 	if !g.server.allowConfigMutation("Group.DefaultTags") {
 		return
 	}
+	expandedTags := expandTags(tags)
+	if len(expandedTags) == 0 {
+		return
+	}
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
 		existing := set.NewSet(op.Tags...)
-		newTags := lo.Filter(tags, func(tag string, _ int) bool {
+		newTags := lo.Filter(expandedTags, func(tag string, _ int) bool {
 			return tag != "" && !existing.Contains(tag)
 		})
 		op.Tags = lo.Concat(op.Tags, newTags)
@@ -99,35 +144,33 @@ func (g *Group) DefaultTags(tags ...string) {
 }
 
 // DefaultSecurity applies group-level default security to operations that do not override it.
-func (g *Group) DefaultSecurity(requirements ...map[string][]string) {
-	if g == nil || g.humaGroup == nil || len(requirements) == 0 {
+func (g *Group) DefaultSecurity(requirements OpenAPISecurityRequirements) {
+	if g == nil || g.humaGroup == nil || requirements.IsEmpty() {
 		return
 	}
 	if !g.server.allowConfigMutation("Group.DefaultSecurity") {
 		return
 	}
-	cloned := cloneSecurityRequirements(requirements)
+	cloned := expandSecurityRequirements(requirements)
+	if len(cloned) == 0 {
+		return
+	}
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
 		if len(op.Security) == 0 {
-			op.Security = cloneSecurityRequirements(cloned)
+			op.Security = cloneBuiltInSecurityRequirements(cloned)
 		}
 	})
 }
 
 // DefaultParameters applies group-level parameters to future operations.
-func (g *Group) DefaultParameters(params ...*huma.Param) {
-	if g == nil || g.humaGroup == nil || len(params) == 0 {
+func (g *Group) DefaultParameters(params OpenAPIParameters) {
+	if g == nil || g.humaGroup == nil || params.IsEmpty() {
 		return
 	}
 	if !g.server.allowConfigMutation("Group.DefaultParameters") {
 		return
 	}
-	cloned := lo.FilterMap(params, func(param *huma.Param, _ int) (*huma.Param, bool) {
-		if param == nil {
-			return nil, false
-		}
-		return cloneParam(param), true
-	})
+	cloned := expandParameters(params)
 	if len(cloned) == 0 {
 		return
 	}
@@ -176,14 +219,14 @@ func (g *Group) DefaultDescription(description string) {
 }
 
 // RegisterTags adds OpenAPI tag metadata for this group context.
-func (g *Group) RegisterTags(tags ...*huma.Tag) {
-	if g == nil || g.server == nil || len(tags) == 0 {
+func (g *Group) RegisterTags(tags OpenAPITagDefinitions) {
+	if g == nil || g.server == nil || tags.IsEmpty() {
 		return
 	}
 	if !g.server.allowConfigMutation("Group.RegisterTags") {
 		return
 	}
-	lo.ForEach(tags, func(tag *huma.Tag, _ int) {
+	lo.ForEach(expandTagDefinitions(tags), func(tag *huma.Tag, _ int) {
 		if tag != nil {
 			g.server.AddTag(tag)
 		}
@@ -208,14 +251,17 @@ func (g *Group) DefaultExternalDocs(docs *huma.ExternalDocs) {
 }
 
 // DefaultExtensions applies group-level OpenAPI extensions to future operations.
-func (g *Group) DefaultExtensions(extensions map[string]any) {
-	if g == nil || g.humaGroup == nil || len(extensions) == 0 {
+func (g *Group) DefaultExtensions(extensions OpenAPIExtensions) {
+	if g == nil || g.humaGroup == nil || extensions.IsEmpty() {
 		return
 	}
 	if !g.server.allowConfigMutation("Group.DefaultExtensions") {
 		return
 	}
-	cloned := cloneExtensions(extensions)
+	cloned := expandExtensions(extensions)
+	if len(cloned) == 0 {
+		return
+	}
 	g.humaGroup.UseSimpleModifier(func(op *huma.Operation) {
 		if op.Extensions == nil {
 			op.Extensions = map[string]any{}

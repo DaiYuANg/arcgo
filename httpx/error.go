@@ -67,6 +67,11 @@ func IsInvalidEndpoint(err error) bool {
 	return errors.Is(err, ErrInvalidEndpoint)
 }
 
+// IsInvalidHandlerName reports whether the error wraps `ErrInvalidHandlerName`.
+func IsInvalidHandlerName(err error) bool {
+	return errors.Is(err, ErrInvalidHandlerName)
+}
+
 // IsInvalidHandlerSignature reports whether the error wraps `ErrInvalidHandlerSig`.
 func IsInvalidHandlerSignature(err error) bool {
 	return errors.Is(err, ErrInvalidHandlerSig)

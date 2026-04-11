@@ -31,7 +31,7 @@ type ServerRuntime interface {
 	UseOperationModifier(func(*huma.Operation))
 	AddTag(*huma.Tag)
 	RegisterSecurityScheme(name string, scheme *huma.SecurityScheme)
-	SetDefaultSecurity(requirements ...map[string][]string)
+	SetDefaultSecurity(requirements OpenAPISecurityRequirements)
 	RegisterComponentParameter(name string, param *huma.Param)
 	RegisterComponentHeader(name string, header *huma.Param)
 	RegisterGlobalParameter(*huma.Param)
@@ -45,8 +45,8 @@ type ServerRuntime interface {
 	MatchRoute(method, path string) (RouteInfo, bool)
 	HasRoute(method, path string) bool
 	RouteCount() int
-	Register(endpoint Endpoint, hooks ...EndpointHooks)
-	RegisterOnly(endpoints ...Endpoint)
+	Register(endpoint any, hooks ...EndpointHooks)
+	RegisterOnly(endpoints ...any)
 
 	IsFrozen() bool
 	asServer() *Server

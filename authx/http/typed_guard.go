@@ -73,16 +73,12 @@ func (guard *TypedGuard[C, P]) Check(
 
 	credential, err := guard.credentialResolver(ctx, req)
 	if err != nil {
-		return authx.AuthenticationResult{}, oops.In("authx/http").
-			With("op", "resolve_credential", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "resolve request credential")
+		return authx.AuthenticationResult{}, wrapRequestError("resolve_credential", req, err, "resolve request credential")
 	}
 
 	result, checkErr := guard.engine.Check(ctx, credential)
 	if checkErr != nil {
-		return authx.AuthenticationResult{}, oops.In("authx/http").
-			With("op", "check", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(checkErr, "check request credential")
+		return authx.AuthenticationResult{}, wrapRequestError("check", req, checkErr, "check request credential")
 	}
 	return result, nil
 }
@@ -102,16 +98,12 @@ func (guard *TypedGuard[C, P]) Can(
 
 	model, err := guard.authorizationResolver(ctx, req, principal)
 	if err != nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "resolve_authorization", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "resolve authorization model")
+		return authx.Decision{}, wrapRequestError("resolve_authorization", req, err, "resolve authorization model")
 	}
 
 	decision, canErr := guard.engine.Can(ctx, model)
 	if canErr != nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "authorize", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(canErr, "authorize request")
+		return authx.Decision{}, wrapRequestError("authorize", req, canErr, "authorize request")
 	}
 	return decision, nil
 }
@@ -145,16 +137,12 @@ func (guard *TypedGuard[C, P]) requireTyped(
 	var zeroPrincipal P
 
 	if err := guard.validateRequireReady(); err != nil {
-		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, oops.In("authx/http").
-			With("op", "require", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "validate typed guard")
+		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, wrapRequestError("require", req, err, "validate typed guard")
 	}
 
 	credential, err := guard.credentialResolver(ctx, req)
 	if err != nil {
-		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, oops.In("authx/http").
-			With("op", "resolve_credential", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "resolve request credential")
+		return authx.AuthenticationResult{}, zeroPrincipal, authx.Decision{}, wrapRequestError("resolve_credential", req, err, "resolve request credential")
 	}
 
 	result, principal, err := guard.checkTyped(ctx, req, credential)
@@ -218,9 +206,7 @@ func (guard *TypedGuard[C, P]) checkTyped(
 
 	result, err := guard.engine.Check(ctx, credential)
 	if err != nil {
-		return authx.AuthenticationResult{}, zeroPrincipal, oops.In("authx/http").
-			With("op", "check", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "check request credential")
+		return authx.AuthenticationResult{}, zeroPrincipal, wrapRequestError("check", req, err, "check request credential")
 	}
 
 	principal, principalErr := principalFromResult[P](result)
@@ -247,16 +233,12 @@ func (guard *TypedGuard[C, P]) authorizeTyped(
 ) (authx.Decision, error) {
 	model, err := guard.authorizationResolver(ctx, req, principal)
 	if err != nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "resolve_authorization", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "resolve authorization model")
+		return authx.Decision{}, wrapRequestError("resolve_authorization", req, err, "resolve authorization model")
 	}
 
 	decision, err := guard.engine.Can(ctx, model)
 	if err != nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "authorize", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "authorize request")
+		return authx.Decision{}, wrapRequestError("authorize", req, err, "authorize request")
 	}
 
 	return decision, nil

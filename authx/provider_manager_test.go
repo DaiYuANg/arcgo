@@ -81,9 +81,32 @@ func TestProviderManagerVariadicRegister(t *testing.T) {
 	assert.Equal(t, 42, res.Principal)
 }
 
+func TestProviderManagerZeroValueRegister(t *testing.T) {
+	provider := authx.NewAuthenticationProviderFunc[string](
+		func(_ context.Context, credential string) (authx.AuthenticationResult, error) {
+			return authx.AuthenticationResult{Principal: "user:" + credential}, nil
+		},
+	)
+
+	var manager authx.ProviderManager
+	manager.Register(provider)
+
+	res, err := manager.Authenticate(context.Background(), "alice")
+	require.NoError(t, err)
+	assert.Equal(t, "user:alice", res.Principal)
+}
+
 func TestProviderManagerRejectsNilCredential(t *testing.T) {
 	manager := authx.NewProviderManager()
 	_, err := manager.Authenticate(context.Background(), nil)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, authx.ErrInvalidAuthenticationCredential)
+}
+
+func TestProviderManagerRejectsNilTypedProvider(t *testing.T) {
+	manager := authx.NewProviderManager(authx.NewAuthenticationProvider[string](nil))
+
+	_, err := manager.Authenticate(context.Background(), "alice")
+	require.Error(t, err)
+	assert.ErrorIs(t, err, authx.ErrUnauthenticated)
 }

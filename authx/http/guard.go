@@ -66,28 +66,20 @@ func (guard *Guard) Check(
 	req RequestInfo,
 ) (authx.AuthenticationResult, error) {
 	if guard == nil || guard.engine == nil {
-		return authx.AuthenticationResult{}, oops.In("authx/http").
-			With("op", "check", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrNilEngine, "validate guard engine")
+		return authx.AuthenticationResult{}, wrapRequestError("check", req, ErrNilEngine, "validate guard engine")
 	}
 	if guard.credentialResolver == nil {
-		return authx.AuthenticationResult{}, oops.In("authx/http").
-			With("op", "check", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrCredentialResolverNotConfigured, "validate credential resolver")
+		return authx.AuthenticationResult{}, wrapRequestError("check", req, ErrCredentialResolverNotConfigured, "validate credential resolver")
 	}
 
 	credential, err := guard.credentialResolver(ctx, req)
 	if err != nil {
-		return authx.AuthenticationResult{}, oops.In("authx/http").
-			With("op", "resolve_credential", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "resolve request credential")
+		return authx.AuthenticationResult{}, wrapRequestError("resolve_credential", req, err, "resolve request credential")
 	}
 
 	result, err := guard.engine.Check(ctx, credential)
 	if err != nil {
-		return authx.AuthenticationResult{}, oops.In("authx/http").
-			With("op", "check", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "check request credential")
+		return authx.AuthenticationResult{}, wrapRequestError("check", req, err, "check request credential")
 	}
 	return result, nil
 }
@@ -99,33 +91,23 @@ func (guard *Guard) Can(
 	principal any,
 ) (authx.Decision, error) {
 	if guard == nil || guard.engine == nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "authorize", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrNilEngine, "validate guard engine")
+		return authx.Decision{}, wrapRequestError("authorize", req, ErrNilEngine, "validate guard engine")
 	}
 	if guard.authorizationResolver == nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "authorize", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrAuthorizationResolverNotConfigured, "validate authorization resolver")
+		return authx.Decision{}, wrapRequestError("authorize", req, ErrAuthorizationResolverNotConfigured, "validate authorization resolver")
 	}
 	if principal == nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "authorize", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrPrincipalNotFound, "validate principal")
+		return authx.Decision{}, wrapRequestError("authorize", req, ErrPrincipalNotFound, "validate principal")
 	}
 
 	model, err := guard.authorizationResolver(ctx, req, principal)
 	if err != nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "resolve_authorization", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "resolve authorization model")
+		return authx.Decision{}, wrapRequestError("resolve_authorization", req, err, "resolve authorization model")
 	}
 
 	decision, err := guard.engine.Can(ctx, model)
 	if err != nil {
-		return authx.Decision{}, oops.In("authx/http").
-			With("op", "authorize", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "authorize request")
+		return authx.Decision{}, wrapRequestError("authorize", req, err, "authorize request")
 	}
 	return decision, nil
 }
@@ -136,54 +118,44 @@ func (guard *Guard) Require(
 	req RequestInfo,
 ) (authx.AuthenticationResult, authx.Decision, error) {
 	if guard == nil || guard.engine == nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, oops.In("authx/http").
-			With("op", "require", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrNilEngine, "validate guard engine")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("require", req, ErrNilEngine, "validate guard engine")
 	}
 	if guard.credentialResolver == nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, oops.In("authx/http").
-			With("op", "require", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrCredentialResolverNotConfigured, "validate credential resolver")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("require", req, ErrCredentialResolverNotConfigured, "validate credential resolver")
 	}
 	if guard.authorizationResolver == nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, oops.In("authx/http").
-			With("op", "require", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrAuthorizationResolverNotConfigured, "validate authorization resolver")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("require", req, ErrAuthorizationResolverNotConfigured, "validate authorization resolver")
 	}
 
 	credential, err := guard.credentialResolver(ctx, req)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, oops.In("authx/http").
-			With("op", "resolve_credential", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "resolve request credential")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("resolve_credential", req, err, "resolve request credential")
 	}
 
 	result, err := guard.engine.Check(ctx, credential)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, oops.In("authx/http").
-			With("op", "check", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "check request credential")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("check", req, err, "check request credential")
 	}
 
 	if result.Principal == nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, oops.In("authx/http").
-			With("op", "require", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(ErrPrincipalNotFound, "extract principal from authentication result")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("require", req, ErrPrincipalNotFound, "extract principal from authentication result")
 	}
 
 	model, err := guard.authorizationResolver(ctx, req, result.Principal)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, oops.In("authx/http").
-			With("op", "resolve_authorization", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "resolve authorization model")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("resolve_authorization", req, err, "resolve authorization model")
 	}
 
 	decision, err := guard.engine.Can(ctx, model)
 	if err != nil {
-		return authx.AuthenticationResult{}, authx.Decision{}, oops.In("authx/http").
-			With("op", "authorize", "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
-			Wrapf(err, "authorize request")
+		return authx.AuthenticationResult{}, authx.Decision{}, wrapRequestError("authorize", req, err, "authorize request")
 	}
 
 	return result, decision, nil
+}
+
+func wrapRequestError(op string, req RequestInfo, err error, message string) error {
+	return oops.In("authx/http").
+		With("op", op, "method", req.Method, "path", req.Path, "route_pattern", req.RoutePattern).
+		Wrapf(err, "%s", message)
 }

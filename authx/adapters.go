@@ -49,6 +49,9 @@ type typedProviderAdapter[C any] struct {
 }
 
 func (adapter *typedProviderAdapter[C]) CredentialType() reflect.Type {
+	if adapter == nil || adapter.credentialType == nil {
+		return reflect.TypeFor[C]()
+	}
 	return adapter.credentialType
 }
 
@@ -56,13 +59,19 @@ func (adapter *typedProviderAdapter[C]) AuthenticateAny(
 	ctx context.Context,
 	credential any,
 ) (AuthenticationResult, error) {
+	credentialType := adapter.CredentialType()
+	if adapter == nil || adapter.provider == nil {
+		return AuthenticationResult{}, oops.In("authx").
+			With("op", "authenticate", "stage", "validate_provider", "credential_type", credentialType).
+			Wrapf(ErrUnauthenticated, "authentication provider is nil")
+	}
 	typedCredential, ok := credential.(C)
 	if !ok {
 		return AuthenticationResult{}, oops.In("authx").
 			With(
 				"op", "authenticate",
 				"stage", "cast_credential",
-				"credential_type", adapter.credentialType,
+				"credential_type", credentialType,
 				"actual_credential_type", reflect.TypeOf(credential),
 			).
 			Wrapf(ErrInvalidAuthenticationCredential, "cast authentication credential")
@@ -70,7 +79,7 @@ func (adapter *typedProviderAdapter[C]) AuthenticateAny(
 	result, err := adapter.provider.Authenticate(ctx, typedCredential)
 	if err != nil {
 		return AuthenticationResult{}, oops.In("authx").
-			With("op", "authenticate", "credential_type", adapter.credentialType.String()).
+			With("op", "authenticate", "credential_type", credentialType.String()).
 			Wrapf(err, "authenticate credential")
 	}
 	return result, nil

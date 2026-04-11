@@ -4,21 +4,19 @@ import (
 	"context"
 	"errors"
 	"reflect"
-	"sync"
 
-	"github.com/samber/lo"
+	collectionmapping "github.com/DaiYuANg/arcgo/collectionx/mapping"
 	"github.com/samber/oops"
 )
 
 // ProviderManager routes authentication credential to provider by credential concrete type.
 type ProviderManager struct {
-	mu        sync.RWMutex
-	providers map[reflect.Type]AuthenticationProvider
+	providers collectionmapping.ConcurrentMap[reflect.Type, AuthenticationProvider]
 }
 
 // NewProviderManager constructs a ProviderManager and registers providers.
 func NewProviderManager(providers ...AuthenticationProvider) *ProviderManager {
-	manager := &ProviderManager{providers: make(map[reflect.Type]AuthenticationProvider)}
+	manager := &ProviderManager{}
 	manager.Register(providers...)
 	return manager
 }
@@ -29,18 +27,16 @@ func (manager *ProviderManager) Register(providers ...AuthenticationProvider) {
 		return
 	}
 
-	manager.mu.Lock()
-	defer manager.mu.Unlock()
-	lo.ForEach(providers, func(provider AuthenticationProvider, _ int) {
+	for _, provider := range providers {
 		if provider == nil {
-			return
+			continue
 		}
 		credentialType := provider.CredentialType()
 		if credentialType == nil {
-			return
+			continue
 		}
-		manager.providers[credentialType] = provider
-	})
+		manager.providers.Set(credentialType, provider)
+	}
 }
 
 // Authenticate dispatches credential to the registered provider for its concrete type.
@@ -60,10 +56,8 @@ func (manager *ProviderManager) Authenticate(
 	}
 
 	credentialType := reflect.TypeOf(credential)
-	manager.mu.RLock()
-	provider, ok := manager.providers[credentialType]
-	providerCount := len(manager.providers)
-	manager.mu.RUnlock()
+	provider, ok := manager.providers.Get(credentialType)
+	providerCount := manager.providers.Len()
 	if !ok {
 		return AuthenticationResult{}, oops.In("authx").
 			With(

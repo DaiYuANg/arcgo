@@ -13,7 +13,7 @@ tool (
 
 require (
 	github.com/Masterminds/semver/v3 v3.4.0
-	github.com/go-git/go-git/v5 v5.17.2
+	github.com/go-git/go-git/v5 v5.18.0
 	github.com/goyek/goyek/v3 v3.0.1
 	github.com/goyek/x v0.4.0
 	github.com/samber/lo v1.53.0
